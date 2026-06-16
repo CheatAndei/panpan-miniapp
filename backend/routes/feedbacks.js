@@ -1,0 +1,194 @@
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const { getDB } = require('../db/init');
+const router = express.Router();
+const { JWT_SECRET } = require('../config');
+
+function auth(req, res, next) {
+  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
+  catch { res.status(401).json({ error: '登录过期' }); }
+}
+
+// AI生成班级反馈
+router.post('/generate-class', auth, async (req, res) => {
+  const { grade, subject, lesson, topic, perfScore, homework } = req.body;
+  const prompt = `你是教培老师，写一段发家长群的课后反馈。无空行，模块用 --- 分隔。
+
+信息：${grade} ${subject} ${lesson||''} 课题《${topic||'未设定'}》课堂表现${perfScore||5}/10 作业:${homework||'无'}
+
+格式（严格按此）：
+各位家长好📘
+${grade} ${lesson||''} ${topic||''}
+---
+📖 本讲重点
+· 知识点1
+· 知识点2
+· 知识点3
+---
+[加油]课堂表现
+[一段话，根据分数写。8-10分肯定为主，5-7分有进步空间，1-4分温和提醒。说具体表现不要说空话]
+---
+📚 作业说明
+${homework||'请查看群内通知'}
+---
+[一句鼓励收尾，体现学科价值]
+
+要求：200-300字，不要空行，知识点准确。返回纯文本。`;
+
+  try {
+    const text = await callAI(prompt);
+    res.json({ text });
+  } catch(e) { res.status(500).json({ error: '生成失败' }); }
+});
+
+// 批量生成学生反馈 — 全班一次 API
+router.post('/generate-student-batch', auth, async (req, res) => {
+  const { students, classInfo } = req.body;
+  if (!students || students.length === 0) return res.status(400).json({ error: '没有学生数据' });
+
+  const list = students.map((s, i) =>
+    `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 出门测${s.quizScore||5}/10 | ${s.note||''} | 性格:${s.personality||'无'}`
+  ).join('\n');
+
+  const prompt = `你为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}，整体表现${classInfo?.perfScore||5}/10。
+
+学生列表：
+${list}
+
+要求：
+1. 每人一段约180字，格式：[emoji]+名字+换行+正文+鼓励emoji
+2. 开头emoji每人不同：🎯🌟💡🔥💎🚀🐣🎨🏆🎵✨⭐🧸✏️🌱🎪中选不重复
+3. 每人切入角度必须不同——有的从出门测切入，有的从性格切入，有的从进步切入
+4. 性格只作语气参考，正文不要写"你是个xxx的孩子"
+5. 禁止套话："表现不错""继续努力""态度端正"
+6. 知识点放中间或结尾
+
+返回JSON：{"results":[{"id":0,"feedback":"..."}]}`;
+
+  try {
+    const text = await callAI(prompt);
+    const json = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const data = JSON.parse(json);
+    data.results.forEach((r, i) => { if (students[i]) r.name = students[i].name; });
+    res.json(data);
+  } catch(e) { res.status(500).json({ error: '批量生成失败' }); }
+});
+
+// 单个学生反馈（重生成用）
+router.post('/generate-student', auth, async (req, res) => {
+  const { name, level, personality, quizScore, note, content, perfScore } = req.body;
+  const prompt = `你是教培老师，为一位学生写课后反馈。一段话约180字。
+
+本课：${content||'无'}，整体表现${perfScore||5}/10
+学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}
+出门测大致水平：${quizScore||5}/10，${note||'无特殊说明'}
+
+要求：emoji+名字+换行+正文+鼓励emoji。具体不套话。返回纯文本。`;
+
+  try {
+    const text = await callAI(prompt);
+    res.json({ text });
+  } catch(e) { res.status(500).json({ error: '生成失败' }); }
+});
+
+// 发布反馈
+router.post('/publish', auth, async (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const { class_id, class_date, class_feedback, homework, students } = req.body;
+  const db = getDB();
+  // 保存班级反馈 + 每个学生的反馈
+  const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, class_date, summary, homework, student_feedbacks) VALUES (?,?,?,?,?,?)', [req.user.id, class_id, class_date, class_feedback, homework||'', JSON.stringify(students||[])]);
+  try { require('./notify').notifyFeedback(class_id); } catch(e) {}
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+// 家长查反馈列表
+// 上传反馈图片
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const allowedImageTypes = new Map([
+  ['image/jpeg', '.jpg'],
+  ['image/png', '.png'],
+  ['image/webp', '.webp']
+]);
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => cb(null, crypto.randomUUID() + allowedImageTypes.get(file.mimetype))
+  }),
+  fileFilter: (req, file, cb) => {
+    if (!allowedImageTypes.has(file.mimetype)) return cb(new Error('仅支持 JPG/PNG/WebP 图片'));
+    cb(null, true);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+router.post('/upload-image', auth, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '未选择文件' });
+  res.json({ url: '/uploads/'+req.file.filename });
+});
+
+router.get('/latest', auth, (req, res) => {
+  const db = getDB();
+  const { class_id } = req.query;
+  let fb;
+  if (class_id) {
+    if (req.user.role === 'teacher') {
+      fb = db.get('SELECT f.* FROM feedbacks f WHERE f.class_id=? AND f.teacher_id=? ORDER BY f.created_at DESC LIMIT 1', [class_id, req.user.id]);
+    } else {
+      fb = db.get('SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE f.class_id=? AND b.parent_id=? ORDER BY f.created_at DESC LIMIT 1', [class_id, req.user.id]);
+    }
+  } else {
+    fb = db.get('SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY f.created_at DESC LIMIT 1', [req.user.id]);
+  }
+  res.json({ feedback: fb || null });
+});
+
+router.get('/list', auth, (req, res) => {
+  const db = getDB();
+  const { class_id } = req.query;
+  let sql,params;
+  if (class_id) {
+    if (req.user.role === 'teacher') {
+      sql = 'SELECT * FROM feedbacks WHERE class_id=? AND teacher_id=? ORDER BY created_at DESC LIMIT 30';
+      params = [class_id, req.user.id];
+    } else {
+      sql = 'SELECT DISTINCT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE f.class_id=? AND b.parent_id=? ORDER BY f.created_at DESC LIMIT 30';
+      params = [class_id, req.user.id];
+    }
+  } else {
+    sql = 'SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY f.created_at DESC LIMIT 30';
+    params = [req.user.id];
+  }
+  res.json({ feedbacks: db.all(sql, params) });
+});
+
+// 家长查单条反馈详情
+router.get('/:id', auth, (req, res) => {
+  const db = getDB();
+  const sql = req.user.role === 'teacher'
+    ? 'SELECT * FROM feedbacks WHERE id=? AND teacher_id=?'
+    : 'SELECT DISTINCT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE f.id=? AND b.parent_id=?';
+  const fb = db.get(sql, [req.params.id, req.user.id]);
+  if (!fb) return res.status(404).json({ error: '不存在' });
+  res.json({ feedback: fb });
+});
+
+async function callAI(prompt) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) throw new Error('DEEPSEEK_API_KEY is required');
+  const axios = require('axios');
+  const { data } = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+    model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0.9, max_tokens: 1000
+  }, { headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' } });
+  // 去 * 号，去空行
+  return data.choices[0].message.content.replace(/\*/g, '').split('\n').filter(l=>l.trim()).join('\n');
+}
+
+module.exports = router;

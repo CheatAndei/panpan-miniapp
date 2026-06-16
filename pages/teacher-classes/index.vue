@@ -1,0 +1,240 @@
+<template>
+<view class="page">
+  <view class="hero">
+    <text class="hero-title">学习小组管理</text>
+    <text class="hero-sub">{{ classes.length }} 个学习小组 · {{ totalStudents }} 名学生</text>
+  </view>
+
+  <view v-for="c in classes" :key="c.id" class="card class-card">
+    <view class="c-header" @tap="toggleClass(c)">
+      <view>
+        <text class="c-name">{{ c.name }}</text>
+        <text class="c-meta">{{ c.grade }} · {{ c.subject }} · {{ c._students.length }}人</text>
+      </view>
+      <view class="c-actions">
+        <text class="c-toggle">{{ c._open ? '收起' : '展开' }}</text>
+        <text class="btn-xs" @tap.stop="editClass(c)">编辑</text>
+        <text class="btn-xs del" @tap.stop="delClass(c.id)">删除</text>
+      </view>
+    </view>
+
+    <view v-if="c._open">
+      <view v-if="c._students.length>0" class="stu-list">
+        <view v-for="s in c._students" :key="s.id" class="stu-row">
+          <view class="stu-info">
+            <image :src="s._avatar||(s.gender==='girl'?'/static/default-girl.png':'/static/default-boy.png')" class="s-avatar" mode="aspectFill" />
+            <text class="s-name" @tap.stop="openStudent(s)">{{ s.name }}</text>
+            <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
+          </view>
+          <text class="s-code">邀请码: {{ s.invite_code }}</text>
+          <text class="btn-xs del" @tap.stop="delStu(c,s.id)">×</text>
+        </view>
+      </view>
+      <view v-else class="empty-sm">暂无学生</view>
+      <button class="btn-add-stu" @tap="openAddStu(c)">+ 添加学生</button>
+    </view>
+  </view>
+
+  <button class="btn-primary" @tap="showAddClass=true">+ 新建学习小组</button>
+
+  <!-- 学习小组弹窗 -->
+  <view v-if="showAddClass" class="modal-mask" @tap="showAddClass=false">
+    <view class="modal" @tap.stop>
+      <view class="modal-title">{{ editingId ? '编辑学习小组' : '新建学习小组' }}</view>
+      <input v-model="cForm.name" class="input" placeholder="学习小组名称" />
+      <picker :range="grades" @change="i=>cForm.grade=grades[i.detail.value]">
+        <view class="input">{{ cForm.grade || '选择年级' }}</view>
+      </picker>
+      <picker :range="subjects" @change="i=>cForm.subject=subjects[i.detail.value]">
+        <view class="input">{{ cForm.subject || '选择学科' }}</view>
+      </picker>
+      <button class="btn-primary" @tap="createClass">确认</button>
+      <button class="btn-cancel" @tap="showAddClass=false">取消</button>
+    </view>
+  </view>
+
+  <!-- 学生弹窗 -->
+  <view v-if="showStu" class="modal-mask" @tap="showStu=false">
+    <view class="modal modal-wide" @tap.stop>
+      <view class="modal-title">添加学生 — {{ activeClass?.name }}</view>
+      <input v-model="sForm.name" class="input" placeholder="学生姓名" />
+      <view class="label">性别</view>
+      <view class="gender-row">
+        <text :class="['gender-btn',{on:sForm.gender==='boy'}]" @tap="sForm.gender='boy'">男孩</text>
+        <text :class="['gender-btn',{on:sForm.gender==='girl'}]" @tap="sForm.gender='girl'">女孩</text>
+      </view>
+      <view class="label">成绩水平</view>
+      <view class="level-btns">
+        <text v-for="lv in ['下','中下','中','中上','好']" :key="lv"
+          :class="['lv-btn',{on:sForm.level===lv}]" @tap="sForm.level=lv">{{ lv }}</text>
+      </view>
+      <view class="label">性格描述（多选，最多8个）</view>
+      <view class="trait-cats">
+        <view v-for="cat in cats" :key="cat.name" class="trait-group">
+          <text class="cat-label">{{ cat.name }}</text>
+          <view class="cat-traits">
+            <text v-for="t in cat.traits" :key="t"
+              :class="['trait-tag',{on:sForm.traits.has(t)}]"
+              @tap="toggleTrait(t)">{{ t }}</text>
+          </view>
+        </view>
+      </view>
+      <view v-if="sForm.traits.size>0" class="selected">
+        <text v-for="t in [...sForm.traits]" :key="t" class="stag">{{ t }} <text class="del-tag" @tap="toggleTrait(t)">×</text></text>
+      </view>
+      <button class="btn-primary" @tap="createStu">确认</button>
+      <button class="btn-cancel" @tap="showStu=false">取消</button>
+    </view>
+  </view>
+</view>
+</template>
+
+<script>
+import { api } from '@/utils/api';
+import { PERSONALITY_CATEGORIES, getStudentAvatar } from '@/utils/traits';
+
+const grades = ['一年级','二年级','三年级','四年级','五年级','六年级','初一','初二','初三','高一','高二','高三'];
+const subjects = ['数学','物理'];
+
+export default {
+  data() {
+    return {
+      classes: [], totalStudents: 0,
+      grades, subjects,
+      showAddClass: false, showStu: false,
+      activeClass: null,
+      cForm: { name:'', grade:'', subject:'' }, editingId: null,
+      sForm: { name:'', level:'', traits: new Set() },
+      cats: PERSONALITY_CATEGORIES
+    };
+  },
+  onShow() { this.loadData(); },
+  methods: {
+    lvClass(lv) {
+      const m = { '好':'lv-a','中上':'lv-b','中':'lv-c','中下':'lv-d','下':'lv-e' };
+      return m[lv] || '';
+    },
+    async loadData() {
+      const t = uni.getStorageSync('token'); if (!t) return;
+      try {
+        const res = await this.req('/classes');
+        this.classes = res.classes.map(c => ({ ...c, _open: false, _students: [] }));
+        this.totalStudents = 0;
+        for (const c of this.classes) {
+          try {
+            const s = await this.req('/students?class_id='+c.id);
+            c._students = (s.students || []).map(st=>({...st,_avatar:getStudentAvatar(st.personality,[],st.gender)}));
+            this.totalStudents += c._students.length;
+          } catch(e) {}
+        }
+      } catch(e) {}
+    },
+    req(path, method='GET', data) {
+      if (method === 'POST') return api.post(path, data);
+      if (method === 'PUT') return api.put(path, data);
+      if (method === 'DELETE') return api.del(path);
+      return api.get(path, data);
+    },
+    toggleClass(c) { c._open = !c._open; },
+    editClass(c){ this.editingId=c.id; this.cForm={name:c.name,grade:c.grade,subject:c.subject}; this.showAddClass=true; },
+    async createClass() {
+      if (!this.cForm.name) return uni.showToast({ title:'请输入学习小组名称', icon:'none' });
+      try {
+        if (this.editingId) {
+          await this.req('/classes/'+this.editingId,'PUT',this.cForm);
+        } else {
+          await this.req('/classes','POST',this.cForm);
+        }
+        this.showAddClass=false; this.editingId=null; this.cForm={name:'',grade:'',subject:''}; this.loadData();
+      }
+      catch(e) { uni.showToast({ title:'操作失败', icon:'none' }); }
+    },
+    async delClass(id) {
+      const r = await new Promise(r=>uni.showModal({title:'确认删除',success:r}));
+      if (!r.confirm) return;
+      try { await this.req('/classes/'+id,'DELETE'); this.loadData(); }
+      catch(e) { uni.showToast({ title:'删除失败', icon:'none' }); }
+    },
+    openAddStu(c) { this.activeClass=c; this.sForm={name:'',gender:'boy',level:'',traits:new Set()}; this.showStu=true; },
+    toggleTrait(t) {
+      if (this.sForm.traits.has(t)) { this.sForm.traits.delete(t); return; }
+      if (this.sForm.traits.size>=8) return;
+      this.sForm.traits.add(t);
+    },
+    async createStu() {
+      if (!this.sForm.name) return uni.showToast({ title:'请输入姓名', icon:'none' });
+      try {
+        await this.req('/students','POST',{
+          class_id: this.activeClass.id, name: this.sForm.name,
+          level: this.sForm.level, gender: this.sForm.gender,
+          personality: [...this.sForm.traits].join('、')
+        });
+        this.showStu=false; this.loadData();
+      } catch(e) { uni.showToast({ title:'添加失败', icon:'none' }); }
+    },
+    openStudent(s){ uni.navigateTo({ url: '/pages/student-detail/index?id='+s.id }); },
+    async delStu(c, sid) {
+      try { await this.req('/students/'+sid,'DELETE'); this.loadData(); }
+      catch(e) { uni.showToast({ title:'删除失败', icon:'none' }); }
+    }
+  }
+};
+</script>
+
+<style scoped>
+.page { padding-bottom: 80rpx; }
+.hero { padding: 30rpx; background: linear-gradient(135deg,#1A365D,#2A4A7F); color:#fff; }
+.hero-title { font-size: 38rpx; font-weight:700; display:block; }
+.hero-sub { font-size: 24rpx; opacity:.7; margin-top:6rpx; }
+
+.class-card { margin: 16rpx 20rpx; }
+.c-header { display:flex; justify-content:space-between; align-items:center; }
+.c-name { font-size:30rpx; font-weight:700; color:#1A365D; }
+.c-meta { font-size:24rpx; color:#A0AEC0; margin-left:12rpx; }
+.c-toggle { font-size:24rpx; color:#A0AEC0; margin-right:12rpx; }
+
+.stu-list { border-top:1rpx solid #F0F0F0; margin-top:12rpx; padding-top:8rpx; }
+.stu-row { display:flex; align-items:center; padding:10rpx 0; }
+.stu-info { flex:1; display:flex; align-items:center; gap:10rpx; }
+.s-name { font-weight:600; font-size:28rpx; }
+.s-avatar { width:56rpx; height:56rpx; border-radius:50%; flex-shrink:0; }
+.s-level { font-size:20rpx; padding:2rpx 10rpx; border-radius:6rpx; }
+.lv-a { background:#F0FFF4; color:#38A169; }
+.lv-b { background:#EBF8FF; color:#3182CE; }
+.lv-c { background:#FFFFF0; color:#D69E2E; }
+.lv-d { background:#FFF5F5; color:#DD6B20; }
+.lv-e { background:#FFF5F5; color:#E53E3E; }
+.s-code { font-size:22rpx; color:#D69E2E; margin-right:8rpx; }
+
+.btn-xs { padding:4rpx 10rpx; font-size:22rpx; color:#666; }
+.btn-xs.del { color:#E53E3E; }
+.btn-add-stu { margin-top:8rpx; padding:10rpx; font-size:24rpx; background:#EBF0F7; color:#1A365D; border:none; border-radius:8rpx; width:100%; }
+.empty-sm { text-align:center; color:#CBD5E0; padding:20rpx; font-size:24rpx; }
+
+.btn-primary { background:#1A365D; color:#fff; border-radius:12rpx; padding:24rpx; font-size:30rpx; text-align:center; border:none; width:100%; margin-top:20rpx; }
+.btn-cancel { background:#fff; color:#A0AEC0; border:none; padding:16rpx; font-size:26rpx; text-align:center; width:100%; }
+
+.modal-mask { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:99; display:flex; align-items:flex-end; }
+.modal { background:#fff; border-radius:24rpx 24rpx 0 0; padding:30rpx; width:100%; max-height:80vh; overflow-y:auto; }
+.modal-wide { max-height:85vh; }
+.modal-title { font-size:34rpx; font-weight:700; text-align:center; margin-bottom:24rpx; color:#1A365D; }
+.input { border:1rpx solid #E2E8F0; border-radius:10rpx; padding:18rpx; margin-bottom:16rpx; font-size:28rpx; color:#4A5568; }
+.label { font-size:26rpx; color:#4A5568; margin:12rpx 0 8rpx; font-weight:600; }
+
+.level-btns { display:flex; gap:12rpx; margin-bottom:12rpx; }
+.lv-btn { flex:1; text-align:center; padding:14rpx 0; border:2rpx solid #E2E8F0; border-radius:10rpx; font-size:26rpx; color:#A0AEC0; }
+.lv-btn.on { border-color:#1A365D; background:#EBF0F7; color:#1A365D; font-weight:700; }
+
+.gender-row { display:flex; gap:12rpx; margin-bottom:12rpx; }
+.gender-btn { flex:1; text-align:center; padding:14rpx 0; border:2rpx solid #E2E8F0; border-radius:10rpx; font-size:26rpx; color:#A0AEC0; }
+.gender-btn.on { border-color:#1A365D; background:#EBF0F7; color:#1A365D; font-weight:700; }
+
+.trait-group { margin-bottom:12rpx; }
+.cat-label { font-size:24rpx; font-weight:600; color:#718096; display:block; margin-bottom:6rpx; }
+.cat-traits { display:flex; flex-wrap:wrap; gap:8rpx; }
+.trait-tag { padding:6rpx 14rpx; border:1rpx solid #E2E8F0; border-radius:20rpx; font-size:22rpx; color:#718096; }
+.trait-tag.on { border-color:#1A365D; background:#EBF0F7; color:#1A365D; font-weight:600; }
+.selected { display:flex; flex-wrap:wrap; gap:8rpx; margin:12rpx 0; }
+.stag { background:#EBF0F7; color:#1A365D; font-size:22rpx; padding:4rpx 12rpx; border-radius:14rpx; }
+.del-tag { color:#E53E3E; font-weight:700; margin-left:4rpx; }
+</style>

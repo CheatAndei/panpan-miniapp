@@ -1,0 +1,201 @@
+<template>
+<view class="page">
+  <view class="hero">
+    <text class="hero-title">学习小组详情</text>
+    <text class="hero-sub">{{ weekendRange }}</text>
+  </view>
+
+  <!-- 时间轴 -->
+  <view class="timeline" v-if="schedules.length>0">
+    <view v-for="day in days" :key="day.value" class="day-section">
+      <view class="day-header">
+        <view class="day-dot"></view>
+        <text class="day-label">{{ day.label }}</text>
+      </view>
+
+      <view v-if="day.scheds.length===0" class="day-empty">无学习安排</view>
+
+      <view v-for="s in day.scheds" :key="s.id" class="class-block" :class="{mine:isMyClass(s.class_id)}">
+        <template v-if="isMyClass(s.class_id)">
+          <view class="block-inner mine-inner" @tap="openClass(s)">
+            <view class="block-badge">我的学习小组</view>
+            <text class="block-name">{{ s.class_name }}</text>
+            <text class="block-time">{{ s.start_time }} - {{ s.end_time }}</text>
+            <text v-if="s.location" class="block-loc">{{ s.location }}</text>
+            <text class="block-arrow">查看详情 ›</text>
+          </view>
+        </template>
+        <template v-else>
+          <view class="block-inner other-block">
+            <text :class="['block-name',{'blurred':s.student_count<=1}]">{{ s.class_name }}</text>
+            <text class="block-time">{{ s.start_time }} - {{ s.end_time }}</text>
+            <text v-if="s.location" class="block-loc">{{ s.location }}</text>
+            <text class="block-note">其他学习小组</text>
+          </view>
+        </template>
+      </view>
+    </view>
+  </view>
+
+  <view v-else class="card"><view class="empty">暂无学习安排安排</view></view>
+
+  <!-- 学习小组详情弹窗 -->
+  <view v-if="showDetail" class="modal-mask" @tap="showDetail=false">
+    <view class="modal" @tap.stop>
+      <view class="m-header">
+        <text class="m-title">{{ detailClass?.class_name }}</text>
+        <text class="m-close" @tap="showDetail=false">关闭</text>
+      </view>
+
+      <scroll-view scroll-y class="m-body">
+        <!-- 本讲作业 -->
+        <text class="m-section">本讲作业</text>
+        <view v-if="latestHomework" class="hw-card">{{ latestHomework }}</view>
+        <view v-else class="m-empty">暂无作业</view>
+
+        <!-- 反馈列表 -->
+        <text class="m-section">学习小组总反馈</text>
+        <view v-if="feedbacks.length===0" class="m-empty">暂无反馈</view>
+        <view v-for="fb in feedbacks" :key="fb.id" class="fb-card" @tap="openFb(fb)">
+          <text class="fb-date">{{ fb.class_date }}</text>
+          <text class="fb-preview">{{ (fb.summary||'').slice(0,80) }}...</text>
+        </view>
+
+        <!-- 学生 -->
+        <text class="m-section">学习小组同学</text>
+        <view v-if="students.length===0" class="m-empty">暂无数据</view>
+        <view v-for="s in students" :key="s.id" class="stu-row" @tap="showStuFb(s)">
+          <text class="stu-name">{{ s.name }}</text>
+          <text v-if="s.level" :class="['stu-lv',lvClass(s.level)]">{{ s.level }}</text>
+          <text class="stu-arrow">查看反馈</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>
+</template>
+
+<script>
+import BASE, { ASSET_BASE } from '@/utils/config';
+const DAYS = ['周日','周一','周二','周三','周四','周五','周六'];
+const ALL = [{label:'周五',value:5},{label:'周六',value:6},{label:'周日',value:0},{label:'周一',value:1},{label:'周二',value:2}];
+
+export default {
+  data(){return{
+    schedules:[],myClassIds:[],days:[],
+    showDetail:false,detailClass:null,feedbacks:[],students:[],latestHomework:''
+  };},
+  computed:{
+    weekendRange(){
+      const now=new Date();const dow=now.getDay();
+      const fri=new Date(now);fri.setDate(fri.getDate()+(5-dow));
+      const tue=new Date(now);tue.setDate(tue.getDate()+(9-dow));
+      return `${fri.getMonth()+1}/${fri.getDate()} - ${tue.getMonth()+1}/${tue.getDate()}`;
+    },
+  },
+  onShow(){this.loadData();},
+  methods:{
+    isMyClass(cid){return this.myClassIds.includes(cid);},
+    async loadData(){
+      const t=uni.getStorageSync('token');if(!t)return;
+      try{
+        const sch=await this.req('/schedules/parent');
+        this.schedules=sch.schedules||[];
+        this.myClassIds=sch.myClassIds||[];
+        this.days=ALL.map(d=>({
+          ...d,scheds:this.schedules.filter(s=>s.day_of_week===d.value)
+            .sort((a,b)=>(parseInt(a.start_time.replace(':',''))-parseInt(b.start_time.replace(':',''))))
+        }));
+      }catch(e){}
+    },
+    async openClass(s){
+      this.detailClass=s;this.showDetail=true;this.feedbacks=[];this.students=[];
+      this.latestHomework='';
+      try{
+        const [fb,st]=await Promise.all([
+          this.req('/feedbacks/list?class_id='+s.class_id),
+          this.req('/students?class_id='+s.class_id)
+        ]);
+        this.feedbacks=fb.feedbacks||[];
+        this.students=st.students||[];
+        // 提取最新作业
+        const last=this.feedbacks.find(f=>f.homework);
+        if(last)this.latestHomework=last.homework;
+      }catch(e){}
+    },
+    showStuFb(s){
+      const last=this.feedbacks[0];
+      if(!last||!last.student_feedbacks)return uni.showToast({title:'暂无该同学反馈',icon:'none'});
+      try{
+        const list=JSON.parse(last.student_feedbacks);
+        const f=list.find(x=>x.id===s.id);
+        if(f)uni.showModal({title:s.name+'的反馈',content:f.text||'暂无',showCancel:false});
+        else uni.showToast({title:'暂无该同学反馈',icon:'none'});
+      }catch(e){uni.showToast({title:'暂无',icon:'none'});}
+    },
+    openFb(fb){},
+    lvClass(lv){const m={好:'lv-good',中上:'lv-above',中:'lv-mid',中下:'lv-below',下:'lv-low'};return m[lv]||'';},
+    req(p,m='GET',d){
+      const t=uni.getStorageSync('token');
+      return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});
+    }
+  }
+};
+</script>
+
+<style scoped>
+.page{padding-bottom:80rpx}
+.hero{padding:40rpx 30rpx 32rpx;text-align:center;border-bottom:1rpx solid #EDF2F7}
+.hero-title{font-size:38rpx;font-weight:800;color:#1A365D;display:block}
+.hero-sub{font-size:24rpx;color:#718096;margin-top:8rpx;display:block}
+
+/* 时间轴 */
+.timeline{padding:16rpx 30rpx}
+.day-section{margin-bottom:24rpx}
+.day-header{display:flex;align-items:center;gap:12rpx;margin-bottom:12rpx}
+.day-dot{width:12rpx;height:12rpx;border-radius:50%;background:#D69E2E}
+.day-label{font-size:30rpx;font-weight:700;color:#1A365D}
+.day-empty{padding:16rpx 0;color:#CBD5E0;font-size:26rpx}
+
+/* 学习安排块 */
+.class-block{margin-bottom:16rpx}
+.block-inner{border-radius:14rpx;padding:28rpx;position:relative;overflow:hidden}
+.mine-inner{background:linear-gradient(135deg,#1A365D,#2A4A7F);color:#fff;box-shadow:0 4rpx 16rpx rgba(26,54,93,.15)}
+.block-badge{display:inline-block;background:rgba(255,255,255,.15);font-size:20rpx;padding:4rpx 14rpx;border-radius:20rpx;margin-bottom:12rpx}
+.block-name{display:block;font-size:32rpx;font-weight:700;margin-bottom:8rpx}
+.block-time{font-size:26rpx;opacity:.8;display:block}
+.block-loc{font-size:24rpx;opacity:.6;margin-top:4rpx}
+.block-arrow{display:block;margin-top:16rpx;font-size:24rpx;opacity:.6;text-align:right}
+
+/* 锁定/马赛克 */
+.other-block{background:#F7F8FA;border:1px solid #E2E8F0;padding:24rpx}
+.other-block .block-name{font-size:28rpx;font-weight:600;color:#2D3748;display:block;margin-bottom:6rpx}
+.other-block .block-name.blurred{filter:blur(6rpx);user-select:none;color:#CBD5E0}
+.other-block .block-time{font-size:24rpx;color:#A0AEC0}
+.other-block .block-loc{font-size:24rpx;color:#A0AEC0;margin-top:4rpx}
+.block-note{font-size:22rpx;color:#CBD5E0;margin-top:8rpx;display:block}
+
+/* 弹窗 */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;display:flex;align-items:flex-end}
+.modal{background:#fff;border-radius:24rpx 24rpx 0 0;padding:0;width:100%;max-height:80vh;display:flex;flex-direction:column}
+.m-header{display:flex;justify-content:space-between;align-items:center;padding:30rpx;border-bottom:1rpx solid #EDF2F7}
+.m-title{font-size:34rpx;font-weight:700;color:#1A365D}
+.m-close{font-size:28rpx;color:#718096}
+.m-body{flex:1;overflow-y:auto;padding:30rpx}
+.m-section{font-size:28rpx;font-weight:700;color:#1A365D;margin-bottom:16rpx;margin-top:24rpx;display:block}
+.m-section:first-child{margin-top:0}
+.m-empty{text-align:center;color:#CBD5E0;padding:30rpx;font-size:26rpx}
+.fb-card{background:#F7F8FA;border-radius:12rpx;padding:20rpx;margin-bottom:12rpx}
+.fb-date{font-size:24rpx;color:#A0AEC0}
+.fb-preview{font-size:26rpx;color:#4A5568;display:block;margin:8rpx 0}
+.fb-hw{font-size:24rpx;color:#D69E2E}
+.stu-row{display:flex;align-items:center;padding:14rpx 0;border-bottom:1rpx solid #F0F0F0}
+.stu-name{font-size:28rpx;font-weight:600}
+.stu-lv{font-size:20rpx;margin-left:12rpx;padding:2rpx 10rpx;border-radius:4rpx}
+.stu-arrow{font-size:24rpx;color:#A0AEC0}
+.hw-card{background:#FEF5E7;border-radius:10rpx;padding:20rpx;font-size:28rpx;color:#975A16;line-height:1.6}
+.lv-good{background:#F0FFF4;color:#38A169}.lv-above{background:#EBF8FF;color:#3182CE}
+.lv-mid{background:#FFFFF0;color:#D69E2E}.lv-below{background:#FFF5F5;color:#DD6B20}
+.lv-low{background:#FFF5F5;color:#E53E3E}
+.empty{text-align:center;color:#CBD5E0;padding:40rpx}
+</style>

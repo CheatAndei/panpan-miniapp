@@ -1,0 +1,34 @@
+{
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "番番记录" } },
+    { "path": "pages/bind/bind", "style": { "navigationBarTitleText": "绑定孩子" } },
+    { "path": "pages/parent-home/index", "style": { "navigationBarTitleText": "学习动态" } },
+    { "path": "pages/parent-schedule/index", "style": { "navigationBarTitleText": "学习小组详情" } },
+    { "path": "pages/parent-feedback/index", "style": { "navigationBarTitleText": "课后反馈" } },
+    { "path": "pages/parent-profile/index", "style": { "navigationBarTitleText": "AI 画像" } },
+    { "path": "pages/parent-leave/index", "style": { "navigationBarTitleText": "请假" } },
+    { "path": "pages/teacher-classes/index", "style": { "navigationBarTitleText": "学习小组管理" } },
+    { "path": "pages/teacher-checkin/index", "style": { "navigationBarTitleText": "签到" } },
+    { "path": "pages/teacher-feedback/index", "style": { "navigationBarTitleText": "课后反馈" } },
+    { "path": "pages/teacher-schedule/index", "style": { "navigationBarTitleText": "课表管理" } },
+    { "path": "pages/teacher-leaves/index", "style": { "navigationBarTitleText": "请假审批" } },
+    { "path": "pages/student-detail/index", "style": { "navigationBarTitleText": "学生画像" } },
+    { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的" } }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "番番记录",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F6F8"
+  },
+  "tabBar": {
+    "color": "#A0AEC0",
+    "selectedColor": "#1A365D",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "工作台" },
+      { "pagePath": "pages/mine/index", "text": "设置" }
+    ]
+  }
+}

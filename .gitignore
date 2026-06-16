@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+cloudfunctions/*/node_modules/
+
+# Build output
+unpackage/
+dist/
+frontend/dist/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Runtime data
+uploads/
+backend/uploads/
+backend/db/teach.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
