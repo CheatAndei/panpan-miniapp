@@ -1,5 +1,7 @@
+import { api } from './api';
+
 /**
- * 登录流程封装
+ * 微信登录流程封装
  */
 export function doLogin() {
   return new Promise((resolve, reject) => {
@@ -7,7 +9,7 @@ export function doLogin() {
       provider: 'weixin',
       success: async (loginRes) => {
         try {
-          const { api } = require('./api');
+          if (!loginRes.code) throw new Error('微信登录失败');
           const data = await api.post('/auth/login', { code: loginRes.code });
 
           uni.setStorageSync('token', data.token);

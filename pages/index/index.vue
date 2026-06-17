@@ -163,6 +163,7 @@ import BASE, { ASSET_BASE } from '@/utils/config';
 import { ref, computed } from 'vue';
 import { useStore } from '@/stores/app';
 import { api } from '@/utils/api';
+import { doLogin } from '@/utils/auth';
 
 const store = useStore();
 const user = ref({});
@@ -225,18 +226,13 @@ function navTo(url) { uni.navigateTo({ url }); }
 
 async function handleLogin() {
   try {
-    const data = await api.post('/auth/login', { code: 'dev_user' });
-    uni.setStorageSync('token', data.token);
-    uni.setStorageSync('user', JSON.stringify(data.user));
-    user.value = data.user;
-    if (data.user.role === 'teacher') loadTeacherData();
+    const loggedInUser = await doLogin();
+    user.value = loggedInUser;
+    if (loggedInUser.role === 'teacher') loadTeacherData();
     else uni.navigateTo({ url: '/pages/bind/bind' });
   } catch(e) {
-    // 后端未启动则本地 mock
-    const u = { role: 'teacher', nickname: '潘潘老师' };
-    uni.setStorageSync('user', JSON.stringify(u));
-    user.value = u;
-    uni.showToast({ title: '离线模式（后端未连接）', icon: 'none' });
+    const message = e?.error || e?.message || '登录失败，请稍后重试';
+    uni.showToast({ title: message, icon: 'none' });
   }
 }
 
