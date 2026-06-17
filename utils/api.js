@@ -1,13 +1,13 @@
-import BASE, { ASSET_BASE } from './config';
+import { BASE, ASSET_BASE } from './config';
 
 function buildUrl(path) {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${BASE}${normalizedPath}`;
+  const normalizedPath = path.startsWith('/') ? path : '/' + path;
+  return BASE + normalizedPath;
 }
 
 function authHeader() {
   const token = uni.getStorageSync('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return token ? { Authorization: 'Bearer ' + token } : {};
 }
 
 function request(method, path, data) {
@@ -31,8 +31,8 @@ function request(method, path, data) {
 
 export function assetUrl(url) {
   if (!url) return '';
-  if (/^https?:///.test(url)) return url;
-  return `${ASSET_BASE}${url.startsWith('/') ? url : `/${url}`}`;
+  if (/^https?:\/\//.test(url)) return url;
+  return ASSET_BASE + (url.startsWith('/') ? url : '/' + url);
 }
 
 export function uploadFile(path, filePath, name = 'file') {
