@@ -53,3 +53,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Deploy production backend
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy/prod'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            if [ "${{ github.ref }}" = "refs/heads/deploy/prod" ]; then
+              /opt/panpan-miniapp/deploy.sh prod
+            else
+              /opt/panpan-miniapp/deploy.sh main
+            fi
