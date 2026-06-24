@@ -9,7 +9,7 @@
 
   <view v-if="loading" class="loading">加载中…</view>
 
-  <view class="card" v-if="schedules.length>0 && checkedIds.length>0" style="background:#FEF5E7">
+  <view class="card" v-if="schedules.length>0 && checkedIds.length>0" style="background:#F7F1E7">
     <button class="btn-accent" @tap="publishChecked">发布上课提醒（已选 {{ checkedIds.length }} 节）</button>
   </view>
 
@@ -143,35 +143,35 @@ export default {
 .hero .gold-rule{margin:14rpx 0}
 .hero-title{font-size:38rpx;font-weight:700;color:var(--ink);display:block}
 .hero-sub{font-size:24rpx;color:var(--muted);margin-top:4rpx}
-.btn-accent{background:#D69E2E;color:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;border:none;width:100%}
-.btn-special{border:1px dashed #D69E2E;color:#D69E2E;background:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;width:100%}
+.btn-accent{background:#A57945;color:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;border:none;width:100%}
+.btn-special{border:1px dashed #A57945;color:#A57945;background:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;width:100%}
 
 .day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12rpx}
-.day-name{font-size:32rpx;font-weight:700;color:#1A365D}
-.btn-sm{padding:8rpx 24rpx;background:#EBF0F7;color:#1A365D;border:none;border-radius:8rpx;font-size:24rpx}
-.empty-sm{text-align:center;color:#CBD5E0;padding:20rpx;font-size:24rpx}
+.day-name{font-size:32rpx;font-weight:700;color:#202733}
+.btn-sm{padding:8rpx 24rpx;background:#F3F1EA;color:#202733;border:none;border-radius:8rpx;font-size:24rpx}
+.empty-sm{text-align:center;color:#C3C1BA;padding:20rpx;font-size:24rpx}
 
 .sc-card{display:flex;padding:20rpx;border-radius:12rpx;margin-bottom:12rpx;gap:16rpx}
 .sc-left{display:flex;align-items:center}
-.checkbox{width:44rpx;height:44rpx;border:3rpx solid #CBD5E0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24rpx;color:#fff}
-.checkbox.on{background:#38A169;border-color:#38A169}
+.checkbox{width:44rpx;height:44rpx;border:3rpx solid #C3C1BA;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24rpx;color:#fff}
+.checkbox.on{background:#3F8B65;border-color:#3F8B65}
 .sc-right{flex:1}
 .sc-top{display:flex;align-items:center;gap:12rpx;margin-bottom:6rpx}
 .sc-class{font-size:28rpx;font-weight:700}
 .sc-grade{font-size:22rpx;opacity:.7}
 .sc-time{font-size:26rpx;font-weight:500;display:block}
 .sc-loc{font-size:22rpx;opacity:.6;margin-top:4rpx}
-.bg0{background:#EBF0F7;color:#1A365D}.bg1{background:#FEF5E7;color:#B7791F}
-.bg2{background:#EBF8FF;color:#2A4365}.bg3{background:#FFFFF0;color:#975A16}
-.bg4{background:#F0FFF4;color:#276749}.bg5{background:#EDF2F7;color:#2D3748}
-.bg6{background:#FFF8F0;color:#9C4221}.bg7{background:#F0FFFF;color:#234E52}
-.bg8{background:#FFF5F5;color:#C53030}.bg9{background:#F0FFF8;color:#1D4044}
+.bg0{background:#F3F1EA;color:#202733}.bg1{background:#F7F1E7;color:#8D6A3F}
+.bg2{background:#EFF3F2;color:#52707E}.bg3{background:#F7F2E5;color:#7B5B36}
+.bg4{background:#EEF5EF;color:#3F7A5B}.bg5{background:#EFEDE7;color:#202733}
+.bg6{background:#F7F1E7;color:#8D6A3F}.bg7{background:#EFF3F2;color:#52707E}
+.bg8{background:#F7EDEA;color:#9F4E43}.bg9{background:#EEF5EF;color:#3F7A5B}
 
 .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;display:flex;align-items:flex-end}
 .modal{background:#fff;border-radius:24rpx 24rpx 0 0;padding:30rpx;width:100%}
-.modal-title{font-size:34rpx;font-weight:700;text-align:center;margin-bottom:24rpx;color:#1A365D}
-.input{border:1rpx solid #E2E8F0;border-radius:10rpx;padding:18rpx;margin-bottom:16rpx;font-size:28rpx;color:#4A5568}
+.modal-title{font-size:34rpx;font-weight:700;text-align:center;margin-bottom:24rpx;color:#202733}
+.input{border:1rpx solid #E1DDD4;border-radius:10rpx;padding:18rpx;margin-bottom:16rpx;font-size:28rpx;color:#46515C}
 .row{display:flex;gap:16rpx}.half{flex:1}
-.btn-primary{background:#1A365D;color:#fff;border-radius:12rpx;padding:24rpx;font-size:30rpx;text-align:center;border:none;width:100%;margin-top:20rpx}
-.btn-cancel{background:#fff;color:#A0AEC0;border:none;padding:16rpx;font-size:26rpx;text-align:center;width:100%}
+.btn-primary{background:#202733;color:#fff;border-radius:12rpx;padding:24rpx;font-size:30rpx;text-align:center;border:none;width:100%;margin-top:20rpx}
+.btn-cancel{background:#fff;color:#8A929B;border:none;padding:16rpx;font-size:26rpx;text-align:center;width:100%}
 </style>

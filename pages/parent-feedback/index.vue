@@ -76,24 +76,24 @@ export default {
 .hero-title{font-size:40rpx;font-weight:700;color:var(--ink);display:block}
 .hero-sub{font-size:24rpx;color:var(--muted);margin-top:4rpx}
 .fb-card{margin-bottom:12rpx}
-.fb-date{font-size:24rpx;color:#A0AEC0;margin-bottom:8rpx}
-.fb-summary{font-size:28rpx;color:#4A5568;line-height:1.6}
-.fb-hw{font-size:24rpx;color:#D69E2E;margin-top:8rpx}
-.fb-more{font-size:24rpx;color:#1A365D;display:block;margin-top:12rpx}
-.empty{text-align:center;color:#CBD5E0;padding:40rpx}
+.fb-date{font-size:24rpx;color:#8A929B;margin-bottom:8rpx}
+.fb-summary{font-size:28rpx;color:#46515C;line-height:1.6}
+.fb-hw{font-size:24rpx;color:#A57945;margin-top:8rpx}
+.fb-more{font-size:24rpx;color:#202733;display:block;margin-top:12rpx}
+.empty{text-align:center;color:#C3C1BA;padding:40rpx}
 
 .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;display:flex;align-items:flex-end}
 .modal{background:#fff;border-radius:24rpx 24rpx 0 0;padding:30rpx;width:100%;max-height:75vh;display:flex;flex-direction:column}
-.modal-date{font-size:28rpx;color:#A0AEC0;text-align:center;margin-bottom:20rpx}
+.modal-date{font-size:28rpx;color:#8A929B;text-align:center;margin-bottom:20rpx}
 .modal-body{flex:1;overflow-y:auto}
-.detail-text{font-size:28rpx;line-height:1.8;color:#4A5568;white-space:pre-wrap}
-.hw-block{background:#FEF5E7;padding:16rpx;border-radius:10rpx;margin-top:20rpx;font-size:28rpx;color:#B7791F}
-.btn-cancel{background:#F7F8FA;color:#A0AEC0;border:none;padding:20rpx;font-size:28rpx;text-align:center;width:100%;margin-top:20rpx;border-radius:12rpx}
-.stu-fb-section{margin-top:24rpx;border-top:1rpx solid #EDF2F7;padding-top:20rpx}
-.stu-fb-title{font-size:28rpx;font-weight:700;color:#1A365D;display:block;margin-bottom:16rpx}
-.stu-fb-card{background:#F7F8FA;border-radius:10rpx;padding:18rpx;margin-bottom:12rpx}
-.stu-fb-name{font-size:26rpx;font-weight:700;color:#D69E2E;display:block;margin-bottom:6rpx}
-.stu-fb-text{font-size:26rpx;color:#4A5568;line-height:1.6}
+.detail-text{font-size:28rpx;line-height:1.8;color:#46515C;white-space:pre-wrap}
+.hw-block{background:#F7F1E7;padding:16rpx;border-radius:10rpx;margin-top:20rpx;font-size:28rpx;color:#8D6A3F}
+.btn-cancel{background:#F8F6F1;color:#8A929B;border:none;padding:20rpx;font-size:28rpx;text-align:center;width:100%;margin-top:20rpx;border-radius:12rpx}
+.stu-fb-section{margin-top:24rpx;border-top:1rpx solid #EFEDE7;padding-top:20rpx}
+.stu-fb-title{font-size:28rpx;font-weight:700;color:#202733;display:block;margin-bottom:16rpx}
+.stu-fb-card{background:#F8F6F1;border-radius:10rpx;padding:18rpx;margin-bottom:12rpx}
+.stu-fb-name{font-size:26rpx;font-weight:700;color:#A57945;display:block;margin-bottom:6rpx}
+.stu-fb-text{font-size:26rpx;color:#46515C;line-height:1.6}
 .fb-imgs{display:flex;gap:10rpx;flex-wrap:wrap;margin-top:10rpx}
 .fb-thumb{width:150rpx;height:150rpx;border-radius:8rpx}
 </style>

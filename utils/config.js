@@ -8,7 +8,7 @@ const DEV_BASE = 'http://localhost:3000/api';
 const PROD_BASE = 'https://api.example.com/api';
 
 const isDev = import.meta.env.DEV;
-const API_BASE_URL = isDev ? DEV_BASE : PROD_BASE;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (isDev ? DEV_BASE : PROD_BASE);
 
 export const BASE = API_BASE_URL.replace(/\/$/, '');
 export const ASSET_BASE = BASE.replace(/\/api$/, '');

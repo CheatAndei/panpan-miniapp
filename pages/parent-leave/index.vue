@@ -83,24 +83,24 @@ export default {
 .hero .gold-rule{margin:14rpx 0}
 .hero-title{font-size:38rpx;font-weight:700;color:var(--ink)}
 .field{margin-bottom:24rpx}
-.label{font-size:28rpx;color:#4A5568;display:block;margin-bottom:8rpx}
-.value{font-size:30rpx;color:#1A365D;font-weight:600}
-.picker{background:#F7F8FA;border-radius:10rpx;padding:20rpx;font-size:28rpx}
-.textarea{border:1rpx solid #E2E8F0;border-radius:10rpx;padding:18rpx;font-size:28rpx;width:100%;min-height:150rpx;box-sizing:border-box}
-.btn-primary{background:#1A365D;color:#fff;border-radius:12rpx;padding:24rpx;font-size:30rpx;border:none;width:100%;margin-top:12rpx;font-weight:600}
+.label{font-size:28rpx;color:#46515C;display:block;margin-bottom:8rpx}
+.value{font-size:30rpx;color:#202733;font-weight:600}
+.picker{background:#F8F6F1;border-radius:10rpx;padding:20rpx;font-size:28rpx}
+.textarea{border:1rpx solid #E1DDD4;border-radius:10rpx;padding:18rpx;font-size:28rpx;width:100%;min-height:150rpx;box-sizing:border-box}
+.btn-primary{background:#202733;color:#fff;border-radius:12rpx;padding:24rpx;font-size:30rpx;border:none;width:100%;margin-top:12rpx;font-weight:600}
 .btn-primary[disabled]{opacity:.4}
-.section-title{font-size:28rpx;font-weight:700;color:#1A365D;margin-bottom:16rpx}
+.section-title{font-size:28rpx;font-weight:700;color:#202733;margin-bottom:16rpx}
 .fb-header{margin-bottom:16rpx}
-.fb-hint{font-size:24rpx;color:#A0AEC0}
-.leave-item{padding:16rpx 0;border-bottom:1rpx solid #F0F0F0}
+.fb-hint{font-size:24rpx;color:#8A929B}
+.leave-item{padding:16rpx 0;border-bottom:1rpx solid #ECE8E0}
 .leave-item:last-child{border-bottom:none}
 .l-hd{display:flex;justify-content:space-between;align-items:center}
-.l-date{font-size:26rpx;color:#4A5568}
+.l-date{font-size:26rpx;color:#46515C}
 .l-status{font-size:24rpx;padding:4rpx 12rpx;border-radius:6rpx}
-.l-status.pending{background:#FFFFF0;color:#975A16}
-.l-status.approved{background:#F0FFF4;color:#276749}
-.l-status.rejected{background:#FFF5F5;color:#C53030}
-.l-reason{font-size:28rpx;color:#4A5568;margin-top:8rpx}
-.btn-outline{border:1px solid #1A365D;color:#1A365D;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;margin-top:12rpx;font-weight:600}
+.l-status.pending{background:#F7F2E5;color:#7B5B36}
+.l-status.approved{background:#EEF5EF;color:#3F7A5B}
+.l-status.rejected{background:#F7EDEA;color:#9F4E43}
+.l-reason{font-size:28rpx;color:#46515C;margin-top:8rpx}
+.btn-outline{border:1px solid #202733;color:#202733;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;margin-top:12rpx;font-weight:600}
 .btn-outline[disabled]{opacity:.4}
 </style>

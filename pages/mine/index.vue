@@ -110,34 +110,34 @@ export default {
 .page{padding-bottom:60rpx}
 .user-card{display:flex;flex-direction:column;align-items:center;padding:56rpx 0 44rpx}
 .parent-avatar{margin-bottom:8rpx}
-.teacher-avatar{width:120rpx;height:120rpx;border-radius:50%;box-shadow:0 4rpx 16rpx rgba(0,0,0,.2),inset 0 0 0 2rpx rgba(255,255,255,.55)}
-.name{font-size:36rpx;font-weight:700;color:#fff;margin-top:16rpx}
-.role-tag{font-size:22rpx;background:rgba(255,255,255,.16);color:#fff;padding:6rpx 18rpx;border-radius:20rpx;margin-top:10rpx;letter-spacing:1rpx}
+.teacher-avatar{width:120rpx;height:120rpx;border-radius:50%;box-shadow:0 4rpx 14rpx rgba(36,42,50,.10),inset 0 0 0 2rpx rgba(255,255,255,.7)}
+.name{font-size:36rpx;font-weight:700;color:#202733;margin-top:16rpx}
+.role-tag{font-size:22rpx;background:#F3F1EA;color:#69717D;padding:6rpx 18rpx;border-radius:20rpx;margin-top:10rpx;letter-spacing:1rpx}
 
 .profile-section{padding-bottom:32rpx}
-.section-title{font-size:30rpx;font-weight:700;color:#1A365D;margin-bottom:24rpx}
+.section-title{font-size:30rpx;font-weight:700;color:#202733;margin-bottom:24rpx}
 
 /* 人物 + 标签（去掉旋转动画，改为清晰的静态布局） */
 .character-area{display:flex;flex-direction:column;align-items:center;gap:24rpx;margin-bottom:32rpx}
 .tag-cloud{display:flex;flex-wrap:wrap;justify-content:center;gap:12rpx}
 .profile-tag{font-size:24rpx;padding:8rpx 20rpx;border-radius:24rpx;font-weight:600}
-.tag-c0{background:#EBF0F7;color:#1A365D}.tag-c1{background:#FEF5E7;color:#975A16}
-.tag-c2{background:#EBF8FF;color:#2A4365}.tag-c3{background:#FFF7E6;color:#B7791F}
-.tag-c4{background:#F0FFF4;color:#276749}.tag-c5{background:#EDF2F7;color:#4A5568}
+.tag-c0{background:#F3F1EA;color:#202733}.tag-c1{background:#F7F1E7;color:#7B5B36}
+.tag-c2{background:#EFF3F2;color:#52707E}.tag-c3{background:#F7F1E7;color:#8D6A3F}
+.tag-c4{background:#EEF5EF;color:#3F7A5B}.tag-c5{background:#EFEDE7;color:#46515C}
 
 /* 三个信息框 */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16rpx}
-.info-box{background:#F7F8FA;border-radius:14rpx;padding:24rpx}
+.info-box{background:#F8F6F1;border-radius:14rpx;padding:24rpx}
 .info-box:first-child{grid-column:1/-1}
-.info-label{font-size:26rpx;font-weight:700;color:#1A365D;margin-bottom:12rpx}
-.info-text{font-size:26rpx;line-height:1.7;color:#4A5568}
+.info-label{font-size:26rpx;font-weight:700;color:#202733;margin-bottom:12rpx}
+.info-text{font-size:26rpx;line-height:1.7;color:#46515C}
 
-.empty-hint{text-align:center;color:#CBD5E0;padding:30rpx;font-size:28rpx}
+.empty-hint{text-align:center;color:#C3C1BA;padding:30rpx;font-size:28rpx}
 
 .actions{margin-top:12rpx}
 .action-row{display:flex;justify-content:space-between;align-items:center;font-size:28rpx;padding:12rpx 0}
-.arrow{font-size:32rpx;color:#CBD5E0}
+.arrow{font-size:32rpx;color:#C3C1BA}
 
-.brand{text-align:center;color:#CBD5E0;font-size:22rpx;padding:30rpx 0 20rpx}
-.empty-hint{color:#1A365D;font-size:32rpx}
+.brand{text-align:center;color:#C3C1BA;font-size:22rpx;padding:30rpx 0 20rpx}
+.empty-hint{color:#202733;font-size:32rpx}
 </style>

@@ -22,7 +22,14 @@ function request(method, path, data) {
           resolve(res.data || {});
           return;
         }
-        reject(res.data || { error: '请求失败' });
+        const error = res.data || { error: '请求失败' };
+        error.statusCode = res.statusCode;
+        if (res.statusCode === 401) {
+          uni.removeStorageSync('token');
+          uni.removeStorageSync('user');
+          uni.removeStorageSync('activeChildId');
+        }
+        reject(error);
       },
       fail: reject
     });
@@ -46,7 +53,16 @@ export function uploadFile(path, filePath, name = 'file') {
         try {
           const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
           if (res.statusCode >= 200 && res.statusCode < 300) resolve(data || {});
-          else reject(data || { error: '上传失败' });
+          else {
+            const error = data || { error: '上传失败' };
+            error.statusCode = res.statusCode;
+            if (res.statusCode === 401) {
+              uni.removeStorageSync('token');
+              uni.removeStorageSync('user');
+              uni.removeStorageSync('activeChildId');
+            }
+            reject(error);
+          }
         } catch (err) {
           reject(err);
         }
