@@ -44,20 +44,3 @@ export const PERSONALITY_CATEGORIES = [
 
 export const LEVELS = ['下', '中下', '中', '中上', '好'];
 
-// 根据性格+性别匹配角色头像（使用CSS颜色标识，无大图）
-export function getStudentAvatar(personality, tags, gender) {
-  return ''; // 返回空，页面用CSS绘制头像
-}
-
-// 获得头像底色（CSS背景色）
-export function getAvatarColor(personality, tags, gender) {
-  const text = (personality || '') + ' ' + (Array.isArray(tags) ? tags.join(' ') : '');
-  const isGirl = gender === 'girl';
-  if (/自信|开朗|酷|活泼|爽朗|奔放|洒脱|爱笑|合群|乐观|坦率/.test(text)) return isGirl ? '#F0F4FF' : '#EBF0F7';
-  if (/内向|腼腆|害羞|文静|独处|保守|沉默|隐忍|含蓄|娴静/.test(text)) return '#F5F0FF';
-  if (/踏实|认真|努力|勤勉|刻苦|细心|严谨|负责|自律/.test(text)) return '#F0FFF4';
-  if (/倔强|好胜|好强|不服输|有棱角|果断|叛逆/.test(text)) return '#FFF5F5';
-  if (/热心|善良|友善|随和|乐于助人|体贴|感恩/.test(text)) return '#FFFFF0';
-  if (/机灵|伶俐|灵活|机智|乖巧|好奇|天真/.test(text)) return '#FFF0F7';
-  return isGirl ? '#F0F4FF' : '#EBF0F7';
-}

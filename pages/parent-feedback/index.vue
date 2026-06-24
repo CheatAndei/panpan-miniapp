@@ -1,18 +1,21 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">反馈</view>
     <text class="hero-title">课后反馈</text>
+    <view class="gold-rule"></view>
     <text class="hero-sub">潘潘老师的学习记录</text>
   </view>
 
-  <view v-if="feedbacks.length===0" class="card">
+  <view v-if="loading" class="loading">加载中…</view>
+  <view v-else-if="feedbacks.length===0" class="card">
     <view class="empty">暂无反馈</view>
   </view>
 
   <view v-for="fb in feedbacks" :key="fb.id" class="card fb-card" @tap="showDetail(fb)">
     <view class="fb-date">{{ fb.class_date }}</view>
     <view class="fb-summary">{{ (fb.summary||'').slice(0,100) }}{{ fb.summary&&fb.summary.length>100?'...':'' }}</view>
-    <view v-if="fb.homework" class="fb-hw">📚 {{ fb.homework }}</view>
+    <view v-if="fb.homework" class="fb-hw">作业：{{ fb.homework }}</view>
     <text class="fb-more">查看详情 ›</text>
   </view>
 
@@ -42,32 +45,36 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { logError } from '@/utils/ui';
 export default {
-  data(){return{feedbacks:[],detail:null};},
+  data(){return{feedbacks:[],detail:null,loading:false};},
   onShow(){this.loadData();},
   methods:{
     async loadData(){
-      try{const r=await this.req('/feedbacks/list');this.feedbacks=r.feedbacks||[];}
-      catch(e){}
+      this.loading=true;
+      try{const r=await api.get('/feedbacks/list');this.feedbacks=r.feedbacks||[];}
+      catch(e){logError('parentFeedback.loadData',e);}
+      finally{this.loading=false;}
     },
-    imgUrl(url){return ASSET_BASE+url;},
+    imgUrl(url){return api.assetUrl(url);},
     previewImg(list,i){uni.previewImage({current:this.imgUrl(list[i]),urls:list.map(u=>this.imgUrl(u))});},
     showDetail(fb){
       if(fb.student_feedbacks){try{fb._students=JSON.parse(fb.student_feedbacks);}catch(e){fb._students=[];}}
       else fb._students=[];
       this.detail=fb;
-    },
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});}
+    }
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:60rpx}
-.hero{padding:40rpx 30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7;text-align:center}
-.hero-title{font-size:40rpx;font-weight:700;display:block}
-.hero-sub{font-size:24rpx;opacity:.7;margin-top:4rpx}
+.hero{padding:40rpx 32rpx 30rpx;text-align:center;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.hero .eyebrow{color:var(--accent)}
+.hero .gold-rule{margin:14rpx auto}
+.hero-title{font-size:40rpx;font-weight:700;color:var(--ink);display:block}
+.hero-sub{font-size:24rpx;color:var(--muted);margin-top:4rpx}
 .fb-card{margin-bottom:12rpx}
 .fb-date{font-size:24rpx;color:#A0AEC0;margin-bottom:8rpx}
 .fb-summary{font-size:28rpx;color:#4A5568;line-height:1.6}

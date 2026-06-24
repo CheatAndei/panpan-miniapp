@@ -3,17 +3,20 @@
     <!-- 未登录 -->
     <view v-if="!user.role" class="welcome">
       <view class="brand-icon"><view class="icon-book"></view></view>
-      <view class="brand-name">潘潘老师</view>
-      <view class="brand-sub">学习管理助手</view>
+      <view class="brand-name">{{ BRAND }}</view>
+      <view class="gold-rule"></view>
+      <view class="brand-sub">潘潘老师课堂管理助手</view>
       <view class="brand-desc">专业 · 靠谱 · 有温度</view>
       <button class="login-btn" @tap="handleLogin">微信登录</button>
     </view>
 
     <!-- 老师端 -->
     <view v-else-if="user.role==='teacher'">
-      <view class="teacher-hero">
-        <view class="hero-greeting">潘潘老师，{{ greeting }}</view>
-        <view class="hero-date">{{ today }}</view>
+      <view class="teacher-hero hero-navy">
+        <view class="eyebrow">{{ BRAND }}</view>
+        <view class="hero-greeting">{{ TEACHER }}，{{ greeting }}</view>
+        <view class="gold-rule"></view>
+        <view class="hero-date num">{{ today }}</view>
       </view>
 
       <view class="card quick-actions">
@@ -63,8 +66,10 @@
           @tap="switchChild(k)">{{ k.name }}</text>
       </view>
       <!-- 孩子卡片 -->
-      <view class="parent-hero" v-if="child">
+      <view class="parent-hero hero-navy" v-if="child">
+        <view class="eyebrow">{{ BRAND }}</view>
         <view class="child-greeting">{{ greeting }}，{{ child.name }}家长</view>
+        <view class="gold-rule"></view>
         <view class="child-class">{{ child.className }}</view>
       </view>
 
@@ -159,17 +164,17 @@
 </template>
 
 <script setup>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { ASSET_BASE } from '@/utils/config';
 import { ref, computed } from 'vue';
-import { useStore } from '@/stores/app';
 import { api } from '@/utils/api';
 import { doLogin } from '@/utils/auth';
+import { BRAND, TEACHER } from '@/utils/brand';
+import { toastError, logError } from '@/utils/ui';
 
-const store = useStore();
 const user = ref({});
 // 启动时从storage恢复
 const saved = uni.getStorageSync('user');
-if (saved) { try { user.value = JSON.parse(saved); } catch(e) {} }
+if (saved) { try { user.value = JSON.parse(saved); } catch(e) { logError('parseUser', e); } }
 if (user.value.role === 'teacher') loadTeacherData();
 else if (user.value.role === 'parent') loadParentData();
 
@@ -196,17 +201,16 @@ function previewFbImg(list,i){ uni.previewImage({current:ASSET_BASE+list[i],urls
 async function requestSubscribe() {
   try {
     const tplRes = await api.get('/notify/templates');
-    const tpls = Object.values(tplRes||{}).filter(Boolean);
+    const tpls = Object.values(tplRes || {}).filter(Boolean);
     if (tpls.length === 0) return;
-    wx.requestSubscribeMessage({ tmplIds: tpls, success(r) {
-      // 存储openid（wx.login拿到code后）
-      wx.login({
-        success: async (lr) => {
-          try { await api.post('/notify/bind-openid', { openid: lr.code }); } catch(e) {}
-        }
-      });
-    }, fail(e) { console.log('subscribe fail:', e); } });
-  } catch(e) {}
+    // 须在用户点击手势中调用；openid 已在登录时由后端用 code 换取并保存，无需前端回传。
+    uni.requestSubscribeMessage({
+      tmplIds: tpls,
+      fail(e) { logError('requestSubscribe', e); }
+    });
+  } catch (e) {
+    logError('requestSubscribe', e);
+  }
 }
 
 function switchChild(k) {
@@ -238,43 +242,51 @@ async function handleLogin() {
 
 
 async function loadTeacherData() {
-  const [cRes, lRes] = await Promise.all([api.get('/classes'), api.get('/leaves')]);
-  classes.value = cRes.classes || [];
-  pendingLeaves.value = (lRes.leaves||[]).filter(l=>l.status==='pending').length;
+  try {
+    const [cRes, lRes] = await Promise.all([api.get('/classes'), api.get('/leaves')]);
+    classes.value = cRes.classes || [];
+    pendingLeaves.value = (lRes.leaves||[]).filter(l=>l.status==='pending').length;
+  } catch (e) {
+    logError('loadTeacherData', e);
+  }
 }
 
 async function loadParentData(childId) {
-  const [kids, schedParent] = await Promise.all([
-    api.get('/bind/students'), api.get('/schedules/parent')
-  ]);
-  boundKids.value = kids.students || [];
-  // 选指定孩子或第一个
-  const target = childId
-    ? boundKids.value.find(k=>k.id===childId)
-    : (boundKids.value.length>0 ? boundKids.value[0] : null);
-  if (!target) { child.value = null; return; }
-  child.value = target;
+  try {
+    const [kids, schedParent] = await Promise.all([
+      api.get('/bind/students'), api.get('/schedules/parent')
+    ]);
+    boundKids.value = kids.students || [];
+    // 选指定孩子或第一个
+    const target = childId
+      ? boundKids.value.find(k=>k.id===childId)
+      : (boundKids.value.length>0 ? boundKids.value[0] : null);
+    if (!target) { child.value = null; return; }
+    child.value = target;
 
-  const [checkin, lv, fb] = await Promise.all([
-    api.get('/checkins/today?student_id='+target.id),
-    api.get('/leaves'),
-    api.get('/feedbacks/latest?class_id='+target.class_id)
-  ]);
-  todayStatus.value = checkin;
-  if (checkin.checkInTime) {
-    todayStatus.value.checkInTime = new Date(checkin.checkInTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-  }
-  const myId = target.class_id;
-  weekSchedules.value = (schedParent.schedules||[]).filter(s=>s.class_id===myId).slice(0,3);
-  leaves.value = (lv.leaves||[]).filter(l=>l.student_id===target.id).slice(0,5);
-  latestFeedback.value = fb.feedback;
-  // 提取学生个人反馈
-  if (fb.feedback && fb.feedback.student_feedbacks) {
-    try {
-      const list = JSON.parse(fb.feedback.student_feedbacks);
-      const my = list.find(s => s.id === target.id);
-      if (my) stuFeedback.value = { date: fb.feedback.class_date, text: my.text, images: my.images || [] };
-    } catch(e) {}
+    const [checkin, lv, fb] = await Promise.all([
+      api.get('/checkins/today?student_id='+target.id),
+      api.get('/leaves'),
+      api.get('/feedbacks/latest?class_id='+target.class_id)
+    ]);
+    todayStatus.value = checkin;
+    if (checkin.checkInTime) {
+      todayStatus.value.checkInTime = new Date(checkin.checkInTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    }
+    const myId = target.class_id;
+    weekSchedules.value = (schedParent.schedules||[]).filter(s=>s.class_id===myId).slice(0,3);
+    leaves.value = (lv.leaves||[]).filter(l=>l.student_id===target.id).slice(0,5);
+    latestFeedback.value = fb.feedback;
+    // 提取学生个人反馈
+    if (fb.feedback && fb.feedback.student_feedbacks) {
+      try {
+        const list = JSON.parse(fb.feedback.student_feedbacks);
+        const my = list.find(s => s.id === target.id);
+        if (my) stuFeedback.value = { date: fb.feedback.class_date, text: my.text, images: my.images || [] };
+      } catch(e) { logError('parseStudentFeedback', e); }
+    }
+  } catch (e) {
+    logError('loadParentData', e);
   }
 }
 </script>
@@ -286,14 +298,16 @@ async function loadParentData(childId) {
 .icon-book { width: 100rpx; height: 80rpx; border: 5rpx solid #1A365D; border-radius: 6rpx 12rpx 12rpx 6rpx; position: relative; }
 .icon-book::after { content:''; position:absolute; left: 45rpx; top: 0; bottom: 0; width: 3rpx; background: #1A365D; }
 .brand-name { font-size: 52rpx; font-weight: 800; color: #1A365D; letter-spacing: 8rpx; }
+.welcome .gold-rule { width: 64rpx; margin: 24rpx auto; }
 .brand-sub { font-size: 36rpx; color: #4A5568; margin-top: 12rpx; }
 .brand-desc { font-size: 26rpx; color: #A0AEC0; margin: 16rpx 0 60rpx; letter-spacing: 12rpx; }
-.login-btn { background: #1A365D; color: #fff; border-radius: 12rpx; padding: 24rpx; font-size: 32rpx; width: 400rpx; margin: 0 auto; border: none; font-weight: 600; display: block; }
+.login-btn { background: linear-gradient(180deg,#244271,#1A365D); color: #fff; border-radius: 14rpx; padding: 26rpx; font-size: 32rpx; width: 420rpx; margin: 0 auto; border: none; font-weight: 600; letter-spacing: 1rpx; display: block; }
 .parent-btn { background: #fff; color: #1A365D; border: 1px solid #1A365D; border-radius: 12rpx; padding: 24rpx; font-size: 28rpx; width: 400rpx; margin: 24rpx auto 0; font-weight: 600; display: block; }
 
-.teacher-hero { padding: 32rpx 30rpx 24rpx; background: #fff; border-bottom: 1rpx solid #EDF2F7; }
-.hero-greeting { font-size: 34rpx; font-weight: 700; color: #1A365D; }
-.hero-date { font-size: 24rpx; color: #A0AEC0; margin-top: 6rpx; }
+.teacher-hero { padding: 52rpx 32rpx 40rpx; }
+.teacher-hero .gold-rule { margin: 16rpx 0; }
+.hero-greeting { font-size: 38rpx; font-weight: 700; color: #fff; }
+.hero-date { font-size: 24rpx; color: rgba(255,255,255,.72); margin-top: 4rpx; }
 
 .action-row { display: flex; justify-content: space-around; }
 .action-item { display: flex; flex-direction: column; align-items: center; gap: 12rpx; font-size: 24rpx; color: #4A5568; }
@@ -303,10 +317,11 @@ async function loadParentData(childId) {
 .child-switcher { display: flex; justify-content: center; gap: 12rpx; padding: 16rpx 30rpx; background: #fff; border-bottom: 1rpx solid #EDF2F7; }
 .cs-chip { padding: 10rpx 24rpx; border-radius: 20rpx; font-size: 26rpx; background: #F0F0F0; color: #718096; }
 .cs-chip.on { background: #1A365D; color: #fff; font-weight: 600; }
-.parent-hero { text-align: center; padding: 36rpx 30rpx 28rpx; background: #fff; border-bottom: 1rpx solid #EDF2F7; }
+.parent-hero { text-align: center; padding: 52rpx 32rpx 40rpx; }
+.parent-hero .gold-rule { margin: 16rpx auto; }
 .child-avatar { width: 120rpx; height: 120rpx; border-radius: 50%; border: 3rpx solid #EDF2F7; margin-bottom: 16rpx; }
-.child-greeting { font-size: 34rpx; font-weight: 700; color: #1A365D; }
-.child-class { font-size: 26rpx; color: #718096; margin-top: 6rpx; }
+.child-greeting { font-size: 38rpx; font-weight: 700; color: #fff; }
+.child-class { font-size: 26rpx; color: rgba(255,255,255,.72); margin-top: 4rpx; }
 .fb-textarea { border: 1rpx solid #E2E8F0; border-radius: 10rpx; padding: 18rpx; font-size: 28rpx; width: 100%; min-height: 120rpx; box-sizing: border-box; margin-top: 8rpx; }
 
 .status-card { display: flex; align-items: center; gap: 16rpx; }

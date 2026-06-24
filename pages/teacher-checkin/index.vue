@@ -1,12 +1,15 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">考勤</view>
     <text class="hero-title">签到管理</text>
-    <text class="hero-date">{{ today }}</text>
+    <view class="gold-rule"></view>
+    <text class="hero-date num">{{ today }}</text>
   </view>
 
   <!-- 已发布学习安排 -->
-  <view v-if="sessions.length===0" class="card">
+  <view v-if="loading" class="loading">加载中…</view>
+  <view v-else-if="sessions.length===0" class="card">
     <view class="empty">暂无已发布的学习安排，先去「课表管理」发布上课提醒</view>
   </view>
 
@@ -51,20 +54,23 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { toastSuccess, toastError, logError } from '@/utils/ui';
 const DAYS = ['周日','周一','周二','周三','周四','周五','周六'];
 
 export default {
   data(){return{
-    sessions:[],today:'',dayNames:DAYS
+    sessions:[],today:'',dayNames:DAYS,loading:false
   };},
   onLoad(){this.today=new Date().toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});this.loadSessions();},
   methods:{
     async loadSessions(){
+      this.loading=true;
       try{
-        const res=await this.req('/schedules/sessions');
+        const res=await api.get('/schedules/sessions');
         this.sessions=(res.sessions||[]).map(se=>({...se,_open:false,_students:[],_loading:false}));
-      }catch(e){}
+      }catch(e){logError('loadSessions',e);}
+      finally{this.loading=false;}
     },
     async toggleSession(se){
       se._open=!se._open;
@@ -73,41 +79,41 @@ export default {
     async loadStudents(se){
       se._loading=true;
       try{
-        const res=await this.req('/students?class_id='+se.class_id);
+        const res=await api.get('/students?class_id='+se.class_id);
         const students=(res.students||[]).map(s=>{
           s._checked=false;s._out=false;s._leave=false;s._inTime='';s._outTime='';
           return s;
         });
-        // 查签到状态
-        for(const s of students){
+        // 并行查询各学生签到状态（原为逐个 await 的串行瀑布，N 人=N 次往返）
+        await Promise.all(students.map(async s=>{
           try{
-            const ci=await this.req('/checkins/status?student_id='+s.id+'&date='+se.class_date);
+            const ci=await api.get('/checkins/status?student_id='+s.id+'&date='+se.class_date);
             s._checked=ci.checkedIn||false;s._out=ci.checkedOut||false;
             s._inTime=ci.checkInTime?new Date(ci.checkInTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'';
             s._outTime=ci.checkOutTime?new Date(ci.checkOutTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'';
             s._leave=ci.onLeave||false;
-          }catch(e){}
-        }
+          }catch(e){logError('checkinStatus',e);}
+        }));
         se._students=students;
-      }catch(e){}finally{se._loading=false;}
+      }catch(e){logError('loadStudents',e);}finally{se._loading=false;}
     },
     async checkIn(se,s){
-      try{await this.req('/checkins/check-in','POST',{studentId:s.id,classDate:se.class_date,studentName:s.name});
+      try{await api.post('/checkins/check-in',{studentId:s.id,classDate:se.class_date,studentName:s.name});
         s._checked=true;s._inTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-        uni.showToast({title:s.name+' 已签到',icon:'success'});}
-      catch(e){uni.showToast({title:'签到失败',icon:'none'});}
+        toastSuccess(s.name+' 已签到');}
+      catch(e){toastError(e,'签到失败');}
     },
     async checkOut(se,s){
-      try{await this.req('/checkins/check-out','POST',{studentId:s.id,studentName:s.name,classDate:se.class_date});
+      try{await api.post('/checkins/check-out',{studentId:s.id,studentName:s.name,classDate:se.class_date});
         s._out=true;s._outTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-        uni.showToast({title:s.name+' 已签退',icon:'success'});
+        toastSuccess(s.name+' 已签退');
         const allDone=se._students.every(s=>s._leave||s._out);
-        if(allDone){await this.req('/schedules/sessions/'+se.id+'/complete','PUT');this.sessions=this.sessions.filter(x=>x.id!==se.id);}
-      }catch(e){uni.showToast({title:'签退失败',icon:'none'});}
+        if(allDone){await api.put('/schedules/sessions/'+se.id+'/complete');this.sessions=this.sessions.filter(x=>x.id!==se.id);}
+      }catch(e){toastError(e,'签退失败');}
     },
     async checkInAll(se){
       const notChecked=se._students.filter(s=>!s._checked&&!s._leave);
-      for(const s of notChecked){try{await this.checkIn(se,s);}catch{}}
+      for(const s of notChecked){try{await this.checkIn(se,s);}catch(e){logError('checkInAll',e);}}
     },
     statusText(s){if(s._leave)return'请假';if(s._out)return s._outTime;if(s._checked)return s._inTime;return'';},
     statusClass(s){if(s._leave)return'st-leave';if(s._out)return'st-out';if(s._checked)return'st-in';return'st-absent';},
@@ -121,19 +127,20 @@ export default {
       }});
     },
     async delSessionSilent(se){
-      try{await this.req('/schedules/sessions/'+se.id,'DELETE');this.loadSessions();}
-      catch(e){}
-    },
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});}
+      try{await api.del('/schedules/sessions/'+se.id);this.loadSessions();}
+      catch(e){toastError(e,'删除失败');}
+    }
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:80rpx}
-.hero{padding:30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7}
-.hero-title{font-size:38rpx;font-weight:700;color:#1A365D;display:block}
-.hero-date{font-size:24rpx;opacity:.7;margin-top:6rpx}
+.hero{padding:40rpx 32rpx 30rpx;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.hero .eyebrow{color:var(--accent)}
+.hero .gold-rule{margin:14rpx 0}
+.hero-title{font-size:38rpx;font-weight:700;color:var(--ink);display:block}
+.hero-date{font-size:24rpx;color:var(--muted);margin-top:4rpx}
 .session-card{margin-bottom:8rpx}
 .se-header{display:flex;justify-content:space-between;align-items:center}
 .se-title{font-size:30rpx;font-weight:700;color:#1A365D;display:block}

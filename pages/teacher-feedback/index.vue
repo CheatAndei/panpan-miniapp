@@ -1,12 +1,15 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">反馈</view>
     <text class="hero-title">课后反馈</text>
+    <view class="gold-rule"></view>
     <text class="hero-sub">仅已签退学习安排可写反馈</text>
   </view>
 
   <!-- 已完成的学习安排 -->
-  <view v-if="completedSessions.length===0" class="card">
+  <view v-if="loading" class="loading">加载中…</view>
+  <view v-else-if="completedSessions.length===0" class="card">
     <view class="empty">暂无已完成学习安排，先去签到签退</view>
   </view>
 
@@ -87,42 +90,45 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { toastSuccess, toastError, logError } from '@/utils/ui';
 export default {
   data(){return{
-    completedSessions:[]
+    completedSessions:[],loading:false
   };},
   onLoad(){this.loadSessions();},
   methods:{
     async loadSessions(){
+      this.loading=true;
       try{
-        const ses=await this.req('/schedules/sessions/completed');
+        const ses=await api.get('/schedules/sessions/completed');
         this.completedSessions=(ses.sessions||[]).map(se=>({
           ...se,_open:false,_tab:'class',_batching:false,
           _cf:{lesson:'',topic:'',perfScore:5,homework:'',_text:'',_genning:false},
           _students:[],_publishing:false
         }));
-      }catch(e){}
+      }catch(e){logError('feedback.loadSessions',e);}
+      finally{this.loading=false;}
     },
     async openSession(se){
       se._open=true;
       if(se._students.length===0){
         try{
-          const r=await this.req('/students?class_id='+se.class_id);
+          const r=await api.get('/students?class_id='+se.class_id);
           se._students=(r.students||[]).map(s=>{
             if(!s._images)s._images=[];
             return {...s,_score:s._score||5,_note:s._note||'',_text:s._text||'',_leave:false};
           });
-        }catch(e){}
+        }catch(e){logError('feedback.openSession',e);}
       }
     },
     async genClassFeedback(se){
       se._cf._genning=true;
       try{
-        const cls=await this.req('/classes/'+se.class_id).catch(()=>({class:{}}));
-        const r=await this.req('/feedbacks/generate-class','POST',{...se._cf,grade:cls.class?.grade,subject:cls.class?.subject});
+        const cls=await api.get('/classes/'+se.class_id).catch(()=>({class:{}}));
+        const r=await api.post('/feedbacks/generate-class',{...se._cf,grade:cls.class?.grade,subject:cls.class?.subject});
         se._cf._text=r.text;
-      }catch(e){uni.showToast({title:'生成失败',icon:'none'});}
+      }catch(e){toastError(e,'生成失败');}
       finally{se._cf._genning=false;}
     },
     async genAllStu(se){
@@ -132,22 +138,20 @@ export default {
           id:s.id,name:s.name,level:s.level,personality:s.personality,
           quizScore:s._score||5,note:s._note||''
         }));
-        const r=await this.req('/feedbacks/generate-student-batch','POST',{
+        const r=await api.post('/feedbacks/generate-student-batch',{
           students,classInfo:{content:se._cf.lesson+' '+se._cf.topic,perfScore:se._cf.perfScore}
         });
         (r.results||[]).forEach((item,i)=>{
           if(students[i]){const s=se._students.find(s=>s.id===students[i].id);if(s)s._text=item.feedback;}
         });
-        uni.showToast({title:'全部生成完成',icon:'success'});
-      }catch(e){uni.showToast({title:'生成失败',icon:'none'});}
+        toastSuccess('全部生成完成');
+      }catch(e){toastError(e,'生成失败');}
       finally{se._batching=false;}
     },
-    uploadImg(fp){return new Promise((resolve,reject)=>{
-      const t=uni.getStorageSync('token');
-      uni.uploadFile({url:BASE+'/feedbacks/upload-image',filePath:fp,name:'image',header:{Authorization:`Bearer ${t}`},success(r){
-        try{const d=JSON.parse(r.data);resolve(d.url);}catch(e){reject(e);}
-      },fail:reject});
-    });},
+    async uploadImg(fp){
+      const d=await api.upload('/feedbacks/upload-image',fp,'image');
+      return d.url;
+    },
     choosePDF(se){
       uni.chooseMessageFile({count:1,type:'file',extension:['pdf'],success:res=>{
         se._pdfTemp=res.tempFiles[0].path;se._pdfName=res.tempFiles[0].name;
@@ -158,7 +162,7 @@ export default {
       uni.chooseImage({
         count:3,sizeType:['compressed'],
         success:res=>{ s._images.push(...res.tempFilePaths); },
-        fail:err=>{ console.log(err); }
+        fail:err=>{ logError('addStuImg',err); }
       });
     },
     previewStuImg(s,i){
@@ -167,12 +171,12 @@ export default {
     },
     async genStuFeedback(se,s,silent){
       try{
-        const r=await this.req('/feedbacks/generate-student','POST',{
+        const r=await api.post('/feedbacks/generate-student',{
           name:s.name,level:s.level,personality:s.personality,
           quizScore:s._score,note:s._note,content:se._cf.lesson+' '+se._cf.topic,perfScore:se._cf.perfScore
         });
         s._text=r.text;
-      }catch(e){if(!silent)uni.showToast({title:'生成失败',icon:'none'});}
+      }catch(e){if(!silent)toastError(e,'生成失败');else logError('genStuFeedback',e);}
     },
     async publishFeedback(se){
       if(!se._cf._text) return uni.showToast({title:'请先生成学习小组总反馈',icon:'none'});
@@ -186,32 +190,33 @@ export default {
           const urls=[];
           if(s._images && s._images.length>0){
             for(const img of s._images){
-              try{const res=await this.uploadImg(img);if(res)urls.push(res);}catch(e){}
+              try{const res=await this.uploadImg(img);if(res)urls.push(res);}catch(e){logError('uploadImg',e);}
             }
           }
           students.push({id:s.id,name:s.name,text:s._text,images:urls});
         }
-        await this.req('/feedbacks/publish','POST',{
+        await api.post('/feedbacks/publish',{
           class_id:se.class_id,class_date:se.class_date,
           class_feedback:se._cf._text,homework:se._cf.homework,
           students
         });
-        await this.req('/schedules/sessions/'+se.id+'/complete','PUT',{status:'feedbacked'});
-        uni.showToast({title:'已发布！',icon:'success'});
+        await api.put('/schedules/sessions/'+se.id+'/complete',{status:'feedbacked'});
+        toastSuccess('已发布！');
         this.loadSessions();
-      }catch(e){uni.showToast({title:'发布失败',icon:'none'});}
+      }catch(e){toastError(e,'发布失败');}
       finally{se._publishing=false;}
-    },
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});}
+    }
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:80rpx}
-.hero{padding:24rpx 30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7}
-.hero-title{font-size:36rpx;font-weight:700;display:block}
-.hero-sub{font-size:22rpx;opacity:.7;margin-top:4rpx}
+.hero{padding:40rpx 32rpx 30rpx;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.hero .eyebrow{color:var(--accent)}
+.hero .gold-rule{margin:14rpx 0}
+.hero-title{font-size:38rpx;font-weight:700;color:var(--ink);display:block}
+.hero-sub{font-size:24rpx;color:var(--muted);margin-top:4rpx}
 .se-card{margin-bottom:16rpx}
 .se-hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:16rpx}
 .se-title{font-size:30rpx;font-weight:700;color:#1A365D}

@@ -16,7 +16,9 @@ router.post('/', auth, (req, res) => {
   // 教师邀请码：默认关闭，部署方需在 .env 显式配置
   if (process.env.TEACHER_INVITE_CODE && code === process.env.TEACHER_INVITE_CODE) {
     db.run('UPDATE users SET role=? WHERE id=?', ['teacher', req.user.id]);
-    return res.json({ ok: true, role: 'teacher' });
+    // 角色变更后必须重新签发 token，否则旧 token 里仍是 parent，老师操作会 403「没有权限」
+    const token = jwt.sign({ id: req.user.id, openid: req.user.openid, role: 'teacher' }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '30d' });
+    return res.json({ ok: true, role: 'teacher', token });
   }
 
   // 学生邀请码

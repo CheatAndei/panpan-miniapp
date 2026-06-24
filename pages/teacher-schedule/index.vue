@@ -1,9 +1,13 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">课程</view>
     <text class="hero-title">课表管理</text>
+    <view class="gold-rule"></view>
     <text class="hero-sub">勾选学习安排 → 发布上课提醒</text>
   </view>
+
+  <view v-if="loading" class="loading">加载中…</view>
 
   <view class="card" v-if="schedules.length>0 && checkedIds.length>0" style="background:#FEF5E7">
     <button class="btn-accent" @tap="publishChecked">发布上课提醒（已选 {{ checkedIds.length }} 节）</button>
@@ -31,7 +35,7 @@
           <text class="sc-grade">{{ classGrade(s.class_id) }}</text>
         </view>
         <text class="sc-time">{{ s.start_time }} - {{ s.end_time }}</text>
-        <text v-if="s.location" class="sc-loc">📍 {{ s.location }}</text>
+        <text v-if="s.location" class="sc-loc">{{ s.location }}</text>
       </view>
     </view>
   </view>
@@ -73,14 +77,15 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { toastSuccess, toastError, logError } from '@/utils/ui';
 const DAYS = ['周日','周一','周二','周三','周四','周五','周六'];
 const ALL_DAYS = [{label:'周五',value:5},{label:'周六',value:6},{label:'周日',value:0},{label:'周一',value:1},{label:'周二',value:2}];
 const BG = ['bg0','bg1','bg2','bg3','bg4','bg5','bg6','bg7','bg8','bg9'];
 
 export default {
   data(){return{
-    schedules:[],classes:[],classNames:[],checkedIds:[],
+    schedules:[],classes:[],classNames:[],checkedIds:[],loading:false,
     showAdd:false,sForm:{class_id:null,class_name:'',day_of_week:5,start_time:'',end_time:'',location:''},
     showSpecial:false,spForm:{class_id:null,name:'',date:new Date().toISOString().slice(0,10),start_time:'',end_time:'',location:''},
     days:ALL_DAYS,dayNames:DAYS
@@ -88,14 +93,16 @@ export default {
   onShow(){this.loadData();},
   methods:{
     async loadData(){
+      this.loading=true;
       try{
-        const [sch,cls]=await Promise.all([this.req('/schedules'),this.req('/classes')]);
+        const [sch,cls]=await Promise.all([api.get('/schedules'),api.get('/classes')]);
         this.classes=cls.classes||[];this.classNames=this.classes.map(c=>c.name+' ('+c.grade+')');
         this.schedules=(sch.schedules||[]).map(s=>{
           const c=this.classes.find(c=>c.id===s.class_id);
           return {...s,class_name:c?.name,class_grade:c?.grade};
         });
-      }catch(e){}
+      }catch(e){logError('schedule.loadData',e);}
+      finally{this.loading=false;}
     },
     daySchedules(day){return this.schedules.filter(s=>s.day_of_week===day).sort((a,b)=>{const ta=parseInt(a.start_time.replace(':',''));const tb=parseInt(b.start_time.replace(':',''));return ta-tb;});},
     classGrade(cid){const c=this.classes.find(c=>c.id===cid);return c?.grade||'';},
@@ -105,36 +112,37 @@ export default {
     async saveSched(){
       if(!this.sForm.class_id||!this.sForm.start_time||!this.sForm.end_time)
         return uni.showToast({title:'请填写学习小组和时间',icon:'none'});
-      try{await this.req('/schedules','POST',this.sForm);this.showAdd=false;this.loadData();}
-      catch(e){uni.showToast({title:'添加失败',icon:'none'});}
+      try{await api.post('/schedules',this.sForm);this.showAdd=false;this.loadData();}
+      catch(e){toastError(e,'添加失败');}
     },
     async specialPublish(){
       const f=this.spForm;
       if(!f.class_id||!f.date||!f.start_time||!f.end_time) return uni.showToast({title:'请填写完整',icon:'none'});
       try{
-        await this.req('/schedules/special-publish','POST',{class_id:f.class_id,class_date:f.date,start_time:f.start_time,end_time:f.end_time,location:f.location||''});
-        uni.showToast({title:'特殊发布成功',icon:'success'});
+        await api.post('/schedules/special-publish',{class_id:f.class_id,class_date:f.date,start_time:f.start_time,end_time:f.end_time,location:f.location||''});
+        toastSuccess('特殊发布成功');
         this.showSpecial=false;
-      }catch(e){uni.showToast({title:'发布失败',icon:'none'});}
+      }catch(e){toastError(e,'发布失败');}
     },
     async publishChecked(){
       if(this.checkedIds.length===0)return uni.showToast({title:'请勾选学习安排',icon:'none'});
       uni.showModal({title:'发布上课提醒',content:'将通知这 '+this.checkedIds.length+' 节课的学生家长。',success:async r=>{
         if(!r.confirm)return;
-        try{const res=await this.req('/schedules/publish','POST',{ids:this.checkedIds});uni.showToast({title:'已发布 '+res.count+' 节',icon:'success'});this.checkedIds=[];this.loadData();}
-        catch(e){uni.showToast({title:'发布失败',icon:'none'});}
+        try{const res=await api.post('/schedules/publish',{ids:this.checkedIds});toastSuccess('已发布 '+res.count+' 节');this.checkedIds=[];this.loadData();}
+        catch(e){toastError(e,'发布失败');}
       }});
-    },
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});}
+    }
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:80rpx}
-.hero{padding:24rpx 30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7}
-.hero-title{font-size:36rpx;font-weight:700;color:#1A365D;display:block}
-.hero-sub{font-size:22rpx;color:#718096;margin-top:4rpx}
+.hero{padding:40rpx 32rpx 30rpx;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.hero .eyebrow{color:var(--accent)}
+.hero .gold-rule{margin:14rpx 0}
+.hero-title{font-size:38rpx;font-weight:700;color:var(--ink);display:block}
+.hero-sub{font-size:24rpx;color:var(--muted);margin-top:4rpx}
 .btn-accent{background:#D69E2E;color:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;border:none;width:100%}
 .btn-special{border:1px dashed #D69E2E;color:#D69E2E;background:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;width:100%}
 
@@ -153,11 +161,11 @@ export default {
 .sc-grade{font-size:22rpx;opacity:.7}
 .sc-time{font-size:26rpx;font-weight:500;display:block}
 .sc-loc{font-size:22rpx;opacity:.6;margin-top:4rpx}
-.bg0{background:#EBF0F7;color:#1A365D}.bg1{background:#FFF0F0;color:#9B2C2C}
+.bg0{background:#EBF0F7;color:#1A365D}.bg1{background:#FEF5E7;color:#B7791F}
 .bg2{background:#EBF8FF;color:#2A4365}.bg3{background:#FFFFF0;color:#975A16}
-.bg4{background:#F0FFF4;color:#276749}.bg5{background:#FAF5FF;color:#553C9A}
+.bg4{background:#F0FFF4;color:#276749}.bg5{background:#EDF2F7;color:#2D3748}
 .bg6{background:#FFF8F0;color:#9C4221}.bg7{background:#F0FFFF;color:#234E52}
-.bg8{background:#FFF0F7;color:#702459}.bg9{background:#F0FFF8;color:#1D4044}
+.bg8{background:#FFF5F5;color:#C53030}.bg9{background:#F0FFF8;color:#1D4044}
 
 .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;display:flex;align-items:flex-end}
 .modal{background:#fff;border-radius:24rpx 24rpx 0 0;padding:30rpx;width:100%}

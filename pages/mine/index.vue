@@ -5,8 +5,8 @@
   </view>
   <template v-else>
   <!-- 用户卡片 -->
-  <view class="user-card">
-    <image v-if="user.role==='parent'" src="/static/av-parent.png" class="parent-avatar" mode="aspectFit" />
+  <view class="user-card hero-navy">
+    <pp-avatar v-if="user.role==='parent'" :name="studentName" :size="128" class="parent-avatar" />
     <image v-else src="/static/pantouxiang.png" class="teacher-avatar" mode="aspectFill" />
     <text class="name">{{ user.role==='teacher' ? '潘潘老师' : (childName||'家长') }}</text>
     <text class="role-tag">{{ user.role==='teacher' ? '教师端' : '家长端' }}</text>
@@ -16,20 +16,11 @@
   <view class="card profile-section" v-if="user.role==='parent' && profile">
     <text class="section-title">AI 学习画像</text>
 
-    <!-- 人物 + 漂浮标签 -->
+    <!-- 人物 + 标签 -->
     <view class="character-area">
-      <view class="orbit-container">
-        <view class="orbit-track">
-          <text v-for="(t,i) in profile.tags" :key="i"
-            :class="['float-tag',tagColor(i)]"
-            :style="{transform:'rotate('+(i*360/profile.tags.length)+'deg) translateY(-160rpx)'}">
-            {{ t }}
-          </text>
-        </view>
-      </view>
-      <view class="character-center">
-        <image :src="charImg" class="char-img" mode="aspectFit"
-          @error="charImg=gender==='girl'?'/static/default-girl.png':'/static/default-boy.png'" />
+      <pp-avatar :name="studentName" :size="160" />
+      <view class="tag-cloud">
+        <text v-for="(t,i) in profile.tags" :key="i" :class="['profile-tag',tagColor(i)]">{{ t }}</text>
       </view>
     </view>
 
@@ -69,44 +60,41 @@
     </view>
   </view>
 
-  <view class="brand">番番记录 v1</view>
+  <view class="brand">番番记录 v1.0.0</view>
   </template>
 </view>
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
-import { getStudentAvatar } from '@/utils/traits';
+import { api } from '@/utils/api';
+import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',charImg:'/static/av-study.png',gender:'boy'
+    user:{},profile:null,childName:'',studentName:''
   };},
   onShow(){this.loadData();},
   methods:{
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((r,j)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(res){if(res.statusCode===200)r(res.data);else j(res.data);},fail:j});});},
     loadData(){
       try{this.user=JSON.parse(uni.getStorageSync('user')||'{}');}catch(e){this.user={};}
       if(this.user.role==='parent'){this.loadProfile();}
     },
     async loadProfile(){
       try{
-        const t=uni.getStorageSync('token');
         const cid=uni.getStorageSync('activeChildId');
-        const url=cid?BASE+'/profiles/'+cid:BASE+'/profiles/my';
-        const p=new Promise((r,j)=>{uni.request({url,header:{Authorization:`Bearer ${t}`},success(res){if(res.statusCode===200)r(res.data);else j(res.data);},fail:j});});
-        const data=await p;
+        const data=await api.get(cid?'/profiles/'+cid:'/profiles/my');
         this.profile=data.profile;
-        // 匹配头像：tags 可能是 JSON 字符串
-        let tagArr = data.profile?.tags || [];
-        if (typeof tagArr === 'string') { try { tagArr = JSON.parse(tagArr); } catch(e) { tagArr = []; } }
-        // 获取学生性格+性别，统一匹配
-        let personality='',gender='boy';
+        // tags 可能是 JSON 字符串，统一成数组，避免 v-for 逐字符渲染
+        if(this.profile){
+          let tags=this.profile.tags;
+          if(typeof tags==='string'){try{tags=JSON.parse(tags);}catch(e){tags=[];}}
+          this.profile.tags=Array.isArray(tags)?tags:[];
+        }
+        // 取学生姓名用于头像与称呼
         let s=null;
-        if(cid){try{s=(await this.req('/students/'+cid)).student;}catch(e){}}
-        if(!s){try{s=(await this.req('/bind/student')).student;}catch(e){}}
-        if(s){personality=s.personality||'';gender=s.gender||'boy';this.gender=gender;this.childName=s.name+'家长'||'';}
-        this.charImg = getStudentAvatar(personality, tagArr, gender);
-      }catch(e){}
+        if(cid){try{s=(await api.get('/students/'+cid)).student;}catch(e){logError('mine.student',e);}}
+        if(!s){try{s=(await api.get('/bind/student')).student;}catch(e){logError('mine.bindStudent',e);}}
+        if(s){this.studentName=s.name||'';this.childName=(s.name||'')+'家长';}
+      }catch(e){logError('mine.loadProfile',e);}
     },
     goLogin(){uni.switchTab({url:'/pages/index/index'});},
     nav(url){uni.navigateTo({url});},
@@ -120,26 +108,22 @@ export default {
 
 <style scoped>
 .page{padding-bottom:60rpx}
-.user-card{display:flex;flex-direction:column;align-items:center;padding:40rpx 0 30rpx}
-.parent-avatar{width:120rpx;height:120rpx;border-radius:50%;margin-bottom:16rpx}
-.teacher-avatar{width:100rpx;height:100rpx;border-radius:50%}
-.name{font-size:34rpx;font-weight:700;color:#1A365D;margin-top:16rpx}
-.role-tag{font-size:22rpx;background:#EBF0F7;color:#1A365D;padding:4rpx 16rpx;border-radius:10rpx;margin-top:8rpx}
+.user-card{display:flex;flex-direction:column;align-items:center;padding:56rpx 0 44rpx}
+.parent-avatar{margin-bottom:8rpx}
+.teacher-avatar{width:120rpx;height:120rpx;border-radius:50%;box-shadow:0 4rpx 16rpx rgba(0,0,0,.2),inset 0 0 0 2rpx rgba(255,255,255,.55)}
+.name{font-size:36rpx;font-weight:700;color:#fff;margin-top:16rpx}
+.role-tag{font-size:22rpx;background:rgba(255,255,255,.16);color:#fff;padding:6rpx 18rpx;border-radius:20rpx;margin-top:10rpx;letter-spacing:1rpx}
 
 .profile-section{padding-bottom:32rpx}
 .section-title{font-size:30rpx;font-weight:700;color:#1A365D;margin-bottom:24rpx}
 
-/* 人物+漂浮标签 */
-.character-area{position:relative;height:420rpx;display:flex;align-items:center;justify-content:center;margin-bottom:32rpx}
-.orbit-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.orbit-track{width:320rpx;height:320rpx;border-radius:50%;border:1rpx dashed #E2E8F0;position:relative;animation:spin 20s linear infinite}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.float-tag{position:absolute;left:50%;top:50%;transform-origin:0 0;white-space:nowrap;font-size:22rpx;padding:6rpx 14rpx;border-radius:14rpx;font-weight:600}
-.tag-c0{background:#EBF0F7;color:#1A365D}.tag-c1{background:#FFF0F0;color:#9B2C2C}
-.tag-c2{background:#EBF8FF;color:#2A4365}.tag-c3{background:#FFFFF0;color:#975A16}
-.tag-c4{background:#F0FFF4;color:#276749}.tag-c5{background:#FAF5FF;color:#553C9A}
-.character-center{width:160rpx;height:160rpx;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:1;box-shadow:0 4rpx 16rpx rgba(26,54,93,.12)}
-.char-img{width:140rpx;height:140rpx}
+/* 人物 + 标签（去掉旋转动画，改为清晰的静态布局） */
+.character-area{display:flex;flex-direction:column;align-items:center;gap:24rpx;margin-bottom:32rpx}
+.tag-cloud{display:flex;flex-wrap:wrap;justify-content:center;gap:12rpx}
+.profile-tag{font-size:24rpx;padding:8rpx 20rpx;border-radius:24rpx;font-weight:600}
+.tag-c0{background:#EBF0F7;color:#1A365D}.tag-c1{background:#FEF5E7;color:#975A16}
+.tag-c2{background:#EBF8FF;color:#2A4365}.tag-c3{background:#FFF7E6;color:#B7791F}
+.tag-c4{background:#F0FFF4;color:#276749}.tag-c5{background:#EDF2F7;color:#4A5568}
 
 /* 三个信息框 */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16rpx}

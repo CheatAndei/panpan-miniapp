@@ -1,8 +1,9 @@
 <template>
 <view class="page">
+  <view v-if="loading" class="loading">加载中…</view>
   <!-- 孩子卡片 -->
-  <view class="hero" v-if="child">
-    <view class="avatar"></view>
+  <view class="hero hero-navy" v-if="child">
+    <pp-avatar :name="child.name" :size="128" class="avatar" />
     <text class="child-name">{{ child.name }}</text>
     <text class="child-class">{{ child.className }}</text>
   </view>
@@ -69,42 +70,44 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,
+    child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,
     dayNames:['周日','周一','周二','周三','周四','周五','周六'],fbImages:[]
   };},
   onShow(){this.loadData();},
   methods:{
     async loadData(){
       const t=uni.getStorageSync('token');if(!t)return;
+      this.loading=true;
       try{
         const [s,c,sc,f,p]=await Promise.all([
-          this.req('/bind/student'),this.req('/checkins/today'),
-          this.req('/schedules'),this.req('/feedbacks/latest'),this.req('/profiles/my')
+          api.get('/bind/student'),api.get('/checkins/today'),
+          api.get('/schedules'),api.get('/feedbacks/latest'),api.get('/profiles/my')
         ]);
         this.child=s.student;this.todayCheckin=c;
         this.schedules=(sc.schedules||[]).slice(0,3);
         this.feedback=f.feedback;this.profile=p.profile;
         if(this.feedback&&this.feedback.image_urls){
-          try{this.fbImages=JSON.parse(this.feedback.image_urls).map(u=>ASSET_BASE+u);}catch(e){this.fbImages=[];}
+          try{this.fbImages=JSON.parse(this.feedback.image_urls).map(u=>api.assetUrl(u));}catch(e){this.fbImages=[];}
         }
-      }catch(e){}
+      }catch(e){logError('parentHome.loadData',e);}
+      finally{this.loading=false;}
     },
     previewImg(i){uni.previewImage({current:this.fbImages[i],urls:this.fbImages});},
-    nav(url){uni.navigateTo({url});},
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((r,j)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(res){if(res.statusCode===200)r(res.data);else j(res.data);},fail:j});});}
+    nav(url){uni.navigateTo({url});}
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:40rpx}
-.hero{display:flex;flex-direction:column;align-items:center;padding:40rpx 0 30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7}
-.avatar{width:120rpx;height:120rpx;border-radius:50%;background:#F0F4F8;margin-bottom:16rpx}
-.child-name{font-size:34rpx;font-weight:700;color:#1A365D;margin-top:14rpx}
-.child-class{font-size:24rpx;color:#718096;margin-top:4rpx}
+.hero{display:flex;flex-direction:column;align-items:center;padding:56rpx 0 44rpx}
+.avatar{margin-bottom:8rpx}
+.child-name{font-size:36rpx;font-weight:700;color:#fff;margin-top:14rpx}
+.child-class{font-size:24rpx;color:rgba(255,255,255,.72);margin-top:4rpx}
 
 .checkin-badge{display:flex;align-items:center;gap:10rpx;padding:16rpx 20rpx;border-radius:10rpx;font-size:28rpx;font-weight:600}
 .checkin-badge.in{background:#F0FFF4;color:#276749}

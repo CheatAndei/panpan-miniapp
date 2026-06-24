@@ -1,8 +1,10 @@
 <template>
 <view class="page">
-  <view class="hero">
-    <image :src="charImg" class="char-img" mode="aspectFit" @error="charImg=student.gender==='girl'?'/static/default-girl.png':'/static/default-boy.png'" />
+  <view class="hero hero-navy">
+    <view class="eyebrow">学生档案</view>
+    <pp-avatar :name="student.name" :size="128" class="char-img" />
     <text class="hero-title">{{ student.name }}</text>
+    <view class="gold-rule"></view>
     <text class="hero-sub">{{ student.level||'' }} · {{ student.class_name||'' }}</text>
   </view>
 
@@ -48,27 +50,27 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
-import { PERSONALITY_CATEGORIES, getStudentAvatar } from '@/utils/traits';
+import { api } from '@/utils/api';
+import { toastSuccess, toastError, logError } from '@/utils/ui';
+import { PERSONALITY_CATEGORIES } from '@/utils/traits';
 export default {
   data(){return{
     student:{},traits:[],cats:PERSONALITY_CATEGORIES,
     profile:{personality:'',strengths:'',weaknesses:''},
-    genning:false,saving:false,charImg:'/static/av-study.png'
+    genning:false,saving:false
   };},
   onLoad(opt){this.studentId=opt.id;this.loadData();},
   methods:{
     async loadData(){
       try{
         const [stu,pro]=await Promise.all([
-          this.req('/students/'+this.studentId),
-          this.req('/profiles/'+this.studentId)
+          api.get('/students/'+this.studentId),
+          api.get('/profiles/'+this.studentId)
         ]);
         this.student=stu.student||{};
         this.traits=(this.student.personality||'').split('、').filter(Boolean);
-        this.charImg=getStudentAvatar(this.student.personality, this.traits, this.student.gender);
         if(pro.profile){this.profile=pro.profile;}
-      }catch(e){}
+      }catch(e){logError('studentDetail.loadData',e);}
     },
     toggleTrait(t){const i=this.traits.indexOf(t);if(i>-1){this.traits.splice(i,1);return;}if(this.traits.length>=8)return;this.traits.push(t);},
     delTrait(i){this.traits.splice(i,1);},
@@ -76,32 +78,32 @@ export default {
       this.genning=true;
       try{
         // 先用当前标签更新学生数据
-        await this.req('/students/'+this.studentId,'PUT',{personality:this.traits.join('、')});
-        const r=await this.req('/profiles/generate','POST',{studentId:this.studentId});
+        await api.put('/students/'+this.studentId,{personality:this.traits.join('、')});
+        const r=await api.post('/profiles/generate',{studentId:this.studentId});
         this.profile={personality:r.profile.personality,strengths:r.profile.strengths,weaknesses:r.profile.weaknesses};
-      }catch(e){uni.showToast({title:'生成失败',icon:'none'});}
+      }catch(e){toastError(e,'生成失败');}
       finally{this.genning=false;}
     },
     async save(){
       this.saving=true;
       try{
-        await this.req('/students/'+this.studentId,'PUT',{personality:this.traits.join('、')});
-        await this.req('/profiles/'+this.studentId,'PUT',this.profile);
-        uni.showToast({title:'已保存',icon:'success'});
-      }catch(e){uni.showToast({title:'保存失败',icon:'none'});}
+        await api.put('/students/'+this.studentId,{personality:this.traits.join('、')});
+        await api.put('/profiles/'+this.studentId,this.profile);
+        toastSuccess('已保存');
+      }catch(e){toastError(e,'保存失败');}
       finally{this.saving=false;}
-    },
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});}
+    }
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:80rpx}
-.hero{padding:40rpx 30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7;text-align:center}
-.hero-title{font-size:40rpx;font-weight:700;color:#1A365D;display:block}
-.hero-sub{font-size:26rpx;color:#718096;margin-top:6rpx}
-.char-img{width:120rpx;height:140rpx;margin-bottom:16rpx}
+.hero{padding:48rpx 32rpx 40rpx;text-align:center}
+.hero .gold-rule{margin:14rpx auto}
+.hero-title{font-size:40rpx;font-weight:700;color:#fff;display:block}
+.hero-sub{font-size:26rpx;color:rgba(255,255,255,.72);margin-top:6rpx}
+.char-img{margin:0 auto 16rpx}
 .s-title{font-size:30rpx;font-weight:700;color:#1A365D;margin-bottom:16rpx}
 .s-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16rpx}
 .tags-row{display:flex;flex-wrap:wrap;gap:10rpx;margin-bottom:16rpx}

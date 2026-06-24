@@ -1,9 +1,13 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">学员</view>
     <text class="hero-title">学习小组管理</text>
-    <text class="hero-sub">{{ classes.length }} 个学习小组 · {{ totalStudents }} 名学生</text>
+    <view class="gold-rule"></view>
+    <text class="hero-sub num">{{ classes.length }} 个学习小组 · {{ totalStudents }} 名学生</text>
   </view>
+
+  <view v-if="loading" class="loading">加载中…</view>
 
   <view v-for="c in classes" :key="c.id" class="card class-card">
     <view class="c-header" @tap="toggleClass(c)">
@@ -22,7 +26,7 @@
       <view v-if="c._students.length>0" class="stu-list">
         <view v-for="s in c._students" :key="s.id" class="stu-row">
           <view class="stu-info">
-            <image :src="s._avatar||(s.gender==='girl'?'/static/default-girl.png':'/static/default-boy.png')" class="s-avatar" mode="aspectFill" />
+            <pp-avatar :name="s.name" :size="56" class="s-avatar" />
             <text class="s-name" @tap.stop="openStudent(s)">{{ s.name }}</text>
             <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
           </view>
@@ -91,7 +95,8 @@
 
 <script>
 import { api } from '@/utils/api';
-import { PERSONALITY_CATEGORIES, getStudentAvatar } from '@/utils/traits';
+import { toastError, logError } from '@/utils/ui';
+import { PERSONALITY_CATEGORIES } from '@/utils/traits';
 
 const grades = ['一年级','二年级','三年级','四年级','五年级','六年级','初一','初二','初三','高一','高二','高三'];
 const subjects = ['数学','物理'];
@@ -99,7 +104,7 @@ const subjects = ['数学','物理'];
 export default {
   data() {
     return {
-      classes: [], totalStudents: 0,
+      classes: [], totalStudents: 0, loading: false,
       grades, subjects,
       showAddClass: false, showStu: false,
       activeClass: null,
@@ -116,24 +121,21 @@ export default {
     },
     async loadData() {
       const t = uni.getStorageSync('token'); if (!t) return;
+      this.loading = true;
       try {
-        const res = await this.req('/classes');
-        this.classes = res.classes.map(c => ({ ...c, _open: false, _students: [] }));
-        this.totalStudents = 0;
-        for (const c of this.classes) {
+        const res = await api.get('/classes');
+        const classes = (res.classes || []).map(c => ({ ...c, _open: false, _students: [] }));
+        // 并行加载各小组学生（原为逐组串行 await 的瀑布）
+        await Promise.all(classes.map(async c => {
           try {
-            const s = await this.req('/students?class_id='+c.id);
-            c._students = (s.students || []).map(st=>({...st,_avatar:getStudentAvatar(st.personality,[],st.gender)}));
-            this.totalStudents += c._students.length;
-          } catch(e) {}
-        }
-      } catch(e) {}
-    },
-    req(path, method='GET', data) {
-      if (method === 'POST') return api.post(path, data);
-      if (method === 'PUT') return api.put(path, data);
-      if (method === 'DELETE') return api.del(path);
-      return api.get(path, data);
+            const s = await api.get('/students?class_id='+c.id);
+            c._students = s.students || [];
+          } catch(e) { logError('class.students', e); }
+        }));
+        this.classes = classes;
+        this.totalStudents = classes.reduce((n,c)=>n+c._students.length, 0);
+      } catch(e) { logError('classes.loadData', e); }
+      finally { this.loading = false; }
     },
     toggleClass(c) { c._open = !c._open; },
     editClass(c){ this.editingId=c.id; this.cForm={name:c.name,grade:c.grade,subject:c.subject}; this.showAddClass=true; },
@@ -141,19 +143,19 @@ export default {
       if (!this.cForm.name) return uni.showToast({ title:'请输入学习小组名称', icon:'none' });
       try {
         if (this.editingId) {
-          await this.req('/classes/'+this.editingId,'PUT',this.cForm);
+          await api.put('/classes/'+this.editingId, this.cForm);
         } else {
-          await this.req('/classes','POST',this.cForm);
+          await api.post('/classes', this.cForm);
         }
         this.showAddClass=false; this.editingId=null; this.cForm={name:'',grade:'',subject:''}; this.loadData();
       }
-      catch(e) { uni.showToast({ title:'操作失败', icon:'none' }); }
+      catch(e) { toastError(e, '操作失败'); }
     },
     async delClass(id) {
       const r = await new Promise(r=>uni.showModal({title:'确认删除',success:r}));
       if (!r.confirm) return;
-      try { await this.req('/classes/'+id,'DELETE'); this.loadData(); }
-      catch(e) { uni.showToast({ title:'删除失败', icon:'none' }); }
+      try { await api.del('/classes/'+id); this.loadData(); }
+      catch(e) { toastError(e, '删除失败'); }
     },
     openAddStu(c) { this.activeClass=c; this.sForm={name:'',gender:'boy',level:'',traits:new Set()}; this.showStu=true; },
     toggleTrait(t) {
@@ -164,18 +166,18 @@ export default {
     async createStu() {
       if (!this.sForm.name) return uni.showToast({ title:'请输入姓名', icon:'none' });
       try {
-        await this.req('/students','POST',{
+        await api.post('/students', {
           class_id: this.activeClass.id, name: this.sForm.name,
           level: this.sForm.level, gender: this.sForm.gender,
           personality: [...this.sForm.traits].join('、')
         });
         this.showStu=false; this.loadData();
-      } catch(e) { uni.showToast({ title:'添加失败', icon:'none' }); }
+      } catch(e) { toastError(e, '添加失败'); }
     },
     openStudent(s){ uni.navigateTo({ url: '/pages/student-detail/index?id='+s.id }); },
     async delStu(c, sid) {
-      try { await this.req('/students/'+sid,'DELETE'); this.loadData(); }
-      catch(e) { uni.showToast({ title:'删除失败', icon:'none' }); }
+      try { await api.del('/students/'+sid); this.loadData(); }
+      catch(e) { toastError(e, '删除失败'); }
     }
   }
 };
@@ -183,9 +185,11 @@ export default {
 
 <style scoped>
 .page { padding-bottom: 80rpx; }
-.hero { padding: 30rpx; background: linear-gradient(135deg,#1A365D,#2A4A7F); color:#fff; }
-.hero-title { font-size: 38rpx; font-weight:700; display:block; }
-.hero-sub { font-size: 24rpx; opacity:.7; margin-top:6rpx; }
+.hero { padding: 40rpx 32rpx 30rpx; background: var(--card); border-bottom: 1rpx solid var(--hairline); }
+.hero .eyebrow { color: var(--accent); }
+.hero .gold-rule { margin: 14rpx 0; }
+.hero-title { font-size: 38rpx; font-weight:700; color:var(--ink); display:block; }
+.hero-sub { font-size: 24rpx; color: var(--muted); margin-top:4rpx; }
 
 .class-card { margin: 16rpx 20rpx; }
 .c-header { display:flex; justify-content:space-between; align-items:center; }

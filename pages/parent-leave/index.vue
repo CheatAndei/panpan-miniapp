@@ -1,7 +1,9 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">请假</view>
     <text class="hero-title">请假申请</text>
+    <view class="gold-rule"></view>
   </view>
 
   <view class="card">
@@ -37,7 +39,8 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { toastSuccess, toastError, logError } from '@/utils/ui';
 export default {
   data(){return{
     childId:null,childName:'',hasPending:false,form:{date:new Date().toISOString().slice(0,10),reason:''},
@@ -47,38 +50,38 @@ export default {
   methods:{
     async loadData(){
       try{
-        const t=uni.getStorageSync('token');
         let stu;
         if(this.childId){
-          stu=await this.req('/students/'+this.childId);
+          stu=await api.get('/students/'+this.childId);
           this.childName=stu.student?.name||'';
         }else{
-          const r=await this.req('/bind/student');
+          const r=await api.get('/bind/student');
           stu=r;this.childName=r.student?.name||'';
         }
-        const lv=await this.req('/leaves');
+        const lv=await api.get('/leaves');
         this.leaves=(lv.leaves||[]).filter(l=>!this.childId||l.student_id===parseInt(this.childId));
         this.hasPending=this.leaves.some(l=>l.status==='pending');
-      }catch(e){}
+      }catch(e){logError('parentLeave.loadData',e);}
     },
     async submit(){
       if(this.hasPending) return uni.showToast({title:'有待审批的请假',icon:'none'});
       try{
-        const sid=this.childId||(await this.req('/bind/student')).student?.id;
-        await this.req('/leaves','POST',{student_id:sid,class_date:this.form.date,reason:this.form.reason});
-        uni.showToast({title:'已提交',icon:'success'});
+        const sid=this.childId||(await api.get('/bind/student')).student?.id;
+        await api.post('/leaves',{student_id:sid,class_date:this.form.date,reason:this.form.reason});
+        toastSuccess('已提交');
         this.form.reason='';this.hasPending=true;this.loadData();
-      }catch(e){uni.showToast({title:'提交失败',icon:'none'});}
-    },
-    req(p,m='GET',d){const t=uni.getStorageSync('token');return new Promise((r,j)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(res){if(res.statusCode===200)r(res.data);else j(res.data);},fail:j});});}
+      }catch(e){toastError(e,'提交失败');}
+    }
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:60rpx}
-.hero{padding:30rpx;background:#fff;border-bottom:1rpx solid #EDF2F7}
-.hero-title{font-size:36rpx;font-weight:700;color:#1A365D}
+.hero{padding:40rpx 32rpx 30rpx;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.hero .eyebrow{color:var(--accent)}
+.hero .gold-rule{margin:14rpx 0}
+.hero-title{font-size:38rpx;font-weight:700;color:var(--ink)}
 .field{margin-bottom:24rpx}
 .label{font-size:28rpx;color:#4A5568;display:block;margin-bottom:8rpx}
 .value{font-size:30rpx;color:#1A365D;font-weight:600}

@@ -1,12 +1,15 @@
 <template>
 <view class="page">
   <view class="hero">
+    <view class="eyebrow">课程</view>
     <text class="hero-title">学习小组详情</text>
-    <text class="hero-sub">{{ weekendRange }}</text>
+    <view class="gold-rule"></view>
+    <text class="hero-sub num">{{ weekendRange }}</text>
   </view>
 
   <!-- 时间轴 -->
-  <view class="timeline" v-if="schedules.length>0">
+  <view v-if="loading" class="loading">加载中…</view>
+  <view class="timeline" v-else-if="schedules.length>0">
     <view v-for="day in days" :key="day.value" class="day-section">
       <view class="day-header">
         <view class="day-dot"></view>
@@ -37,7 +40,7 @@
     </view>
   </view>
 
-  <view v-else class="card"><view class="empty">暂无学习安排安排</view></view>
+  <view v-else class="card"><view class="empty">暂无学习安排</view></view>
 
   <!-- 学习小组详情弹窗 -->
   <view v-if="showDetail" class="modal-mask" @tap="showDetail=false">
@@ -76,13 +79,14 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { logError } from '@/utils/ui';
 const DAYS = ['周日','周一','周二','周三','周四','周五','周六'];
 const ALL = [{label:'周五',value:5},{label:'周六',value:6},{label:'周日',value:0},{label:'周一',value:1},{label:'周二',value:2}];
 
 export default {
   data(){return{
-    schedules:[],myClassIds:[],days:[],
+    schedules:[],myClassIds:[],days:[],loading:false,
     showDetail:false,detailClass:null,feedbacks:[],students:[],latestHomework:''
   };},
   computed:{
@@ -98,30 +102,32 @@ export default {
     isMyClass(cid){return this.myClassIds.includes(cid);},
     async loadData(){
       const t=uni.getStorageSync('token');if(!t)return;
+      this.loading=true;
       try{
-        const sch=await this.req('/schedules/parent');
+        const sch=await api.get('/schedules/parent');
         this.schedules=sch.schedules||[];
         this.myClassIds=sch.myClassIds||[];
         this.days=ALL.map(d=>({
           ...d,scheds:this.schedules.filter(s=>s.day_of_week===d.value)
             .sort((a,b)=>(parseInt(a.start_time.replace(':',''))-parseInt(b.start_time.replace(':',''))))
         }));
-      }catch(e){}
+      }catch(e){logError('parentSchedule.loadData',e);}
+      finally{this.loading=false;}
     },
     async openClass(s){
       this.detailClass=s;this.showDetail=true;this.feedbacks=[];this.students=[];
       this.latestHomework='';
       try{
         const [fb,st]=await Promise.all([
-          this.req('/feedbacks/list?class_id='+s.class_id),
-          this.req('/students?class_id='+s.class_id)
+          api.get('/feedbacks/list?class_id='+s.class_id),
+          api.get('/students?class_id='+s.class_id)
         ]);
         this.feedbacks=fb.feedbacks||[];
         this.students=st.students||[];
         // 提取最新作业
         const last=this.feedbacks.find(f=>f.homework);
         if(last)this.latestHomework=last.homework;
-      }catch(e){}
+      }catch(e){logError('parentSchedule.openClass',e);}
     },
     showStuFb(s){
       const last=this.feedbacks[0];
@@ -134,20 +140,18 @@ export default {
       }catch(e){uni.showToast({title:'暂无',icon:'none'});}
     },
     openFb(fb){},
-    lvClass(lv){const m={好:'lv-good',中上:'lv-above',中:'lv-mid',中下:'lv-below',下:'lv-low'};return m[lv]||'';},
-    req(p,m='GET',d){
-      const t=uni.getStorageSync('token');
-      return new Promise((resolve,reject)=>{uni.request({url:BASE+p,method:m,data:d,header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});
-    }
+    lvClass(lv){const m={好:'lv-good',中上:'lv-above',中:'lv-mid',中下:'lv-below',下:'lv-low'};return m[lv]||'';}
   }
 };
 </script>
 
 <style scoped>
 .page{padding-bottom:80rpx}
-.hero{padding:40rpx 30rpx 32rpx;text-align:center;border-bottom:1rpx solid #EDF2F7}
-.hero-title{font-size:38rpx;font-weight:800;color:#1A365D;display:block}
-.hero-sub{font-size:24rpx;color:#718096;margin-top:8rpx;display:block}
+.hero{padding:40rpx 32rpx 30rpx;text-align:center;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.hero .eyebrow{color:var(--accent)}
+.hero .gold-rule{margin:14rpx auto}
+.hero-title{font-size:38rpx;font-weight:800;color:var(--ink);display:block}
+.hero-sub{font-size:24rpx;color:var(--muted);margin-top:6rpx;display:block}
 
 /* 时间轴 */
 .timeline{padding:16rpx 30rpx}

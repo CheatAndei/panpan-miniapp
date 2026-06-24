@@ -3,12 +3,13 @@
   <view class="hero">
     <view class="hero-badge">邀请码</view>
     <view class="hero-title">绑定孩子</view>
+    <view class="gold-rule"></view>
     <view class="hero-desc">输入潘潘老师提供的 6 位邀请码，查看孩子的学习动态</view>
   </view>
 
   <view class="card" v-if="!bound">
     <view class="code-group">
-      <input class="code-input" v-model="code" maxlength="6" placeholder="000000" @input="c=$event.detail.value.toUpperCase()" focus />
+      <input class="code-input" :value="code" maxlength="6" placeholder="000000" @input="code=$event.detail.value.toUpperCase()" focus />
       <view class="code-hint">潘潘老师会通过微信发给您</view>
     </view>
     <button class="btn-primary" @tap="doBind" :disabled="code.length!==6">
@@ -27,24 +28,24 @@
 </template>
 
 <script>
-import BASE, { ASSET_BASE } from '@/utils/config';
+import { api } from '@/utils/api';
+import { toastSuccess, toastError } from '@/utils/ui';
 export default {
   data(){return{code:'',bound:null};},
   methods:{
     async doBind(){
       try{
-        const t=uni.getStorageSync('token');
-        const p=new Promise((resolve,reject)=>{uni.request({url:BASE+'/bind',method:'POST',data:{invite_code:this.code},header:{Authorization:`Bearer ${t}`},success(r){if(r.statusCode===200)resolve(r.data);else reject(r.data);},fail:reject});});
-        const res=await p;
+        const res=await api.post('/bind',{invite_code:this.code});
         if(res.role==='teacher'){
+          if(res.token) uni.setStorageSync('token', res.token);
           const u=JSON.parse(uni.getStorageSync('user')||'{}');
           u.role='teacher';uni.setStorageSync('user',JSON.stringify(u));
-          uni.showToast({title:'已成为老师',icon:'success'});
+          toastSuccess('已成为老师');
           setTimeout(()=>uni.reLaunch({url:'/pages/index/index'}),800);
           return;
         }
         this.bound=res.student;
-      }catch(e){uni.showToast({title:(e.error||'绑定失败，请检查邀请码'),icon:'none'});}
+      }catch(e){toastError(e,'绑定失败，请检查邀请码');}
     },
     goHome(){
       uni.switchTab({url:'/pages/index/index'});
@@ -54,10 +55,11 @@ export default {
 </script>
 
 <style scoped>
-.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:80rpx 40rpx 0;background:#F5F6F8}
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:80rpx 40rpx 0;background:var(--bg)}
 .hero{text-align:center;margin-bottom:48rpx;width:100%}
 .hero-badge{display:inline-block;background:#1A365D;color:#fff;font-size:22rpx;padding:6rpx 20rpx;border-radius:20rpx;letter-spacing:4rpx;margin-bottom:20rpx}
-.hero-title{font-size:44rpx;font-weight:800;color:#1A365D;margin-bottom:16rpx;letter-spacing:4rpx}
+.hero-title{font-size:44rpx;font-weight:800;color:#1A365D;margin-bottom:8rpx;letter-spacing:4rpx}
+.hero .gold-rule{margin:18rpx auto}
 .hero-desc{font-size:28rpx;color:#718096;line-height:1.6;max-width:500rpx;margin:0 auto}
 .card{width:100%;background:#fff;border-radius:16rpx;padding:40rpx 32rpx}
 .code-group{margin-bottom:32rpx}
