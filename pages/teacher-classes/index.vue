@@ -39,7 +39,9 @@
     </view>
   </view>
 
-  <button class="btn-primary" @tap="showAddClass=true">+ 新建学习小组</button>
+  <view class="create-wrap">
+    <button class="btn-create" @tap="showAddClass=true">+ 新建学习小组</button>
+  </view>
 
   <!-- 学习小组弹窗 -->
   <view v-if="showAddClass" class="modal-mask" @tap="showAddClass=false">
@@ -184,21 +186,36 @@ export default {
 </script>
 
 <style scoped>
-.page { padding-bottom: 80rpx; }
-.hero { padding: 40rpx 32rpx 30rpx; background: var(--card); border-bottom: 1rpx solid var(--hairline); }
-.hero .eyebrow { color: var(--accent); }
-.hero .gold-rule { margin: 14rpx 0; }
-.hero-title { font-size: 38rpx; font-weight:700; color:var(--ink); display:block; }
-.hero-sub { font-size: 24rpx; color: var(--muted); margin-top:4rpx; }
+.page { padding-bottom: 96rpx; background:#F4F5F2; min-height:100vh; }
+.hero {
+  padding: 42rpx 38rpx 34rpx;
+  background: #FBFAF7;
+  border-bottom: 1rpx solid #E5E0D8;
+}
+.hero .eyebrow { color:#8D6A3F; letter-spacing:1rpx; }
+.hero .gold-rule { width:44rpx; height:3rpx; margin:14rpx 0; background:#A57945; }
+.hero-title { font-size: 38rpx; font-weight:700; color:#202733; display:block; }
+.hero-sub { font-size: 24rpx; color:#69717D; margin-top:4rpx; }
 
-.class-card { margin: 16rpx 20rpx; }
-.c-header { display:flex; justify-content:space-between; align-items:center; }
-.c-name { font-size:30rpx; font-weight:700; color:#202733; }
-.c-meta { font-size:24rpx; color:#8A929B; margin-left:12rpx; }
-.c-toggle { font-size:24rpx; color:#8A929B; margin-right:12rpx; }
+.class-card {
+  margin: 18rpx 24rpx;
+  padding: 0;
+  background:#FFFFFF;
+  border:1rpx solid #E5E0D8;
+  border-radius:18rpx;
+  box-shadow:0 6rpx 18rpx rgba(36,42,50,.045);
+  overflow:hidden;
+}
+.c-header { display:flex; justify-content:space-between; align-items:center; padding:26rpx 28rpx; gap:20rpx; }
+.c-header > view:first-child { min-width:0; flex:1; }
+.c-name { font-size:30rpx; font-weight:700; color:#202733; display:block; margin-bottom:6rpx; }
+.c-meta { font-size:24rpx; color:#69717D; display:block; margin-left:0; }
+.c-actions { display:flex; align-items:center; gap:8rpx; flex-shrink:0; }
+.c-toggle { font-size:24rpx; color:#8A929B; margin-right:4rpx; }
 
-.stu-list { border-top:1rpx solid #ECE8E0; margin-top:12rpx; padding-top:8rpx; }
-.stu-row { display:flex; align-items:center; padding:10rpx 0; }
+.stu-list { border-top:1rpx solid #ECE8E0; margin:0 28rpx; padding:10rpx 0; }
+.stu-row { display:flex; align-items:center; padding:14rpx 0; border-bottom:1rpx solid #F0ECE5; }
+.stu-row:last-child { border-bottom:none; }
 .stu-info { flex:1; display:flex; align-items:center; gap:10rpx; }
 .s-name { font-weight:600; font-size:28rpx; }
 .s-avatar { width:56rpx; height:56rpx; border-radius:50%; flex-shrink:0; }
@@ -210,11 +227,22 @@ export default {
 .lv-e { background:#F7EDEA; color:#B85C4E; }
 .s-code { font-size:22rpx; color:#A57945; margin-right:8rpx; }
 
-.btn-xs { padding:4rpx 10rpx; font-size:22rpx; color:#666; }
+.btn-xs { padding:6rpx 12rpx; font-size:22rpx; color:#69717D; border-radius:8rpx; background:#F8F6F1; }
 .btn-xs.del { color:#B85C4E; }
-.btn-add-stu { margin-top:8rpx; padding:10rpx; font-size:24rpx; background:#F3F1EA; color:#202733; border:none; border-radius:8rpx; width:100%; }
-.empty-sm { text-align:center; color:#C3C1BA; padding:20rpx; font-size:24rpx; }
+.btn-add-stu { margin:10rpx 28rpx 26rpx; padding:16rpx; font-size:24rpx; background:#F8F6F1; color:#202733; border:1rpx solid #E5E0D8; border-radius:12rpx; width:auto; }
+.empty-sm { text-align:center; color:#8A929B; padding:28rpx; font-size:24rpx; }
 
+.create-wrap { padding: 8rpx 24rpx 0; }
+.btn-create {
+  background:#F7F1E7;
+  color:#202733;
+  border:1rpx solid #E2D3BF;
+  border-radius:14rpx;
+  padding:22rpx;
+  font-size:30rpx;
+  font-weight:700;
+  width:100%;
+}
 .btn-primary { background:#202733; color:#fff; border-radius:12rpx; padding:24rpx; font-size:30rpx; text-align:center; border:none; width:100%; margin-top:20rpx; }
 .btn-cancel { background:#fff; color:#8A929B; border:none; padding:16rpx; font-size:26rpx; text-align:center; width:100%; }
 
