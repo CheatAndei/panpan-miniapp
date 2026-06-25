@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "教培微信小程序 — 老师+家长双角色",
   "scripts": {
-    "dev:mp": "uni -p mp-weixin",
-    "build:mp": "uni build -p mp-weixin",
+    "dev:mp": "cross-env UNI_INPUT_DIR=. uni -p mp-weixin",
+    "build:mp": "cross-env UNI_INPUT_DIR=. uni build -p mp-weixin",
     "dev:h5": "uni",
     "build:h5": "uni build"
   },
