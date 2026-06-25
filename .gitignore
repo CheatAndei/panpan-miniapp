@@ -24,6 +24,9 @@ backend/db/teach.db
 *.sqlite
 *.sqlite3
 
+# Data import artifacts
+backend/invite-codes.txt
+
 # Logs / OS
 *.log
 .DS_Store
