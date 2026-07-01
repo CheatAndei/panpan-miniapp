@@ -165,7 +165,8 @@
 
 <script setup>
 import { ASSET_BASE } from '@/utils/config';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { doLogin } from '@/utils/auth';
 import { BRAND, TEACHER } from '@/utils/brand';
@@ -181,8 +182,12 @@ if (token && saved) {
   uni.removeStorageSync('user');
   uni.removeStorageSync('activeChildId');
 }
-if (user.value.role === 'teacher') loadTeacherData();
-else if (user.value.role === 'parent') loadParentData();
+
+// 每次页面显示时刷新数据
+onShow(() => {
+  if (user.value.role === 'teacher') loadTeacherData();
+  else if (user.value.role === 'parent') loadParentData();
+});
 
 const classes = ref([]);
 const pendingLeaves = ref(0);
