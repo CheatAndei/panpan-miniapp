@@ -121,13 +121,8 @@ jobs:
               git -C /opt/panpan-miniapp reset --hard "${{ github.sha }}"
             fi
 
-            (cd /opt/panpan-miniapp && docker compose up -d --pull never) || true
-
-            if [ "${{ github.ref }}" = "refs/heads/deploy/prod" ]; then
-              /opt/panpan-miniapp/deploy.sh prod || (cd /opt/panpan-miniapp && docker compose up -d --pull never)
-            else
-              /opt/panpan-miniapp/deploy.sh main || (cd /opt/panpan-miniapp && docker compose up -d --pull never)
-            fi
+            docker build -t rockchin/panpan-miniapp-backend:main -t rockchin/panpan-miniapp-backend:latest /opt/panpan-miniapp/backend
+            (cd /opt/panpan-miniapp && docker compose up -d --pull never --force-recreate)
 
             echo "=== deploy.sh ==="
             sed -n '1,220p' /opt/panpan-miniapp/deploy.sh || true
