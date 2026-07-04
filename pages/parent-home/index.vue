@@ -10,9 +10,9 @@
 
   <!-- 签到 -->
   <view class="card" v-if="todayCheckin">
-    <view :class="['checkin-badge', todayCheckin.checkedIn?'in':'out']">
+    <view :class="['checkin-badge', checkinBadgeClass(todayCheckin)]">
       <view :class="['i-dot',todayCheckin.checkedIn?'green':'amber']"></view>
-      {{ todayCheckin.checkedIn ? '今日已签到 '+todayCheckin.checkInTime : '等待签到' }}
+      {{ checkinText(todayCheckin) }}
     </view>
     <button class="notify-btn" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
   </view>
@@ -97,6 +97,9 @@ export default {
         if(this.todayCheckin&&this.todayCheckin.checkInTime){
           this.todayCheckin.checkInTime=new Date(this.todayCheckin.checkInTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
         }
+        if(this.todayCheckin&&this.todayCheckin.checkOutTime){
+          this.todayCheckin.checkOutTime=new Date(this.todayCheckin.checkOutTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+        }
         this.schedules=(sc.schedules||[]).filter(item=>!s.student?.class_id||item.class_id===s.student.class_id).slice(0,3);
         this.feedback=f.feedback;this.profile=p.profile;
         if(this.feedback&&this.feedback.image_urls){
@@ -106,6 +109,12 @@ export default {
       finally{this.loading=false;}
     },
     previewImg(i){uni.previewImage({current:this.fbImages[i],urls:this.fbImages});},
+    checkinBadgeClass(ci){return ci?.checkedOut?'done':(ci?.checkedIn?'in':'out');},
+    checkinText(ci){
+      if(!ci||!ci.checkedIn)return '等待签到';
+      if(ci.checkedOut)return '今日已签退 '+(ci.checkOutTime||'');
+      return '今日已签到 '+(ci.checkInTime||'');
+    },
     async requestSubscribe(){
       try{
         const tplRes=await api.get('/notify/templates');
@@ -143,6 +152,7 @@ export default {
 
 .checkin-badge{display:flex;align-items:center;gap:10rpx;padding:16rpx 20rpx;border-radius:10rpx;font-size:28rpx;font-weight:600}
 .checkin-badge.in{background:#EEF5EF;color:#3F7A5B}
+.checkin-badge.done{background:#EEF2F7;color:#425B76}
 .checkin-badge.out{background:#F7F2E5;color:#7B5B36}
 
 .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14rpx}

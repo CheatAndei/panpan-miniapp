@@ -75,10 +75,9 @@
 
       <!-- 今日状态 -->
       <view class="card status-card" v-if="todayStatus">
-        <view :class="['status-badge', todayStatus.checkedIn ? 'in' : 'out']">
-          {{ todayStatus.checkedIn ? '今日已签到' : '等待签到' }}
+        <view :class="['status-badge', statusBadgeClass(todayStatus)]">
+          {{ statusText(todayStatus) }}
         </view>
-        <text class="status-time" v-if="todayStatus.checkInTime">{{ todayStatus.checkInTime }}</text>
       </view>
 
       <view class="card">
@@ -300,6 +299,9 @@ async function loadParentData(childId) {
     if (checkin.checkInTime) {
       todayStatus.value.checkInTime = new Date(checkin.checkInTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
     }
+    if (checkin.checkOutTime) {
+      todayStatus.value.checkOutTime = new Date(checkin.checkOutTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+    }
     const myId = target.class_id;
     weekSchedules.value = (schedParent.schedules||[]).filter(s=>s.class_id===myId).slice(0,3);
     leaves.value = (lv.leaves||[]).filter(l=>l.student_id===target.id).slice(0,5);
@@ -317,6 +319,16 @@ async function loadParentData(childId) {
     if (e?.statusCode === 401) user.value = {};
     logError('loadParentData', e);
   }
+}
+
+function statusBadgeClass(status) {
+  return status?.checkedOut ? 'done' : (status?.checkedIn ? 'in' : 'out');
+}
+
+function statusText(status) {
+  if (!status || !status.checkedIn) return '等待签到';
+  if (status.checkedOut) return '今日已签退 ' + (status.checkOutTime || '');
+  return '今日已签到 ' + (status.checkInTime || '');
 }
 </script>
 
@@ -419,6 +431,7 @@ async function loadParentData(childId) {
 .status-card { display: flex; align-items: center; gap: 16rpx; }
 .status-badge { padding: 10rpx 24rpx; border-radius: 20rpx; font-size: 28rpx; font-weight: 600; }
 .status-badge.in { background: #EBF8F2; color: #3F8B65; }
+.status-badge.done { background: #EEF2F7; color: #425B76; }
 .status-badge.out { background: #F7F1E7; color: #A66A3E; }
 .status-time { font-size: 24rpx; color: #8A929B; }
 
