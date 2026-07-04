@@ -41,6 +41,7 @@ router.post('/login', async (req, res) => {
       console.error('[AUTH] jscode2session failed', { errcode: data.errcode, errmsg: data.errmsg });
       const hint = data.errcode === 40013 ? 'AppID 不正确'
         : data.errcode === 40125 ? 'AppSecret 不正确或已重置'
+        : data.errcode === 40164 ? '服务器 IP 未加入微信接口 IP 白名单'
         : data.errcode === 40029 ? '登录 code 无效，请重新打开小程序'
         : data.errcode === 45011 ? '登录太频繁，请稍后再试'
         : '微信登录失败';
