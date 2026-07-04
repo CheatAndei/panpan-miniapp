@@ -47,6 +47,7 @@ function templateData(pairs) {
     if (/^time\d+$/.test(key)) {
       data.time2 = item;
       data.time3 = item;
+      data.time5 = item;
     }
   }
   return data;

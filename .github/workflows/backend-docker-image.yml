@@ -99,6 +99,8 @@ jobs:
             for ENV_FILE in "${ENV_FILES[@]}"; do
               upsert_env APP_ID "$PANPAN_APP_ID" "$ENV_FILE"
               upsert_env APP_SECRET "$PANPAN_APP_SECRET" "$ENV_FILE"
+              upsert_env DATABASE_PATH /app/data/teach.db "$ENV_FILE"
+              upsert_env UPLOAD_DIR /app/uploads "$ENV_FILE"
               upsert_env WX_MINIPROGRAM_STATE trial "$ENV_FILE"
               upsert_env TPL_CHECKIN "$PANPAN_TPL_CHECKIN" "$ENV_FILE"
               upsert_env TPL_CHECKOUT "$PANPAN_TPL_CHECKOUT" "$ENV_FILE"
@@ -134,6 +136,52 @@ jobs:
                   - ./.env
                   - ./backend/.env
             EOF
+
+            DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+            UPLOADS_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/uploads"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+            [ -n "$DATA_DIR" ] || DATA_DIR="$(docker volume inspect panpan-miniapp_panpan-data --format '{{.Mountpoint}}' 2>/dev/null || true)"
+            [ -n "$UPLOADS_DIR" ] || UPLOADS_DIR="$(docker volume inspect panpan-miniapp_panpan-uploads --format '{{.Mountpoint}}' 2>/dev/null || true)"
+            if [ -z "$DATA_DIR" ]; then
+              docker volume create panpan-miniapp_panpan-data >/dev/null
+              DATA_DIR="$(docker volume inspect panpan-miniapp_panpan-data --format '{{.Mountpoint}}')"
+            fi
+            if [ -z "$UPLOADS_DIR" ]; then
+              docker volume create panpan-miniapp_panpan-uploads >/dev/null
+              UPLOADS_DIR="$(docker volume inspect panpan-miniapp_panpan-uploads --format '{{.Mountpoint}}')"
+            fi
+            mkdir -p "$DATA_DIR" "$UPLOADS_DIR"
+
+            docker cp panpan-api:/app/db/teach.db "$DEPLOY_DIR/backend/teach.container-before-data-fix.db" 2>/dev/null || true
+            CURRENT_DB="$DATA_DIR/teach.db"
+            CURRENT_SIZE=0
+            [ -f "$CURRENT_DB" ] && CURRENT_SIZE="$(stat -c%s "$CURRENT_DB" 2>/dev/null || echo 0)"
+            BEST_DB=""
+            BEST_SIZE="$CURRENT_SIZE"
+            while read -r size file; do
+              case "$file" in
+                "$CURRENT_DB") continue ;;
+              esac
+              if [ "${size:-0}" -gt "${BEST_SIZE:-0}" ]; then
+                BEST_SIZE="$size"
+                BEST_DB="$file"
+              fi
+            done < <(find /opt /var/lib/docker/volumes -name teach.db -type f -printf '%s %p\n' 2>/dev/null || true)
+            if [ -n "$BEST_DB" ] && [ "$BEST_SIZE" -gt "$CURRENT_SIZE" ]; then
+              [ -f "$CURRENT_DB" ] && cp -a "$CURRENT_DB" "$CURRENT_DB.backup.$(date +%Y%m%d%H%M%S)"
+              cp -a "$BEST_DB" "$CURRENT_DB"
+              echo "Recovered DB from $BEST_DB ($BEST_SIZE bytes) to $CURRENT_DB"
+            else
+              echo "No larger DB candidate found. current=$CURRENT_SIZE best=$BEST_SIZE"
+            fi
+
+            for VOLUME in $(docker volume ls --format '{{.Name}}' | grep -i upload || true); do
+              SRC_UPLOADS="$(docker volume inspect "$VOLUME" --format '{{.Mountpoint}}' 2>/dev/null || true)"
+              if [ -n "$SRC_UPLOADS" ] && [ "$SRC_UPLOADS" != "$UPLOADS_DIR" ]; then
+                cp -an "$SRC_UPLOADS"/. "$UPLOADS_DIR"/ 2>/dev/null || true
+                echo "Merged uploads from volume $VOLUME"
+              fi
+            done
+
             (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate)
 
             echo "=== deploy.sh ==="
