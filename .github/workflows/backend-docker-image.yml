@@ -115,8 +115,17 @@ jobs:
               upsert_env TPL_FIELD_REMINDER_NOTE thing3 "$ENV_FILE"
             done
 
+            if [ -d /opt/panpan-miniapp/.git ]; then
+              git -C /opt/panpan-miniapp fetch --all --prune
+              git -C /opt/panpan-miniapp checkout "${{ github.ref_name }}"
+              git -C /opt/panpan-miniapp reset --hard "${{ github.sha }}"
+            fi
+
             if [ "${{ github.ref }}" = "refs/heads/deploy/prod" ]; then
               /opt/panpan-miniapp/deploy.sh prod
             else
               /opt/panpan-miniapp/deploy.sh main
             fi
+
+            docker exec panpan-api sh -lc "grep -n 'bug2-notify-time3-v2\|data.time3\|function wxTime' /app/server.js /app/routes/notify.js"
+            curl -fsS http://127.0.0.1:3000/api/health
