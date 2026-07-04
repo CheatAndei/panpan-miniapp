@@ -169,7 +169,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onHide, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { doLogin } from '@/utils/auth';
 import { BRAND, TEACHER } from '@/utils/brand';
@@ -187,10 +187,21 @@ if (token && saved) {
 }
 
 // 每次页面显示时刷新数据
+let parentRefreshTimer = null;
+function stopParentRefresh() {
+  if (parentRefreshTimer) clearInterval(parentRefreshTimer);
+  parentRefreshTimer = null;
+}
+
 onShow(() => {
+  stopParentRefresh();
   if (user.value.role === 'teacher') loadTeacherData();
-  else if (user.value.role === 'parent') loadParentData();
+  else if (user.value.role === 'parent') {
+    loadParentData();
+    parentRefreshTimer = setInterval(() => loadParentData(child.value?.id), 15000);
+  }
 });
+onHide(stopParentRefresh);
 
 const classes = ref([]);
 const pendingLeaves = ref(0);
@@ -284,8 +295,9 @@ async function loadParentData(childId) {
     ]);
     boundKids.value = kids.students || [];
     // 选指定孩子或第一个
-    const target = childId
-      ? boundKids.value.find(k=>k.id===childId)
+    const savedChildId = childId || uni.getStorageSync('activeChildId');
+    const target = savedChildId
+      ? boundKids.value.find(k=>k.id===savedChildId)
       : (boundKids.value.length>0 ? boundKids.value[0] : null);
     if (!target) { child.value = null; return; }
     child.value = target;

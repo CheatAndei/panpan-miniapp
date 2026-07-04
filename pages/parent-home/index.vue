@@ -78,11 +78,22 @@ import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,
+    child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,refreshTimer:null,
     dayNames:['周日','周一','周二','周三','周四','周五','周六'],fbImages:[]
   };},
-  onShow(){this.loadData();},
+  onShow(){this.startAutoRefresh();},
+  onHide(){this.stopAutoRefresh();},
   methods:{
+    startAutoRefresh(){
+      this.stopAutoRefresh();
+      if(!uni.getStorageSync('token'))return;
+      this.loadData();
+      this.refreshTimer=setInterval(()=>this.loadData(),15000);
+    },
+    stopAutoRefresh(){
+      if(this.refreshTimer)clearInterval(this.refreshTimer);
+      this.refreshTimer=null;
+    },
     async loadData(){
       const t=uni.getStorageSync('token');if(!t)return;
       this.loading=true;
