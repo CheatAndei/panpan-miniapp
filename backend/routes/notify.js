@@ -49,6 +49,11 @@ function templateData(pairs) {
       data.time3 = item;
       data.time5 = item;
     }
+    if (/^phrase\d+$/.test(key)) {
+      data.phrase2 = item;
+      data.phrase3 = item;
+      data.phrase6 = item;
+    }
   }
   return data;
 }
