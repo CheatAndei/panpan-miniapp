@@ -25,11 +25,11 @@ TPL_FEEDBACK=课后反馈订阅消息模板ID
 TPL_REMINDER=上课提醒订阅消息模板ID
 
 TPL_FIELD_CHECKIN_STUDENT=thing1
-TPL_FIELD_CHECKIN_TIME=time2
-TPL_FIELD_CHECKIN_STATUS=phrase3
+TPL_FIELD_CHECKIN_TIME=time3
+TPL_FIELD_CHECKIN_STATUS=phrase2
 TPL_FIELD_CHECKOUT_STUDENT=thing1
-TPL_FIELD_CHECKOUT_TIME=time2
-TPL_FIELD_CHECKOUT_STATUS=phrase3
+TPL_FIELD_CHECKOUT_TIME=time3
+TPL_FIELD_CHECKOUT_STATUS=phrase2
 TPL_FIELD_FEEDBACK_TITLE=thing1
 TPL_FIELD_FEEDBACK_TIME=time2
 TPL_FIELD_FEEDBACK_NOTE=thing3
@@ -49,7 +49,7 @@ TPL_FIELD_REMINDER_NOTE=thing3
 
 注意：模板里的字段名要和 `.env` 一致：
 
-- 签到 / 签退：`thing1`、`time2`、`phrase3`
+- 签到 / 签退：`thing1`、`phrase2`、`time3`
 - 课后反馈 / 上课提醒：`thing1`、`time2`、`thing3`
 
 如果微信后台模板字段不是这些名字，不用改代码，只改 `.env` 里的 `TPL_FIELD_...`。

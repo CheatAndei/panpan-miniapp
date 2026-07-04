@@ -36,7 +36,7 @@ ${homework||'请查看群内通知'}
 要求：200-300字，不要空行，知识点准确。返回纯文本。`;
 
   try {
-    const text = await callAI(prompt, Math.min(1800, 250 + students.length * 150));
+    const text = await callAI(prompt, 900);
     res.json({ text });
   } catch(e) { res.status(500).json({ error: '生成失败' }); }
 });
@@ -100,10 +100,23 @@ router.post('/generate-student', auth, async (req, res) => {
 // 发布反馈
 router.post('/publish', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
-  const { class_id, class_date, class_feedback, homework, students, notes_pdf_url } = req.body;
+  const { class_id, class_date, schedule_id, class_feedback, homework, students, notes_pdf_url } = req.body;
   const db = getDB();
   // 保存班级反馈 + 每个学生的反馈
-  const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, class_date, summary, homework, notes_pdf_url, student_feedbacks) VALUES (?,?,?,?,?,?,?)', [req.user.id, class_id, class_date, class_feedback, homework||'', notes_pdf_url||'', JSON.stringify(students||[])]);
+  const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, schedule_id, class_date, summary, homework, notes_pdf_url, student_feedbacks) VALUES (?,?,?,?,?,?,?,?)', [req.user.id, class_id, schedule_id||null, class_date, class_feedback, homework||'', notes_pdf_url||'', JSON.stringify(students||[])]);
+  try { require('./notify').notifyFeedback(class_id); } catch(e) {}
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+// 单独发送学习笔记
+router.post('/publish-notes', auth, async (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const { class_id, class_date, schedule_id, notes_pdf_url, note_remark } = req.body;
+  if (!class_id || !class_date) return res.status(400).json({ error: '缺少学习小组或日期' });
+  if (!notes_pdf_url && !note_remark) return res.status(400).json({ error: '请选择学习笔记或填写备注' });
+  const summary = note_remark || '学习笔记已发送，请查看附件';
+  const db = getDB();
+  const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, schedule_id, class_date, summary, homework, notes_pdf_url, student_feedbacks) VALUES (?,?,?,?,?,?,?,?)', [req.user.id, class_id, schedule_id||null, class_date, summary, '', notes_pdf_url||'', '[]']);
   try { require('./notify').notifyFeedback(class_id); } catch(e) {}
   res.json({ ok: true, id: r.lastInsertRowid });
 });

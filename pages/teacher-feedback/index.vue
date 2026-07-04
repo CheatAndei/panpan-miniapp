@@ -75,6 +75,10 @@
         <text class="block-title">学习笔记</text>
         <button class="btn-outline" @tap="choosePDF(se)">{{ se._pdfName||'选择 PDF 文件' }}</button>
         <text v-if="se._pdfName" class="pdf-hint">已选择：{{ se._pdfName }}</text>
+        <textarea v-model="se._noteRemark" class="result-area note-area" placeholder="给家长的备注（可选）" :maxlength="160" />
+        <button class="btn-accent" @tap="publishNotes(se)" :disabled="se._publishingNotes">
+          {{ se._publishingNotes?'发送中...':'单独发送学习笔记' }}
+        </button>
       </view>
 
       <button class="btn-publish big" @tap="publishFeedback(se)" :disabled="se._publishing">
@@ -105,7 +109,7 @@ export default {
         this.completedSessions=(ses.sessions||[]).map(se=>({
           ...se,_open:false,_tab:'class',_batching:false,
           _cf:{lesson:'',topic:'',perfScore:5,homework:'',_text:'',_genning:false},
-          _students:[],_publishing:false,_pdfTemp:'',_pdfName:''
+          _students:[],_publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
         }));
       }catch(e){logError('feedback.loadSessions',e);}
       finally{this.loading=false;}
@@ -204,7 +208,7 @@ export default {
           students.push({id:s.id,name:s.name,text:s._text,images:urls});
         }
         await api.post('/feedbacks/publish',{
-          class_id:se.class_id,class_date:se.class_date,
+          class_id:se.class_id,class_date:se.class_date,schedule_id:se.schedule_id||null,
           class_feedback:se._cf._text,homework:se._cf.homework,
           notes_pdf_url:notesPdfUrl,
           students
@@ -214,6 +218,25 @@ export default {
         this.loadSessions();
       }catch(e){toastError(e,'发布失败');}
       finally{se._publishing=false;}
+    },
+    async publishNotes(se){
+      if(!se._pdfTemp&&!se._noteRemark) return uni.showToast({title:'请选择学习笔记或填写备注',icon:'none'});
+      se._publishingNotes=true;
+      try{
+        let notesPdfUrl='';
+        if(se._pdfTemp){
+          notesPdfUrl=await this.uploadPDF(se._pdfTemp);
+        }
+        await api.post('/feedbacks/publish-notes',{
+          class_id:se.class_id,
+          class_date:se.class_date,
+          schedule_id:se.schedule_id||null,
+          notes_pdf_url:notesPdfUrl,
+          note_remark:se._noteRemark||''
+        });
+        toastSuccess('学习笔记已发送');
+      }catch(e){toastError(e,'发送失败');}
+      finally{se._publishingNotes=false;}
     }
   }
 };
@@ -254,6 +277,7 @@ export default {
 .btn-outline{border:1rpx solid #202733;color:#202733;background:#fff;border-radius:12rpx;padding:22rpx;font-size:30rpx;width:100%;font-weight:700}
 .result-area{width:100%;min-height:220rpx;border:1rpx solid #E1DDD4;border-radius:12rpx;padding:22rpx;font-size:28rpx;margin-top:16rpx;box-sizing:border-box;line-height:1.6;color:#46515C;background:#FFFFFF}
 .result-area::placeholder{color:#C3C1BA}
+.note-area{min-height:140rpx;margin-bottom:16rpx}
 .stu-card{background:#fff;border-radius:14rpx;padding:24rpx;margin-bottom:16rpx;border:1rpx solid #E1DDD4}
 .stu-hd{display:flex;align-items:center;gap:12rpx;margin-bottom:14rpx}
 .stu-name{font-size:32rpx;font-weight:700}

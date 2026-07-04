@@ -16,6 +16,11 @@ function localDateString(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+function deleteFeedbackForSession(db, session) {
+  if (!session) return;
+  db.run('DELETE FROM feedbacks WHERE teacher_id=? AND class_id=? AND class_date=?', [session.teacher_id, session.class_id, session.class_date]);
+}
+
 // 家长看全部课表（返回老师的所有班级，家长可区分自己的班级）
 router.get('/parent', auth, (req, res) => {
   const db = getDB();
@@ -47,7 +52,11 @@ router.post('/', auth, teacherOnly, (req, res) => {
 
 // 删除课表
 router.delete('/:id', auth, teacherOnly, (req, res) => {
-  getDB().run('DELETE FROM schedules WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
+  const db = getDB();
+  const sessions = db.all('SELECT * FROM sessions WHERE schedule_id=? AND teacher_id=?', [req.params.id, req.user.id]);
+  for (const se of sessions) deleteFeedbackForSession(db, se);
+  db.run('DELETE FROM sessions WHERE schedule_id=? AND teacher_id=?', [req.params.id, req.user.id]);
+  db.run('DELETE FROM schedules WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
   res.json({ ok: true });
 });
 
@@ -63,7 +72,10 @@ router.post('/special-publish', auth, teacherOnly, (req, res) => {
 
 // 删除已发布的课程实例
 router.delete('/sessions/:id', auth, teacherOnly, (req, res) => {
-  getDB().run('DELETE FROM sessions WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
+  const db = getDB();
+  const session = db.get('SELECT * FROM sessions WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
+  deleteFeedbackForSession(db, session);
+  db.run('DELETE FROM sessions WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
   res.json({ ok: true });
 });
 
@@ -119,8 +131,6 @@ router.post('/publish', auth, teacherOnly, (req, res) => {
     count++;
   }
 
-  // 清空旧反馈
-  db.run('DELETE FROM feedbacks WHERE teacher_id=?', [req.user.id]);
   for (const sc of schedules) { try { require('./notify').notifyReminder(sc.class_id); } catch(e) {} }
   res.json({ ok: true, count });
 });

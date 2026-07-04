@@ -45,7 +45,7 @@ router.get('/status', auth, (req, res) => {
 });
 
 // 老师签到
-router.post('/check-in', auth, (req, res) => {
+router.post('/check-in', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { studentId, classDate, studentName } = req.body;
   const db = getDB();
@@ -56,14 +56,14 @@ router.post('/check-in', auth, (req, res) => {
   } else {
     db.run('INSERT INTO checkins (student_id, class_date, check_in_time, status) VALUES (?,?,?,?)', [studentId, classDate, now, 'checked_in']);
   }
-  // 通知文案
-  const student = db.get('SELECT name FROM students WHERE id=?', [studentId]);
-  try { require('./notify').notifyCheckin(studentId); } catch(e) {}
-  res.json({ ok: true });
+  let notify = { ok: false, error: '未发送' };
+  try { notify = await require('./notify').notifyCheckin(studentId); }
+  catch(e) { notify = { ok: false, error: e.message }; }
+  res.json({ ok: true, notify });
 });
 
 // 老师签退
-router.post('/check-out', auth, (req, res) => {
+router.post('/check-out', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { studentId, studentName, classDate } = req.body;
   const db = getDB();
@@ -73,8 +73,10 @@ router.post('/check-out', auth, (req, res) => {
   if (result.changes === 0) {
     return res.status(400).json({ error: '未找到签到记录，请先签到' });
   }
-  try { require('./notify').notifyCheckout(studentId); } catch(e) {}
-  res.json({ ok: true });
+  let notify = { ok: false, error: '未发送' };
+  try { notify = await require('./notify').notifyCheckout(studentId); }
+  catch(e) { notify = { ok: false, error: e.message }; }
+  res.json({ ok: true, notify });
 });
 
 module.exports = router;

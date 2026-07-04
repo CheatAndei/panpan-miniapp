@@ -80,7 +80,7 @@ import { logError } from '@/utils/ui';
 export default {
   data(){return{
     child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,refreshTimer:null,
-    dayNames:['周日','周一','周二','周三','周四','周五','周六'],fbImages:[]
+    dayNames:['周日','周一','周二','周三','周四','周五','周六'],fbImages:[],notifyTpls:[]
   };},
   onShow(){this.startAutoRefresh();},
   onHide(){this.stopAutoRefresh();},
@@ -88,6 +88,7 @@ export default {
     startAutoRefresh(){
       this.stopAutoRefresh();
       if(!uni.getStorageSync('token'))return;
+      this.loadNotifyTemplates();
       this.loadData();
       this.refreshTimer=setInterval(()=>this.loadData(),15000);
     },
@@ -127,22 +128,40 @@ export default {
       if(ci.checkedOut)return '今日已签退 '+(ci.checkOutTime||'');
       return '今日已签到 '+(ci.checkInTime||'');
     },
-    async requestSubscribe(){
+    async loadNotifyTemplates(){
       try{
         const tplRes=await api.get('/notify/templates');
-        const tmplIds=[...new Set([tplRes.checkin,tplRes.checkout,tplRes.feedback].filter(Boolean))];
-        if(tmplIds.length===0) return uni.showToast({title:'提醒模板未配置',icon:'none'});
+        this.notifyTpls=[...new Set([tplRes.checkin,tplRes.checkout,tplRes.feedback].filter(Boolean))];
+      }catch(e){logError('parentHome.loadNotifyTemplates',e);}
+    },
+    async requestSubscribe(){
+      const tmplIds=this.notifyTpls;
+      if(tmplIds.length===0){
+        this.loadNotifyTemplates();
+        uni.showToast({title:'提醒模板未加载',icon:'none'});
+        return {accepted:0};
+      }
+      return new Promise((resolve,reject)=>{
         uni.requestSubscribeMessage({
           tmplIds,
-          success:()=>uni.showToast({title:'提醒已开启',icon:'success'}),
-          fail:()=>uni.showToast({title:'未开启提醒',icon:'none'})
+          success:res=>{
+            const accepted=tmplIds.filter(id=>res[id]==='accept').length;
+            uni.showToast({title:accepted>0?'提醒已开启':'未开启提醒',icon:accepted>0?'success':'none'});
+            resolve({accepted,raw:res});
+          },
+          fail:e=>{
+            logError('parentHome.subscribe',e);
+            uni.showToast({title:'订阅弹窗失败',icon:'none'});
+            reject(e);
+          }
         });
-      }catch(e){logError('parentHome.subscribe',e);uni.showToast({title:'开启失败',icon:'none'});}
+      });
     },
     async sendTestNotify(){
       try{
-        await this.requestSubscribe();
-        const r=await api.post('/notify/test',{});
+        const sub=await this.requestSubscribe();
+        if(!sub?.accepted)return;
+        const r=await api.post('/notify/test',{type:'checkin'});
         uni.showModal({title:'测试已发送',content:'请在微信「服务通知」里查看。',showCancel:false});
       }catch(e){
         const msg=e?.error||e?.errmsg||e?.detail||'发送失败';

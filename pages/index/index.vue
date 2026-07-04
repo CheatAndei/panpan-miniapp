@@ -198,6 +198,7 @@ onShow(() => {
   stopParentRefresh();
   if (user.value.role === 'teacher') loadTeacherData();
   else if (user.value.role === 'parent') {
+    loadNotifyTemplates();
     loadParentData();
     parentRefreshTimer = setInterval(() => loadParentData(child.value?.id), 15000);
   }
@@ -219,6 +220,7 @@ const latestFeedback = ref(null);
 const stuFeedback = ref(null);
 const showFbDetail = ref('');
 const profile = ref(null);
+const notifyTpls = ref([]);
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
 const today = new Date().toLocaleDateString('zh-CN', { month:'long', day:'numeric', weekday:'long' });
@@ -235,18 +237,35 @@ function openPdf(url) {
   });
 }
 async function requestSubscribe() {
-  try {
-    const tplRes = await api.get('/notify/templates');
-    const tpls = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.feedback].filter(Boolean))];
-    if (tpls.length === 0) return uni.showToast({ title: '提醒模板未配置', icon: 'none' });
-    // 须在用户点击手势中调用；openid 已在登录时由后端用 code 换取并保存，无需前端回传。
+  const tpls = notifyTpls.value;
+  if (tpls.length === 0) {
+    loadNotifyTemplates();
+    uni.showToast({ title: '提醒模板未加载', icon: 'none' });
+    return { accepted: 0 };
+  }
+  return new Promise((resolve, reject) => {
     uni.requestSubscribeMessage({
       tmplIds: tpls,
-      success: () => uni.showToast({ title: '提醒已开启', icon: 'success' }),
-      fail(e) { logError('requestSubscribe', e); }
+      success: (res) => {
+        const accepted = tpls.filter(id => res[id] === 'accept').length;
+        uni.showToast({ title: accepted > 0 ? '提醒已开启' : '未开启提醒', icon: accepted > 0 ? 'success' : 'none' });
+        resolve({ accepted, raw: res });
+      },
+      fail(e) {
+        logError('requestSubscribe', e);
+        uni.showToast({ title: '订阅弹窗失败', icon: 'none' });
+        reject(e);
+      }
     });
+  });
+}
+
+async function loadNotifyTemplates() {
+  try {
+    const tplRes = await api.get('/notify/templates');
+    notifyTpls.value = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.feedback].filter(Boolean))];
   } catch (e) {
-    logError('requestSubscribe', e);
+    logError('loadNotifyTemplates', e);
   }
 }
 
@@ -336,8 +355,9 @@ async function loadParentData(childId) {
 
 async function sendTestNotify() {
   try {
-    await requestSubscribe();
-    await api.post('/notify/test', {});
+    const sub = await requestSubscribe();
+    if (!sub?.accepted) return;
+    await api.post('/notify/test', { type: 'checkin' });
     uni.showModal({ title: '测试已发送', content: '请在微信「服务通知」里查看。', showCancel: false });
   } catch (e) {
     const msg = e?.error || e?.errmsg || e?.detail || '发送失败';

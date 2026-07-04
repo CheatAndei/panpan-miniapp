@@ -40,7 +40,31 @@ const FIELDS = {
 };
 
 function templateData(pairs) {
-  return Object.fromEntries(pairs.map(([key, value]) => [key, { value: String(value || '').slice(0, 20) }]));
+  const data = {};
+  for (const [key, value] of pairs) {
+    const item = { value: String(value || '').slice(0, 20) };
+    data[key] = item;
+    if (/^time\d+$/.test(key)) {
+      data.time2 = item;
+      data.time3 = item;
+    }
+  }
+  return data;
+}
+
+function wxTime(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(date.getHours())}:${p(date.getMinutes())}`;
+}
+
+function userOpenid(userId, fallback = '') {
+  const user = getDB().get('SELECT openid FROM users WHERE id=?', [userId]);
+  return user?.openid || fallback || '';
+}
+
+function templateByType(type) {
+  const key = ['checkin', 'checkout', 'feedback', 'reminder'].includes(type) ? type : 'checkin';
+  return { key, tplId: TPLS[key], fields: FIELDS[key] };
 }
 
 // 返回模板ID给前端
@@ -63,14 +87,26 @@ router.get('/status', auth, (req, res) => {
 });
 
 router.post('/test', auth, async (req, res) => {
-  const tplId = TPLS.feedback || TPLS.checkin || TPLS.reminder || TPLS.checkout;
-  if (!tplId) return res.status(400).json({ ok: false, error: '服务通知模板未配置' });
-  if (!req.user.openid) return res.status(400).json({ ok: false, error: '当前账号缺少 openid，请重新微信登录' });
+  const { key, tplId, fields } = templateByType(req.body?.type);
+  if (!tplId) return res.status(400).json({ ok: false, error: `${key} 服务通知模板未配置` });
+  const openid = userOpenid(req.user.id, req.user.openid);
+  if (!openid) return res.status(400).json({ ok: false, error: '当前账号缺少 openid，请重新微信登录' });
   try {
-    const result = await sendMsg(req.user.openid, tplId, templateData([
-      [FIELDS.feedback.title, '服务通知测试'],
-      [FIELDS.feedback.time, new Date().toLocaleDateString('zh-CN')],
-      [FIELDS.feedback.note, '收到这条说明配置正常']
+    const isCheckout = key === 'checkout';
+    const isFeedback = key === 'feedback';
+    const isReminder = key === 'reminder';
+    const result = await sendMsg(openid, tplId, templateData(isFeedback ? [
+      [fields.title, '课后反馈测试'],
+      [fields.time, new Date().toLocaleDateString('zh-CN')],
+      [fields.note, '收到说明配置正常']
+    ] : isReminder ? [
+      [fields.className, '测试学习小组'],
+      [fields.time, new Date().toLocaleDateString('zh-CN')],
+      [fields.note, '即将上课']
+    ] : [
+      [fields.student, '测试学生'],
+      [fields.time, wxTime()],
+      [fields.status, isCheckout ? '已下课离开' : '已安全到达']
     ]), 'pages/index/index');
     res.status(result.ok ? 200 : 400).json(result);
   } catch (e) {
@@ -131,29 +167,46 @@ async function sendMsg(openid, tplId, data, page) {
 async function notifyParents(studentId, tplId, data, page) {
   const db = getDB();
   const parents = db.all('SELECT u.openid FROM users u JOIN bindings b ON b.parent_id=u.id WHERE b.student_id=? AND u.openid IS NOT NULL AND u.openid!=\'\'', [studentId]);
-  if (parents.length === 0) console.warn('[notify] no parent openid for student', studentId);
-  for (const p of parents) {
-    try { await sendMsg(p.openid, tplId, data, page); } catch(e) { console.warn('[notify] parent send exception', e.message); }
+  const result = { ok: true, total: parents.length, sent: 0, failed: 0, errors: [] };
+  if (parents.length === 0) {
+    console.warn('[notify] no parent openid for student', studentId);
+    return { ...result, ok: false, error: '没有找到已绑定且有 openid 的家长' };
   }
+  for (const p of parents) {
+    try {
+      const sent = await sendMsg(p.openid, tplId, data, page);
+      if (sent.ok) result.sent++;
+      else {
+        result.failed++;
+        result.errors.push(sent.errmsg || sent.error || 'send failed');
+      }
+    } catch(e) {
+      result.failed++;
+      result.errors.push(e.message);
+      console.warn('[notify] parent send exception', e.message);
+    }
+  }
+  result.ok = result.sent > 0 && result.failed === 0;
+  return result;
 }
 
 // 通知接口（给其他路由调用）
-router.notifyCheckin = (studentId) => {
+router.notifyCheckin = async (studentId) => {
   const db = getDB();
   const s = db.get('SELECT name FROM students WHERE id=?', [studentId]);
-  const now = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-  notifyParents(studentId, TPLS.checkin, templateData([
+  const now = wxTime();
+  return notifyParents(studentId, TPLS.checkin, templateData([
     [FIELDS.checkin.student, s?.name || '学生'],
     [FIELDS.checkin.time, now],
     [FIELDS.checkin.status, '已安全到达']
   ]), 'pages/index/index');
 };
 
-router.notifyCheckout = (studentId) => {
+router.notifyCheckout = async (studentId) => {
   const db = getDB();
   const s = db.get('SELECT name FROM students WHERE id=?', [studentId]);
-  const now = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
-  notifyParents(studentId, TPLS.checkout, templateData([
+  const now = wxTime();
+  return notifyParents(studentId, TPLS.checkout, templateData([
     [FIELDS.checkout.student, s?.name || '学生'],
     [FIELDS.checkout.time, now],
     [FIELDS.checkout.status, '已下课离开']

@@ -98,15 +98,15 @@ export default {
       }catch(e){logError('loadStudents',e);}finally{se._loading=false;}
     },
     async checkIn(se,s){
-      try{await api.post('/checkins/check-in',{studentId:s.id,classDate:se.class_date,studentName:s.name});
+      try{const res=await api.post('/checkins/check-in',{studentId:s.id,classDate:se.class_date,studentName:s.name});
         s._checked=true;s._inTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-        toastSuccess(s.name+' 已签到');}
+        toastSuccess(res.notify?.ok?s.name+' 已签到并提醒':s.name+' 已签到，提醒未送达');}
       catch(e){toastError(e,'签到失败');}
     },
     async checkOut(se,s){
-      try{await api.post('/checkins/check-out',{studentId:s.id,studentName:s.name,classDate:se.class_date});
+      try{const res=await api.post('/checkins/check-out',{studentId:s.id,studentName:s.name,classDate:se.class_date});
         s._out=true;s._outTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-        toastSuccess(s.name+' 已签退');
+        toastSuccess(res.notify?.ok?s.name+' 已签退并提醒':s.name+' 已签退，提醒未送达');
         const allDone=se._students.every(s=>s._leave||s._out);
         if(allDone){await api.put('/schedules/sessions/'+se.id+'/complete');this.sessions=this.sessions.filter(x=>x.id!==se.id);}
       }catch(e){toastError(e,'签退失败');}

@@ -30,7 +30,8 @@
             <text class="s-name" @tap.stop="openStudent(s)">{{ s.name }}</text>
             <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
           </view>
-          <text class="s-code">邀请码: {{ s.invite_code }}</text>
+          <text class="s-code" @tap.stop="copyInviteCode(s.invite_code)">邀请码: {{ s.invite_code }}</text>
+          <text class="btn-xs" @tap.stop="copyInviteCode(s.invite_code)">复制</text>
           <text class="btn-xs del" @tap.stop="delStu(c,s.id)">×</text>
         </view>
       </view>
@@ -181,6 +182,14 @@ export default {
         });
         this.showStu=false; this.loadData();
       } catch(e) { toastError(e, '添加失败'); }
+    },
+    copyInviteCode(code) {
+      if (!code) return uni.showToast({ title:'暂无邀请码', icon:'none' });
+      uni.setClipboardData({
+        data: code,
+        success: () => uni.showToast({ title:'已复制', icon:'success' }),
+        fail: () => uni.showToast({ title:'复制失败', icon:'none' })
+      });
     },
     openStudent(s){ uni.navigateTo({ url: '/pages/student-detail/index?id='+s.id }); },
     async delStu(c, sid) {
