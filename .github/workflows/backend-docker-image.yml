@@ -121,12 +121,44 @@ jobs:
             done
 
             rm -rf "$SRC_DIR"
-            git clone --depth 1 --branch "${{ github.ref_name }}" "$REPO_URL" "$SRC_DIR"
-            git -C "$SRC_DIR" fetch --depth 1 origin "${{ github.sha }}"
-            git -C "$SRC_DIR" checkout --detach "${{ github.sha }}"
+            CLONE_OK=0
+            for attempt in 1 2 3; do
+              if git clone --depth 1 --branch "${{ github.ref_name }}" "$REPO_URL" "$SRC_DIR" &&
+                 git -C "$SRC_DIR" fetch --depth 1 origin "${{ github.sha }}" &&
+                 git -C "$SRC_DIR" checkout --detach "${{ github.sha }}"; then
+                CLONE_OK=1
+                break
+              fi
+              rm -rf "$SRC_DIR"
+              sleep 10
+            done
 
-            docker build -t rockchin/panpan-miniapp-backend:main -t rockchin/panpan-miniapp-backend:latest "$SRC_DIR/backend"
-            cp "$SRC_DIR/docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
+            if [ "$CLONE_OK" = "1" ]; then
+              docker build -t rockchin/panpan-miniapp-backend:main -t rockchin/panpan-miniapp-backend:latest "$SRC_DIR/backend"
+              cp "$SRC_DIR/docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
+            else
+              docker pull rockchin/panpan-miniapp-backend:main
+              if [ ! -f "$DEPLOY_DIR/docker-compose.yml" ]; then
+                cat > "$DEPLOY_DIR/docker-compose.yml" <<'EOF'
+            services:
+              panpan-api:
+                image: rockchin/panpan-miniapp-backend:main
+                container_name: panpan-api
+                restart: unless-stopped
+                env_file:
+                  - ./.env
+                  - ./backend/.env
+                ports:
+                  - "3000:3000"
+                volumes:
+                  - panpan-data:/app/data
+                  - panpan-uploads:/app/uploads
+            volumes:
+              panpan-data:
+              panpan-uploads:
+            EOF
+              fi
+            fi
             cat > "$DEPLOY_DIR/docker-compose.override.yml" <<'EOF'
             services:
               panpan-api:
