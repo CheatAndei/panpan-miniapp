@@ -223,5 +223,5 @@ jobs:
             echo "=== container image/mounts ==="
             docker inspect panpan-api --format 'image={{.Config.Image}} mounts={{json .Mounts}}' || true
             echo "=== container code markers ==="
-            docker exec panpan-api sh -lc "grep -n 'bug2-notify-time3-v2\|data.time3\|data.time5\|data.phrase6\|function wxTime' /app/server.js /app/routes/notify.js || true"
+            docker exec panpan-api sh -lc "grep -n 'bug2-notify-fields-v3\|time.*<= 20\|phrase.*<= 20\|thing.*<= 20\|function wxTime' /app/server.js /app/routes/notify.js || true"
             curl -fsS http://127.0.0.1:3000/api/health || true

@@ -45,14 +45,13 @@ function templateData(pairs) {
     const item = { value: String(value || '').slice(0, 20) };
     data[key] = item;
     if (/^time\d+$/.test(key)) {
-      data.time2 = item;
-      data.time3 = item;
-      data.time5 = item;
+      for (let i = 1; i <= 20; i++) data[`time${i}`] = data[`time${i}`] || item;
     }
     if (/^phrase\d+$/.test(key)) {
-      data.phrase2 = item;
-      data.phrase3 = item;
-      data.phrase6 = item;
+      for (let i = 1; i <= 20; i++) data[`phrase${i}`] = data[`phrase${i}`] || item;
+    }
+    if (/^thing\d+$/.test(key)) {
+      for (let i = 1; i <= 20; i++) data[`thing${i}`] = data[`thing${i}`] || item;
     }
   }
   return data;

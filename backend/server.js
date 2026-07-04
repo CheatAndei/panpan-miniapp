@@ -49,7 +49,7 @@ app.use('/api/notify', notifyRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'bug2-notify-time3-v2' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'bug2-notify-fields-v3' });
 });
 
 // 初始化数据库并启动
