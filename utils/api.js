@@ -31,7 +31,18 @@ function request(method, path, data) {
         }
         reject(error);
       },
-      fail: reject
+      fail(err) {
+        const message = err?.errMsg || '网络请求失败';
+        const error = { error: message, message, statusCode: 0 };
+        if (/url not in domain list|domain list|合法域名/i.test(message)) {
+          error.error = '接口域名未加入微信小程序合法域名，请配置 https://panpan.xpytt.com';
+        } else if (/timeout/i.test(message)) {
+          error.error = '请求超时，请检查网络或后端服务';
+        } else if (/fail/i.test(message)) {
+          error.error = '无法连接后端服务，请检查网络和接口域名';
+        }
+        reject(error);
+      }
     });
   });
 }

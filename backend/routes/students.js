@@ -25,7 +25,7 @@ router.get('/', auth, (req, res) => {
       // 家长只能查看自己已绑定孩子所在班级的学生
       const allowed = db.get('SELECT 1 FROM bindings b JOIN students bs ON bs.id=b.student_id WHERE b.parent_id=? AND bs.class_id=?', [req.user.id, class_id]);
       if (!allowed) return res.status(403).json({ error: '无权限' });
-      const students = db.all('SELECT s.* FROM students s WHERE s.class_id=? ORDER BY s.name', [class_id]);
+      const students = db.all('SELECT s.id, s.name, s.class_id FROM students s WHERE s.class_id=? ORDER BY s.name', [class_id]);
       return res.json({ students });
     }
     // 查自己的绑定

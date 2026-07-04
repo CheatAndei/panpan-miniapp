@@ -47,6 +47,7 @@ function ensureColumn(table, column, definition) {
 
 function runMigrations() {
   ensureColumn('feedbacks', 'student_feedbacks', 'TEXT');
+  ensureColumn('feedbacks', 'notes_pdf_url', 'TEXT');
 }
 
 async function initDB() {

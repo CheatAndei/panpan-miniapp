@@ -81,6 +81,10 @@
         <text class="status-time" v-if="todayStatus.checkInTime">{{ todayStatus.checkInTime }}</text>
       </view>
 
+      <view class="card">
+        <button class="btn-outline" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
+      </view>
+
       <!-- 本周课表 -->
       <view class="card" @tap="navTo('/pages/parent-schedule/index')">
         <view class="section-title">本周课表<text class="card-hint">点击进入学习小组详情</text></view>
@@ -119,11 +123,12 @@
             <template v-if="showFbDetail==='class' && latestFeedback">
               <text class="fb-full-text">{{ latestFeedback.summary }}</text>
               <view v-if="latestFeedback.homework" class="hw-card">作业：{{ latestFeedback.homework }}</view>
+              <button v-if="latestFeedback.notes_pdf_url" class="pdf-btn" @tap="openPdf(latestFeedback.notes_pdf_url)">打开学习笔记 PDF</button>
             </template>
             <template v-if="showFbDetail==='student' && stuFeedback">
               <text class="fb-full-text">{{ stuFeedback.text }}</text>
               <view v-if="stuFeedback.images && stuFeedback.images.length>0" class="fb-imgs">
-                <image v-for="(img,i) in stuFeedback.images" :key="i" :src="ASSET_BASE+img" mode="aspectFill" class="fb-thumb" @tap="previewFbImg(stuFeedback.images,i)" />
+                <image v-for="(img,i) in stuFeedback.images" :key="i" :src="api.assetUrl(img)" mode="aspectFill" class="fb-thumb" @tap="previewFbImg(stuFeedback.images,i)" />
               </view>
             </template>
           </scroll-view>
@@ -159,12 +164,11 @@
       </view>
     </view>
 
-    <view class="footer">小程序由潘潘独立制作与维护<br/>如有问题欢迎私信反馈</view>
+    <view class="footer">小程序由潘潘独立制作与维护<br/>如有问题欢迎私信反馈<br/>桂ICP备2026013218号-2</view>
   </view>
 </template>
 
 <script setup>
-import { ASSET_BASE } from '@/utils/config';
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
@@ -208,15 +212,26 @@ const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
 const today = new Date().toLocaleDateString('zh-CN', { month:'long', day:'numeric', weekday:'long' });
 
-function previewFbImg(list,i){ uni.previewImage({current:ASSET_BASE+list[i],urls:list.map(u=>ASSET_BASE+u)}); }
+function previewFbImg(list,i){ uni.previewImage({current:api.assetUrl(list[i]),urls:list.map(u=>api.assetUrl(u))}); }
+function openPdf(url) {
+  uni.downloadFile({
+    url: api.assetUrl(url),
+    success: (res) => {
+      if (res.statusCode === 200) uni.openDocument({ filePath: res.tempFilePath, fileType: 'pdf', showMenu: true });
+      else uni.showToast({ title: 'PDF 下载失败', icon: 'none' });
+    },
+    fail: () => uni.showToast({ title: 'PDF 下载失败', icon: 'none' })
+  });
+}
 async function requestSubscribe() {
   try {
     const tplRes = await api.get('/notify/templates');
-    const tpls = Object.values(tplRes || {}).filter(Boolean);
-    if (tpls.length === 0) return;
+    const tpls = [tplRes.checkin, tplRes.checkout, tplRes.feedback].filter(Boolean);
+    if (tpls.length === 0) return uni.showToast({ title: '提醒模板未配置', icon: 'none' });
     // 须在用户点击手势中调用；openid 已在登录时由后端用 code 换取并保存，无需前端回传。
     uni.requestSubscribeMessage({
       tmplIds: tpls,
+      success: () => uni.showToast({ title: '提醒已开启', icon: 'success' }),
       fail(e) { logError('requestSubscribe', e); }
     });
   } catch (e) {
@@ -289,6 +304,7 @@ async function loadParentData(childId) {
     weekSchedules.value = (schedParent.schedules||[]).filter(s=>s.class_id===myId).slice(0,3);
     leaves.value = (lv.leaves||[]).filter(l=>l.student_id===target.id).slice(0,5);
     latestFeedback.value = fb.feedback;
+    stuFeedback.value = null;
     // 提取学生个人反馈
     if (fb.feedback && fb.feedback.student_feedbacks) {
       try {
@@ -427,6 +443,7 @@ async function loadParentData(childId) {
 .fb-modal-body { max-height: 60vh; overflow-y: auto; }
 .fb-full-text { font-size: 28rpx; color: #46515C; line-height: 1.8; white-space: pre-wrap; }
 .hw-card { background: #F7F1E7; border-radius: 10rpx; padding: 16rpx; font-size: 28rpx; color: #7B5B36; margin-top: 16rpx; }
+.pdf-btn { background: #202733; color: #fff; border: none; padding: 18rpx; font-size: 28rpx; text-align: center; width: 100%; border-radius: 12rpx; margin-top: 16rpx; }
 .fb-imgs { display: flex; gap: 10rpx; flex-wrap: wrap; margin-top: 16rpx; }
 .fb-thumb { width: 150rpx; height: 150rpx; border-radius: 8rpx; }
 

@@ -16,6 +16,7 @@
     <view class="fb-date">{{ fb.class_date }}</view>
     <view class="fb-summary">{{ (fb.summary||'').slice(0,100) }}{{ fb.summary&&fb.summary.length>100?'...':'' }}</view>
     <view v-if="fb.homework" class="fb-hw">作业：{{ fb.homework }}</view>
+    <view v-if="fb.notes_pdf_url" class="pdf-link" @tap.stop="openPdf(fb.notes_pdf_url)">打开学习笔记</view>
     <text class="fb-more">查看详情 ›</text>
   </view>
 
@@ -26,6 +27,7 @@
       <scroll-view scroll-y class="modal-body">
         <text class="detail-text">{{ detail.summary }}</text>
         <view v-if="detail.homework" class="hw-block">作业：{{ detail.homework }}</view>
+        <button v-if="detail.notes_pdf_url" class="pdf-btn" @tap="openPdf(detail.notes_pdf_url)">打开学习笔记 PDF</button>
         <!-- 学生个人反馈 -->
         <view v-if="detail._students && detail._students.length>0" class="stu-fb-section">
           <text class="stu-fb-title">学生个人反馈</text>
@@ -59,6 +61,20 @@ export default {
     },
     imgUrl(url){return api.assetUrl(url);},
     previewImg(list,i){uni.previewImage({current:this.imgUrl(list[i]),urls:list.map(u=>this.imgUrl(u))});},
+    openPdf(url){
+      const fileUrl=this.imgUrl(url);
+      uni.downloadFile({
+        url:fileUrl,
+        success:res=>{
+          if(res.statusCode===200){
+            uni.openDocument({filePath:res.tempFilePath,fileType:'pdf',showMenu:true});
+          }else{
+            uni.showToast({title:'PDF 下载失败',icon:'none'});
+          }
+        },
+        fail:()=>uni.showToast({title:'PDF 下载失败',icon:'none'})
+      });
+    },
     showDetail(fb){
       if(fb.student_feedbacks){try{fb._students=JSON.parse(fb.student_feedbacks);}catch(e){fb._students=[];}}
       else fb._students=[];
@@ -79,6 +95,7 @@ export default {
 .fb-date{font-size:24rpx;color:#8A929B;margin-bottom:8rpx}
 .fb-summary{font-size:28rpx;color:#46515C;line-height:1.6}
 .fb-hw{font-size:24rpx;color:#A57945;margin-top:8rpx}
+.pdf-link{font-size:24rpx;color:#202733;background:#F3F1EA;border-radius:8rpx;padding:10rpx 14rpx;margin-top:12rpx;display:inline-flex}
 .fb-more{font-size:24rpx;color:#202733;display:block;margin-top:12rpx}
 .empty{text-align:center;color:#C3C1BA;padding:40rpx}
 
@@ -88,6 +105,7 @@ export default {
 .modal-body{flex:1;overflow-y:auto}
 .detail-text{font-size:28rpx;line-height:1.8;color:#46515C;white-space:pre-wrap}
 .hw-block{background:#F7F1E7;padding:16rpx;border-radius:10rpx;margin-top:20rpx;font-size:28rpx;color:#8D6A3F}
+.pdf-btn{background:#202733;color:#fff;border:none;padding:18rpx;font-size:28rpx;text-align:center;width:100%;margin-top:18rpx;border-radius:12rpx}
 .btn-cancel{background:#F8F6F1;color:#8A929B;border:none;padding:20rpx;font-size:28rpx;text-align:center;width:100%;margin-top:20rpx;border-radius:12rpx}
 .stu-fb-section{margin-top:24rpx;border-top:1rpx solid #EFEDE7;padding-top:20rpx}
 .stu-fb-title{font-size:28rpx;font-weight:700;color:#202733;display:block;margin-bottom:16rpx}

@@ -12,6 +12,9 @@ function teacherOnly(req, res, next) {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   next();
 }
+function localDateString(date = new Date()) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
 // 家长看全部课表（返回老师的所有班级，家长可区分自己的班级）
 router.get('/parent', auth, (req, res) => {
@@ -80,7 +83,7 @@ router.get('/sessions/completed', auth, (req, res) => {
 // 获取已发布的课程实例（签到用：只显示未完成的）
 router.get('/sessions', auth, (req, res) => {
   const db = getDB();
-  const sessions = db.all('SELECT se.*, c.name as class_name FROM sessions se LEFT JOIN classes c ON c.id=se.class_id WHERE se.teacher_id=? AND se.status=? AND se.class_date >= date("now") ORDER BY se.class_date', [req.user.id, 'published']);
+  const sessions = db.all('SELECT se.*, c.name as class_name FROM sessions se LEFT JOIN classes c ON c.id=se.class_id WHERE se.teacher_id=? AND se.status=? AND se.class_date >= ? ORDER BY se.class_date', [req.user.id, 'published', localDateString()]);
   res.json({ sessions });
 });
 
@@ -107,7 +110,7 @@ router.post('/publish', auth, teacherOnly, (req, res) => {
     if (diff < 0) diff += 7;
     const target = new Date(now);
     target.setDate(target.getDate() + diff);
-    const dateStr = target.toISOString().slice(0, 10);
+    const dateStr = localDateString(target);
 
     const exists = db.get('SELECT id FROM sessions WHERE schedule_id=? AND class_date=?', [sc.id, dateStr]);
     if (exists) continue;

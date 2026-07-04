@@ -32,12 +32,12 @@ router.post('/', auth, (req, res) => {
 });
 
 router.get('/students', auth, (req, res) => {
-  const list = getDB().all('SELECT s.*, c.name as className FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE b.parent_id=?', [req.user.id]);
+  const list = getDB().all('SELECT s.*, c.name as className FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE b.parent_id=? ORDER BY s.id', [req.user.id]);
   res.json({ students: list || [] });
 });
 
 router.get('/student', auth, (req, res) => {
-  const s = getDB().get('SELECT s.*, c.name as className FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE b.parent_id=? LIMIT 1', [req.user.id]);
+  const s = getDB().get('SELECT s.*, c.name as className FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE b.parent_id=? ORDER BY s.id LIMIT 1', [req.user.id]);
   res.json({ student: s || null });
 });
 

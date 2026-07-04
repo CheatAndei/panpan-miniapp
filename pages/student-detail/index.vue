@@ -16,8 +16,11 @@
     </view>
     <view class="trait-cats">
       <view v-for="cat in cats" :key="cat.name" class="trait-cat">
-        <text class="cat-label">{{ cat.name }}</text>
-        <view class="cat-traits">
+        <view class="cat-head" @tap="toggleCat(cat.name)">
+          <text class="cat-label">{{ cat.name }}</text>
+          <text class="cat-meta">{{ countCat(cat) }} 个已选 · {{ traitOpen[cat.name] ? '收起' : '展开' }}</text>
+        </view>
+        <view v-if="traitOpen[cat.name]" class="cat-traits">
           <text v-for="t in cat.traits" :key="t"
             :class="['trait-btn',{on:traits.includes(t)}]"
             @tap="toggleTrait(t)">{{ t }}</text>
@@ -26,25 +29,25 @@
     </view>
   </view>
 
-  <!-- AI画像 -->
+  <!-- 学习印象 -->
   <view class="card">
     <view class="s-hd">
-      <text class="s-title">AI 学习画像</text>
-      <button class="btn-ai" @tap="genAI" :disabled="genning">{{ genning?'生成中...':'AI 生成' }}</button>
+      <text class="s-title">学习印象</text>
+      <button class="btn-ai" @tap="genAI" :disabled="genning">{{ genning?'生成中...':'一键生成' }}</button>
     </view>
     <view class="field">
       <text class="label">性格描述</text>
-      <textarea v-model="profile.personality" class="textarea" placeholder="AI 生成后可手动修改" :maxlength="200" />
+      <textarea v-model="profile.personality" class="textarea" placeholder="生成后可手动修改" :maxlength="200" />
     </view>
     <view class="field">
       <text class="label">优势</text>
-      <textarea v-model="profile.strengths" class="textarea" placeholder="AI 生成后可手动修改" :maxlength="100" />
+      <textarea v-model="profile.strengths" class="textarea" placeholder="生成后可手动修改" :maxlength="100" />
     </view>
     <view class="field">
       <text class="label">成长空间</text>
-      <textarea v-model="profile.weaknesses" class="textarea" placeholder="AI 生成后可手动修改" :maxlength="100" />
+      <textarea v-model="profile.weaknesses" class="textarea" placeholder="生成后可手动修改" :maxlength="100" />
     </view>
-    <button class="btn-primary" @tap="save" :disabled="saving">{{ saving?'保存中...':'保存画像' }}</button>
+    <button class="btn-primary" @tap="save" :disabled="saving">{{ saving?'保存中...':'保存印象' }}</button>
   </view>
 </view>
 </template>
@@ -57,7 +60,7 @@ export default {
   data(){return{
     student:{},traits:[],cats:PERSONALITY_CATEGORIES,
     profile:{personality:'',strengths:'',weaknesses:''},
-    genning:false,saving:false
+    genning:false,saving:false,traitOpen:{}
   };},
   onLoad(opt){this.studentId=opt.id;this.loadData();},
   methods:{
@@ -72,6 +75,8 @@ export default {
         if(pro.profile){this.profile=pro.profile;}
       }catch(e){logError('studentDetail.loadData',e);}
     },
+    toggleCat(name){this.traitOpen={...this.traitOpen,[name]:!this.traitOpen[name]};},
+    countCat(cat){return cat.traits.filter(t=>this.traits.includes(t)).length;},
     toggleTrait(t){const i=this.traits.indexOf(t);if(i>-1){this.traits.splice(i,1);return;}if(this.traits.length>=8)return;this.traits.push(t);},
     delTrait(i){this.traits.splice(i,1);},
     async genAI(){
@@ -111,7 +116,9 @@ export default {
 .tag-del{color:#B85C4E;font-weight:700;margin-left:4rpx;padding-left:4rpx}
 .trait-cats{margin-top:16rpx}
 .trait-cat{margin-bottom:14rpx}
-.cat-label{font-size:24rpx;font-weight:600;color:#69717D;display:block;margin-bottom:8rpx}
+.cat-head{display:flex;justify-content:space-between;align-items:center;background:#F8F6F1;border:1rpx solid #E5E0D8;border-radius:10rpx;padding:16rpx 18rpx}
+.cat-label{font-size:24rpx;font-weight:700;color:#202733;display:block}
+.cat-meta{font-size:22rpx;color:#8A929B}
 .cat-traits{display:flex;flex-wrap:wrap;gap:8rpx}
 .trait-btn{padding:8rpx 16rpx;border:1rpx solid #E1DDD4;border-radius:20rpx;font-size:24rpx;color:#69717D}
 .trait-btn.on{border-color:#202733;background:#F3F1EA;color:#202733;font-weight:600}

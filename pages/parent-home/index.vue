@@ -14,6 +14,7 @@
       <view :class="['i-dot',todayCheckin.checkedIn?'green':'amber']"></view>
       {{ todayCheckin.checkedIn ? '今日已签到 '+todayCheckin.checkInTime : '等待签到' }}
     </view>
+    <button class="notify-btn" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
   </view>
 
   <!-- 学习小组详情入口 -->
@@ -44,6 +45,7 @@
       <view v-if="fbImages.length>4" class="img-more">+{{ fbImages.length-4 }}</view>
     </view>
     <text v-if="feedback.homework" class="fb-hw">作业：{{ feedback.homework }}</text>
+    <button v-if="feedback.notes_pdf_url" class="pdf-btn" @tap.stop="openPdf(feedback.notes_pdf_url)">打开学习笔记 PDF</button>
   </view>
 
   <view class="card" v-else>
@@ -51,21 +53,23 @@
     <view class="empty-sm">暂无反馈</view>
   </view>
 
-  <!-- AI 画像入口 -->
+  <!-- 老师印象入口 -->
   <view class="card" @tap="nav('/pages/mine/index')">
     <view class="card-head">
-      <text class="card-title">AI 学习画像</text>
+      <text class="card-title">在老师印象中的孩子</text>
       <text class="card-arrow">查看详情</text>
     </view>
     <view v-if="profile" class="tags">
       <text v-for="t in (profile.tags||[])" :key="t" class="tag tag-blue">{{ t }}</text>
     </view>
-    <view v-else class="empty-sm">老师还未生成画像</view>
+    <view v-else class="empty-sm">老师还未填写印象</view>
   </view>
 
   <view class="card">
     <button class="btn-outline" @tap="nav('/pages/parent-leave/index')">请假申请</button>
   </view>
+
+  <view class="footer">小程序由潘潘独立制作与维护<br/>如有问题欢迎私信反馈<br/>桂ICP备2026013218号-2</view>
 </view>
 </template>
 
@@ -83,12 +87,17 @@ export default {
       const t=uni.getStorageSync('token');if(!t)return;
       this.loading=true;
       try{
-        const [s,c,sc,f,p]=await Promise.all([
-          api.get('/bind/student'),api.get('/checkins/today'),
-          api.get('/schedules'),api.get('/feedbacks/latest'),api.get('/profiles/my')
+        const s=await api.get('/bind/student');
+        this.child=s.student;
+        const [c,sc,f,p]=await Promise.all([
+          api.get('/checkins/today'+(s.student?.id?'?student_id='+s.student.id:'')),
+          api.get('/schedules/parent'),api.get('/feedbacks/latest'+(s.student?.class_id?'?class_id='+s.student.class_id:'')),api.get('/profiles/my')
         ]);
-        this.child=s.student;this.todayCheckin=c;
-        this.schedules=(sc.schedules||[]).slice(0,3);
+        this.todayCheckin=c;
+        if(this.todayCheckin&&this.todayCheckin.checkInTime){
+          this.todayCheckin.checkInTime=new Date(this.todayCheckin.checkInTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+        }
+        this.schedules=(sc.schedules||[]).filter(item=>!s.student?.class_id||item.class_id===s.student.class_id).slice(0,3);
         this.feedback=f.feedback;this.profile=p.profile;
         if(this.feedback&&this.feedback.image_urls){
           try{this.fbImages=JSON.parse(this.feedback.image_urls).map(u=>api.assetUrl(u));}catch(e){this.fbImages=[];}
@@ -97,6 +106,29 @@ export default {
       finally{this.loading=false;}
     },
     previewImg(i){uni.previewImage({current:this.fbImages[i],urls:this.fbImages});},
+    async requestSubscribe(){
+      try{
+        const tplRes=await api.get('/notify/templates');
+        const tmplIds=[tplRes.checkin,tplRes.checkout,tplRes.feedback].filter(Boolean);
+        if(tmplIds.length===0) return uni.showToast({title:'提醒模板未配置',icon:'none'});
+        uni.requestSubscribeMessage({
+          tmplIds,
+          success:()=>uni.showToast({title:'提醒已开启',icon:'success'}),
+          fail:()=>uni.showToast({title:'未开启提醒',icon:'none'})
+        });
+      }catch(e){logError('parentHome.subscribe',e);uni.showToast({title:'开启失败',icon:'none'});}
+    },
+    openPdf(url){
+      const fileUrl=api.assetUrl(url);
+      uni.downloadFile({
+        url:fileUrl,
+        success:res=>{
+          if(res.statusCode===200) uni.openDocument({filePath:res.tempFilePath,fileType:'pdf',showMenu:true});
+          else uni.showToast({title:'PDF 下载失败',icon:'none'});
+        },
+        fail:()=>uni.showToast({title:'PDF 下载失败',icon:'none'})
+      });
+    },
     nav(url){uni.navigateTo({url});}
   }
 };
@@ -128,9 +160,12 @@ export default {
 .fb-img{width:150rpx;height:150rpx;border-radius:8rpx;background:#ECE8E0}
 .img-more{width:150rpx;height:150rpx;border-radius:8rpx;background:#F8F6F1;display:flex;align-items:center;justify-content:center;font-size:36rpx;color:#8A929B}
 .fb-hw{font-size:24rpx;color:#A57945;margin-top:10rpx}
+.notify-btn{margin-top:16rpx;background:#F3F1EA;color:#202733;border:1rpx solid #E5E0D8;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
+.pdf-btn{margin-top:14rpx;background:#202733;color:#fff;border:none;border-radius:10rpx;padding:18rpx;font-size:26rpx;width:100%}
 
 .tags{display:flex;gap:10rpx;flex-wrap:wrap}
 .empty-sm{text-align:center;color:#C3C1BA;padding:24rpx;font-size:26rpx}
 
 .btn-outline{border:1px solid #202733;color:#202733;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;font-weight:600}
+.footer{text-align:center;color:#AAB0B7;font-size:24rpx;padding:40rpx 30rpx 30rpx;line-height:1.6}
 </style>

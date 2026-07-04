@@ -12,9 +12,9 @@
     <text class="role-tag">{{ user.role==='teacher' ? '教师端' : '家长端' }}</text>
   </view>
 
-  <!-- 家长：AI 画像 -->
+  <!-- 家长：老师印象 -->
   <view class="card profile-section" v-if="user.role==='parent' && profile">
-    <text class="section-title">AI 学习画像</text>
+    <text class="section-title">在老师印象中的孩子</text>
 
     <!-- 人物 + 标签 -->
     <view class="character-area">
@@ -42,7 +42,7 @@
   </view>
 
   <view class="card" v-if="user.role==='parent' && !profile">
-    <view class="empty-hint">老师还未生成 AI 画像</view>
+    <view class="empty-hint">老师还未填写印象</view>
   </view>
 
   <!-- 操作区 -->
@@ -53,6 +53,16 @@
     </view>
   </view>
 
+  <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
+    <text class="section-title">服务通知配置</text>
+    <view class="notify-row"><text>小程序 AppID</text><text :class="notifyStatus.appId?'ok':'bad'">{{ notifyStatus.appId?'已配置':'未配置' }}</text></view>
+    <view class="notify-row"><text>小程序密钥</text><text :class="notifyStatus.appSecret?'ok':'bad'">{{ notifyStatus.appSecret?'已配置':'未配置' }}</text></view>
+    <view class="notify-row"><text>签到提醒</text><text :class="notifyStatus.templates?.checkin?'ok':'bad'">{{ notifyStatus.templates?.checkin?'已配置':'未配置' }}</text></view>
+    <view class="notify-row"><text>签退提醒</text><text :class="notifyStatus.templates?.checkout?'ok':'bad'">{{ notifyStatus.templates?.checkout?'已配置':'未配置' }}</text></view>
+    <view class="notify-row"><text>课后反馈</text><text :class="notifyStatus.templates?.feedback?'ok':'bad'">{{ notifyStatus.templates?.feedback?'已配置':'未配置' }}</text></view>
+    <view class="notify-row"><text>上课提醒</text><text :class="notifyStatus.templates?.reminder?'ok':'bad'">{{ notifyStatus.templates?.reminder?'已配置':'未配置' }}</text></view>
+  </view>
+
   <view class="card actions">
     <view class="action-row" @tap="logout">
       <text>退出登录</text>
@@ -60,7 +70,7 @@
     </view>
   </view>
 
-  <view class="brand">番番记录 v1.0.0</view>
+  <view class="brand">番番记录 v1.0.0<br/>桂ICP备2026013218号-2</view>
   </template>
 </view>
 </template>
@@ -70,13 +80,18 @@ import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',studentName:''
+    user:{},profile:null,childName:'',studentName:'',notifyStatus:null
   };},
   onShow(){this.loadData();},
   methods:{
     loadData(){
       try{this.user=JSON.parse(uni.getStorageSync('user')||'{}');}catch(e){this.user={};}
       if(this.user.role==='parent'){this.loadProfile();}
+      if(this.user.role==='teacher'){this.loadNotifyStatus();}
+    },
+    async loadNotifyStatus(){
+      try{this.notifyStatus=await api.get('/notify/status');}
+      catch(e){logError('mine.notifyStatus',e);}
     },
     async loadProfile(){
       try{
@@ -137,6 +152,11 @@ export default {
 .actions{margin-top:12rpx}
 .action-row{display:flex;justify-content:space-between;align-items:center;font-size:28rpx;padding:12rpx 0}
 .arrow{font-size:32rpx;color:#C3C1BA}
+.notify-card{margin-top:12rpx}
+.notify-row{display:flex;justify-content:space-between;align-items:center;font-size:26rpx;padding:10rpx 0;border-bottom:1rpx solid #ECE8E0;color:#46515C}
+.notify-row:last-child{border-bottom:none}
+.ok{color:#3F8B65;font-weight:700}
+.bad{color:#B85C4E;font-weight:700}
 
 .brand{text-align:center;color:#C3C1BA;font-size:22rpx;padding:30rpx 0 20rpx}
 .empty-hint{color:#202733;font-size:32rpx}

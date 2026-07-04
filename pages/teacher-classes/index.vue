@@ -77,8 +77,11 @@
       <view class="label">性格描述（多选，最多8个）</view>
       <view class="trait-cats">
         <view v-for="cat in cats" :key="cat.name" class="trait-group">
-          <text class="cat-label">{{ cat.name }}</text>
-          <view class="cat-traits">
+          <view class="cat-head" @tap="toggleCat(cat.name)">
+            <text class="cat-label">{{ cat.name }}</text>
+            <text class="cat-meta">{{ countCat(cat) }} 个已选 · {{ traitOpen[cat.name] ? '收起' : '展开' }}</text>
+          </view>
+          <view v-if="traitOpen[cat.name]" class="cat-traits">
             <text v-for="t in cat.traits" :key="t"
               :class="['trait-tag',{on:sForm.traits.has(t)}]"
               @tap="toggleTrait(t)">{{ t }}</text>
@@ -112,7 +115,8 @@ export default {
       activeClass: null,
       cForm: { name:'', grade:'', subject:'' }, editingId: null,
       sForm: { name:'', level:'', traits: new Set() },
-      cats: PERSONALITY_CATEGORIES
+      cats: PERSONALITY_CATEGORIES,
+      traitOpen: {}
     };
   },
   onShow() { this.loadData(); },
@@ -159,7 +163,9 @@ export default {
       try { await api.del('/classes/'+id); this.loadData(); }
       catch(e) { toastError(e, '删除失败'); }
     },
-    openAddStu(c) { this.activeClass=c; this.sForm={name:'',gender:'boy',level:'',traits:new Set()}; this.showStu=true; },
+    openAddStu(c) { this.activeClass=c; this.sForm={name:'',gender:'boy',level:'',traits:new Set()}; this.traitOpen={}; this.showStu=true; },
+    toggleCat(name){ this.traitOpen={...this.traitOpen,[name]:!this.traitOpen[name]}; },
+    countCat(cat){ return cat.traits.filter(t=>this.sForm.traits.has(t)).length; },
     toggleTrait(t) {
       if (this.sForm.traits.has(t)) { this.sForm.traits.delete(t); return; }
       if (this.sForm.traits.size>=8) return;
@@ -262,7 +268,9 @@ export default {
 .gender-btn.on { border-color:#202733; background:#F3F1EA; color:#202733; font-weight:700; }
 
 .trait-group { margin-bottom:12rpx; }
-.cat-label { font-size:24rpx; font-weight:600; color:#69717D; display:block; margin-bottom:6rpx; }
+.cat-head{display:flex;justify-content:space-between;align-items:center;background:#F8F6F1;border:1rpx solid #E5E0D8;border-radius:10rpx;padding:16rpx 18rpx}
+.cat-label { font-size:24rpx; font-weight:700; color:#202733; display:block; }
+.cat-meta{font-size:22rpx;color:#8A929B}
 .cat-traits { display:flex; flex-wrap:wrap; gap:8rpx; }
 .trait-tag { padding:6rpx 14rpx; border:1rpx solid #E1DDD4; border-radius:20rpx; font-size:22rpx; color:#69717D; }
 .trait-tag.on { border-color:#202733; background:#F3F1EA; color:#202733; font-weight:600; }

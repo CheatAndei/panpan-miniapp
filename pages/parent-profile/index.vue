@@ -1,13 +1,13 @@
 <template>
 <view class="page">
   <view class="hero hero-navy">
-    <view class="eyebrow">AI 画像</view>
-    <text class="hero-title">AI 学习画像</text>
+    <view class="eyebrow">老师印象</view>
+    <text class="hero-title">在老师印象中的孩子</text>
     <view class="gold-rule"></view>
     <text class="hero-sub">潘潘老师为你生成</text>
   </view>
 
-  <view v-if="!profile" class="card"><view class="empty">老师还未生成画像</view></view>
+  <view v-if="!profile" class="card"><view class="empty">老师还未填写印象</view></view>
 
   <view v-else class="card profile-card">
     <view class="tags-row">

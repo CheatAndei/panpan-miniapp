@@ -35,13 +35,10 @@ function start() {
 }
 
 async function notifyParents(db, schedule) {
-  const parents = db.all(
-    'SELECT DISTINCT u.openid, u.id as user_id, s.name as student_name FROM users u JOIN bindings b ON b.parent_id=u.id JOIN students s ON s.id=b.student_id WHERE s.class_id=? AND u.openid IS NOT NULL',
-    [schedule.class_id]);
-
-  // 实际推送逻辑待微信模板消息配置后启用
-  for (const parent of parents) {
-    console.log(`[REMINDER] ${parent.student_name} 家长, ${schedule.start_time} ${schedule.title} 在 ${schedule.location || '教室'}`);
+  try {
+    await require('../routes/notify').notifyReminder(schedule.class_id);
+  } catch (e) {
+    console.error('[REMINDER] notify failed:', e.message);
   }
 }
 

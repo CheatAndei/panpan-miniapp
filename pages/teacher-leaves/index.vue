@@ -54,8 +54,25 @@ export default {
       finally{this.loading=false;}
     },
     async handle(id,status){
+      if(status==='rejected'){
+        uni.showModal({
+          title:'拒绝理由',
+          editable:true,
+          placeholderText:'请填写给家长看的原因',
+          success:async r=>{
+            if(!r.confirm)return;
+            const reply=(r.content||'').trim();
+            if(!reply)return uni.showToast({title:'请填写拒绝理由',icon:'none'});
+            await this.submitDecision(id,status,reply);
+          }
+        });
+        return;
+      }
+      await this.submitDecision(id,status,'收到，好好休息');
+    },
+    async submitDecision(id,status,reply){
       try{
-        await api.put('/leaves/'+id,{status,reply:status==='approved'?'收到，好好休息':'好的'});
+        await api.put('/leaves/'+id,{status,reply});
         toastSuccess(status==='approved'?'已批准':'已拒绝');
         this.loadData();
       }catch(e){toastError(e,'操作失败');}

@@ -4,23 +4,57 @@ const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
 
+function env(name) {
+  return (process.env[name] || '').trim();
+}
+
+router.get('/status', (req, res) => {
+  res.json({
+    appId: !!env('APP_ID'),
+    appSecret: !!env('APP_SECRET'),
+    mode: env('APP_ID') ? 'wechat' : 'dev'
+  });
+});
+
 router.post('/login', async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: '缺少code' });
 
-    if (!process.env.APP_ID) {
+    const appId = env('APP_ID');
+    const appSecret = env('APP_SECRET');
+    if (!appId) {
       console.log('[DEV] 开发模式');
       return handleLogin(code, res);
+    }
+    if (!appSecret) {
+      console.error('[AUTH] APP_SECRET missing');
+      return res.status(500).json({ error: '微信登录配置缺少 APP_SECRET' });
     }
 
     const axios = require('axios');
     const { data } = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
-      params: { appid: process.env.APP_ID, secret: process.env.APP_SECRET, js_code: code, grant_type: 'authorization_code' }
+      params: { appid: appId, secret: appSecret, js_code: code, grant_type: 'authorization_code' },
+      timeout: 8000
     });
-    if (data.errcode) return res.status(400).json({ error: '微信登录失败' });
+    if (data.errcode) {
+      console.error('[AUTH] jscode2session failed', { errcode: data.errcode, errmsg: data.errmsg });
+      const hint = data.errcode === 40013 ? 'AppID 不正确'
+        : data.errcode === 40125 ? 'AppSecret 不正确或已重置'
+        : data.errcode === 40029 ? '登录 code 无效，请重新打开小程序'
+        : data.errcode === 45011 ? '登录太频繁，请稍后再试'
+        : '微信登录失败';
+      return res.status(400).json({ error: hint, errcode: data.errcode });
+    }
+    if (!data.openid) {
+      console.error('[AUTH] jscode2session missing openid', data);
+      return res.status(400).json({ error: '微信没有返回 openid' });
+    }
     handleLogin(data.openid, res);
-  } catch (e) { res.status(500).json({ error: '登录失败' }); }
+  } catch (e) {
+    console.error('[AUTH] login exception', e.message);
+    res.status(500).json({ error: '登录失败，请稍后重试' });
+  }
 });
 
 function handleLogin(openid, res) {

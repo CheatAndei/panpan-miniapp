@@ -5,14 +5,14 @@
     { "path": "pages/parent-home/index", "style": { "navigationBarTitleText": "学习动态" } },
     { "path": "pages/parent-schedule/index", "style": { "navigationBarTitleText": "学习小组详情" } },
     { "path": "pages/parent-feedback/index", "style": { "navigationBarTitleText": "课后反馈" } },
-    { "path": "pages/parent-profile/index", "style": { "navigationBarTitleText": "AI 画像" } },
+    { "path": "pages/parent-profile/index", "style": { "navigationBarTitleText": "老师印象" } },
     { "path": "pages/parent-leave/index", "style": { "navigationBarTitleText": "请假" } },
     { "path": "pages/teacher-classes/index", "style": { "navigationBarTitleText": "学习小组管理" } },
     { "path": "pages/teacher-checkin/index", "style": { "navigationBarTitleText": "签到" } },
     { "path": "pages/teacher-feedback/index", "style": { "navigationBarTitleText": "课后反馈" } },
     { "path": "pages/teacher-schedule/index", "style": { "navigationBarTitleText": "课表管理" } },
     { "path": "pages/teacher-leaves/index", "style": { "navigationBarTitleText": "请假审批" } },
-    { "path": "pages/student-detail/index", "style": { "navigationBarTitleText": "学生画像" } },
+    { "path": "pages/student-detail/index", "style": { "navigationBarTitleText": "学习印象" } },
     { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的" } }
   ],
   "globalStyle": {

@@ -25,6 +25,12 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 // 中间件
 app.use(cors({ origin: corsOrigins.length > 0 ? corsOrigins : false }));
 app.use(express.json());
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: '请求格式错误' });
+  }
+  next(err);
+});
 
 // 静态文件（上传的图片/PDF）
 app.use('/uploads', express.static(UPLOAD_DIR));

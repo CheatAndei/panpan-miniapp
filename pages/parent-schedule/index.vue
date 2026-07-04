@@ -69,8 +69,7 @@
         <view v-if="students.length===0" class="m-empty">暂无数据</view>
         <view v-for="s in students" :key="s.id" class="stu-row" @tap="showStuFb(s)">
           <text class="stu-name">{{ s.name }}</text>
-          <text v-if="s.level" :class="['stu-lv',lvClass(s.level)]">{{ s.level }}</text>
-          <text class="stu-arrow">查看反馈</text>
+          <text class="stu-arrow">{{ isMyStudent(s.id) ? '查看反馈' : '同组同学' }}</text>
         </view>
       </scroll-view>
     </view>
@@ -86,7 +85,7 @@ const ALL = [{label:'周五',value:5},{label:'周六',value:6},{label:'周日',v
 
 export default {
   data(){return{
-    schedules:[],myClassIds:[],days:[],loading:false,
+    schedules:[],myClassIds:[],myStudentIds:[],days:[],loading:false,
     showDetail:false,detailClass:null,feedbacks:[],students:[],latestHomework:''
   };},
   computed:{
@@ -100,13 +99,15 @@ export default {
   onShow(){this.loadData();},
   methods:{
     isMyClass(cid){return this.myClassIds.includes(cid);},
+    isMyStudent(id){return this.myStudentIds.includes(Number(id));},
     async loadData(){
       const t=uni.getStorageSync('token');if(!t)return;
       this.loading=true;
       try{
-        const sch=await api.get('/schedules/parent');
+        const [sch,kids]=await Promise.all([api.get('/schedules/parent'),api.get('/bind/students')]);
         this.schedules=sch.schedules||[];
         this.myClassIds=sch.myClassIds||[];
+        this.myStudentIds=(kids.students||[]).map(s=>Number(s.id));
         this.days=ALL.map(d=>({
           ...d,scheds:this.schedules.filter(s=>s.day_of_week===d.value)
             .sort((a,b)=>(parseInt(a.start_time.replace(':',''))-parseInt(b.start_time.replace(':',''))))
@@ -130,6 +131,7 @@ export default {
       }catch(e){logError('parentSchedule.openClass',e);}
     },
     showStuFb(s){
+      if(!this.isMyStudent(s.id))return;
       const last=this.feedbacks[0];
       if(!last||!last.student_feedbacks)return uni.showToast({title:'暂无该同学反馈',icon:'none'});
       try{

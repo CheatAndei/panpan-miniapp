@@ -20,7 +20,12 @@ export function doLogin() {
           reject(err);
         }
       },
-      fail: reject
+      fail(err) {
+        reject({
+          error: err?.errMsg || '微信登录失败，请重新打开小程序',
+          message: err?.errMsg || '微信登录失败，请重新打开小程序'
+        });
+      }
     });
   });
 }

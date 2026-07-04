@@ -36,7 +36,7 @@
         <slider :value="se._cf.perfScore" @change="e=>se._cf.perfScore=e.detail.value" min="1" max="10" block-size="24" activeColor="#202733" />
         <input v-model="se._cf.homework" class="input big" placeholder="作业" />
         <button class="btn-primary big" @tap="genClassFeedback(se)" :disabled="se._cf._genning">
-          {{ se._cf._genning?'生成中...':(se._cf._text?'重新生成':'AI 生成学习小组反馈') }}
+          {{ se._cf._genning?'生成中...':(se._cf._text?'重新生成':'一键生成学习小组反馈') }}
         </button>
         <textarea v-if="se._cf._text" v-model="se._cf._text" class="result-area" :maxlength="500" />
       </view>
@@ -58,13 +58,13 @@
           <text class="label">出门测 {{ s._score }}/10</text>
           <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#A57945" />
           <input v-model="s._note" class="input big" placeholder="大致情况" />
-          <textarea v-if="s._text" v-model="s._text" class="result-area" :maxlength="300" />
+          <textarea v-if="s._text" v-model="s._text" class="result-area" :maxlength="180" />
           <!-- 图片 -->
           <view v-if="s._images && s._images.length>0" class="img-row">
             <image v-for="(img,i) in s._images" :key="i" :src="img" mode="aspectFill" class="thumb" @tap="previewStuImg(s,i)" />
           </view>
           <view class="stu-btns">
-            <button class="btn-sm" @tap="genStuFeedback(se,s)">{{ s._text?'重新生成':'AI 生成' }}</button>
+            <button class="btn-sm" @tap="genStuFeedback(se,s)">{{ s._text?'重新生成':'一键生成' }}</button>
             <button class="btn-sm" @tap="addStuImg(s)">添加图片</button>
           </view>
         </view>
@@ -105,7 +105,7 @@ export default {
         this.completedSessions=(ses.sessions||[]).map(se=>({
           ...se,_open:false,_tab:'class',_batching:false,
           _cf:{lesson:'',topic:'',perfScore:5,homework:'',_text:'',_genning:false},
-          _students:[],_publishing:false
+          _students:[],_publishing:false,_pdfTemp:'',_pdfName:''
         }));
       }catch(e){logError('feedback.loadSessions',e);}
       finally{this.loading=false;}
@@ -152,6 +152,10 @@ export default {
       const d=await api.upload('/feedbacks/upload-image',fp,'image');
       return d.url;
     },
+    async uploadPDF(fp){
+      const d=await api.upload('/feedbacks/upload-pdf',fp,'pdf');
+      return d.url;
+    },
     choosePDF(se){
       uni.chooseMessageFile({count:1,type:'file',extension:['pdf'],success:res=>{
         se._pdfTemp=res.tempFiles[0].path;se._pdfName=res.tempFiles[0].name;
@@ -184,6 +188,10 @@ export default {
       if(!hasStu) return uni.showToast({title:'请至少生成一位学生的反馈',icon:'none'});
       se._publishing=true;
       try{
+        let notesPdfUrl='';
+        if(se._pdfTemp){
+          notesPdfUrl=await this.uploadPDF(se._pdfTemp);
+        }
         // 上传图片 → 替换为服务器URL
         const students=[];
         for(const s of se._students.filter(s=>s._text&&!s._leave)){
@@ -198,6 +206,7 @@ export default {
         await api.post('/feedbacks/publish',{
           class_id:se.class_id,class_date:se.class_date,
           class_feedback:se._cf._text,homework:se._cf.homework,
+          notes_pdf_url:notesPdfUrl,
           students
         });
         await api.put('/schedules/sessions/'+se.id+'/complete',{status:'feedbacked'});

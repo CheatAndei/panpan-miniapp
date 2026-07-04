@@ -9,22 +9,32 @@ function auth(req, res, next) {
   catch { res.status(401).json({ error: '登录过期' }); }
 }
 
+function localDateString(date = new Date()) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 // 家长查今日签到
 router.get('/today', auth, (req, res) => {
-  const today = new Date().toISOString().slice(0,10);
+  const today = req.query.date || localDateString();
   const { student_id } = req.query;
   const s = getDB().get('SELECT ci.* FROM checkins ci JOIN students s ON s.id=ci.student_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? AND ci.class_date=? AND (? IS NULL OR s.id=?) ORDER BY ci.check_in_time DESC LIMIT 1', [req.user.id, today, student_id||null, student_id||null]);
   if (!s) return res.json({ checkedIn: false });
-  res.json({ checkedIn: s.status!=='absent', checkInTime: s.check_in_time, status: s.status });
+  res.json({
+    checkedIn: s.status==='checked_in'||s.status==='checked_out',
+    checkedOut: s.status==='checked_out',
+    checkInTime: s.check_in_time,
+    checkOutTime: s.check_out_time,
+    status: s.status
+  });
 });
 
 // 老师查单个学生的签到状态
 router.get('/status', auth, (req, res) => {
   const { student_id, date } = req.query;
   const ci = getDB().get('SELECT * FROM checkins WHERE student_id=? AND class_date=?', [student_id, date]);
-  if (!ci) return res.json({ checkedIn: false, checkedOut: false, onLeave: false });
   // 同时查请假
   const leave = getDB().get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [student_id, date, 'approved']);
+  if (!ci) return res.json({ checkedIn: false, checkedOut: false, onLeave: !!leave });
   res.json({
     checkedIn: ci.status==='checked_in'||ci.status==='checked_out',
     checkedOut: ci.status==='checked_out',
