@@ -1,0 +1,71 @@
+name: Production Inspect
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Inspect production storage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect production storage
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            echo "=== containers ==="
+            docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+
+            echo "=== volumes ==="
+            docker volume ls
+
+            echo "=== current mounts ==="
+            docker inspect panpan-api --format 'mounts={{json .Mounts}}' || true
+
+            echo "=== db candidates ==="
+            find /opt /var/lib/docker/volumes /var/lib/docker/overlay2 -type f \( -name '*.db' -o -name '*.sqlite' \) -printf '%s %TY-%Tm-%Td %TH:%TM %p\n' 2>/dev/null | sort -nr | head -120 || true
+
+            echo "=== current db table counts ==="
+            docker exec panpan-api node <<'NODE' || true
+            const fs = require('fs');
+            const initSqlJs = require('sql.js');
+            const paths = ['/app/data/teach.db', '/app/db/teach.db'];
+            (async () => {
+              const SQL = await initSqlJs();
+              for (const file of paths) {
+                if (!fs.existsSync(file)) {
+                  console.log(file, 'missing');
+                  continue;
+                }
+                const db = new SQL.Database(fs.readFileSync(file));
+                const tables = ['users', 'classes', 'students', 'bindings', 'checkins', 'feedbacks'];
+                const counts = {};
+                for (const table of tables) {
+                  try {
+                    const stmt = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`);
+                    stmt.step();
+                    counts[table] = stmt.getAsObject().c;
+                    stmt.free();
+                  } catch (e) {
+                    counts[table] = 'n/a';
+                  }
+                }
+                console.log(file, fs.statSync(file).size, JSON.stringify(counts));
+              }
+            })();
+            NODE
+
+            echo "=== upload volume file counts ==="
+            for volume in $(docker volume ls --format '{{.Name}}'); do
+              mount="$(docker volume inspect "$volume" --format '{{.Mountpoint}}' 2>/dev/null || true)"
+              [ -n "$mount" ] || continue
+              count="$(find "$mount" -type f 2>/dev/null | wc -l | tr -d ' ')"
+              size="$(du -sh "$mount" 2>/dev/null | awk '{print $1}')"
+              case "$volume:$count" in
+                *upload*|*:0) ;;
+              esac
+              echo "$volume files=$count size=${size:-unknown} path=$mount"
+            done
