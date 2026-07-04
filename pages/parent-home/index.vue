@@ -15,6 +15,7 @@
       {{ checkinText(todayCheckin) }}
     </view>
     <button class="notify-btn" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
+    <button class="notify-test-btn" @tap="sendTestNotify">测试服务通知</button>
   </view>
 
   <!-- 学习小组详情入口 -->
@@ -138,6 +139,16 @@ export default {
         });
       }catch(e){logError('parentHome.subscribe',e);uni.showToast({title:'开启失败',icon:'none'});}
     },
+    async sendTestNotify(){
+      try{
+        await this.requestSubscribe();
+        const r=await api.post('/notify/test',{});
+        uni.showModal({title:'测试已发送',content:'请在微信「服务通知」里查看。',showCancel:false});
+      }catch(e){
+        const msg=e?.error||e?.errmsg||e?.detail||'发送失败';
+        uni.showModal({title:'测试失败',content:String(msg).slice(0,120),showCancel:false});
+      }
+    },
     openPdf(url){
       const fileUrl=api.assetUrl(url);
       uni.downloadFile({
@@ -182,6 +193,7 @@ export default {
 .img-more{width:150rpx;height:150rpx;border-radius:8rpx;background:#F8F6F1;display:flex;align-items:center;justify-content:center;font-size:36rpx;color:#8A929B}
 .fb-hw{font-size:24rpx;color:#A57945;margin-top:10rpx}
 .notify-btn{margin-top:16rpx;background:#F3F1EA;color:#202733;border:1rpx solid #E5E0D8;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
+.notify-test-btn{margin-top:12rpx;background:#202733;color:#fff;border:none;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
 .pdf-btn{margin-top:14rpx;background:#202733;color:#fff;border:none;border-radius:10rpx;padding:18rpx;font-size:26rpx;width:100%}
 
 .tags{display:flex;gap:10rpx;flex-wrap:wrap}

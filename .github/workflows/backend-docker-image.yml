@@ -96,7 +96,7 @@ jobs:
             for ENV_FILE in "${ENV_FILES[@]}"; do
               upsert_env APP_ID "$PANPAN_APP_ID" "$ENV_FILE"
               upsert_env APP_SECRET "$PANPAN_APP_SECRET" "$ENV_FILE"
-              upsert_env WX_MINIPROGRAM_STATE formal "$ENV_FILE"
+              upsert_env WX_MINIPROGRAM_STATE trial "$ENV_FILE"
               upsert_env TPL_CHECKIN "$PANPAN_TPL_CHECKIN" "$ENV_FILE"
               upsert_env TPL_CHECKOUT "$PANPAN_TPL_CHECKOUT" "$ENV_FILE"
               upsert_env TPL_FEEDBACK "$PANPAN_TPL_FEEDBACK" "$ENV_FILE"

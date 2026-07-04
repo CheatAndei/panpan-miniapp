@@ -82,6 +82,7 @@
 
       <view class="card">
         <button class="btn-outline" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
+        <button class="btn-primary mt-sm" @tap="sendTestNotify">测试服务通知</button>
       </view>
 
       <!-- 本周课表 -->
@@ -333,6 +334,17 @@ async function loadParentData(childId) {
   }
 }
 
+async function sendTestNotify() {
+  try {
+    await requestSubscribe();
+    await api.post('/notify/test', {});
+    uni.showModal({ title: '测试已发送', content: '请在微信「服务通知」里查看。', showCancel: false });
+  } catch (e) {
+    const msg = e?.error || e?.errmsg || e?.detail || '发送失败';
+    uni.showModal({ title: '测试失败', content: String(msg).slice(0, 120), showCancel: false });
+  }
+}
+
 function statusBadgeClass(status) {
   return status?.checkedOut ? 'done' : (status?.checkedIn ? 'in' : 'out');
 }
@@ -476,6 +488,8 @@ function statusText(status) {
 
 .hint { text-align: center; color: #8A929B; padding: 24rpx; font-size: 26rpx; }
 .btn-outline { border: 1px solid #202733; color: #202733; background: #fff; border-radius: 10rpx; padding: 20rpx; font-size: 28rpx; width: 100%; font-weight: 600; }
+.btn-primary { background:#202733; color:#fff; border:none; border-radius:10rpx; padding:20rpx; font-size:28rpx; width:100%; font-weight:600; }
+.mt-sm { margin-top:12rpx; }
 .footer { text-align: center; color: #AAB0B7; font-size: 24rpx; padding: 40rpx 30rpx 30rpx; line-height: 1.6; }
 .action-item text { font-size: 24rpx; color: #3B4653; font-weight: 500; }
 .leave-list { margin-top: 20rpx; border-top: 1rpx solid #ECE8E0; padding-top: 16rpx; }

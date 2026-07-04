@@ -62,6 +62,23 @@ router.get('/status', auth, (req, res) => {
   });
 });
 
+router.post('/test', auth, async (req, res) => {
+  const tplId = TPLS.feedback || TPLS.checkin || TPLS.reminder || TPLS.checkout;
+  if (!tplId) return res.status(400).json({ ok: false, error: '服务通知模板未配置' });
+  if (!req.user.openid) return res.status(400).json({ ok: false, error: '当前账号缺少 openid，请重新微信登录' });
+  try {
+    const result = await sendMsg(req.user.openid, tplId, templateData([
+      [FIELDS.feedback.title, '服务通知测试'],
+      [FIELDS.feedback.time, new Date().toLocaleDateString('zh-CN')],
+      [FIELDS.feedback.note, '收到这条说明配置正常']
+    ]), 'pages/index/index');
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (e) {
+    console.error('[notify] test failed', e.message);
+    res.status(500).json({ ok: false, error: '测试发送失败', detail: e.message });
+  }
+});
+
 // 存储用户的openid（家长登录后调用）
 router.post('/bind-openid', auth, (req, res) => {
   getDB().run('UPDATE users SET openid=? WHERE id=?', [req.body.openid, req.user.id]);
@@ -81,6 +98,10 @@ async function getAccessToken() {
   const { data } = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
     params: { grant_type: 'client_credential', appid: appId, secret }
   });
+  if (!data.access_token) {
+    console.warn('[notify] get access token failed', { errcode: data.errcode, errmsg: data.errmsg });
+    return null;
+  }
   accessToken = data.access_token;
   tokenExpire = Date.now() + (data.expires_in - 300) * 1000;
   return accessToken;
@@ -89,27 +110,30 @@ async function getAccessToken() {
 async function sendMsg(openid, tplId, data, page) {
   if (!tplId || !openid) {
     console.warn('[notify] skip subscribe message: missing template id or openid');
-    return;
+    return { ok: false, error: 'missing template id or openid' };
   }
   const token = await getAccessToken();
   if (!token) {
     console.warn('[notify] skip subscribe message: missing access token');
-    return;
+    return { ok: false, error: 'missing access token' };
   }
   const axios = require('axios');
   const state = process.env.WX_MINIPROGRAM_STATE || 'formal';
   const res = await axios.post(`https://api.weixin.qq.com/cgi-bin/message/subscribe/send?access_token=${token}`, {
     touser: openid, template_id: tplId, data, page, miniprogram_state: state
   });
-  if (res.data?.errcode) console.warn('[notify] send failed', res.data);
+  const wx = res.data || {};
+  if (wx.errcode) console.warn('[notify] send failed', wx);
+  return { ok: !wx.errcode, errcode: wx.errcode || 0, errmsg: wx.errmsg || 'ok', miniprogramState: state };
 }
 
 // 给某学生关联的家长发消息
 async function notifyParents(studentId, tplId, data, page) {
   const db = getDB();
   const parents = db.all('SELECT u.openid FROM users u JOIN bindings b ON b.parent_id=u.id WHERE b.student_id=? AND u.openid IS NOT NULL AND u.openid!=\'\'', [studentId]);
+  if (parents.length === 0) console.warn('[notify] no parent openid for student', studentId);
   for (const p of parents) {
-    try { await sendMsg(p.openid, tplId, data, page); } catch(e) {}
+    try { await sendMsg(p.openid, tplId, data, page); } catch(e) { console.warn('[notify] parent send exception', e.message); }
   }
 }
 
@@ -157,8 +181,9 @@ router.notifyFeedback = (classId) => {
 async function notifyParentsByClass(classId, tplId, data, page) {
   const db = getDB();
   const parents = db.all('SELECT DISTINCT u.openid FROM users u JOIN bindings b ON b.parent_id=u.id JOIN students s ON s.id=b.student_id WHERE s.class_id=? AND u.openid IS NOT NULL AND u.openid!=\'\'', [classId]);
+  if (parents.length === 0) console.warn('[notify] no parent openid for class', classId);
   for (const p of parents) {
-    try { await sendMsg(p.openid, tplId, data, page); } catch(e) {}
+    try { await sendMsg(p.openid, tplId, data, page); } catch(e) { console.warn('[notify] class send exception', e.message); }
   }
 }
 
