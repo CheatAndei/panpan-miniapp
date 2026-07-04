@@ -129,7 +129,7 @@ export default {
     async requestSubscribe(){
       try{
         const tplRes=await api.get('/notify/templates');
-        const tmplIds=[tplRes.checkin,tplRes.checkout,tplRes.feedback].filter(Boolean);
+        const tmplIds=[...new Set([tplRes.checkin,tplRes.checkout,tplRes.feedback].filter(Boolean))];
         if(tmplIds.length===0) return uni.showToast({title:'提醒模板未配置',icon:'none'});
         uni.requestSubscribeMessage({
           tmplIds,

@@ -236,7 +236,7 @@ function openPdf(url) {
 async function requestSubscribe() {
   try {
     const tplRes = await api.get('/notify/templates');
-    const tpls = [tplRes.checkin, tplRes.checkout, tplRes.feedback].filter(Boolean);
+    const tpls = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.feedback].filter(Boolean))];
     if (tpls.length === 0) return uni.showToast({ title: '提醒模板未配置', icon: 'none' });
     // 须在用户点击手势中调用；openid 已在登录时由后端用 code 换取并保存，无需前端回传。
     uni.requestSubscribeMessage({
