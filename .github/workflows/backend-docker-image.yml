@@ -57,12 +57,64 @@ jobs:
       - name: Deploy production backend
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy/prod'
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          PANPAN_APP_ID: ${{ secrets.PANPAN_APP_ID }}
+          PANPAN_APP_SECRET: ${{ secrets.PANPAN_APP_SECRET }}
+          PANPAN_TPL_CHECKIN: ${{ secrets.PANPAN_TPL_CHECKIN }}
+          PANPAN_TPL_CHECKOUT: ${{ secrets.PANPAN_TPL_CHECKOUT }}
+          PANPAN_TPL_FEEDBACK: ${{ secrets.PANPAN_TPL_FEEDBACK }}
+          PANPAN_TPL_REMINDER: ${{ secrets.PANPAN_TPL_REMINDER }}
         with:
           host: 134.175.69.59
           username: root
           key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER
           script: |
             set -euo pipefail
+            upsert_env() {
+              key="$1"
+              value="$2"
+              file="$3"
+              mkdir -p "$(dirname "$file")"
+              touch "$file"
+              tmp="${file}.tmp"
+              awk -v key="$key" -v value="$value" '
+                BEGIN { done = 0 }
+                $0 ~ "^" key "=" { print key "=" value; done = 1; next }
+                { print }
+                END { if (!done) print key "=" value }
+              ' "$file" > "$tmp"
+              mv "$tmp" "$file"
+              chmod 600 "$file" || true
+            }
+
+            ENV_FILES=()
+            [ -f /opt/panpan-miniapp/.env ] && ENV_FILES+=("/opt/panpan-miniapp/.env")
+            [ -f /opt/panpan-miniapp/backend/.env ] && ENV_FILES+=("/opt/panpan-miniapp/backend/.env")
+            [ "${#ENV_FILES[@]}" -eq 0 ] && ENV_FILES+=("/opt/panpan-miniapp/backend/.env")
+
+            for ENV_FILE in "${ENV_FILES[@]}"; do
+              upsert_env APP_ID "$PANPAN_APP_ID" "$ENV_FILE"
+              upsert_env APP_SECRET "$PANPAN_APP_SECRET" "$ENV_FILE"
+              upsert_env WX_MINIPROGRAM_STATE formal "$ENV_FILE"
+              upsert_env TPL_CHECKIN "$PANPAN_TPL_CHECKIN" "$ENV_FILE"
+              upsert_env TPL_CHECKOUT "$PANPAN_TPL_CHECKOUT" "$ENV_FILE"
+              upsert_env TPL_FEEDBACK "$PANPAN_TPL_FEEDBACK" "$ENV_FILE"
+              upsert_env TPL_REMINDER "$PANPAN_TPL_REMINDER" "$ENV_FILE"
+              upsert_env TPL_FIELD_CHECKIN_STUDENT thing1 "$ENV_FILE"
+              upsert_env TPL_FIELD_CHECKIN_TIME time2 "$ENV_FILE"
+              upsert_env TPL_FIELD_CHECKIN_STATUS phrase3 "$ENV_FILE"
+              upsert_env TPL_FIELD_CHECKOUT_STUDENT thing1 "$ENV_FILE"
+              upsert_env TPL_FIELD_CHECKOUT_TIME time2 "$ENV_FILE"
+              upsert_env TPL_FIELD_CHECKOUT_STATUS phrase3 "$ENV_FILE"
+              upsert_env TPL_FIELD_FEEDBACK_TITLE thing1 "$ENV_FILE"
+              upsert_env TPL_FIELD_FEEDBACK_TIME time2 "$ENV_FILE"
+              upsert_env TPL_FIELD_FEEDBACK_NOTE thing3 "$ENV_FILE"
+              upsert_env TPL_FIELD_REMINDER_CLASS thing1 "$ENV_FILE"
+              upsert_env TPL_FIELD_REMINDER_TIME time2 "$ENV_FILE"
+              upsert_env TPL_FIELD_REMINDER_NOTE thing3 "$ENV_FILE"
+            done
+
             if [ "${{ github.ref }}" = "refs/heads/deploy/prod" ]; then
               /opt/panpan-miniapp/deploy.sh prod
             else
