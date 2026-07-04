@@ -5,6 +5,7 @@
   "scripts": {
     "dev:mp": "cross-env UNI_INPUT_DIR=. uni -p mp-weixin",
     "build:mp": "cross-env UNI_INPUT_DIR=. uni build -p mp-weixin",
+    "upload:mp": "npm run build:mp && node scripts/mp-ci-upload.js",
     "dev:h5": "uni",
     "build:h5": "uni build"
   },
@@ -21,6 +22,7 @@
     "@dcloudio/uni-automator": "3.0.0-4020920240930001",
     "@dcloudio/uni-cli-shared": "3.0.0-4020920240930001",
     "@dcloudio/vite-plugin-uni": "3.0.0-4020920240930001",
+    "miniprogram-ci": "^2.1.31",
     "sass": "^1.69.0",
     "vite": "^5.4.0"
   },
