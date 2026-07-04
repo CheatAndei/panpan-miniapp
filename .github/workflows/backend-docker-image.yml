@@ -121,6 +121,8 @@ jobs:
               git -C /opt/panpan-miniapp reset --hard "${{ github.sha }}"
             fi
 
+            docker rm -f panpan-api panpan-caddy || true
+
             if [ "${{ github.ref }}" = "refs/heads/deploy/prod" ]; then
               /opt/panpan-miniapp/deploy.sh prod
             else
