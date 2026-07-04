@@ -130,6 +130,9 @@ jobs:
               panpan-api:
                 image: rockchin/panpan-miniapp-backend:main
                 build: null
+                env_file:
+                  - ./.env
+                  - ./backend/.env
             EOF
             (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate)
 
