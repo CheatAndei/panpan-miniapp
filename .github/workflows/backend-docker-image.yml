@@ -88,10 +88,16 @@ jobs:
               chmod 600 "$file" || true
             }
 
+            DEPLOY_DIR=/opt/panpan-miniapp
+            SRC_DIR=/opt/panpan-miniapp-source
+            REPO_URL=https://github.com/CheatAndei/panpan-miniapp.git
+
+            mkdir -p "$DEPLOY_DIR/backend"
+
             ENV_FILES=()
-            [ -f /opt/panpan-miniapp/.env ] && ENV_FILES+=("/opt/panpan-miniapp/.env")
-            [ -f /opt/panpan-miniapp/backend/.env ] && ENV_FILES+=("/opt/panpan-miniapp/backend/.env")
-            [ "${#ENV_FILES[@]}" -eq 0 ] && ENV_FILES+=("/opt/panpan-miniapp/backend/.env")
+            [ -f "$DEPLOY_DIR/.env" ] && ENV_FILES+=("$DEPLOY_DIR/.env")
+            [ -f "$DEPLOY_DIR/backend/.env" ] && ENV_FILES+=("$DEPLOY_DIR/backend/.env")
+            [ "${#ENV_FILES[@]}" -eq 0 ] && ENV_FILES+=("$DEPLOY_DIR/backend/.env")
 
             for ENV_FILE in "${ENV_FILES[@]}"; do
               upsert_env APP_ID "$PANPAN_APP_ID" "$ENV_FILE"
@@ -115,19 +121,25 @@ jobs:
               upsert_env TPL_FIELD_REMINDER_NOTE thing3 "$ENV_FILE"
             done
 
-            if [ -d /opt/panpan-miniapp/.git ]; then
-              git -C /opt/panpan-miniapp fetch --all --prune
-              git -C /opt/panpan-miniapp checkout "${{ github.ref_name }}"
-              git -C /opt/panpan-miniapp reset --hard "${{ github.sha }}"
-            fi
+            rm -rf "$SRC_DIR"
+            git clone --depth 1 --branch "${{ github.ref_name }}" "$REPO_URL" "$SRC_DIR"
+            git -C "$SRC_DIR" fetch --depth 1 origin "${{ github.sha }}"
+            git -C "$SRC_DIR" checkout --detach "${{ github.sha }}"
 
-            docker build -t rockchin/panpan-miniapp-backend:main -t rockchin/panpan-miniapp-backend:latest /opt/panpan-miniapp/backend
-            (cd /opt/panpan-miniapp && docker compose up -d --pull never --force-recreate)
+            docker build -t rockchin/panpan-miniapp-backend:main -t rockchin/panpan-miniapp-backend:latest "$SRC_DIR/backend"
+            cp "$SRC_DIR/docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
+            cat > "$DEPLOY_DIR/docker-compose.override.yml" <<'EOF'
+            services:
+              panpan-api:
+                image: rockchin/panpan-miniapp-backend:main
+                build: null
+            EOF
+            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate)
 
             echo "=== deploy.sh ==="
-            sed -n '1,220p' /opt/panpan-miniapp/deploy.sh || true
+            sed -n '1,220p' "$SRC_DIR/deploy.sh" || true
             echo "=== compose files ==="
-            find /opt/panpan-miniapp -maxdepth 2 \( -name '*compose*.yml' -o -name '*compose*.yaml' \) -print -exec sed -n '1,220p' {} \; || true
+            find "$DEPLOY_DIR" "$SRC_DIR" -maxdepth 2 \( -name '*compose*.yml' -o -name '*compose*.yaml' \) -print -exec sed -n '1,220p' {} \; || true
             echo "=== container image/mounts ==="
             docker inspect panpan-api --format 'image={{.Config.Image}} mounts={{json .Mounts}}' || true
             echo "=== container code markers ==="
