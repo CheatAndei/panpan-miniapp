@@ -94,10 +94,7 @@ jobs:
 
             mkdir -p "$DEPLOY_DIR/backend"
 
-            ENV_FILES=()
-            [ -f "$DEPLOY_DIR/.env" ] && ENV_FILES+=("$DEPLOY_DIR/.env")
-            [ -f "$DEPLOY_DIR/backend/.env" ] && ENV_FILES+=("$DEPLOY_DIR/backend/.env")
-            [ "${#ENV_FILES[@]}" -eq 0 ] && ENV_FILES+=("$DEPLOY_DIR/backend/.env")
+            ENV_FILES=("$DEPLOY_DIR/.env" "$DEPLOY_DIR/backend/.env")
 
             for ENV_FILE in "${ENV_FILES[@]}"; do
               upsert_env APP_ID "$PANPAN_APP_ID" "$ENV_FILE"
