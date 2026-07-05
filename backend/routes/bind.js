@@ -43,4 +43,11 @@ router.get('/student', auth, (req, res) => {
   res.json({ student: s || null });
 });
 
+router.delete('/:studentId', auth, (req, res) => {
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  const result = getDB().run('DELETE FROM bindings WHERE parent_id=? AND student_id=?', [req.user.id, req.params.studentId]);
+  if (result.changes === 0) return res.status(404).json({ error: '未找到绑定关系' });
+  res.json({ ok: true });
+});
+
 module.exports = router;

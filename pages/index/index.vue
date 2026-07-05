@@ -42,7 +42,7 @@
               <view class="mini-dot"></view>
               <view v-if="pendingLeaves>0" class="red-dot">{{ pendingLeaves }}</view>
             </view>
-            <text>请假审批</text>
+            <text>审批</text>
           </view>
         </view>
       </view>
@@ -318,7 +318,7 @@ async function loadParentData(childId) {
     // 选指定孩子或第一个
     const savedChildId = childId || uni.getStorageSync('activeChildId');
     const target = savedChildId
-      ? boundKids.value.find(k=>k.id===savedChildId)
+      ? boundKids.value.find(k=>String(k.id)===String(savedChildId))
       : (boundKids.value.length>0 ? boundKids.value[0] : null);
     if (!target) { child.value = null; return; }
     child.value = target;

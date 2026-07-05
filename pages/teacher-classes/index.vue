@@ -24,12 +24,19 @@
 
     <view v-if="c._open">
       <view v-if="c._students.length>0" class="stu-list">
-        <view v-for="s in c._students" :key="s.id" class="stu-row">
+        <view v-for="s in c._students" :key="s.id" class="stu-row" @tap="openStudent(s)">
           <view class="stu-info">
             <pp-avatar :name="s.name" :size="56" class="s-avatar" />
-            <text class="s-name" @tap.stop="openStudent(s)">{{ s.name }}</text>
-            <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
-            <text :class="['parent-bind', parentCount(s)>0?'on':'off']">{{ parentCount(s)>0 ? '家长 '+parentCount(s)+'/3' : '未绑定家长' }}</text>
+            <view class="stu-main">
+              <view class="stu-title-row">
+                <text class="s-name">{{ s.name }}</text>
+                <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
+              </view>
+              <view class="parent-line">
+                <text :class="['parent-bind', parentCount(s)>0?'on':'off']">{{ parentLabel(s) }}</text>
+                <text class="parent-names">{{ parentNames(s) || '等待家长绑定邀请码' }}</text>
+              </view>
+            </view>
           </view>
           <view class="stu-actions">
             <text class="btn-xs copy" @tap.stop="copyInviteCode(s.invite_code)">复制</text>
@@ -171,6 +178,8 @@ export default {
     toggleCat(name){ this.traitOpen={...this.traitOpen,[name]:!this.traitOpen[name]}; },
     countCat(cat){ return cat.traits.filter(t=>this.sForm.traits.has(t)).length; },
     parentCount(s){return Number(s.parent_count||0);},
+    parentLabel(s){const n=this.parentCount(s); return n>0 ? '已绑定 '+n+'/3' : '未绑定';},
+    parentNames(s){return (s.parent_names||'').trim();},
     toggleTrait(t) {
       if (this.sForm.traits.has(t)) { this.sForm.traits.delete(t); return; }
       if (this.sForm.traits.size>=8) return;
@@ -241,22 +250,26 @@ export default {
 .c-toggle { font-size:24rpx; color:#8A929B; margin-right:4rpx; }
 
 .stu-list { border-top:1rpx solid #ECE8E0; margin:0 28rpx; padding:10rpx 0; }
-.stu-row { display:flex; align-items:center; padding:14rpx 0; border-bottom:1rpx solid #F0ECE5; gap:10rpx; }
+.stu-row { display:flex; align-items:center; padding:18rpx 0; border-bottom:1rpx solid #F0ECE5; gap:14rpx; }
 .stu-row:last-child { border-bottom:none; }
-.stu-info { flex:1; display:flex; align-items:center; gap:10rpx; }
-.s-name { font-weight:600; font-size:28rpx; }
+.stu-info { min-width:0; flex:1; display:flex; align-items:center; gap:14rpx; }
+.stu-main { min-width:0; flex:1; }
+.stu-title-row { display:flex; align-items:center; gap:10rpx; min-width:0; }
+.s-name { font-weight:700; font-size:29rpx; color:#202733; max-width:220rpx; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .s-avatar { width:56rpx; height:56rpx; border-radius:50%; flex-shrink:0; }
 .s-level { font-size:20rpx; padding:2rpx 10rpx; border-radius:6rpx; }
-.parent-bind{font-size:20rpx;padding:2rpx 10rpx;border-radius:6rpx;white-space:nowrap}
-.parent-bind.on{background:#EEF5EF;color:#3F8B65}
+.parent-line{display:flex;align-items:center;gap:8rpx;margin-top:6rpx;min-width:0}
+.parent-bind{font-size:22rpx;padding:3rpx 12rpx;border-radius:8rpx;white-space:nowrap;font-weight:600}
+.parent-bind.on{background:#EEF5EF;color:#2F7350}
 .parent-bind.off{background:#F7EDEA;color:#9F4E43}
+.parent-names{min-width:0;flex:1;font-size:22rpx;color:#69717D;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lv-a { background:#EEF5EF; color:#3F8B65; }
 .lv-b { background:#EFF3F2; color:#52707E; }
 .lv-c { background:#F7F2E5; color:#A57945; }
 .lv-d { background:#F7EDEA; color:#A66A3E; }
 .lv-e { background:#F7EDEA; color:#B85C4E; }
-.stu-actions{display:flex;align-items:center;gap:14rpx;flex-shrink:0}
-.s-code { font-size:22rpx; color:#A57945; }
+.stu-actions{display:flex;align-items:center;gap:10rpx;flex-shrink:0}
+.s-code { font-size:22rpx; color:#8D6A3F; max-width:164rpx; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 .btn-xs { padding:6rpx 12rpx; font-size:22rpx; color:#69717D; border-radius:8rpx; background:#F8F6F1; }
 .btn-xs.copy{color:#3F8B65}

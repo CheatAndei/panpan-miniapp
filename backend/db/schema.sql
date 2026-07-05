@@ -111,6 +111,16 @@ CREATE TABLE IF NOT EXISTS leaves (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 家长意见反馈
+CREATE TABLE IF NOT EXISTS parent_feedbacks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  parent_id INTEGER REFERENCES users(id),
+  content TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  reply TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 发布的课程实例（课表套日期后生成）
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

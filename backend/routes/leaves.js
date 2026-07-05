@@ -25,7 +25,20 @@ router.get('/', auth, (req, res) => {
   const db = getDB();
   let leaves;
   if (req.user.role === 'teacher') {
-    leaves = db.all('SELECT l.*, s.name as student_name FROM leaves l JOIN students s ON s.id=l.student_id ORDER BY l.created_at DESC LIMIT 50', []);
+    const leaveRows = db.all(`SELECT l.*, s.name as student_name, 'leave' as item_type
+      FROM leaves l JOIN students s ON s.id=l.student_id
+      WHERE s.teacher_id=?
+      ORDER BY l.created_at DESC LIMIT 50`, [req.user.id]);
+    const feedbackRows = db.all(`SELECT pf.id, NULL as student_id, pf.parent_id, '' as class_date,
+      pf.content as reason, pf.status, pf.reply, pf.created_at,
+      COALESCE(NULLIF(u.nickname,''),'家长') as student_name, 'feedback' as item_type
+      FROM parent_feedbacks pf LEFT JOIN users u ON u.id=pf.parent_id
+      WHERE EXISTS (
+        SELECT 1 FROM bindings b JOIN students s ON s.id=b.student_id
+        WHERE b.parent_id=pf.parent_id AND s.teacher_id=?
+      )
+      ORDER BY pf.created_at DESC LIMIT 50`, [req.user.id]);
+    leaves = [...leaveRows, ...feedbackRows].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0, 80);
   } else {
     leaves = db.all('SELECT l.* FROM leaves l WHERE l.parent_id=? ORDER BY l.created_at DESC LIMIT 50', [req.user.id]);
   }
@@ -34,7 +47,23 @@ router.get('/', auth, (req, res) => {
 
 router.put('/:id', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
-  getDB().run('UPDATE leaves SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
+  const db = getDB();
+  if (req.body.item_type === 'feedback') {
+    db.run('UPDATE parent_feedbacks SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
+  } else {
+    db.run('UPDATE leaves SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
+  }
+  res.json({ ok: true });
+});
+
+router.delete('/:id', auth, (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const db = getDB();
+  if (req.query.type === 'feedback') {
+    db.run('DELETE FROM parent_feedbacks WHERE id=?', [req.params.id]);
+  } else {
+    db.run('DELETE FROM leaves WHERE id=?', [req.params.id]);
+  }
   res.json({ ok: true });
 });
 
@@ -56,8 +85,11 @@ router.post('/teacher-mark', auth, (req, res) => {
 });
 
 router.post('/feedback', auth, (req, res) => {
-  console.log(`[家长反馈] user=${req.user.id}: ${(req.body.content||'').slice(0,50)}`);
-  res.json({ ok: true });
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  const content = String(req.body.content || '').trim();
+  if (!content) return res.status(400).json({ error: '请填写反馈内容' });
+  const r = getDB().run('INSERT INTO parent_feedbacks (parent_id, content) VALUES (?,?)', [req.user.id, content]);
+  res.json({ ok: true, id: r.lastInsertRowid });
 });
 
 module.exports = router;

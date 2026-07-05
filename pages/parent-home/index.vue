@@ -3,6 +3,7 @@
   <view v-if="loading" class="loading">加载中…</view>
   <!-- 孩子卡片 -->
   <view class="hero hero-navy" v-if="child">
+    <view class="greeting">{{ greeting }}，{{ child.name }}家长</view>
     <pp-avatar :name="child.name" :size="128" class="avatar" />
     <text class="child-name">{{ child.name }}</text>
     <text class="child-class">{{ child.className }}</text>
@@ -83,6 +84,12 @@ export default {
     child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,refreshTimer:null,
     dayNames:['周日','周一','周二','周三','周四','周五','周六'],fbImages:[],notifyTpls:[]
   };},
+  computed:{
+    greeting(){
+      const h=new Date().getHours();
+      return h<6?'夜深了':h<12?'上午好':h<14?'中午好':h<18?'下午好':'晚上好';
+    }
+  },
   onShow(){this.startAutoRefresh();},
   onHide(){this.stopAutoRefresh();},
   methods:{
@@ -101,8 +108,11 @@ export default {
       const t=uni.getStorageSync('token');if(!t)return;
       this.loading=true;
       try{
-        const s=await api.get('/bind/student');
-        this.child=s.student;
+        const kids=await api.get('/bind/students');
+        const list=kids.students||[];
+        const activeId=String(uni.getStorageSync('activeChildId')||'');
+        this.child=(activeId?list.find(k=>String(k.id)===activeId):null)||list[0]||null;
+        const s={student:this.child};
         const [c,sc,f,p]=await Promise.all([
           api.get('/checkins/today'+(s.student?.id?'?student_id='+s.student.id:'')),
           api.get('/schedules/parent'),api.get('/feedbacks/latest'+(s.student?.class_id?'?class_id='+s.student.class_id:'')),api.get('/profiles/my')
@@ -197,7 +207,8 @@ export default {
 
 <style scoped>
 .page{padding-bottom:40rpx}
-.hero{display:flex;flex-direction:column;align-items:center;padding:56rpx 0 44rpx}
+.hero{display:flex;flex-direction:column;align-items:center;padding:46rpx 0 44rpx}
+.greeting{font-size:34rpx;font-weight:700;color:#202733;margin-bottom:20rpx}
 .avatar{margin-bottom:8rpx}
 .child-name{font-size:36rpx;font-weight:700;color:#202733;margin-top:14rpx}
 .child-class{font-size:24rpx;color:#69717D;margin-top:4rpx}

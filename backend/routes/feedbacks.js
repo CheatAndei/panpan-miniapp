@@ -143,6 +143,7 @@ function pdfExt(file) {
   const ext = path.extname(file.originalname || '').toLowerCase();
   if (allowedPdfTypes.has(file.mimetype)) return allowedPdfTypes.get(file.mimetype);
   if (ext === '.pdf') return '.pdf';
+  if (file.fieldname === 'pdf') return '.pdf';
   return '';
 }
 

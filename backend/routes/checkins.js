@@ -76,16 +76,21 @@ router.post('/check-out', auth, async (req, res) => {
   const { studentId, studentName, classDate, special, teacherName } = req.body;
   const db = getDB();
   const now = new Date().toISOString();
-  const date = classDate || new Date().toISOString().slice(0,10);
+  const date = classDate || localDateString();
   const teacher = db.get('SELECT nickname FROM users WHERE id=?', [req.user.id]);
-  const displayName = String(teacherName || teacher?.nickname || '老师').trim();
+  const displayName = (String(teacherName || teacher?.nickname || '潘潘').trim().replace(/老师$/, '') || '潘潘');
   const note = special ? `${displayName}老师已离开，请家长主动联系小朋友沟通安排后续。` : '';
-  const result = db.run('UPDATE checkins SET check_out_time=?, status=?, check_out_note=? WHERE student_id=? AND class_date=? AND status=?', [now, 'checked_out', note, studentId, date, 'checked_in']);
-  if (result.changes === 0) {
+  const existing = db.get('SELECT * FROM checkins WHERE student_id=? AND class_date=?', [studentId, date]);
+  if (!existing || !existing.check_in_time) {
     return res.status(400).json({ error: '未找到签到记录，请先签到' });
   }
+  if (existing.status !== 'checked_out') {
+    db.run('UPDATE checkins SET check_out_time=?, status=?, check_out_note=? WHERE id=?', [now, 'checked_out', note, existing.id]);
+  } else if (special && !existing.check_out_note) {
+    db.run('UPDATE checkins SET check_out_note=? WHERE id=?', [note, existing.id]);
+  }
   let notify = { ok: false, error: '未发送' };
-  try { notify = await require('./notify').notifyCheckout(studentId); }
+  try { notify = await require('./notify').notifyCheckout(studentId, note); }
   catch(e) { notify = { ok: false, error: e.message }; }
   res.json({ ok: true, notify });
 });

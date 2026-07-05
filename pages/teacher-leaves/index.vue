@@ -2,31 +2,40 @@
 <view class="page">
   <view class="hero">
     <view class="eyebrow">审批</view>
-    <text class="hero-title">请假审批</text>
+    <text class="hero-title">审批</text>
     <view class="gold-rule"></view>
   </view>
 
   <view class="tabs">
-    <text :class="['tab',{on:filter==='pending'}]" @tap="filter='pending'">待审批 ({{ pending.length }})</text>
+    <text :class="['tab',{on:filter==='pending'}]" @tap="filter='pending'">待处理 ({{ pending.length }})</text>
     <text :class="['tab',{on:filter==='all'}]" @tap="filter='all'">全部</text>
   </view>
 
-  <view v-if="loading" class="loading">加载中…</view>
-  <view v-else-if="filtered.length===0" class="card"><view class="empty">暂无请假</view></view>
+  <view v-if="loading" class="loading">加载中...</view>
+  <view v-else-if="filtered.length===0" class="card"><view class="empty">暂无待处理内容</view></view>
 
-  <view v-for="l in filtered" :key="l.id" class="card leave-card">
-    <view class="l-top">
-      <text class="l-name">{{ l.student_name }}</text>
-      <text :class="['l-tag',l.status]">{{ statusMap[l.status] }}</text>
-    </view>
-    <text class="l-date">{{ l.class_date }}</text>
-    <text class="l-reason">{{ l.reason }}</text>
-    <view v-if="l.reply" class="l-reply">回复：{{ l.reply }}</view>
+  <view v-for="item in filtered" :key="item.item_type+'-'+item.id" class="swipe-wrap">
+    <view class="swipe-inner" :style="{transform:'translateX('+(item._swiped?-120:0)+'rpx)'}"
+      @touchstart="onTouchStart($event,item)" @touchmove="onTouchMove($event,item)" @touchend="onTouchEnd($event,item)">
+      <view class="card leave-card">
+        <view class="l-top">
+          <view>
+            <text class="l-name">{{ item.student_name }}</text>
+            <text class="l-type">{{ item.item_type==='feedback' ? '意见反馈' : '请假申请' }}</text>
+          </view>
+          <text :class="['l-tag',item.status]">{{ statusText(item) }}</text>
+        </view>
+        <text v-if="item.class_date" class="l-date">{{ item.class_date }}</text>
+        <text class="l-reason">{{ item.reason }}</text>
+        <view v-if="item.reply" class="l-reply">回复：{{ item.reply }}</view>
 
-    <view v-if="l.status==='pending'" class="l-actions">
-      <button class="btn-approve" @tap="handle(l.id,'approved')">批准</button>
-      <button class="btn-reject" @tap="handle(l.id,'rejected')">拒绝</button>
+        <view v-if="item.status==='pending'" class="l-actions">
+          <button class="btn-approve" @tap="handle(item,'approved')">{{ item.item_type==='feedback'?'已处理':'批准' }}</button>
+          <button class="btn-reject" @tap="handle(item,'rejected')">{{ item.item_type==='feedback'?'忽略':'拒绝' }}</button>
+        </view>
+      </view>
     </view>
+    <view :class="['swipe-del',{show:item._swiped}]" @tap="deleteItem(item)">删除</view>
   </view>
 </view>
 </template>
@@ -49,11 +58,21 @@ export default {
       this.loading=true;
       try{
         const data=await api.get('/leaves');
-        this.leaves=data.leaves||[];
+        this.leaves=(data.leaves||[]).map(l=>({...l,_swiped:false}));
       }catch(e){logError('teacherLeaves.loadData',e);}
       finally{this.loading=false;}
     },
-    async handle(id,status){
+    statusText(item){
+      if(item.item_type==='feedback'){
+        return item.status==='pending'?'待处理':item.status==='approved'?'已处理':'已忽略';
+      }
+      return this.statusMap[item.status]||item.status;
+    },
+    async handle(item,status){
+      if(item.item_type==='feedback'){
+        await this.submitDecision(item,status,status==='approved'?'已收到':'已忽略');
+        return;
+      }
       if(status==='rejected'){
         uni.showModal({
           title:'拒绝理由',
@@ -63,19 +82,32 @@ export default {
             if(!r.confirm)return;
             const reply=(r.content||'').trim();
             if(!reply)return uni.showToast({title:'请填写拒绝理由',icon:'none'});
-            await this.submitDecision(id,status,reply);
+            await this.submitDecision(item,status,reply);
           }
         });
         return;
       }
-      await this.submitDecision(id,status,'收到，好好休息');
+      await this.submitDecision(item,status,'收到，好好休息');
     },
-    async submitDecision(id,status,reply){
+    async submitDecision(item,status,reply){
       try{
-        await api.put('/leaves/'+id,{status,reply});
-        toastSuccess(status==='approved'?'已批准':'已拒绝');
+        await api.put('/leaves/'+item.id,{status,reply,item_type:item.item_type});
+        toastSuccess(item.item_type==='feedback'?(status==='approved'?'已处理':'已忽略'):(status==='approved'?'已批准':'已拒绝'));
         this.loadData();
       }catch(e){toastError(e,'操作失败');}
+    },
+    onTouchStart(e,item){item._startX=e.touches[0].clientX;item._swiping=true;},
+    onTouchMove(e,item){if(!item._swiping)return;const dx=e.touches[0].clientX-item._startX;if(dx<-40)item._swiped=true;else if(dx>40)item._swiped=false;},
+    onTouchEnd(e,item){item._swiping=false;},
+    deleteItem(item){
+      uni.showModal({title:'确认删除',content:'删除后不会再显示，确定删除？',success:async r=>{
+        if(!r.confirm)return;
+        try{
+          await api.del('/leaves/'+item.id+(item.item_type==='feedback'?'?type=feedback':''));
+          toastSuccess('已删除');
+          this.loadData();
+        }catch(e){toastError(e,'删除失败');}
+      }});
     }
   }
 };
@@ -90,9 +122,14 @@ export default {
 .tabs{display:flex;padding:16rpx 30rpx;background:#fff;gap:32rpx;border-bottom:1rpx solid #ECE8E0}
 .tab{font-size:28rpx;color:#8A929B;padding-bottom:8rpx}
 .tab.on{color:#202733;font-weight:700;border-bottom:3rpx solid #202733}
+.swipe-wrap{position:relative;overflow:hidden}
+.swipe-inner{transition:transform .2s}
+.swipe-del{position:absolute;right:0;top:0;bottom:8rpx;width:120rpx;background:#B85C4E;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26rpx;transform:translateX(120rpx);transition:transform .2s}
+.swipe-del.show{transform:translateX(0)}
 .leave-card{margin-bottom:8rpx}
 .l-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8rpx}
 .l-name{font-size:30rpx;font-weight:700;color:#202733}
+.l-type{display:block;font-size:22rpx;color:#8A929B;margin-top:2rpx}
 .l-tag{font-size:24rpx;padding:4rpx 14rpx;border-radius:6rpx}
 .l-tag.pending{background:#F7F2E5;color:#7B5B36}
 .l-tag.approved{background:#EEF5EF;color:#3F7A5B}

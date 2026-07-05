@@ -13,7 +13,10 @@
     <view class="empty">暂无已完成学习安排，先去签到签退</view>
   </view>
 
-  <view v-for="se in completedSessions" :key="se.id" class="card se-card">
+  <view v-for="se in completedSessions" :key="se.id" class="feedback-swipe-wrap">
+    <view class="feedback-swipe-inner" :style="{transform:'translateX('+(se._swiped?-120:0)+'rpx)'}"
+      @touchstart="onTouchStart($event,se)" @touchmove="onTouchMove($event,se)" @touchend="onTouchEnd($event,se)">
+  <view class="card se-card">
     <view class="se-hd" @tap="se._open=false">
       <text class="se-title">{{ se.title }}</text>
       <text class="se-date">{{ se.class_date }}</text>
@@ -90,6 +93,9 @@
       <button class="btn-outline" @tap="openSession(se)">写反馈</button>
     </template>
   </view>
+    </view>
+    <view :class="['swipe-del',{show:se._swiped}]" @tap="deleteSession(se)">删除</view>
+  </view>
 </view>
 </template>
 
@@ -107,7 +113,7 @@ export default {
       try{
         const ses=await api.get('/schedules/sessions/completed');
         this.completedSessions=(ses.sessions||[]).map(se=>({
-          ...se,_open:false,_tab:'class',_batching:false,
+          ...se,_open:false,_tab:'class',_batching:false,_swiped:false,
           _cf:{lesson:'',topic:'',perfScore:5,homework:'',_text:'',_genning:false},
           _students:[],_publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
         }));
@@ -252,6 +258,19 @@ export default {
         toastSuccess('学习笔记已发送');
       }catch(e){toastError(e,'发送失败');}
       finally{se._publishingNotes=false;}
+    },
+    onTouchStart(e,se){se._startX=e.touches[0].clientX;se._swiping=true;},
+    onTouchMove(e,se){if(!se._swiping)return;const dx=e.touches[0].clientX-se._startX;if(dx<-40)se._swiped=true;else if(dx>40)se._swiped=false;},
+    onTouchEnd(e,se){se._swiping=false;},
+    deleteSession(se){
+      uni.showModal({title:'删除未写反馈',content:'确定删除这条未写反馈的学习安排？',success:async r=>{
+        if(!r.confirm)return;
+        try{
+          await api.del('/schedules/sessions/'+se.id);
+          toastSuccess('已删除');
+          this.loadSessions();
+        }catch(e){toastError(e,'删除失败');}
+      }});
     }
   }
 };
@@ -271,6 +290,10 @@ export default {
   border-radius:18rpx;
   box-shadow:0 6rpx 18rpx rgba(36,42,50,.045);
 }
+.feedback-swipe-wrap{position:relative;overflow:hidden}
+.feedback-swipe-inner{transition:transform .2s}
+.swipe-del{position:absolute;right:0;top:18rpx;bottom:18rpx;width:120rpx;background:#B85C4E;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26rpx;transform:translateX(120rpx);transition:transform .2s}
+.swipe-del.show{transform:translateX(0)}
 .se-hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:18rpx}
 .se-title{font-size:30rpx;font-weight:700;color:#202733}
 .se-date{font-size:26rpx;color:#8A929B}

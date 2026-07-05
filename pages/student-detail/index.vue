@@ -6,7 +6,24 @@
     <text class="hero-title">{{ student.name }}</text>
     <view class="gold-rule"></view>
     <text class="hero-sub">{{ student.level||'' }} · {{ student.class_name||'' }}</text>
-    <text :class="['parent-status', parentCount>0?'on':'off']">{{ parentCount>0 ? '已绑定家长 '+parentCount+'/3' : '未绑定家长' }}</text>
+    <text :class="['parent-status', parentCount>0?'on':'off']">{{ parentCount>0 ? '家长 '+parentCount+'/3' : '未绑定家长' }}</text>
+  </view>
+
+  <view class="card bind-card">
+    <view class="bind-head">
+      <view>
+        <text class="s-title">家长绑定</text>
+        <text class="bind-sub">{{ bindHint }}</text>
+      </view>
+      <text :class="['bind-count', parentCount>0?'on':'off']">{{ parentCount }}/3</text>
+    </view>
+    <view class="bind-meter">
+      <view class="bind-fill" :style="{ width: bindPercent + '%' }"></view>
+    </view>
+    <view v-if="parentNameList.length>0" class="parent-chips">
+      <text v-for="name in parentNameList" :key="name" class="parent-chip">{{ name }}</text>
+    </view>
+    <text v-else class="bind-empty">暂无家长绑定，家长使用邀请码后这里会自动更新</text>
   </view>
 
   <!-- 性格标签 -->
@@ -64,7 +81,14 @@ export default {
     genning:false,saving:false,traitOpen:{}
   };},
   computed:{
-    parentCount(){return Number(this.student.parent_count||0);}
+    parentCount(){return Number(this.student.parent_count||0);},
+    bindPercent(){return Math.min(100, Math.max(0, this.parentCount / 3 * 100));},
+    parentNameList(){return (this.student.parent_names||'').split('、').map(n=>n.trim()).filter(Boolean);},
+    bindHint(){
+      if (this.parentCount === 0) return '还没有家长绑定这个学生';
+      if (this.parentCount >= 3) return '已达到绑定上限';
+      return '还可以继续绑定 '+(3-this.parentCount)+' 位家长';
+    }
   },
   onLoad(opt){this.studentId=opt.id;this.loadData();},
   methods:{
@@ -112,11 +136,23 @@ export default {
 .hero .gold-rule{margin:14rpx auto}
 .hero-title{font-size:40rpx;font-weight:700;color:#202733;display:block}
 .hero-sub{font-size:26rpx;color:#69717D;margin-top:6rpx}
-.parent-status{display:inline-block;margin-top:14rpx;padding:6rpx 18rpx;border-radius:20rpx;font-size:24rpx}
-.parent-status.on{background:#EEF5EF;color:#3F8B65}
+.parent-status{display:inline-block;margin-top:14rpx;padding:6rpx 18rpx;border-radius:20rpx;font-size:24rpx;font-weight:600}
+.parent-status.on{background:#EEF5EF;color:#2F7350}
 .parent-status.off{background:#F7EDEA;color:#9F4E43}
 .char-img{margin:0 auto 16rpx}
 .s-title{font-size:30rpx;font-weight:700;color:#202733;margin-bottom:16rpx}
+.bind-card{padding:28rpx 30rpx}
+.bind-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18rpx;margin-bottom:18rpx}
+.bind-head .s-title{display:block;margin-bottom:4rpx}
+.bind-sub{font-size:24rpx;color:#69717D;display:block}
+.bind-count{flex-shrink:0;min-width:86rpx;text-align:center;padding:8rpx 14rpx;border-radius:10rpx;font-size:26rpx;font-weight:700}
+.bind-count.on{background:#EEF5EF;color:#2F7350}
+.bind-count.off{background:#F7EDEA;color:#9F4E43}
+.bind-meter{height:12rpx;background:#EFEDE7;border-radius:8rpx;overflow:hidden}
+.bind-fill{height:100%;background:#3F8B65;border-radius:8rpx}
+.parent-chips{display:flex;flex-wrap:wrap;gap:10rpx;margin-top:18rpx}
+.parent-chip{font-size:24rpx;color:#202733;background:#F3F1EA;border:1rpx solid #E5E0D8;border-radius:10rpx;padding:8rpx 16rpx}
+.bind-empty{display:block;margin-top:18rpx;font-size:24rpx;color:#69717D;line-height:1.5}
 .s-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16rpx}
 .tags-row{display:flex;flex-wrap:wrap;gap:10rpx;margin-bottom:16rpx}
 .tag{background:#F3F1EA;color:#202733;font-size:26rpx;padding:8rpx 16rpx;border-radius:12rpx}

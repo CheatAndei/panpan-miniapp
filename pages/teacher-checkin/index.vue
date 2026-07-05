@@ -33,6 +33,7 @@
           <text class="stat gray">未到{{ se._students.filter(s=>!s._checked&&!s._leave).length }}人</text>
         </view>
         <button v-if="se._students.filter(s=>!s._checked&&!s._leave).length>0" class="btn-accent mb-sm" @tap="checkInAll(se)">一键签到剩余全部</button>
+        <button v-if="se._students.filter(s=>s._checked&&!s._out&&!s._leave).length>0" class="btn-special-main mb-sm" @tap="specialCheckOutAll(se)">特殊签退剩余已签到</button>
         <view v-for="s in se._students" :key="s.id" class="stu-row" :class="{leave:s._leave}">
           <view class="stu-left">
             <text class="s-name">{{ s.name }}</text>
@@ -43,7 +44,6 @@
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-in" @tap="checkIn(se,s)">签到</button>
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-leave" @tap="markLeave(se,s)">请假</button>
             <button v-if="s._checked&&!s._out" class="btn-sm btn-out" @tap="checkOut(se,s)">签退</button>
-            <button v-if="s._checked&&!s._out" class="btn-sm btn-special-out" @tap="checkOut(se,s,true)">特殊签退</button>
             <text v-if="s._out" class="time-text">{{ s._outTime }}</text>
           </view>
         </view>
@@ -132,6 +132,14 @@ export default {
       const notChecked=se._students.filter(s=>!s._checked&&!s._leave);
       for(const s of notChecked){try{await this.checkIn(se,s);}catch(e){logError('checkInAll',e);}}
     },
+    async specialCheckOutAll(se){
+      const list=se._students.filter(s=>s._checked&&!s._out&&!s._leave);
+      if(list.length===0)return;
+      uni.showModal({title:'特殊签退',content:'将对 '+list.length+' 位已签到学生发送特殊签退说明，确定继续？',success:async r=>{
+        if(!r.confirm)return;
+        for(const s of list){try{await this.checkOut(se,s,true);}catch(e){logError('specialCheckOutAll',e);}}
+      }});
+    },
     statusText(s){if(s._leave)return'请假';if(s._out)return s._outTime;if(s._checked)return s._inTime;return'';},
     teacherName(){try{return (JSON.parse(uni.getStorageSync('user')||'{}').nickname||'').replace(/老师$/,'')||'潘潘';}catch(e){return'潘潘';}},
     statusClass(s){if(s._leave)return'st-leave';if(s._out)return'st-out';if(s._checked)return'st-in';return'st-absent';},
@@ -165,9 +173,10 @@ export default {
 .se-date{font-size:24rpx;color:#8A929B;margin-top:4rpx}
 .se-toggle{font-size:24rpx;color:#8A929B}
 .btn-accent{background:#A57945;color:#fff;border-radius:12rpx;padding:12rpx;font-size:24rpx;border:none;width:100%}
+.btn-special-main{background:#202733;color:#fff;border-radius:12rpx;padding:14rpx;font-size:26rpx;border:none;width:100%;font-weight:700}
 .mb-sm{margin-bottom:16rpx}
 .btn-sm{padding:10rpx 24rpx;border-radius:8rpx;font-size:24rpx;border:none}
-.btn-in{background:#3F8B65;color:#fff}.btn-out{background:#52707E;color:#fff}.btn-special-out{background:#202733;color:#fff}.btn-leave{background:#F7F2E5;color:#7B5B36}
+.btn-in{background:#3F8B65;color:#fff}.btn-out{background:#52707E;color:#fff}.btn-leave{background:#F7F2E5;color:#7B5B36}
 .stats{display:flex;gap:24rpx;margin-bottom:16rpx}
 .stat{font-size:26rpx;color:#46515C}.stat.green{color:#3F8B65}.stat.gray{color:#8A929B}
 .stu-row{display:flex;justify-content:space-between;align-items:center;padding:18rpx 0;border-bottom:1rpx solid #ECE8E0}

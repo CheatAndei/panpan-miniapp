@@ -49,6 +49,14 @@ function runMigrations() {
   ensureColumn('feedbacks', 'student_feedbacks', 'TEXT');
   ensureColumn('feedbacks', 'notes_pdf_url', 'TEXT');
   ensureColumn('checkins', 'check_out_note', 'TEXT');
+  _db.run(`CREATE TABLE IF NOT EXISTS parent_feedbacks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id INTEGER REFERENCES users(id),
+    content TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    reply TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
 }
 
 async function initDB() {

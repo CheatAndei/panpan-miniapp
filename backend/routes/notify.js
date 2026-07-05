@@ -59,7 +59,12 @@ function templateData(pairs) {
 
 function wxTime(date = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
-  return `${p(date.getHours())}:${p(date.getMinutes())}`;
+  const bj = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  return `${p(bj.getUTCHours())}:${p(bj.getUTCMinutes())}`;
+}
+
+function bjDate(date = new Date()) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function userOpenid(userId, fallback = '') {
@@ -102,11 +107,11 @@ router.post('/test', auth, async (req, res) => {
     const isReminder = key === 'reminder';
     const result = await sendMsg(openid, tplId, templateData(isFeedback ? [
       [fields.title, '课后反馈测试'],
-      [fields.time, new Date().toLocaleDateString('zh-CN')],
+      [fields.time, bjDate()],
       [fields.note, '收到说明配置正常']
     ] : isReminder ? [
       [fields.className, '测试学习小组'],
-      [fields.time, new Date().toLocaleDateString('zh-CN')],
+      [fields.time, bjDate()],
       [fields.note, '即将上课']
     ] : [
       [fields.student, '测试学生'],
@@ -207,14 +212,14 @@ router.notifyCheckin = async (studentId) => {
   ]), 'pages/index/index');
 };
 
-router.notifyCheckout = async (studentId) => {
+router.notifyCheckout = async (studentId, note = '') => {
   const db = getDB();
   const s = db.get('SELECT name FROM students WHERE id=?', [studentId]);
   const now = wxTime();
   return notifyParents(studentId, TPLS.checkout, templateData([
     [FIELDS.checkout.student, s?.name || '学生'],
     [FIELDS.checkout.time, now],
-    [FIELDS.checkout.status, '已下课离开']
+    [FIELDS.checkout.status, note || '已下课离开']
   ]), 'pages/index/index');
 };
 
@@ -223,7 +228,7 @@ router.notifyReminder = async (classId) => {
   const cls = db.get('SELECT name FROM classes WHERE id=?', [classId]);
   return notifyParentsByClass(classId, TPLS.reminder, templateData([
     [FIELDS.reminder.className, cls?.name || '学习小组'],
-    [FIELDS.reminder.time, new Date().toLocaleDateString('zh-CN')],
+    [FIELDS.reminder.time, bjDate()],
     [FIELDS.reminder.note, '即将上课']
   ]), 'pages/index/index');
 };
@@ -231,7 +236,7 @@ router.notifyReminder = async (classId) => {
 router.notifyFeedback = (classId) => {
   notifyParentsByClass(classId, TPLS.feedback, templateData([
     [FIELDS.feedback.title, '课后反馈已发布'],
-    [FIELDS.feedback.time, new Date().toLocaleDateString('zh-CN')],
+    [FIELDS.feedback.time, bjDate()],
     [FIELDS.feedback.note, '点击查看详情']
   ]), 'pages/parent-feedback/index');
 };

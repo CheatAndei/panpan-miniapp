@@ -47,6 +47,13 @@
 
   <!-- 操作区 -->
   <view class="card actions" v-if="user.role==='parent'">
+    <view v-for="kid in boundKids" :key="kid.id" class="bind-row">
+      <view>
+        <text class="bind-name">{{ kid.name }}</text>
+        <text class="bind-class">{{ kid.className || '已绑定学生' }}</text>
+      </view>
+      <button class="btn-unbind" @tap.stop="unbind(kid)">解除绑定</button>
+    </view>
     <view class="action-row" @tap="nav('/pages/bind/bind')">
       <text>绑定其他孩子</text>
       <text class="arrow">›</text>
@@ -86,13 +93,13 @@ import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:''
+    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',boundKids:[]
   };},
   onShow(){this.loadData();},
   methods:{
     loadData(){
       try{this.user=JSON.parse(uni.getStorageSync('user')||'{}');}catch(e){this.user={};}
-      if(this.user.role==='parent'){this.loadProfile();}
+      if(this.user.role==='parent'){this.loadProfile();this.loadBoundKids();}
       if(this.user.role==='teacher'){this.loadTeacherProfile();this.loadNotifyStatus();}
     },
     async loadTeacherProfile(){
@@ -132,6 +139,21 @@ export default {
         if(!s){try{s=(await api.get('/bind/student')).student;}catch(e){logError('mine.bindStudent',e);}}
         if(s){this.studentName=s.name||'';this.childName=(s.name||'')+'家长';}
       }catch(e){logError('mine.loadProfile',e);}
+    },
+    async loadBoundKids(){
+      try{const data=await api.get('/bind/students');this.boundKids=data.students||[];}
+      catch(e){logError('mine.boundKids',e);}
+    },
+    async unbind(kid){
+      uni.showModal({title:'解除绑定',content:'确定解除和 '+kid.name+' 的绑定？解除后可用邀请码重新绑定。',success:async r=>{
+        if(!r.confirm)return;
+        try{
+          await api.del('/bind/'+kid.id);
+          if(String(uni.getStorageSync('activeChildId')||'')===String(kid.id))uni.removeStorageSync('activeChildId');
+          uni.showToast({title:'已解除绑定',icon:'success'});
+          this.loadData();
+        }catch(e){uni.showToast({title:e?.error||'解除失败',icon:'none'});}
+      }});
     },
     goLogin(){uni.switchTab({url:'/pages/index/index'});},
     nav(url){uni.navigateTo({url});},
@@ -173,6 +195,11 @@ export default {
 
 .actions{margin-top:12rpx}
 .action-row{display:flex;justify-content:space-between;align-items:center;font-size:28rpx;padding:12rpx 0}
+.bind-row{display:flex;justify-content:space-between;align-items:center;padding:14rpx 0;border-bottom:1rpx solid #ECE8E0}
+.bind-row:last-of-type{border-bottom:1rpx solid #ECE8E0}
+.bind-name{display:block;font-size:28rpx;font-weight:700;color:#202733}
+.bind-class{display:block;font-size:24rpx;color:#8A929B;margin-top:2rpx}
+.btn-unbind{margin:0;background:#F7EDEA;color:#9F4E43;border:none;border-radius:10rpx;padding:10rpx 18rpx;font-size:24rpx;line-height:1.4}
 .arrow{font-size:32rpx;color:#C3C1BA}
 .notify-card{margin-top:12rpx}
 .input{border:1rpx solid #E1DDD4;border-radius:10rpx;padding:18rpx;margin:12rpx 0 16rpx;font-size:28rpx;color:#46515C}
