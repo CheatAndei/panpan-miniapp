@@ -6,6 +6,7 @@
     <text class="hero-title">{{ student.name }}</text>
     <view class="gold-rule"></view>
     <text class="hero-sub">{{ student.level||'' }} · {{ student.class_name||'' }}</text>
+    <text :class="['parent-status', parentCount>0?'on':'off']">{{ parentCount>0 ? '已绑定家长 '+parentCount+'/3' : '未绑定家长' }}</text>
   </view>
 
   <!-- 性格标签 -->
@@ -62,6 +63,9 @@ export default {
     profile:{personality:'',strengths:'',weaknesses:''},
     genning:false,saving:false,traitOpen:{}
   };},
+  computed:{
+    parentCount(){return Number(this.student.parent_count||0);}
+  },
   onLoad(opt){this.studentId=opt.id;this.loadData();},
   methods:{
     async loadData(){
@@ -108,6 +112,9 @@ export default {
 .hero .gold-rule{margin:14rpx auto}
 .hero-title{font-size:40rpx;font-weight:700;color:#202733;display:block}
 .hero-sub{font-size:26rpx;color:#69717D;margin-top:6rpx}
+.parent-status{display:inline-block;margin-top:14rpx;padding:6rpx 18rpx;border-radius:20rpx;font-size:24rpx}
+.parent-status.on{background:#EEF5EF;color:#3F8B65}
+.parent-status.off{background:#F7EDEA;color:#9F4E43}
 .char-img{margin:0 auto 16rpx}
 .s-title{font-size:30rpx;font-weight:700;color:#202733;margin-bottom:16rpx}
 .s-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16rpx}

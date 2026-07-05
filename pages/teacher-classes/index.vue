@@ -29,6 +29,7 @@
             <pp-avatar :name="s.name" :size="56" class="s-avatar" />
             <text class="s-name" @tap.stop="openStudent(s)">{{ s.name }}</text>
             <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
+            <text :class="['parent-bind', parentCount(s)>0?'on':'off']">{{ parentCount(s)>0 ? '家长 '+parentCount(s)+'/3' : '未绑定家长' }}</text>
           </view>
           <view class="stu-actions">
             <text class="btn-xs copy" @tap.stop="copyInviteCode(s.invite_code)">复制</text>
@@ -169,6 +170,7 @@ export default {
     openAddStu(c) { this.activeClass=c; this.sForm={name:'',gender:'boy',level:'',traits:new Set()}; this.traitOpen={}; this.showStu=true; },
     toggleCat(name){ this.traitOpen={...this.traitOpen,[name]:!this.traitOpen[name]}; },
     countCat(cat){ return cat.traits.filter(t=>this.sForm.traits.has(t)).length; },
+    parentCount(s){return Number(s.parent_count||0);},
     toggleTrait(t) {
       if (this.sForm.traits.has(t)) { this.sForm.traits.delete(t); return; }
       if (this.sForm.traits.size>=8) return;
@@ -245,6 +247,9 @@ export default {
 .s-name { font-weight:600; font-size:28rpx; }
 .s-avatar { width:56rpx; height:56rpx; border-radius:50%; flex-shrink:0; }
 .s-level { font-size:20rpx; padding:2rpx 10rpx; border-radius:6rpx; }
+.parent-bind{font-size:20rpx;padding:2rpx 10rpx;border-radius:6rpx;white-space:nowrap}
+.parent-bind.on{background:#EEF5EF;color:#3F8B65}
+.parent-bind.off{background:#F7EDEA;color:#9F4E43}
 .lv-a { background:#EEF5EF; color:#3F8B65; }
 .lv-b { background:#EFF3F2; color:#52707E; }
 .lv-c { background:#F7F2E5; color:#A57945; }

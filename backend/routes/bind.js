@@ -27,6 +27,8 @@ router.post('/', auth, (req, res) => {
   if (!s) return res.status(404).json({ error: '邀请码无效' });
   const exists = db.get('SELECT id FROM bindings WHERE parent_id=? AND student_id=?', [req.user.id, s.id]);
   if (exists) return res.json({ ok: true, student: s, already: true });
+  const boundCount = db.get('SELECT COUNT(*) AS count FROM bindings WHERE student_id=?', [s.id])?.count || 0;
+  if (boundCount >= 3) return res.status(400).json({ error: '该学生已绑定 3 位家长，请联系老师处理' });
   db.run('INSERT INTO bindings (parent_id, student_id) VALUES (?,?)', [req.user.id, s.id]);
   res.json({ ok: true, student: s });
 });

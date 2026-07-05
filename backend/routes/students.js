@@ -32,7 +32,10 @@ router.get('/', auth, (req, res) => {
     const students = db.all('SELECT DISTINCT s.* FROM students s JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY s.name', [req.user.id]);
     return res.json({ students });
   }
-  let sql = 'SELECT s.* FROM students s JOIN classes c ON c.id=s.class_id WHERE c.teacher_id=?';
+  let sql = `SELECT s.*,
+    (SELECT COUNT(*) FROM bindings b WHERE b.student_id=s.id) AS parent_count,
+    (SELECT GROUP_CONCAT(COALESCE(NULLIF(u.nickname,''),'家长'), '、') FROM bindings b JOIN users u ON u.id=b.parent_id WHERE b.student_id=s.id) AS parent_names
+    FROM students s JOIN classes c ON c.id=s.class_id WHERE c.teacher_id=?`;
   const params = [req.user.id];
   if (class_id) { sql += ' AND s.class_id=?'; params.push(class_id); }
   sql += ' ORDER BY s.name';
@@ -54,7 +57,10 @@ router.post('/', auth, (req, res) => {
 router.get('/:id', auth, (req, res) => {
   const db = getDB();
   const sql = req.user.role === 'teacher'
-    ? 'SELECT s.*, c.name as class_name FROM students s LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=? AND c.teacher_id=?'
+    ? `SELECT s.*, c.name as class_name,
+      (SELECT COUNT(*) FROM bindings b WHERE b.student_id=s.id) AS parent_count,
+      (SELECT GROUP_CONCAT(COALESCE(NULLIF(u.nickname,''),'家长'), '、') FROM bindings b JOIN users u ON u.id=b.parent_id WHERE b.student_id=s.id) AS parent_names
+      FROM students s LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=? AND c.teacher_id=?`
     : 'SELECT s.*, c.name as class_name FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=? AND b.parent_id=?';
   const s = db.get(sql, [req.params.id, req.user.id]);
   res.json({ student: s || null });
