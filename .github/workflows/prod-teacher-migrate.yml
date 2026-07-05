@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - inspect
+          - backup
           - migrate
       target_teacher_id:
         description: "Teacher user id to receive existing data"
@@ -85,6 +86,17 @@ jobs:
 
             if [ "$MODE" = "inspect" ]; then
               inspect_db
+              exit 0
+            fi
+
+            if [ "$MODE" = "backup" ]; then
+              echo "DB_BACKUP_FILE=$DB_FILE"
+              echo "DB_BACKUP_SIZE=$(stat -c%s "$DB_FILE")"
+              echo "DB_BACKUP_SHA256=$(sha256sum "$DB_FILE" | awk '{print $1}')"
+              echo "DB_BACKUP_BASE64_BEGIN"
+              base64 -w0 "$DB_FILE"
+              echo
+              echo "DB_BACKUP_BASE64_END"
               exit 0
             fi
 
