@@ -101,15 +101,24 @@ jobs:
             esac
 
             echo "Stopping backend for DB migration"
+            STOPPED_BACKEND=0
+            cleanup() {
+              if [ "$STOPPED_BACKEND" = "1" ]; then
+                echo "Cleanup: starting backend"
+                (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never) || true
+              fi
+            }
+            trap cleanup EXIT
             (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            STOPPED_BACKEND=1
             BACKUP="$DB_FILE.backup.teacher-migrate.$(date +%Y%m%d%H%M%S)"
             cp -a "$DB_FILE" "$BACKUP"
             echo "Backup: $BACKUP"
 
-            docker run --rm -i -v "$DATA_DIR:/data" rockchin/panpan-miniapp-backend:main node --input-type=module <<NODE
+            docker run --rm -i -e TARGET_ID="$TARGET_TEACHER_ID" -v "$DATA_DIR:/data" rockchin/panpan-miniapp-backend:main node --input-type=module <<'NODE'
             import fs from 'fs';
             import initSqlJs from 'sql.js';
-            const targetId = Number('${{ inputs.target_teacher_id }}');
+            const targetId = Number(process.env.TARGET_ID);
             const file = '/data/teach.db';
             const SQL = await initSqlJs();
             const db = new SQL.Database(fs.readFileSync(file));
@@ -175,6 +184,7 @@ jobs:
 
             echo "Starting backend"
             (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never)
+            STOPPED_BACKEND=0
             sleep 3
             curl -fsS http://127.0.0.1:3000/api/health || true
             inspect_db
