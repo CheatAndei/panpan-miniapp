@@ -122,7 +122,7 @@ jobs:
 
             rm -rf "$SRC_DIR"
             CLONE_OK=0
-            for attempt in 1 2 3; do
+            for attempt in 1; do
               if git clone --depth 1 --branch "${{ github.ref_name }}" "$REPO_URL" "$SRC_DIR" &&
                  git -C "$SRC_DIR" fetch --depth 1 origin "${{ github.sha }}" &&
                  git -C "$SRC_DIR" checkout --detach "${{ github.sha }}"; then
@@ -130,7 +130,7 @@ jobs:
                 break
               fi
               rm -rf "$SRC_DIR"
-              sleep 10
+              sleep 3
             done
 
             if [ "$CLONE_OK" = "1" ]; then
