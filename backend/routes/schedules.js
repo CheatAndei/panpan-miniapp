@@ -72,12 +72,17 @@ router.delete('/:id', auth, teacherOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-async function notifyClasses(classIds) {
+async function notifyClasses(items) {
   const notify = { ok: true, total: 0, sent: 0, failed: 0, errors: [] };
-  const uniqueIds = [...new Set(classIds.filter(Boolean))];
-  for (const classId of uniqueIds) {
+  const unique = new Map();
+  for (const item of items.filter(Boolean)) {
+    const classId = typeof item === 'object' ? item.classId : item;
+    if (!classId || unique.has(classId)) continue;
+    unique.set(classId, typeof item === 'object' ? (item.note || '') : '');
+  }
+  for (const [classId, note] of unique.entries()) {
     try {
-      const result = await require('./notify').notifyReminder(classId);
+      const result = await require('./notify').notifyReminder(classId, note);
       notify.total += result?.total || 0;
       notify.sent += result?.sent || 0;
       notify.failed += result?.failed || 0;
@@ -103,7 +108,7 @@ router.post('/special-publish', auth, teacherOnly, async (req, res) => {
     return res.json({ ok: true, count: 0, skipped: 1, notify: { ok: false, total: 0, sent: 0, failed: 0, errors: [] }, message: '该时间已发布，已跳过重复课程' });
   }
   db.run('INSERT INTO sessions (teacher_id,class_id,title,class_date,start_time,end_time,status) VALUES (?,?,?,?,?,?,?)', [req.user.id, class_id, cls?.name||'特殊课程', class_date, start_time, end_time, 'published']);
-  const notify = await notifyClasses([class_id]);
+  const notify = await notifyClasses([{ classId: class_id, note: location || '' }]);
   res.json({ ok: true, count: 1, skipped: 0, notify, message: '特殊发布成功' });
 });
 
@@ -143,7 +148,7 @@ router.post('/publish', auth, teacherOnly, async (req, res) => {
   const now = new Date();
   let count = 0;
   let skipped = 0;
-  const publishedClassIds = [];
+  const publishedClasses = [];
 
   // 获取要发布的课表（指定 ids 或全部）
   let schedules;
@@ -167,11 +172,11 @@ router.post('/publish', auth, teacherOnly, async (req, res) => {
     if (exists) { skipped++; continue; }
 
     db.run('INSERT INTO sessions (teacher_id,class_id,schedule_id,title,class_date,start_time,end_time) VALUES (?,?,?,?,?,?,?)', [req.user.id, sc.class_id, sc.id, sc.class_name||sc.title, dateStr, sc.start_time, sc.end_time]);
-    publishedClassIds.push(sc.class_id);
+    publishedClasses.push({ classId: sc.class_id, note: sc.location || '' });
     count++;
   }
 
-  const notify = count > 0 ? await notifyClasses(publishedClassIds) : { ok: false, total: 0, sent: 0, failed: 0, errors: [] };
+  const notify = count > 0 ? await notifyClasses(publishedClasses) : { ok: false, total: 0, sent: 0, failed: 0, errors: [] };
   res.json({ ok: true, count, skipped, notify });
 });
 

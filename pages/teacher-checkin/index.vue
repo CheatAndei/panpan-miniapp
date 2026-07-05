@@ -110,7 +110,7 @@ export default {
     async checkOut(se,s,special=false){
       try{const res=await api.post('/checkins/check-out',{studentId:s.id,studentName:s.name,classDate:se.class_date,special,teacherName:this.teacherName()});
         s._out=true;s._outTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
-        if(special)s._outNote=this.teacherName()+'老师已离开，请家长主动联系小朋友沟通安排后续。';
+        if(special)s._outNote=this.teacherName()+'老师已离开 请主动联系小朋友。';
         toastSuccess(res.notify?.ok?s.name+' 已签退并提醒':s.name+' 已签退，提醒未送达');
         const allDone=se._students.every(s=>s._leave||s._out);
         if(allDone){await api.put('/schedules/sessions/'+se.id+'/complete');this.sessions=this.sessions.filter(x=>x.id!==se.id);}

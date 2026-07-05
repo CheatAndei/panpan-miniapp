@@ -223,18 +223,18 @@ router.notifyCheckout = async (studentId, note = '') => {
   ]), 'pages/index/index');
 };
 
-router.notifyReminder = async (classId) => {
+router.notifyReminder = async (classId, note = '') => {
   const db = getDB();
   const cls = db.get('SELECT name FROM classes WHERE id=?', [classId]);
   return notifyParentsByClass(classId, TPLS.reminder, templateData([
     [FIELDS.reminder.className, cls?.name || '学习小组'],
     [FIELDS.reminder.time, bjDate()],
-    [FIELDS.reminder.note, '即将上课']
+    [FIELDS.reminder.note, note || '']
   ]), 'pages/index/index');
 };
 
-router.notifyFeedback = (classId) => {
-  notifyParentsByClass(classId, TPLS.feedback, templateData([
+router.notifyFeedback = async (classId) => {
+  return notifyParentsByClass(classId, TPLS.feedback, templateData([
     [FIELDS.feedback.title, '课后反馈已发布'],
     [FIELDS.feedback.time, bjDate()],
     [FIELDS.feedback.note, '点击查看详情']

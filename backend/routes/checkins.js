@@ -13,13 +13,30 @@ function localDateString(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+function latestCheckin(db, studentId, date, requireCheckedIn = false) {
+  const checkedInClause = requireCheckedIn ? 'AND check_in_time IS NOT NULL' : '';
+  return db.get(`SELECT * FROM checkins
+    WHERE student_id=? AND class_date=? ${checkedInClause}
+    ORDER BY
+      CASE status WHEN 'checked_out' THEN 0 WHEN 'checked_in' THEN 1 ELSE 2 END,
+      COALESCE(check_out_time, check_in_time, created_at) DESC,
+      id DESC
+    LIMIT 1`, [studentId, date]);
+}
+
 // 家长查今日签到
 router.get('/today', auth, (req, res) => {
   const today = req.query.date || localDateString();
   const { student_id } = req.query;
   const db = getDB();
   const leave = db.get('SELECT l.* FROM leaves l JOIN bindings b ON b.student_id=l.student_id WHERE b.parent_id=? AND l.class_date=? AND l.status=? AND (? IS NULL OR l.student_id=?) ORDER BY l.created_at DESC LIMIT 1', [req.user.id, today, 'approved', student_id||null, student_id||null]);
-  const s = db.get('SELECT ci.* FROM checkins ci JOIN students s ON s.id=ci.student_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? AND ci.class_date=? AND (? IS NULL OR s.id=?) ORDER BY ci.check_in_time DESC LIMIT 1', [req.user.id, today, student_id||null, student_id||null]);
+  const s = db.get(`SELECT ci.* FROM checkins ci JOIN students s ON s.id=ci.student_id JOIN bindings b ON b.student_id=s.id
+    WHERE b.parent_id=? AND ci.class_date=? AND (? IS NULL OR s.id=?)
+    ORDER BY
+      CASE ci.status WHEN 'checked_out' THEN 0 WHEN 'checked_in' THEN 1 ELSE 2 END,
+      COALESCE(ci.check_out_time, ci.check_in_time, ci.created_at) DESC,
+      ci.id DESC
+    LIMIT 1`, [req.user.id, today, student_id||null, student_id||null]);
   if (!s) return res.json({ checkedIn: false, checkedOut: false, onLeave: !!leave, status: leave ? 'leave' : 'absent', leaveReason: leave?.reason || '' });
   res.json({
     checkedIn: s.status==='checked_in'||s.status==='checked_out',
@@ -36,9 +53,10 @@ router.get('/today', auth, (req, res) => {
 // 老师查单个学生的签到状态
 router.get('/status', auth, (req, res) => {
   const { student_id, date } = req.query;
-  const ci = getDB().get('SELECT * FROM checkins WHERE student_id=? AND class_date=?', [student_id, date]);
+  const db = getDB();
+  const ci = latestCheckin(db, student_id, date);
   // 同时查请假
-  const leave = getDB().get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [student_id, date, 'approved']);
+  const leave = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [student_id, date, 'approved']);
   if (!ci) return res.json({ checkedIn: false, checkedOut: false, onLeave: !!leave });
   res.json({
     checkedIn: ci.status==='checked_in'||ci.status==='checked_out',
@@ -58,7 +76,7 @@ router.post('/check-in', auth, async (req, res) => {
   const now = new Date().toISOString();
   const leave = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [studentId, classDate, 'approved']);
   if (leave) return res.status(400).json({ error: `${studentName || '学生'}已请假，不能签到` });
-  const exists = db.get('SELECT id FROM checkins WHERE student_id=? AND class_date=?', [studentId, classDate]);
+  const exists = latestCheckin(db, studentId, classDate);
   if (exists) {
     db.run('UPDATE checkins SET check_in_time=?, status=? WHERE id=?', [now, 'checked_in', exists.id]);
   } else {
@@ -79,8 +97,8 @@ router.post('/check-out', auth, async (req, res) => {
   const date = classDate || localDateString();
   const teacher = db.get('SELECT nickname FROM users WHERE id=?', [req.user.id]);
   const displayName = (String(teacherName || teacher?.nickname || '潘潘').trim().replace(/老师$/, '') || '潘潘');
-  const note = special ? `${displayName}老师已离开，请家长主动联系小朋友沟通安排后续。` : '';
-  const existing = db.get('SELECT * FROM checkins WHERE student_id=? AND class_date=?', [studentId, date]);
+  const note = special ? `${displayName}老师已离开 请主动联系小朋友。` : '';
+  const existing = latestCheckin(db, studentId, date, true);
   if (!existing || !existing.check_in_time) {
     return res.status(400).json({ error: '未找到签到记录，请先签到' });
   }

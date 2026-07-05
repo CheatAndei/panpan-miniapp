@@ -36,7 +36,7 @@ function start() {
 
 async function notifyParents(db, schedule) {
   try {
-    await require('../routes/notify').notifyReminder(schedule.class_id);
+    await require('../routes/notify').notifyReminder(schedule.class_id, schedule.location || '');
   } catch (e) {
     console.error('[REMINDER] notify failed:', e.message);
   }

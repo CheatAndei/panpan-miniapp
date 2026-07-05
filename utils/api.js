@@ -78,7 +78,10 @@ export function uploadFile(path, filePath, name = 'file') {
           reject(err);
         }
       },
-      fail: reject
+      fail(err) {
+        const message = err?.errMsg || '上传失败';
+        reject({ error: message, message, statusCode: 0 });
+      }
     });
   });
 }

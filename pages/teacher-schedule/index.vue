@@ -14,7 +14,7 @@
   </view>
 
   <view class="card">
-    <button class="btn-special" @tap="showSpecial=true">特殊发布（自定义日期时间）</button>
+    <button class="btn-special" @tap="openSpecial">特殊发布（自定义日期时间）</button>
   </view>
 
   <!-- 按天排列 -->
@@ -60,7 +60,7 @@
   <view v-if="showSpecial" class="modal-mask" @tap="showSpecial=false">
     <view class="modal" @tap.stop>
       <view class="modal-title">特殊发布</view>
-      <picker :range="classNames" @change="i=>{spForm.class_id=classes[i.detail.value]?.id;spForm.name=classNames[i.detail.value]}">
+      <picker :range="classNames" @change="selectSpecialClass">
         <view class="input">{{ spForm.name||'选择学习小组' }}</view>
       </picker>
       <picker mode="date" :value="spForm.date" @change="e=>spForm.date=e.detail.value">
@@ -109,6 +109,18 @@ export default {
     bgClass(cid){const i=this.classes.findIndex(c=>c.id===cid);return BG[Math.min(i,BG.length-1)];},
     toggleCheck(id){const idx=this.checkedIds.indexOf(id);if(idx>-1)this.checkedIds.splice(idx,1);else this.checkedIds.push(id);},
     openAdd(day){this.sForm={class_id:null,class_name:'',day_of_week:day,start_time:'',end_time:'',location:''};this.showAdd=true;},
+    openSpecial(){this.showSpecial=true;},
+    selectSpecialClass(e){
+      const idx=Number(e.detail.value);
+      const cls=this.classes[idx];
+      if(!cls)return;
+      const base=this.schedules.find(s=>Number(s.class_id)===Number(cls.id));
+      this.spForm.class_id=cls.id;
+      this.spForm.name=this.classNames[idx];
+      this.spForm.start_time=base?.start_time||'';
+      this.spForm.end_time=base?.end_time||'';
+      this.spForm.location=base?.location||'';
+    },
     async saveSched(){
       if(!this.sForm.class_id||!this.sForm.start_time||!this.sForm.end_time)
         return uni.showToast({title:'请填写学习小组和时间',icon:'none'});

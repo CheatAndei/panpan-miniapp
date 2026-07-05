@@ -104,8 +104,9 @@ router.post('/publish', auth, async (req, res) => {
   const db = getDB();
   // 保存班级反馈 + 每个学生的反馈
   const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, schedule_id, class_date, summary, homework, notes_pdf_url, student_feedbacks) VALUES (?,?,?,?,?,?,?,?)', [req.user.id, class_id, schedule_id||null, class_date, class_feedback, homework||'', notes_pdf_url||'', JSON.stringify(students||[])]);
-  try { require('./notify').notifyFeedback(class_id); } catch(e) {}
-  res.json({ ok: true, id: r.lastInsertRowid });
+  let notify = { ok: false, error: '未发送' };
+  try { notify = await require('./notify').notifyFeedback(class_id); } catch(e) { notify = { ok: false, error: e.message }; }
+  res.json({ ok: true, id: r.lastInsertRowid, notify });
 });
 
 // 单独发送学习笔记
@@ -114,11 +115,14 @@ router.post('/publish-notes', auth, async (req, res) => {
   const { class_id, class_date, schedule_id, notes_pdf_url, note_remark } = req.body;
   if (!class_id || !class_date) return res.status(400).json({ error: '缺少学习小组或日期' });
   if (!notes_pdf_url && !note_remark) return res.status(400).json({ error: '请选择学习笔记或填写备注' });
-  const summary = note_remark || '学习笔记已发送，请查看附件';
   const db = getDB();
+  const cls = db.get('SELECT id FROM classes WHERE id=? AND teacher_id=?', [class_id, req.user.id]);
+  if (!cls) return res.status(403).json({ error: '无权限操作该学习小组' });
+  const summary = String(note_remark || (notes_pdf_url ? '学习笔记已发送，请查看附件' : '学习笔记已发送')).trim();
   const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, schedule_id, class_date, summary, homework, notes_pdf_url, student_feedbacks) VALUES (?,?,?,?,?,?,?,?)', [req.user.id, class_id, schedule_id||null, class_date, summary, '', notes_pdf_url||'', '[]']);
-  try { require('./notify').notifyFeedback(class_id); } catch(e) {}
-  res.json({ ok: true, id: r.lastInsertRowid });
+  let notify = { ok: false, error: '未发送' };
+  try { notify = await require('./notify').notifyFeedback(class_id); } catch(e) { notify = { ok: false, error: e.message }; }
+  res.json({ ok: true, id: r.lastInsertRowid, notify });
 });
 
 // 家长查反馈列表
