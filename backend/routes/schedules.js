@@ -28,7 +28,19 @@ router.get('/parent', auth, (req, res) => {
   if (!teacher) return res.json({ schedules: [], myClassIds: [] });
   const myClasses = db.all('SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=?', [req.user.id]);
   const schedules = db.all('SELECT s.*, c.name as class_name, c.id as class_id, (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id) as student_count FROM schedules s JOIN classes c ON c.id=s.class_id WHERE s.teacher_id=? AND s.is_active=1 ORDER BY s.day_of_week, s.start_time', [teacher.teacher_id]);
-  res.json({ schedules, myClassIds: myClasses.map(c=>c.class_id) });
+  const sessions = db.all('SELECT se.*, c.name as class_name, c.id as class_id, (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id) as student_count FROM sessions se JOIN classes c ON c.id=se.class_id WHERE se.teacher_id=? AND se.status IN (?,?) AND se.class_date>=? ORDER BY se.class_date, se.start_time', [teacher.teacher_id, 'published', 'completed', localDateString()]);
+  const sessionSchedules = sessions.map((se) => {
+    const date = new Date(`${se.class_date}T00:00:00+08:00`);
+    return {
+      ...se,
+      id: `session-${se.id}`,
+      session_id: se.id,
+      day_of_week: date.getDay(),
+      title: se.title || se.class_name,
+      source: 'session'
+    };
+  });
+  res.json({ schedules: [...sessionSchedules, ...schedules], myClassIds: myClasses.map(c=>c.class_id) });
 });
 
 // 获取老师的所有课表

@@ -91,7 +91,7 @@
         <view class="section-title">本周课表<text class="card-hint">点击进入学习小组详情</text></view>
         <view v-if="weekSchedules.length === 0" class="hint">本周暂无学习安排</view>
         <view v-for="sc in weekSchedules" :key="sc.id" class="sc-line">
-          <view class="sc-badge">{{ dayNames[sc.day_of_week] }}</view>
+          <view class="sc-badge">{{ scheduleLabel(sc) }}</view>
           <view class="sc-body">
             <text class="sc-title">{{ sc.class_name }}</text>
             <text class="sc-time">{{ sc.start_time }} - {{ sc.end_time }}</text>
@@ -336,7 +336,9 @@ async function loadParentData(childId) {
       todayStatus.value.checkOutTime = new Date(checkin.checkOutTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
     }
     const myId = target.class_id;
-    weekSchedules.value = (schedParent.schedules||[]).filter(s=>s.class_id===myId).slice(0,3);
+    weekSchedules.value = (schedParent.schedules||[]).filter(s=>s.class_id===myId)
+      .sort((a,b)=>String(a.class_date||'9999-99-99').localeCompare(String(b.class_date||'9999-99-99')) || String(a.start_time||'').localeCompare(String(b.start_time||'')))
+      .slice(0,3);
     leaves.value = (lv.leaves||[]).filter(l=>l.student_id===target.id).slice(0,5);
     latestFeedback.value = fb.feedback;
     stuFeedback.value = null;
@@ -376,6 +378,13 @@ function statusText(status) {
   if (!status || !status.checkedIn) return '等待签到';
   if (status.checkedOut) return '今日已签退 ' + (status.checkOutTime || '');
   return '今日已签到 ' + (status.checkInTime || '');
+}
+function scheduleLabel(sc) {
+  if (sc.class_date) {
+    const d = new Date(sc.class_date + 'T00:00:00+08:00');
+    return `${d.getMonth()+1}/${d.getDate()} ${dayNames[d.getDay()]}`;
+  }
+  return dayNames[sc.day_of_week];
 }
 </script>
 

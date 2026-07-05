@@ -27,7 +27,7 @@
     </view>
     <view v-if="schedules.length===0" class="empty-sm">暂无学习安排</view>
     <view v-for="s in schedules" :key="s.id" class="sc-line">
-      <text class="sc-day">{{ dayNames[s.day_of_week] }}</text>
+      <text class="sc-day">{{ scheduleLabel(s) }}</text>
       <text class="sc-time">{{ s.start_time }}-{{ s.end_time }}</text>
       <text class="sc-name">{{ s.title||s.class_name }}</text>
     </view>
@@ -114,7 +114,9 @@ export default {
         if(this.todayCheckin&&this.todayCheckin.checkOutTime){
           this.todayCheckin.checkOutTime=new Date(this.todayCheckin.checkOutTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
         }
-        this.schedules=(sc.schedules||[]).filter(item=>!s.student?.class_id||item.class_id===s.student.class_id).slice(0,3);
+        this.schedules=(sc.schedules||[]).filter(item=>!s.student?.class_id||item.class_id===s.student.class_id)
+          .sort((a,b)=>String(a.class_date||'9999-99-99').localeCompare(String(b.class_date||'9999-99-99')) || String(a.start_time||'').localeCompare(String(b.start_time||'')))
+          .slice(0,3);
         this.feedback=f.feedback;this.profile=p.profile;
         if(this.feedback&&this.feedback.image_urls){
           try{this.fbImages=JSON.parse(this.feedback.image_urls).map(u=>api.assetUrl(u));}catch(e){this.fbImages=[];}
@@ -129,6 +131,13 @@ export default {
       if(!ci||!ci.checkedIn)return '等待签到';
       if(ci.checkedOut)return '今日已签退 '+(ci.checkOutTime||'');
       return '今日已签到 '+(ci.checkInTime||'');
+    },
+    scheduleLabel(sc){
+      if(sc.class_date){
+        const d=new Date(sc.class_date+'T00:00:00+08:00');
+        return `${d.getMonth()+1}/${d.getDate()} ${this.dayNames[d.getDay()]}`;
+      }
+      return this.dayNames[sc.day_of_week];
     },
     async loadNotifyTemplates(){
       try{
@@ -205,7 +214,7 @@ export default {
 .card-arrow{font-size:24rpx;color:#8A929B}
 
 .sc-line{display:flex;gap:12rpx;padding:8rpx 0;font-size:26rpx;align-items:center}
-.sc-day{color:#A57945;font-weight:600;width:64rpx;font-size:24rpx}
+.sc-day{color:#A57945;font-weight:600;min-width:96rpx;font-size:24rpx}
 .sc-time{color:#8A929B;width:120rpx;font-size:24rpx}
 .sc-name{color:#46515C}
 

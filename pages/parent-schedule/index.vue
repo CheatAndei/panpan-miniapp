@@ -23,6 +23,7 @@
           <view class="block-inner mine-inner" @tap="openClass(s)">
             <view class="block-badge">我的学习小组</view>
             <text class="block-name">{{ s.class_name }}</text>
+            <text v-if="s.class_date" class="block-date">{{ formatDate(s.class_date) }}</text>
             <text class="block-time">{{ s.start_time }} - {{ s.end_time }}</text>
             <text v-if="s.location" class="block-loc">{{ s.location }}</text>
             <text class="block-arrow">查看详情 ›</text>
@@ -31,6 +32,7 @@
         <template v-else>
           <view class="block-inner other-block">
             <text :class="['block-name',{'blurred':s.student_count<=1}]">{{ s.class_name }}</text>
+            <text v-if="s.class_date" class="block-date">{{ formatDate(s.class_date) }}</text>
             <text class="block-time">{{ s.start_time }} - {{ s.end_time }}</text>
             <text v-if="s.location" class="block-loc">{{ s.location }}</text>
             <text class="block-note">其他学习小组</text>
@@ -81,7 +83,7 @@
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 const DAYS = ['周日','周一','周二','周三','周四','周五','周六'];
-const ALL = [{label:'周五',value:5},{label:'周六',value:6},{label:'周日',value:0},{label:'周一',value:1},{label:'周二',value:2}];
+const ALL = [{label:'周日',value:0},{label:'周一',value:1},{label:'周二',value:2},{label:'周三',value:3},{label:'周四',value:4},{label:'周五',value:5},{label:'周六',value:6}];
 
 export default {
   data(){return{
@@ -110,7 +112,7 @@ export default {
         this.myStudentIds=(kids.students||[]).map(s=>Number(s.id));
         this.days=ALL.map(d=>({
           ...d,scheds:this.schedules.filter(s=>s.day_of_week===d.value)
-            .sort((a,b)=>(parseInt(a.start_time.replace(':',''))-parseInt(b.start_time.replace(':',''))))
+            .sort((a,b)=>String(a.class_date||'9999-99-99').localeCompare(String(b.class_date||'9999-99-99')) || (parseInt(a.start_time.replace(':',''))-parseInt(b.start_time.replace(':',''))))
         }));
       }catch(e){logError('parentSchedule.loadData',e);}
       finally{this.loading=false;}
@@ -142,6 +144,10 @@ export default {
       }catch(e){uni.showToast({title:'暂无',icon:'none'});}
     },
     openFb(fb){},
+    formatDate(date){
+      const d=new Date(date+'T00:00:00+08:00');
+      return `${d.getMonth()+1}/${d.getDate()} ${DAYS[d.getDay()]}`;
+    },
     lvClass(lv){const m={好:'lv-good',中上:'lv-above',中:'lv-mid',中下:'lv-below',下:'lv-low'};return m[lv]||'';}
   }
 };
@@ -170,6 +176,7 @@ export default {
 .block-badge{display:inline-block;background:#F7F1E7;color:#8D6A3F;font-size:20rpx;padding:4rpx 14rpx;border-radius:20rpx;margin-bottom:12rpx}
 .block-name{display:block;font-size:32rpx;font-weight:700;margin-bottom:8rpx}
 .block-time{font-size:26rpx;opacity:.8;display:block}
+.block-date{font-size:24rpx;color:#A57945;display:block;margin-bottom:4rpx}
 .block-loc{font-size:24rpx;opacity:.6;margin-top:4rpx}
 .block-arrow{display:block;margin-top:16rpx;font-size:24rpx;opacity:.6;text-align:right}
 
