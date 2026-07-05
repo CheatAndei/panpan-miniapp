@@ -16,7 +16,7 @@ jobs:
           key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
           script: |
             set -euo pipefail
-            docker exec panpan-api node --input-type=module <<'NODE'
+            docker exec -i panpan-api node --input-type=module <<'NODE'
             import fs from 'fs';
             import initSqlJs from 'sql.js';
             const SQL = await initSqlJs();
