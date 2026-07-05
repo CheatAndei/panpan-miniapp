@@ -1,0 +1,180 @@
+name: Production Teacher Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "inspect or migrate"
+        required: true
+        default: "inspect"
+        type: choice
+        options:
+          - inspect
+          - migrate
+      target_teacher_id:
+        description: "Teacher user id to receive existing data"
+        required: false
+        default: ""
+      confirm:
+        description: "Type MIGRATE_TEACHER to migrate"
+        required: false
+        default: ""
+
+jobs:
+  teacher-migration:
+    name: Inspect or migrate teacher ownership
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run production teacher migration task
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            MODE='${{ inputs.mode }}'
+            TARGET_TEACHER_ID='${{ inputs.target_teacher_id }}'
+            CONFIRM='${{ inputs.confirm }}'
+            DEPLOY_DIR=/opt/panpan-miniapp
+
+            DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
+            [ -n "$DATA_DIR" ] || DATA_DIR="$(docker volume inspect panpan-miniapp_panpan-data --format '{{.Mountpoint}}' 2>/dev/null || true)"
+            DB_FILE="$DATA_DIR/teach.db"
+            if [ -z "$DATA_DIR" ] || [ ! -f "$DB_FILE" ]; then
+              echo "DB not found"
+              exit 1
+            fi
+
+            inspect_db() {
+              docker exec -i panpan-api node --input-type=module <<'NODE'
+              import fs from 'fs';
+              import initSqlJs from 'sql.js';
+              const file = '/app/data/teach.db';
+              const SQL = await initSqlJs();
+              const db = new SQL.Database(fs.readFileSync(file));
+              const query = (sql, params = []) => {
+                const stmt = db.prepare(sql);
+                stmt.bind(params);
+                const rows = [];
+                while (stmt.step()) rows.push(stmt.getAsObject());
+                stmt.free();
+                return rows;
+              };
+              const scalar = (sql, params = []) => query(sql, params)[0]?.c || 0;
+              const users = query(`
+                SELECT id, role, nickname, created_at,
+                  substr(openid, 1, 6) || '...' || substr(openid, -4) AS openid_mask
+                FROM users
+                ORDER BY id
+              `);
+              console.log('USERS');
+              for (const u of users) {
+                const row = {
+                  ...u,
+                  classes: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [u.id]),
+                  students: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [u.id]),
+                  schedules: scalar('SELECT COUNT(*) AS c FROM schedules WHERE teacher_id=?', [u.id]),
+                  sessions: scalar('SELECT COUNT(*) AS c FROM sessions WHERE teacher_id=?', [u.id]),
+                  feedbacks: scalar('SELECT COUNT(*) AS c FROM feedbacks WHERE teacher_id=?', [u.id])
+                };
+                console.log(JSON.stringify(row));
+              }
+              NODE
+            }
+
+            if [ "$MODE" = "inspect" ]; then
+              inspect_db
+              exit 0
+            fi
+
+            if [ "$MODE" != "migrate" ]; then
+              echo "Unknown mode: $MODE"
+              exit 1
+            fi
+            if [ "$CONFIRM" != "MIGRATE_TEACHER" ]; then
+              echo "Missing confirm MIGRATE_TEACHER"
+              exit 1
+            fi
+            case "$TARGET_TEACHER_ID" in
+              ''|*[!0-9]*) echo "target_teacher_id must be numeric"; exit 1 ;;
+            esac
+
+            echo "Stopping backend for DB migration"
+            (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            BACKUP="$DB_FILE.backup.teacher-migrate.$(date +%Y%m%d%H%M%S)"
+            cp -a "$DB_FILE" "$BACKUP"
+            echo "Backup: $BACKUP"
+
+            docker run --rm -i -v "$DATA_DIR:/data" rockchin/panpan-miniapp-backend:main node --input-type=module <<NODE
+            import fs from 'fs';
+            import initSqlJs from 'sql.js';
+            const targetId = Number('${{ inputs.target_teacher_id }}');
+            const file = '/data/teach.db';
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync(file));
+            const query = (sql, params = []) => {
+              const stmt = db.prepare(sql);
+              stmt.bind(params);
+              const rows = [];
+              while (stmt.step()) rows.push(stmt.getAsObject());
+              stmt.free();
+              return rows;
+            };
+            const scalar = (sql, params = []) => query(sql, params)[0]?.c || 0;
+            const run = (sql, params = []) => db.run(sql, params);
+
+            const target = query('SELECT id, role FROM users WHERE id=?', [targetId])[0];
+            if (!target) throw new Error('Target teacher not found');
+            if (target.role !== 'teacher') throw new Error('Target user is not teacher');
+
+            const owners = query(`
+              SELECT u.id, u.role, COUNT(c.id) AS class_count
+              FROM users u
+              JOIN classes c ON c.teacher_id = u.id
+              WHERE u.id != ?
+              GROUP BY u.id
+              ORDER BY class_count DESC, u.id
+            `, [targetId]);
+            if (owners.length !== 1) {
+              throw new Error('Expected exactly one old teacher owner, got ' + owners.length);
+            }
+            const oldId = Number(owners[0].id);
+            const before = {
+              oldId,
+              targetId,
+              oldClasses: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [oldId]),
+              oldStudents: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [oldId]),
+              targetClasses: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [targetId]),
+              targetStudents: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [targetId])
+            };
+            console.log('BEFORE', JSON.stringify(before));
+
+            run('BEGIN TRANSACTION');
+            run('UPDATE classes SET teacher_id=? WHERE teacher_id=?', [targetId, oldId]);
+            run('UPDATE students SET teacher_id=? WHERE teacher_id=?', [targetId, oldId]);
+            run('UPDATE schedules SET teacher_id=? WHERE teacher_id=?', [targetId, oldId]);
+            run('UPDATE sessions SET teacher_id=? WHERE teacher_id=?', [targetId, oldId]);
+            run('UPDATE feedbacks SET teacher_id=? WHERE teacher_id=?', [targetId, oldId]);
+            run('COMMIT');
+
+            const after = {
+              oldId,
+              targetId,
+              oldClasses: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [oldId]),
+              oldStudents: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [oldId]),
+              targetClasses: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [targetId]),
+              targetStudents: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [targetId]),
+              targetSchedules: scalar('SELECT COUNT(*) AS c FROM schedules WHERE teacher_id=?', [targetId]),
+              targetSessions: scalar('SELECT COUNT(*) AS c FROM sessions WHERE teacher_id=?', [targetId]),
+              targetFeedbacks: scalar('SELECT COUNT(*) AS c FROM feedbacks WHERE teacher_id=?', [targetId])
+            };
+            fs.writeFileSync(file, Buffer.from(db.export()));
+            console.log('AFTER', JSON.stringify(after));
+            NODE
+
+            echo "Starting backend"
+            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never)
+            sleep 3
+            curl -fsS http://127.0.0.1:3000/api/health || true
+            inspect_db
