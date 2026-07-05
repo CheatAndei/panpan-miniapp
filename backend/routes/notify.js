@@ -218,10 +218,10 @@ router.notifyCheckout = async (studentId) => {
   ]), 'pages/index/index');
 };
 
-router.notifyReminder = (classId) => {
+router.notifyReminder = async (classId) => {
   const db = getDB();
   const cls = db.get('SELECT name FROM classes WHERE id=?', [classId]);
-  notifyParentsByClass(classId, TPLS.reminder, templateData([
+  return notifyParentsByClass(classId, TPLS.reminder, templateData([
     [FIELDS.reminder.className, cls?.name || '学习小组'],
     [FIELDS.reminder.time, new Date().toLocaleDateString('zh-CN')],
     [FIELDS.reminder.note, '即将上课']
@@ -239,10 +239,28 @@ router.notifyFeedback = (classId) => {
 async function notifyParentsByClass(classId, tplId, data, page) {
   const db = getDB();
   const parents = db.all('SELECT DISTINCT u.openid FROM users u JOIN bindings b ON b.parent_id=u.id JOIN students s ON s.id=b.student_id WHERE s.class_id=? AND u.openid IS NOT NULL AND u.openid!=\'\'', [classId]);
-  if (parents.length === 0) console.warn('[notify] no parent openid for class', classId);
-  for (const p of parents) {
-    try { await sendMsg(p.openid, tplId, data, page); } catch(e) { console.warn('[notify] class send exception', e.message); }
+  const result = { ok: true, total: parents.length, sent: 0, failed: 0, errors: [] };
+  if (!tplId) return { ...result, ok: false, error: '上课提醒模板未配置' };
+  if (parents.length === 0) {
+    console.warn('[notify] no parent openid for class', classId);
+    return { ...result, ok: false, error: '没有找到已绑定且有 openid 的家长' };
   }
+  for (const p of parents) {
+    try {
+      const sent = await sendMsg(p.openid, tplId, data, page);
+      if (sent.ok) result.sent++;
+      else {
+        result.failed++;
+        result.errors.push(sent.errmsg || sent.error || 'send failed');
+      }
+    } catch(e) {
+      result.failed++;
+      result.errors.push(e.message);
+      console.warn('[notify] class send exception', e.message);
+    }
+  }
+  result.ok = result.sent > 0 && result.failed === 0;
+  return result;
 }
 
 module.exports = router;

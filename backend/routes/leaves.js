@@ -38,6 +38,23 @@ router.put('/:id', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+router.post('/teacher-mark', auth, (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const { student_id, class_date, reason } = req.body || {};
+  if (!student_id || !class_date) return res.status(400).json({ error: '缺少学生或日期' });
+  const db = getDB();
+  const student = db.get('SELECT id, name FROM students WHERE id=? AND teacher_id=?', [student_id, req.user.id]);
+  if (!student) return res.status(403).json({ error: '无权操作该学生' });
+  const exists = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=?', [student_id, class_date]);
+  const finalReason = reason || '老师在签到页标记请假';
+  if (exists) {
+    db.run('UPDATE leaves SET status=?, reason=? WHERE id=?', ['approved', finalReason, exists.id]);
+    return res.json({ ok: true, id: exists.id, updated: true });
+  }
+  const r = db.run('INSERT INTO leaves (student_id, parent_id, class_date, reason, status) VALUES (?,?,?,?,?)', [student_id, null, class_date, finalReason, 'approved']);
+  res.json({ ok: true, id: r.lastInsertRowid, updated: false });
+});
+
 router.post('/feedback', auth, (req, res) => {
   console.log(`[家长反馈] user=${req.user.id}: ${(req.body.content||'').slice(0,50)}`);
   res.json({ ok: true });

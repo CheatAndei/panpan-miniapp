@@ -17,14 +17,18 @@ function localDateString(date = new Date()) {
 router.get('/today', auth, (req, res) => {
   const today = req.query.date || localDateString();
   const { student_id } = req.query;
-  const s = getDB().get('SELECT ci.* FROM checkins ci JOIN students s ON s.id=ci.student_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? AND ci.class_date=? AND (? IS NULL OR s.id=?) ORDER BY ci.check_in_time DESC LIMIT 1', [req.user.id, today, student_id||null, student_id||null]);
-  if (!s) return res.json({ checkedIn: false });
+  const db = getDB();
+  const leave = db.get('SELECT l.* FROM leaves l JOIN bindings b ON b.student_id=l.student_id WHERE b.parent_id=? AND l.class_date=? AND l.status=? AND (? IS NULL OR l.student_id=?) ORDER BY l.created_at DESC LIMIT 1', [req.user.id, today, 'approved', student_id||null, student_id||null]);
+  const s = db.get('SELECT ci.* FROM checkins ci JOIN students s ON s.id=ci.student_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? AND ci.class_date=? AND (? IS NULL OR s.id=?) ORDER BY ci.check_in_time DESC LIMIT 1', [req.user.id, today, student_id||null, student_id||null]);
+  if (!s) return res.json({ checkedIn: false, checkedOut: false, onLeave: !!leave, status: leave ? 'leave' : 'absent', leaveReason: leave?.reason || '' });
   res.json({
     checkedIn: s.status==='checked_in'||s.status==='checked_out',
     checkedOut: s.status==='checked_out',
     checkInTime: s.check_in_time,
     checkOutTime: s.check_out_time,
-    status: s.status
+    status: s.status,
+    onLeave: !!leave,
+    leaveReason: leave?.reason || ''
   });
 });
 
@@ -50,6 +54,8 @@ router.post('/check-in', auth, async (req, res) => {
   const { studentId, classDate, studentName } = req.body;
   const db = getDB();
   const now = new Date().toISOString();
+  const leave = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [studentId, classDate, 'approved']);
+  if (leave) return res.status(400).json({ error: `${studentName || '学生'}已请假，不能签到` });
   const exists = db.get('SELECT id FROM checkins WHERE student_id=? AND class_date=?', [studentId, classDate]);
   if (exists) {
     db.run('UPDATE checkins SET check_in_time=?, status=? WHERE id=?', [now, 'checked_in', exists.id]);

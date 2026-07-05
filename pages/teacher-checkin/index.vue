@@ -40,6 +40,7 @@
           </view>
           <view class="stu-right">
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-in" @tap="checkIn(se,s)">签到</button>
+            <button v-if="!s._leave&&!s._checked" class="btn-sm btn-leave" @tap="markLeave(se,s)">请假</button>
             <button v-if="s._checked&&!s._out" class="btn-sm btn-out" @tap="checkOut(se,s)">签退</button>
             <text v-if="s._out" class="time-text">{{ s._outTime }}</text>
           </view>
@@ -111,6 +112,18 @@ export default {
         if(allDone){await api.put('/schedules/sessions/'+se.id+'/complete');this.sessions=this.sessions.filter(x=>x.id!==se.id);}
       }catch(e){toastError(e,'签退失败');}
     },
+    async markLeave(se,s){
+      uni.showModal({title:'标记请假',content:'确定将 '+s.name+' 标记为请假？',success:async r=>{
+        if(!r.confirm)return;
+        try{
+          await api.post('/leaves/teacher-mark',{student_id:s.id,class_date:se.class_date,reason:'老师在签到页标记请假'});
+          s._leave=true;s._checked=false;s._out=false;s._inTime='';s._outTime='';
+          toastSuccess(s.name+' 已标记请假');
+          const allDone=se._students.every(s=>s._leave||s._out);
+          if(allDone){await api.put('/schedules/sessions/'+se.id+'/complete');this.sessions=this.sessions.filter(x=>x.id!==se.id);}
+        }catch(e){toastError(e,'标记请假失败');}
+      }});
+    },
     async checkInAll(se){
       const notChecked=se._students.filter(s=>!s._checked&&!s._leave);
       for(const s of notChecked){try{await this.checkIn(se,s);}catch(e){logError('checkInAll',e);}}
@@ -149,7 +162,7 @@ export default {
 .btn-accent{background:#A57945;color:#fff;border-radius:12rpx;padding:12rpx;font-size:24rpx;border:none;width:100%}
 .mb-sm{margin-bottom:16rpx}
 .btn-sm{padding:10rpx 24rpx;border-radius:8rpx;font-size:24rpx;border:none}
-.btn-in{background:#3F8B65;color:#fff}.btn-out{background:#52707E;color:#fff}
+.btn-in{background:#3F8B65;color:#fff}.btn-out{background:#52707E;color:#fff}.btn-leave{background:#F7F2E5;color:#7B5B36}
 .stats{display:flex;gap:24rpx;margin-bottom:16rpx}
 .stat{font-size:26rpx;color:#46515C}.stat.green{color:#3F8B65}.stat.gray{color:#8A929B}
 .stu-row{display:flex;justify-content:space-between;align-items:center;padding:18rpx 0;border-bottom:1rpx solid #ECE8E0}

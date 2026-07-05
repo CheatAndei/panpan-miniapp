@@ -119,8 +119,8 @@ export default {
       const f=this.spForm;
       if(!f.class_id||!f.date||!f.start_time||!f.end_time) return uni.showToast({title:'请填写完整',icon:'none'});
       try{
-        await api.post('/schedules/special-publish',{class_id:f.class_id,class_date:f.date,start_time:f.start_time,end_time:f.end_time,location:f.location||''});
-        toastSuccess('特殊发布成功');
+        const res=await api.post('/schedules/special-publish',{class_id:f.class_id,class_date:f.date,start_time:f.start_time,end_time:f.end_time,location:f.location||''});
+        this.showPublishResult(res,'特殊发布');
         this.showSpecial=false;
       }catch(e){toastError(e,'发布失败');}
     },
@@ -128,9 +128,20 @@ export default {
       if(this.checkedIds.length===0)return uni.showToast({title:'请勾选学习安排',icon:'none'});
       uni.showModal({title:'发布上课提醒',content:'将通知这 '+this.checkedIds.length+' 节课的学生家长。',success:async r=>{
         if(!r.confirm)return;
-        try{const res=await api.post('/schedules/publish',{ids:this.checkedIds});toastSuccess('已发布 '+res.count+' 节');this.checkedIds=[];this.loadData();}
+        try{const res=await api.post('/schedules/publish',{ids:this.checkedIds});this.showPublishResult(res,'发布');this.checkedIds=[];this.loadData();}
         catch(e){toastError(e,'发布失败');}
       }});
+    },
+    showPublishResult(res,title){
+      const skipped=res.skipped?`，跳过重复 ${res.skipped} 节`:'';
+      if((res.count||0)===0){
+        return uni.showToast({title:`没有新增课程${skipped}`,icon:'none'});
+      }
+      const notify=res.notify||{};
+      const msg=notify.ok
+        ? `${title} ${res.count} 节并提醒家长${skipped}`
+        : `${title} ${res.count} 节，提醒未送达${skipped}`;
+      uni.showToast({title:msg,icon:notify.ok?'success':'none'});
     }
   }
 };

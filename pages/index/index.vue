@@ -366,10 +366,12 @@ async function sendTestNotify() {
 }
 
 function statusBadgeClass(status) {
+  if (status?.onLeave) return 'leave';
   return status?.checkedOut ? 'done' : (status?.checkedIn ? 'in' : 'out');
 }
 
 function statusText(status) {
+  if (status?.onLeave) return '今日已请假';
   if (!status || !status.checkedIn) return '等待签到';
   if (status.checkedOut) return '今日已签退 ' + (status.checkOutTime || '');
   return '今日已签到 ' + (status.checkInTime || '');
@@ -477,6 +479,7 @@ function statusText(status) {
 .status-badge.in { background: #EBF8F2; color: #3F8B65; }
 .status-badge.done { background: #EEF2F7; color: #425B76; }
 .status-badge.out { background: #F7F1E7; color: #A66A3E; }
+.status-badge.leave { background: #F7EDEA; color: #9F4E43; }
 .status-time { font-size: 24rpx; color: #8A929B; }
 
 .section-title { font-size: 28rpx; font-weight: 700; margin-bottom: 12rpx; color: #202733; letter-spacing: 0; display: flex; justify-content: space-between; align-items: center; }

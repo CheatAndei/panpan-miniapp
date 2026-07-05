@@ -119,10 +119,17 @@ export default {
       if(se._students.length===0){
         try{
           const r=await api.get('/students?class_id='+se.class_id);
-          se._students=(r.students||[]).map(s=>{
+          const students=(r.students||[]).map(s=>{
             if(!s._images)s._images=[];
             return {...s,_score:s._score||5,_note:s._note||'',_text:s._text||'',_leave:false};
           });
+          await Promise.all(students.map(async s=>{
+            try{
+              const ci=await api.get('/checkins/status?student_id='+s.id+'&date='+se.class_date);
+              s._leave=ci.onLeave||false;
+            }catch(e){logError('feedback.leaveStatus',e);}
+          }));
+          se._students=students;
         }catch(e){logError('feedback.openSession',e);}
       }
     },

@@ -60,14 +60,39 @@ router.delete('/:id', auth, teacherOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+async function notifyClasses(classIds) {
+  const notify = { ok: true, total: 0, sent: 0, failed: 0, errors: [] };
+  const uniqueIds = [...new Set(classIds.filter(Boolean))];
+  for (const classId of uniqueIds) {
+    try {
+      const result = await require('./notify').notifyReminder(classId);
+      notify.total += result?.total || 0;
+      notify.sent += result?.sent || 0;
+      notify.failed += result?.failed || 0;
+      if (result?.error) notify.errors.push(result.error);
+      if (result?.errors?.length) notify.errors.push(...result.errors);
+    } catch(e) {
+      notify.failed++;
+      notify.errors.push(e.message);
+    }
+  }
+  notify.ok = notify.sent > 0 && notify.failed === 0;
+  return notify;
+}
+
 // 特殊发布：自定义日期时间
-router.post('/special-publish', auth, teacherOnly, (req, res) => {
+router.post('/special-publish', auth, teacherOnly, async (req, res) => {
   const { class_id, class_date, start_time, end_time, location } = req.body;
   if (!class_id || !class_date || !start_time || !end_time) return res.status(400).json({ error: '缺少信息' });
   const db = getDB();
   const cls = db.get('SELECT name FROM classes WHERE id=?', [class_id]);
+  const exists = db.get('SELECT id FROM sessions WHERE teacher_id=? AND class_id=? AND class_date=? AND start_time=?', [req.user.id, class_id, class_date, start_time]);
+  if (exists) {
+    return res.json({ ok: true, count: 0, skipped: 1, notify: { ok: false, total: 0, sent: 0, failed: 0, errors: [] }, message: '该时间已发布，已跳过重复课程' });
+  }
   db.run('INSERT INTO sessions (teacher_id,class_id,title,class_date,start_time,end_time,status) VALUES (?,?,?,?,?,?,?)', [req.user.id, class_id, cls?.name||'特殊课程', class_date, start_time, end_time, 'published']);
-  res.json({ ok: true, message: '特殊发布成功' });
+  const notify = await notifyClasses([class_id]);
+  res.json({ ok: true, count: 1, skipped: 0, notify, message: '特殊发布成功' });
 });
 
 // 删除已发布的课程实例
@@ -100,11 +125,13 @@ router.get('/sessions', auth, (req, res) => {
 });
 
 // 一键发布：根据课表计算本周末日期，创建 sessions
-router.post('/publish', auth, teacherOnly, (req, res) => {
+router.post('/publish', auth, teacherOnly, async (req, res) => {
   const db = getDB();
   const { ids } = req.body || {};
   const now = new Date();
   let count = 0;
+  let skipped = 0;
+  const publishedClassIds = [];
 
   // 获取要发布的课表（指定 ids 或全部）
   let schedules;
@@ -125,14 +152,15 @@ router.post('/publish', auth, teacherOnly, (req, res) => {
     const dateStr = localDateString(target);
 
     const exists = db.get('SELECT id FROM sessions WHERE schedule_id=? AND class_date=?', [sc.id, dateStr]);
-    if (exists) continue;
+    if (exists) { skipped++; continue; }
 
     db.run('INSERT INTO sessions (teacher_id,class_id,schedule_id,title,class_date,start_time,end_time) VALUES (?,?,?,?,?,?,?)', [req.user.id, sc.class_id, sc.id, sc.class_name||sc.title, dateStr, sc.start_time, sc.end_time]);
+    publishedClassIds.push(sc.class_id);
     count++;
   }
 
-  for (const sc of schedules) { try { require('./notify').notifyReminder(sc.class_id); } catch(e) {} }
-  res.json({ ok: true, count });
+  const notify = count > 0 ? await notifyClasses(publishedClassIds) : { ok: false, total: 0, sent: 0, failed: 0, errors: [] };
+  res.json({ ok: true, count, skipped, notify });
 });
 
 module.exports = router;

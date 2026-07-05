@@ -122,8 +122,9 @@ export default {
       finally{this.loading=false;}
     },
     previewImg(i){uni.previewImage({current:this.fbImages[i],urls:this.fbImages});},
-    checkinBadgeClass(ci){return ci?.checkedOut?'done':(ci?.checkedIn?'in':'out');},
+    checkinBadgeClass(ci){return ci?.onLeave?'leave':(ci?.checkedOut?'done':(ci?.checkedIn?'in':'out'));},
     checkinText(ci){
+      if(ci?.onLeave)return '今日已请假';
       if(!ci||!ci.checkedIn)return '等待签到';
       if(ci.checkedOut)return '今日已签退 '+(ci.checkOutTime||'');
       return '今日已签到 '+(ci.checkInTime||'');
@@ -195,6 +196,7 @@ export default {
 .checkin-badge.in{background:#EEF5EF;color:#3F7A5B}
 .checkin-badge.done{background:#EEF2F7;color:#425B76}
 .checkin-badge.out{background:#F7F2E5;color:#7B5B36}
+.checkin-badge.leave{background:#F7EDEA;color:#9F4E43}
 
 .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14rpx}
 .card-title{font-size:28rpx;font-weight:700;color:#202733}

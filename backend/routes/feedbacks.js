@@ -139,6 +139,13 @@ const allowedPdfTypes = new Map([
   ['application/pdf', '.pdf']
 ]);
 
+function pdfExt(file) {
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (allowedPdfTypes.has(file.mimetype)) return allowedPdfTypes.get(file.mimetype);
+  if (ext === '.pdf') return '.pdf';
+  return '';
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadDir,
@@ -153,10 +160,10 @@ const upload = multer({
 const uploadPdf = multer({
   storage: multer.diskStorage({
     destination: uploadDir,
-    filename: (req, file, cb) => cb(null, crypto.randomUUID() + allowedPdfTypes.get(file.mimetype))
+    filename: (req, file, cb) => cb(null, crypto.randomUUID() + pdfExt(file))
   }),
   fileFilter: (req, file, cb) => {
-    if (!allowedPdfTypes.has(file.mimetype)) return cb(new Error('仅支持 PDF 文件'));
+    if (!pdfExt(file)) return cb(new Error('仅支持 PDF 文件'));
     cb(null, true);
   },
   limits: { fileSize: 25 * 1024 * 1024 }
@@ -181,15 +188,21 @@ function sanitizeFeedbackForParent(db, fb, parentId) {
   return copy;
 }
 
-router.post('/upload-image', auth, upload.single('image'), (req, res) => {
+router.post('/upload-image', auth, (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || '图片上传失败' });
   if (!req.file) return res.status(400).json({ error: '未选择文件' });
   res.json({ url: '/uploads/'+req.file.filename });
+  });
 });
 
-router.post('/upload-pdf', auth, uploadPdf.single('pdf'), (req, res) => {
+router.post('/upload-pdf', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
-  if (!req.file) return res.status(400).json({ error: '未选择文件' });
-  res.json({ url: '/uploads/'+req.file.filename });
+  uploadPdf.single('pdf')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'PDF 上传失败' });
+    if (!req.file) return res.status(400).json({ error: '未选择文件' });
+    res.json({ url: '/uploads/'+req.file.filename });
+  });
 });
 
 router.get('/latest', auth, (req, res) => {
