@@ -1,0 +1,47 @@
+name: Production DB Counts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Count production DB rows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count production DB rows
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            docker exec panpan-api node --input-type=module <<'NODE'
+            import fs from 'fs';
+            import initSqlJs from 'sql.js';
+            const SQL = await initSqlJs();
+            const files = [
+              '/app/data/teach.db',
+              '/opt/panpan-miniapp/data/teach.db'
+            ];
+            for (const file of files) {
+              if (!fs.existsSync(file)) {
+                console.log(file, 'missing');
+                continue;
+              }
+              const db = new SQL.Database(fs.readFileSync(file));
+              const tables = ['users','classes','students','bindings','schedules','sessions','checkins','feedbacks','leaves','parent_feedbacks'];
+              const counts = {};
+              for (const table of tables) {
+                try {
+                  const stmt = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`);
+                  stmt.step();
+                  counts[table] = stmt.getAsObject().c;
+                  stmt.free();
+                } catch {
+                  counts[table] = 'n/a';
+                }
+              }
+              console.log(file, fs.statSync(file).size, JSON.stringify(counts));
+            }
+            NODE
