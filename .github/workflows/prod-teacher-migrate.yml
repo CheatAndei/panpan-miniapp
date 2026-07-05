@@ -48,39 +48,39 @@ jobs:
 
             inspect_db() {
               docker exec -i panpan-api node --input-type=module <<'NODE'
-import fs from 'fs';
-import initSqlJs from 'sql.js';
-const file = '/app/data/teach.db';
-const SQL = await initSqlJs();
-const db = new SQL.Database(fs.readFileSync(file));
-const query = (sql, params = []) => {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) rows.push(stmt.getAsObject());
-  stmt.free();
-  return rows;
-};
-const scalar = (sql, params = []) => query(sql, params)[0]?.c || 0;
-const users = query(`
-  SELECT id, role, nickname, created_at,
-    substr(openid, 1, 6) || '...' || substr(openid, -4) AS openid_mask
-  FROM users
-  ORDER BY id
-`);
-console.log('USERS');
-for (const u of users) {
-  const row = {
-    ...u,
-    classes: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [u.id]),
-    students: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [u.id]),
-    schedules: scalar('SELECT COUNT(*) AS c FROM schedules WHERE teacher_id=?', [u.id]),
-    sessions: scalar('SELECT COUNT(*) AS c FROM sessions WHERE teacher_id=?', [u.id]),
-    feedbacks: scalar('SELECT COUNT(*) AS c FROM feedbacks WHERE teacher_id=?', [u.id])
-  };
-  console.log(JSON.stringify(row));
-}
-NODE
+            import fs from 'fs';
+            import initSqlJs from 'sql.js';
+            const file = '/app/data/teach.db';
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync(file));
+            const query = (sql, params = []) => {
+              const stmt = db.prepare(sql);
+              stmt.bind(params);
+              const rows = [];
+              while (stmt.step()) rows.push(stmt.getAsObject());
+              stmt.free();
+              return rows;
+            };
+            const scalar = (sql, params = []) => query(sql, params)[0]?.c || 0;
+            const users = query(`
+              SELECT id, role, nickname, created_at,
+                substr(openid, 1, 6) || '...' || substr(openid, -4) AS openid_mask
+              FROM users
+              ORDER BY id
+            `);
+            console.log('USERS');
+            for (const u of users) {
+              const row = {
+                ...u,
+                classes: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [u.id]),
+                students: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [u.id]),
+                schedules: scalar('SELECT COUNT(*) AS c FROM schedules WHERE teacher_id=?', [u.id]),
+                sessions: scalar('SELECT COUNT(*) AS c FROM sessions WHERE teacher_id=?', [u.id]),
+                feedbacks: scalar('SELECT COUNT(*) AS c FROM feedbacks WHERE teacher_id=?', [u.id])
+              };
+              console.log(JSON.stringify(row));
+            }
+            NODE
             }
 
             if [ "$MODE" = "inspect" ]; then
