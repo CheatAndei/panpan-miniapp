@@ -72,4 +72,21 @@ function handleLogin(openid, res) {
   res.json({ token, user });
 }
 
+function auth(req, res, next) {
+  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
+  catch { res.status(401).json({ error: '登录过期' }); }
+}
+
+router.get('/me', auth, (req, res) => {
+  const user = getDB().get('SELECT id,openid,nickname,avatar_url,role,phone FROM users WHERE id=?', [req.user.id]);
+  res.json({ user: user || null });
+});
+
+router.put('/me', auth, (req, res) => {
+  const nickname = String(req.body?.nickname || '').trim().slice(0, 20);
+  getDB().run('UPDATE users SET nickname=? WHERE id=?', [nickname, req.user.id]);
+  const user = getDB().get('SELECT id,openid,nickname,avatar_url,role,phone FROM users WHERE id=?', [req.user.id]);
+  res.json({ ok: true, user });
+});
+
 module.exports = router;

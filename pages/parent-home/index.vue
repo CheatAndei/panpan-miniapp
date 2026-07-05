@@ -14,6 +14,7 @@
       <view :class="['i-dot',todayCheckin.checkedIn?'green':'amber']"></view>
       {{ checkinText(todayCheckin) }}
     </view>
+    <view v-if="todayCheckin.checkOutNote" class="checkin-note">{{ todayCheckin.checkOutNote }}</view>
     <button class="notify-btn" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
     <button class="notify-test-btn" @tap="sendTestNotify">测试服务通知</button>
   </view>
@@ -197,6 +198,7 @@ export default {
 .checkin-badge.done{background:#EEF2F7;color:#425B76}
 .checkin-badge.out{background:#F7F2E5;color:#7B5B36}
 .checkin-badge.leave{background:#F7EDEA;color:#9F4E43}
+.checkin-note{margin-top:12rpx;color:#9F4E43;font-size:24rpx;line-height:1.5}
 
 .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14rpx}
 .card-title{font-size:28rpx;font-weight:700;color:#202733}

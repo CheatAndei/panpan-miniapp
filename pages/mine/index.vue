@@ -54,6 +54,12 @@
   </view>
 
   <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
+    <text class="section-title">老师称呼</text>
+    <input v-model="teacherNickname" class="input" placeholder="例如：潘潘" />
+    <button class="btn-primary" @tap="saveTeacherName">保存称呼</button>
+  </view>
+
+  <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
     <text class="section-title">服务通知配置</text>
     <view class="notify-row"><text>小程序 AppID</text><text :class="notifyStatus.appId?'ok':'bad'">{{ notifyStatus.appId?'已配置':'未配置' }}</text></view>
     <view class="notify-row"><text>小程序密钥</text><text :class="notifyStatus.appSecret?'ok':'bad'">{{ notifyStatus.appSecret?'已配置':'未配置' }}</text></view>
@@ -80,14 +86,30 @@ import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',studentName:'',notifyStatus:null
+    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:''
   };},
   onShow(){this.loadData();},
   methods:{
     loadData(){
       try{this.user=JSON.parse(uni.getStorageSync('user')||'{}');}catch(e){this.user={};}
       if(this.user.role==='parent'){this.loadProfile();}
-      if(this.user.role==='teacher'){this.loadNotifyStatus();}
+      if(this.user.role==='teacher'){this.loadTeacherProfile();this.loadNotifyStatus();}
+    },
+    async loadTeacherProfile(){
+      try{
+        const data=await api.get('/auth/me');
+        if(data.user){this.user={...this.user,...data.user};this.teacherNickname=(data.user.nickname||'').replace(/老师$/,'');uni.setStorageSync('user',JSON.stringify(this.user));}
+      }catch(e){logError('mine.teacherProfile',e);}
+    },
+    async saveTeacherName(){
+      const nickname=(this.teacherNickname||'').trim();
+      if(!nickname)return uni.showToast({title:'请填写称呼',icon:'none'});
+      try{
+        const data=await api.put('/auth/me',{nickname});
+        this.user={...this.user,...data.user};
+        uni.setStorageSync('user',JSON.stringify(this.user));
+        uni.showToast({title:'已保存',icon:'success'});
+      }catch(e){uni.showToast({title:'保存失败',icon:'none'});}
     },
     async loadNotifyStatus(){
       try{this.notifyStatus=await api.get('/notify/status');}
@@ -153,6 +175,8 @@ export default {
 .action-row{display:flex;justify-content:space-between;align-items:center;font-size:28rpx;padding:12rpx 0}
 .arrow{font-size:32rpx;color:#C3C1BA}
 .notify-card{margin-top:12rpx}
+.input{border:1rpx solid #E1DDD4;border-radius:10rpx;padding:18rpx;margin:12rpx 0 16rpx;font-size:28rpx;color:#46515C}
+.btn-primary{background:#202733;color:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;text-align:center;border:none;width:100%;margin-bottom:10rpx}
 .notify-row{display:flex;justify-content:space-between;align-items:center;font-size:26rpx;padding:10rpx 0;border-bottom:1rpx solid #ECE8E0;color:#46515C}
 .notify-row:last-child{border-bottom:none}
 .ok{color:#3F8B65;font-weight:700}

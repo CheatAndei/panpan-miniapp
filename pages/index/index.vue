@@ -78,6 +78,7 @@
         <view :class="['status-badge', statusBadgeClass(todayStatus)]">
           {{ statusText(todayStatus) }}
         </view>
+        <view v-if="todayStatus.checkOutNote" class="status-note">{{ todayStatus.checkOutNote }}</view>
       </view>
 
       <view class="card">
@@ -474,12 +475,13 @@ function statusText(status) {
 .child-avatar { width: 120rpx; height: 120rpx; border-radius: 50%; border: 3rpx solid #EFEDE7; margin-bottom: 16rpx; }
 .fb-textarea { border: 1rpx solid #E1DDD4; border-radius: 10rpx; padding: 18rpx; font-size: 28rpx; width: 100%; min-height: 120rpx; box-sizing: border-box; margin-top: 8rpx; }
 
-.status-card { display: flex; align-items: center; gap: 16rpx; }
+.status-card { display: flex; flex-direction: column; align-items: flex-start; gap: 12rpx; }
 .status-badge { padding: 10rpx 24rpx; border-radius: 20rpx; font-size: 28rpx; font-weight: 600; }
 .status-badge.in { background: #EBF8F2; color: #3F8B65; }
 .status-badge.done { background: #EEF2F7; color: #425B76; }
 .status-badge.out { background: #F7F1E7; color: #A66A3E; }
 .status-badge.leave { background: #F7EDEA; color: #9F4E43; }
+.status-note { color: #9F4E43; font-size: 24rpx; line-height: 1.5; }
 .status-time { font-size: 24rpx; color: #8A929B; }
 
 .section-title { font-size: 28rpx; font-weight: 700; margin-bottom: 12rpx; color: #202733; letter-spacing: 0; display: flex; justify-content: space-between; align-items: center; }

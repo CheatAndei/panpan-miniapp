@@ -27,6 +27,7 @@ router.get('/today', auth, (req, res) => {
     checkInTime: s.check_in_time,
     checkOutTime: s.check_out_time,
     status: s.status,
+    checkOutNote: s.check_out_note || '',
     onLeave: !!leave,
     leaveReason: leave?.reason || ''
   });
@@ -44,6 +45,7 @@ router.get('/status', auth, (req, res) => {
     checkedOut: ci.status==='checked_out',
     checkInTime: ci.check_in_time,
     checkOutTime: ci.check_out_time,
+    checkOutNote: ci.check_out_note || '',
     onLeave: !!leave
   });
 });
@@ -71,11 +73,14 @@ router.post('/check-in', auth, async (req, res) => {
 // 老师签退
 router.post('/check-out', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
-  const { studentId, studentName, classDate } = req.body;
+  const { studentId, studentName, classDate, special, teacherName } = req.body;
   const db = getDB();
   const now = new Date().toISOString();
   const date = classDate || new Date().toISOString().slice(0,10);
-  const result = db.run('UPDATE checkins SET check_out_time=?, status=? WHERE student_id=? AND class_date=? AND status=?', [now, 'checked_out', studentId, date, 'checked_in']);
+  const teacher = db.get('SELECT nickname FROM users WHERE id=?', [req.user.id]);
+  const displayName = String(teacherName || teacher?.nickname || '老师').trim();
+  const note = special ? `${displayName}老师已离开，请家长主动联系小朋友沟通安排后续。` : '';
+  const result = db.run('UPDATE checkins SET check_out_time=?, status=?, check_out_note=? WHERE student_id=? AND class_date=? AND status=?', [now, 'checked_out', note, studentId, date, 'checked_in']);
   if (result.changes === 0) {
     return res.status(400).json({ error: '未找到签到记录，请先签到' });
   }

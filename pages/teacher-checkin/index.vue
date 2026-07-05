@@ -37,11 +37,13 @@
           <view class="stu-left">
             <text class="s-name">{{ s.name }}</text>
             <view :class="['i-badge',s._leave?'warn':s._out?'out':s._checked?'in':'out']">{{ s._leave?'请假':s._out?'已签退':s._checked?'已签到':'待签到' }}<text v-if="statusText(s)" class="st-time"> {{ statusText(s) }}</text></view>
+            <text v-if="s._outNote" class="note-text">{{ s._outNote }}</text>
           </view>
           <view class="stu-right">
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-in" @tap="checkIn(se,s)">签到</button>
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-leave" @tap="markLeave(se,s)">请假</button>
             <button v-if="s._checked&&!s._out" class="btn-sm btn-out" @tap="checkOut(se,s)">签退</button>
+            <button v-if="s._checked&&!s._out" class="btn-sm btn-special-out" @tap="checkOut(se,s,true)">特殊签退</button>
             <text v-if="s._out" class="time-text">{{ s._outTime }}</text>
           </view>
         </view>
@@ -82,7 +84,7 @@ export default {
       try{
         const res=await api.get('/students?class_id='+se.class_id);
         const students=(res.students||[]).map(s=>{
-          s._checked=false;s._out=false;s._leave=false;s._inTime='';s._outTime='';
+          s._checked=false;s._out=false;s._leave=false;s._inTime='';s._outTime='';s._outNote='';
           return s;
         });
         // 并行查询各学生签到状态（原为逐个 await 的串行瀑布，N 人=N 次往返）
@@ -92,6 +94,7 @@ export default {
             s._checked=ci.checkedIn||false;s._out=ci.checkedOut||false;
             s._inTime=ci.checkInTime?new Date(ci.checkInTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'';
             s._outTime=ci.checkOutTime?new Date(ci.checkOutTime).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'';
+            s._outNote=ci.checkOutNote||'';
             s._leave=ci.onLeave||false;
           }catch(e){logError('checkinStatus',e);}
         }));
@@ -104,9 +107,10 @@ export default {
         toastSuccess(res.notify?.ok?s.name+' 已签到并提醒':s.name+' 已签到，提醒未送达');}
       catch(e){toastError(e,'签到失败');}
     },
-    async checkOut(se,s){
-      try{const res=await api.post('/checkins/check-out',{studentId:s.id,studentName:s.name,classDate:se.class_date});
+    async checkOut(se,s,special=false){
+      try{const res=await api.post('/checkins/check-out',{studentId:s.id,studentName:s.name,classDate:se.class_date,special,teacherName:this.teacherName()});
         s._out=true;s._outTime=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+        if(special)s._outNote=this.teacherName()+'老师已离开，请家长主动联系小朋友沟通安排后续。';
         toastSuccess(res.notify?.ok?s.name+' 已签退并提醒':s.name+' 已签退，提醒未送达');
         const allDone=se._students.every(s=>s._leave||s._out);
         if(allDone){await api.put('/schedules/sessions/'+se.id+'/complete');this.sessions=this.sessions.filter(x=>x.id!==se.id);}
@@ -129,6 +133,7 @@ export default {
       for(const s of notChecked){try{await this.checkIn(se,s);}catch(e){logError('checkInAll',e);}}
     },
     statusText(s){if(s._leave)return'请假';if(s._out)return s._outTime;if(s._checked)return s._inTime;return'';},
+    teacherName(){try{return (JSON.parse(uni.getStorageSync('user')||'{}').nickname||'').replace(/老师$/,'')||'潘潘';}catch(e){return'潘潘';}},
     statusClass(s){if(s._leave)return'st-leave';if(s._out)return'st-out';if(s._checked)return'st-in';return'st-absent';},
     onTouchStart(e,se){se._startX=e.touches[0].clientX;se._swiping=true;},
     onTouchMove(e,se){if(!se._swiping)return;const dx=e.touches[0].clientX-se._startX;if(dx<-40){se._swiped=true;}else if(dx>40){se._swiped=false;}},
@@ -162,7 +167,7 @@ export default {
 .btn-accent{background:#A57945;color:#fff;border-radius:12rpx;padding:12rpx;font-size:24rpx;border:none;width:100%}
 .mb-sm{margin-bottom:16rpx}
 .btn-sm{padding:10rpx 24rpx;border-radius:8rpx;font-size:24rpx;border:none}
-.btn-in{background:#3F8B65;color:#fff}.btn-out{background:#52707E;color:#fff}.btn-leave{background:#F7F2E5;color:#7B5B36}
+.btn-in{background:#3F8B65;color:#fff}.btn-out{background:#52707E;color:#fff}.btn-special-out{background:#202733;color:#fff}.btn-leave{background:#F7F2E5;color:#7B5B36}
 .stats{display:flex;gap:24rpx;margin-bottom:16rpx}
 .stat{font-size:26rpx;color:#46515C}.stat.green{color:#3F8B65}.stat.gray{color:#8A929B}
 .stu-row{display:flex;justify-content:space-between;align-items:center;padding:18rpx 0;border-bottom:1rpx solid #ECE8E0}
@@ -171,6 +176,7 @@ export default {
 .s-name{font-size:30rpx;font-weight:600}
 .s-status{font-size:24rpx;margin-top:4rpx}
 .st-time{font-size:20rpx;font-weight:400;margin-left:4rpx}
+.note-text{font-size:22rpx;color:#9F4E43;margin-top:6rpx;line-height:1.45}
 .time-text{font-size:24rpx;color:#8A929B}
 .empty{text-align:center;color:#C3C1BA;padding:40rpx;font-size:28rpx}
 .empty-sm{text-align:center;color:#C3C1BA;padding:20rpx;font-size:24rpx}

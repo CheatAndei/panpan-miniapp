@@ -14,7 +14,7 @@
   </view>
 
   <view v-for="se in completedSessions" :key="se.id" class="card se-card">
-    <view class="se-hd">
+    <view class="se-hd" @tap="se._open=false">
       <text class="se-title">{{ se.title }}</text>
       <text class="se-date">{{ se.class_date }}</text>
     </view>
@@ -38,7 +38,7 @@
         <button class="btn-primary big" @tap="genClassFeedback(se)" :disabled="se._cf._genning">
           {{ se._cf._genning?'生成中...':(se._cf._text?'重新生成':'一键生成学习小组反馈') }}
         </button>
-        <textarea v-if="se._cf._text" v-model="se._cf._text" class="result-area" :maxlength="500" />
+        <textarea v-model="se._cf._text" class="result-area" placeholder="可直接手动输入学习小组总反馈" :maxlength="500" />
       </view>
 
       <!-- 学生反馈板块 -->
@@ -58,7 +58,7 @@
           <text class="label">出门测 {{ s._score }}/10</text>
           <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#A57945" />
           <input v-model="s._note" class="input big" placeholder="大致情况" />
-          <textarea v-if="s._text" v-model="s._text" class="result-area" :maxlength="180" />
+          <textarea v-model="s._text" class="result-area" placeholder="可直接手动输入学生反馈" :maxlength="240" />
           <!-- 图片 -->
           <view v-if="s._images && s._images.length>0" class="img-row">
             <image v-for="(img,i) in s._images" :key="i" :src="img" mode="aspectFill" class="thumb" @tap="previewStuImg(s,i)" />
@@ -153,7 +153,7 @@ export default {
           students,classInfo:{content:se._cf.lesson+' '+se._cf.topic,perfScore:se._cf.perfScore}
         });
         (r.results||[]).forEach((item,i)=>{
-          if(students[i]){const s=se._students.find(s=>s.id===students[i].id);if(s)s._text=item.feedback;}
+          if(students[i]){const s=se._students.find(s=>s.id===students[i].id);if(s)s._text=this.formatStudentFeedback(s,item.feedback);}
         });
         toastSuccess('全部生成完成');
       }catch(e){toastError(e,'生成失败');}
@@ -190,7 +190,7 @@ export default {
           name:s.name,level:s.level,personality:s.personality,
           quizScore:s._score,note:s._note,content:se._cf.lesson+' '+se._cf.topic,perfScore:se._cf.perfScore
         });
-        s._text=r.text;
+        s._text=this.formatStudentFeedback(s,r.text);
       }catch(e){if(!silent)toastError(e,'生成失败');else logError('genStuFeedback',e);}
     },
     async publishFeedback(se){
@@ -212,7 +212,7 @@ export default {
               try{const res=await this.uploadImg(img);if(res)urls.push(res);}catch(e){logError('uploadImg',e);}
             }
           }
-          students.push({id:s.id,name:s.name,text:s._text,images:urls});
+          students.push({id:s.id,name:s.name,text:this.formatStudentFeedback(s,s._text),images:urls});
         }
         await api.post('/feedbacks/publish',{
           class_id:se.class_id,class_date:se.class_date,schedule_id:se.schedule_id||null,
@@ -225,6 +225,14 @@ export default {
         this.loadSessions();
       }catch(e){toastError(e,'发布失败');}
       finally{se._publishing=false;}
+    },
+    formatStudentFeedback(s,text){
+      const emoji=s.gender==='girl'?'🌸':'🌟';
+      let body=String(text||'').replace(/\r/g,'').trim();
+      body=body.replace(new RegExp('^'+s.name+'[：:，,\\s]*'),'').replace(/^[🌸🌟✨⭐]\s*/,'');
+      const parts=body.split(/\n+/).map(p=>p.trim()).filter(Boolean);
+      const normalized=(parts.length?parts:[body]).map(p=>'  '+p.replace(/^　+|^\s+/, '')).join('\n');
+      return `${s.name}${emoji}\n${normalized}`;
     },
     async publishNotes(se){
       if(!se._pdfTemp&&!se._noteRemark) return uni.showToast({title:'请选择学习笔记或填写备注',icon:'none'});

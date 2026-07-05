@@ -30,9 +30,11 @@
             <text class="s-name" @tap.stop="openStudent(s)">{{ s.name }}</text>
             <text v-if="s.level" :class="['s-level',lvClass(s.level)]">{{ s.level }}</text>
           </view>
-          <text class="s-code" @tap.stop="copyInviteCode(s.invite_code)">邀请码: {{ s.invite_code }}</text>
-          <text class="btn-xs" @tap.stop="copyInviteCode(s.invite_code)">复制</text>
-          <text class="btn-xs del" @tap.stop="delStu(c,s.id)">×</text>
+          <view class="stu-actions">
+            <text class="btn-xs copy" @tap.stop="copyInviteCode(s.invite_code)">复制</text>
+            <text class="s-code" @tap.stop="copyInviteCode(s.invite_code)">邀请码: {{ s.invite_code }}</text>
+            <text class="btn-xs del" @tap.stop="delStu(c,s.id)">删除</text>
+          </view>
         </view>
       </view>
       <view v-else class="empty-sm">暂无学生</view>
@@ -175,12 +177,17 @@ export default {
     async createStu() {
       if (!this.sForm.name) return uni.showToast({ title:'请输入姓名', icon:'none' });
       try {
-        await api.post('/students', {
+        const created=await api.post('/students', {
           class_id: this.activeClass.id, name: this.sForm.name,
           level: this.sForm.level, gender: this.sForm.gender,
           personality: [...this.sForm.traits].join('、')
         });
-        this.showStu=false; this.loadData();
+        if(created.student)this.activeClass._students.push(created.student);
+        this.totalStudents+=1;
+        const lastGender=this.sForm.gender;
+        this.sForm={name:'',gender:lastGender,level:'',traits:new Set()};
+        this.traitOpen={};
+        uni.showToast({title:'已添加，可继续添加',icon:'success'});
       } catch(e) { toastError(e, '添加失败'); }
     },
     copyInviteCode(code) {
@@ -193,8 +200,11 @@ export default {
     },
     openStudent(s){ uni.navigateTo({ url: '/pages/student-detail/index?id='+s.id }); },
     async delStu(c, sid) {
-      try { await api.del('/students/'+sid); this.loadData(); }
-      catch(e) { toastError(e, '删除失败'); }
+      uni.showModal({title:'删除学生',content:'确定删除该学生？',success:async r=>{
+        if(!r.confirm)return;
+        try { await api.del('/students/'+sid); c._students=c._students.filter(s=>s.id!==sid); this.totalStudents=Math.max(0,this.totalStudents-1); }
+        catch(e) { toastError(e, '删除失败'); }
+      }});
     }
   }
 };
@@ -229,7 +239,7 @@ export default {
 .c-toggle { font-size:24rpx; color:#8A929B; margin-right:4rpx; }
 
 .stu-list { border-top:1rpx solid #ECE8E0; margin:0 28rpx; padding:10rpx 0; }
-.stu-row { display:flex; align-items:center; padding:14rpx 0; border-bottom:1rpx solid #F0ECE5; }
+.stu-row { display:flex; align-items:center; padding:14rpx 0; border-bottom:1rpx solid #F0ECE5; gap:10rpx; }
 .stu-row:last-child { border-bottom:none; }
 .stu-info { flex:1; display:flex; align-items:center; gap:10rpx; }
 .s-name { font-weight:600; font-size:28rpx; }
@@ -240,9 +250,11 @@ export default {
 .lv-c { background:#F7F2E5; color:#A57945; }
 .lv-d { background:#F7EDEA; color:#A66A3E; }
 .lv-e { background:#F7EDEA; color:#B85C4E; }
-.s-code { font-size:22rpx; color:#A57945; margin-right:8rpx; }
+.stu-actions{display:flex;align-items:center;gap:14rpx;flex-shrink:0}
+.s-code { font-size:22rpx; color:#A57945; }
 
 .btn-xs { padding:6rpx 12rpx; font-size:22rpx; color:#69717D; border-radius:8rpx; background:#F8F6F1; }
+.btn-xs.copy{color:#3F8B65}
 .btn-xs.del { color:#B85C4E; }
 .btn-add-stu { margin:10rpx 28rpx 26rpx; padding:16rpx; font-size:24rpx; background:#F8F6F1; color:#202733; border:1rpx solid #E5E0D8; border-radius:12rpx; width:auto; }
 .empty-sm { text-align:center; color:#8A929B; padding:28rpx; font-size:24rpx; }
