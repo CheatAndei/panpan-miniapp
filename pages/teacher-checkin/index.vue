@@ -182,6 +182,8 @@ export default {
 .stu-row{display:flex;justify-content:space-between;align-items:center;padding:18rpx 0;border-bottom:1rpx solid #ECE8E0}
 .stu-row.leave{opacity:.4}
 .stu-left{display:flex;flex-direction:column}
+.stu-right{display:flex;align-items:center;justify-content:flex-end;gap:12rpx;flex-wrap:wrap;min-width:224rpx}
+.stu-right .btn-sm{width:104rpx;min-width:104rpx;padding:10rpx 0;margin:0;line-height:1.4}
 .s-name{font-size:30rpx;font-weight:600}
 .s-status{font-size:24rpx;margin-top:4rpx}
 .st-time{font-size:20rpx;font-weight:400;margin-left:4rpx}

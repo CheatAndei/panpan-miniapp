@@ -7,7 +7,8 @@
   <!-- 用户卡片 -->
   <view class="user-card hero-navy">
     <pp-avatar v-if="user.role==='parent'" :name="studentName" :size="128" class="parent-avatar" />
-    <image v-else src="/static/pantouxiang.png" class="teacher-avatar" mode="aspectFill" />
+    <image v-else-if="!teacherAvatarBroken" src="/static/pantouxiang.webp" class="teacher-avatar" mode="aspectFill" @error="teacherAvatarBroken=true" />
+    <pp-avatar v-else :name="teacherNickname || user.nickname || '潘潘'" :size="128" class="teacher-avatar-fallback" />
     <text class="name">{{ user.role==='teacher' ? '潘潘老师' : (childName||'家长') }}</text>
     <text class="role-tag">{{ user.role==='teacher' ? '教师端' : '家长端' }}</text>
   </view>
@@ -93,7 +94,7 @@ import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',boundKids:[]
+    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',boundKids:[],teacherAvatarBroken:false
   };},
   onShow(){this.loadData();},
   methods:{
@@ -170,6 +171,7 @@ export default {
 .user-card{display:flex;flex-direction:column;align-items:center;padding:56rpx 0 44rpx}
 .parent-avatar{margin-bottom:8rpx}
 .teacher-avatar{width:120rpx;height:120rpx;border-radius:50%;box-shadow:0 4rpx 14rpx rgba(36,42,50,.10),inset 0 0 0 2rpx rgba(255,255,255,.7)}
+.teacher-avatar-fallback{margin-bottom:8rpx}
 .name{font-size:36rpx;font-weight:700;color:#202733;margin-top:16rpx}
 .role-tag{font-size:22rpx;background:#F3F1EA;color:#69717D;padding:6rpx 18rpx;border-radius:20rpx;margin-top:10rpx;letter-spacing:1rpx}
 

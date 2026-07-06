@@ -25,7 +25,8 @@ const FIELDS = {
   checkout: {
     student: process.env.TPL_FIELD_CHECKOUT_STUDENT || 'thing1',
     time: process.env.TPL_FIELD_CHECKOUT_TIME || 'time2',
-    status: process.env.TPL_FIELD_CHECKOUT_STATUS || 'phrase3'
+    status: process.env.TPL_FIELD_CHECKOUT_STATUS || 'phrase3',
+    note: process.env.TPL_FIELD_CHECKOUT_NOTE || 'thing3'
   },
   reminder: {
     className: process.env.TPL_FIELD_REMINDER_CLASS || 'thing1',
@@ -42,7 +43,8 @@ const FIELDS = {
 function templateData(pairs) {
   const data = {};
   for (const [key, value] of pairs) {
-    const item = { value: String(value || '').slice(0, 20) };
+    const max = /^phrase\d+$/.test(key) ? 5 : 20;
+    const item = { value: String(value || '').slice(0, max) };
     data[key] = item;
     if (/^time\d+$/.test(key)) {
       for (let i = 1; i <= 20; i++) data[`time${i}`] = data[`time${i}`] || item;
@@ -53,6 +55,25 @@ function templateData(pairs) {
     if (/^thing\d+$/.test(key)) {
       for (let i = 1; i <= 20; i++) data[`thing${i}`] = data[`thing${i}`] || item;
     }
+  }
+  return data;
+}
+
+function checkoutData(studentName, now, note = '') {
+  const isSpecial = !!String(note || '').trim();
+  const status = isSpecial ? '已离开' : '已下课离开';
+  const data = templateData([
+    [FIELDS.checkout.student, studentName],
+    [FIELDS.checkout.time, now],
+    [FIELDS.checkout.status, status]
+  ]);
+  if (isSpecial) {
+    const detail = { value: String(note).slice(0, 20) };
+    for (let i = 1; i <= 20; i++) {
+      const thingKey = `thing${i}`;
+      if (thingKey !== FIELDS.checkout.student) data[thingKey] = detail;
+    }
+    data[FIELDS.checkout.note] = detail;
   }
   return data;
 }
@@ -216,11 +237,7 @@ router.notifyCheckout = async (studentId, note = '') => {
   const db = getDB();
   const s = db.get('SELECT name FROM students WHERE id=?', [studentId]);
   const now = wxTime();
-  return notifyParents(studentId, TPLS.checkout, templateData([
-    [FIELDS.checkout.student, s?.name || '学生'],
-    [FIELDS.checkout.time, now],
-    [FIELDS.checkout.status, note || '已下课离开']
-  ]), 'pages/index/index');
+  return notifyParents(studentId, TPLS.checkout, checkoutData(s?.name || '学生', now, note), 'pages/index/index');
 };
 
 router.notifyReminder = async (classId, note = '') => {

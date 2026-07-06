@@ -174,6 +174,24 @@ const uploadPdf = multer({
   limits: { fileSize: 25 * 1024 * 1024 }
 });
 
+function extFromName(name = '') {
+  return path.extname(name).toLowerCase();
+}
+
+function saveBase64Upload(req, res, options) {
+  const { base64, fileName = '', mimeType = '' } = req.body || {};
+  if (!base64) return res.status(400).json({ error: '未选择文件' });
+  const clean = String(base64).replace(/^data:[^;]+;base64,/, '');
+  const buffer = Buffer.from(clean, 'base64');
+  if (!buffer.length) return res.status(400).json({ error: '文件内容为空' });
+  if (buffer.length > options.maxSize) return res.status(400).json({ error: options.tooLarge });
+  let ext = options.allowed.get(mimeType) || extFromName(fileName);
+  if (!options.exts.includes(ext)) return res.status(400).json({ error: options.invalid });
+  const savedName = crypto.randomUUID() + ext;
+  fs.writeFileSync(path.join(uploadDir, savedName), buffer);
+  return res.json({ url: '/uploads/' + savedName });
+}
+
 function boundStudentIds(db, parentId) {
   return new Set(db.all('SELECT student_id FROM bindings WHERE parent_id=?', [parentId]).map((item) => Number(item.student_id)));
 }
@@ -194,6 +212,15 @@ function sanitizeFeedbackForParent(db, fb, parentId) {
 }
 
 router.post('/upload-image', auth, (req, res) => {
+  if (req.body?.base64) {
+    return saveBase64Upload(req, res, {
+      allowed: allowedImageTypes,
+      exts: ['.jpg', '.jpeg', '.png', '.webp'],
+      maxSize: 10 * 1024 * 1024,
+      tooLarge: '图片不能超过 10MB',
+      invalid: '仅支持 JPG/PNG/WebP 图片'
+    });
+  }
   upload.single('image')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || '图片上传失败' });
   if (!req.file) return res.status(400).json({ error: '未选择文件' });
@@ -203,6 +230,15 @@ router.post('/upload-image', auth, (req, res) => {
 
 router.post('/upload-pdf', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  if (req.body?.base64) {
+    return saveBase64Upload(req, res, {
+      allowed: allowedPdfTypes,
+      exts: ['.pdf'],
+      maxSize: 25 * 1024 * 1024,
+      tooLarge: 'PDF 不能超过 25MB',
+      invalid: '仅支持 PDF 文件'
+    });
+  }
   uploadPdf.single('pdf')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'PDF 上传失败' });
     if (!req.file) return res.status(400).json({ error: '未选择文件' });

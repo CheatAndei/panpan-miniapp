@@ -24,7 +24,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // 中间件
 app.use(cors({ origin: corsOrigins.length > 0 ? corsOrigins : false }));
-app.use(express.json());
+app.use(express.json({ limit: '30mb' }));
 app.use((err, req, res, next) => {
   if (err && err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: '请求格式错误' });
@@ -49,7 +49,7 @@ app.use('/api/notify', notifyRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'bug2-notify-fields-v3' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'bug5-upload-notify-v1' });
 });
 
 // 初始化数据库并启动
