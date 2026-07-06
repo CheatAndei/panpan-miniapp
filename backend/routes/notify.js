@@ -61,7 +61,8 @@ function templateData(pairs) {
 
 function checkoutData(studentName, now, note = '') {
   const isSpecial = !!String(note || '').trim();
-  const status = isSpecial ? '已离开' : '已下课离开';
+  const statusField = FIELDS.checkout.status;
+  const status = isSpecial && /^thing\d+$/.test(statusField) ? note : (isSpecial ? '已离开' : '已下课离开');
   const data = templateData([
     [FIELDS.checkout.student, studentName],
     [FIELDS.checkout.time, now],
