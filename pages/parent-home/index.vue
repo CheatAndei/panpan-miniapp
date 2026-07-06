@@ -189,16 +189,9 @@ export default {
         uni.showModal({title:'测试失败',content:String(msg).slice(0,120),showCancel:false});
       }
     },
-    openPdf(url){
-      const fileUrl=api.assetUrl(url);
-      uni.downloadFile({
-        url:fileUrl,
-        success:res=>{
-          if(res.statusCode===200) uni.openDocument({filePath:res.tempFilePath,fileType:'pdf',showMenu:true});
-          else uni.showToast({title:'PDF 下载失败',icon:'none'});
-        },
-        fail:()=>uni.showToast({title:'PDF 下载失败',icon:'none'})
-      });
+    async openPdf(url){
+      try{await api.openPdf(url);}
+      catch(e){uni.showToast({title:'PDF 打开失败',icon:'none'});}
     },
     nav(url){uni.navigateTo({url});}
   }

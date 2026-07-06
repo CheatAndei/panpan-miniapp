@@ -129,11 +129,52 @@ export function uploadFile(path, filePath, name = 'file') {
   });
 }
 
+export function openPdfDocument(url) {
+  const fileUrl = assetUrl(url);
+  const fs = uni.getFileSystemManager && uni.getFileSystemManager();
+  const userDataPath = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH)
+    || (uni.env && uni.env.USER_DATA_PATH)
+    || '';
+  if (!fs || !userDataPath) {
+    return new Promise((resolve, reject) => {
+      uni.downloadFile({
+        url: fileUrl,
+        success: (res) => {
+          if (res.statusCode !== 200) return reject({ error: 'PDF 下载失败' });
+          uni.openDocument({ filePath: res.tempFilePath, fileType: 'pdf', showMenu: true, success: resolve, fail: reject });
+        },
+        fail: reject
+      });
+    });
+  }
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: fileUrl,
+      method: 'GET',
+      header: authHeader(),
+      responseType: 'arraybuffer',
+      success: (res) => {
+        if (res.statusCode !== 200 || !res.data) return reject({ error: 'PDF 下载失败' });
+        const filePath = `${userDataPath}/panpan-note-${Date.now()}.pdf`;
+        fs.writeFile({
+          filePath,
+          data: res.data,
+          encoding: 'binary',
+          success: () => uni.openDocument({ filePath, fileType: 'pdf', showMenu: true, success: resolve, fail: reject }),
+          fail: reject
+        });
+      },
+      fail: reject
+    });
+  });
+}
+
 export const api = {
   get(path, data) { return request('GET', path, data); },
   post(path, data) { return request('POST', path, data); },
   put(path, data) { return request('PUT', path, data); },
   del(path) { return request('DELETE', path); },
   upload(path, filePath, name) { return uploadFile(path, filePath, name); },
-  assetUrl
+  assetUrl,
+  openPdf(url) { return openPdfDocument(url); }
 };

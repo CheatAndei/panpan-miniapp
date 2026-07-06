@@ -61,19 +61,9 @@ export default {
     },
     imgUrl(url){return api.assetUrl(url);},
     previewImg(list,i){uni.previewImage({current:this.imgUrl(list[i]),urls:list.map(u=>this.imgUrl(u))});},
-    openPdf(url){
-      const fileUrl=this.imgUrl(url);
-      uni.downloadFile({
-        url:fileUrl,
-        success:res=>{
-          if(res.statusCode===200){
-            uni.openDocument({filePath:res.tempFilePath,fileType:'pdf',showMenu:true});
-          }else{
-            uni.showToast({title:'PDF 下载失败',icon:'none'});
-          }
-        },
-        fail:()=>uni.showToast({title:'PDF 下载失败',icon:'none'})
-      });
+    async openPdf(url){
+      try{await api.openPdf(url);}
+      catch(e){uni.showToast({title:'PDF 打开失败',icon:'none'});}
     },
     showDetail(fb){
       if(fb.student_feedbacks){try{fb._students=JSON.parse(fb.student_feedbacks);}catch(e){fb._students=[];}}

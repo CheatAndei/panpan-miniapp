@@ -28,3 +28,5 @@ assert('图片和 PDF 支持 base64 上传', feedbacks.includes('saveBase64Uploa
 assert('前端上传绕开 uploadFile 域名限制', api.includes('uploadAsBase64') && api.includes('getFileSystemManager'));
 assert('签到请假按钮横向排列', checkin.includes('.stu-right{display:flex') && checkin.includes('gap:12rpx'));
 assert('教师头像有兜底', mine.includes('teacherAvatarBroken') && mine.includes('teacher-avatar-fallback'));
+assert('反馈通知备注使用班级名', notify.includes("FIELDS.feedback.note, cls?.name || '学习小组'"));
+assert('PDF 使用 request 写入本地后打开', api.includes('openPdfDocument') && api.includes("responseType: 'arraybuffer'"));

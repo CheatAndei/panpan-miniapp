@@ -252,10 +252,12 @@ router.notifyReminder = async (classId, note = '') => {
 };
 
 router.notifyFeedback = async (classId) => {
+  const db = getDB();
+  const cls = db.get('SELECT name FROM classes WHERE id=?', [classId]);
   return notifyParentsByClass(classId, TPLS.feedback, templateData([
     [FIELDS.feedback.title, '课后反馈已发布'],
     [FIELDS.feedback.time, bjDate()],
-    [FIELDS.feedback.note, '点击查看详情']
+    [FIELDS.feedback.note, cls?.name || '学习小组']
   ]), 'pages/parent-feedback/index');
 };
 
