@@ -9,12 +9,37 @@ function auth(req, res, next) {
   catch { res.status(401).json({ error: '登录过期' }); }
 }
 
+function studentWithTeacher(db, whereSql, params) {
+  return db.get(`SELECT s.*, c.name as className,
+    u.id as teacher_id,
+    COALESCE(NULLIF(u.nickname,''),'老师') as teacher_name,
+    u.avatar_url as teacher_avatar_url,
+    u.phone as teacher_phone
+    FROM students s
+    LEFT JOIN classes c ON c.id=s.class_id
+    LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
+    ${whereSql}`, params);
+}
+
+function studentsWithTeacher(db, whereSql, params) {
+  return db.all(`SELECT s.*, c.name as className,
+    u.id as teacher_id,
+    COALESCE(NULLIF(u.nickname,''),'老师') as teacher_name,
+    u.avatar_url as teacher_avatar_url,
+    u.phone as teacher_phone
+    FROM students s
+    LEFT JOIN classes c ON c.id=s.class_id
+    LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
+    ${whereSql}`, params);
+}
+
 router.post('/', auth, (req, res) => {
   const db = getDB();
   const code = (req.body.invite_code||'').toUpperCase().trim();
 
   // 教师邀请码：默认关闭，部署方需在 .env 显式配置
-  if (process.env.TEACHER_INVITE_CODE && code === process.env.TEACHER_INVITE_CODE) {
+  const teacherCodes = (process.env.TEACHER_INVITE_CODE || '').split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
+  if (teacherCodes.includes(code)) {
     db.run('UPDATE users SET role=? WHERE id=?', ['teacher', req.user.id]);
     // 角色变更后必须重新签发 token，否则旧 token 里仍是 parent，老师操作会 403「没有权限」
     const token = jwt.sign({ id: req.user.id, openid: req.user.openid, role: 'teacher' }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '30d' });
@@ -23,7 +48,7 @@ router.post('/', auth, (req, res) => {
 
   // 学生邀请码
   if (req.user.role !== 'parent') return res.status(400).json({ error: '请使用学生邀请码' });
-  const s = db.get('SELECT s.*, c.name as className FROM students s LEFT JOIN classes c ON c.id=s.class_id WHERE s.invite_code=?', [code]);
+  const s = studentWithTeacher(db, 'WHERE s.invite_code=?', [code]);
   if (!s) return res.status(404).json({ error: '邀请码无效' });
   const exists = db.get('SELECT id FROM bindings WHERE parent_id=? AND student_id=?', [req.user.id, s.id]);
   if (exists) return res.json({ ok: true, student: s, already: true });
@@ -34,12 +59,12 @@ router.post('/', auth, (req, res) => {
 });
 
 router.get('/students', auth, (req, res) => {
-  const list = getDB().all('SELECT s.*, c.name as className FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE b.parent_id=? ORDER BY s.id', [req.user.id]);
+  const list = studentsWithTeacher(getDB(), 'JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY s.id', [req.user.id]);
   res.json({ students: list || [] });
 });
 
 router.get('/student', auth, (req, res) => {
-  const s = getDB().get('SELECT s.*, c.name as className FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE b.parent_id=? ORDER BY s.id LIMIT 1', [req.user.id]);
+  const s = studentWithTeacher(getDB(), 'JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY s.id LIMIT 1', [req.user.id]);
   res.json({ student: s || null });
 });
 
