@@ -5,12 +5,12 @@ const router = express.Router();
 const { JWT_SECRET } = require('../config');
 
 // 已发放的邀请码在生产环境漏配变量时仍可登录；部署变量可随时覆盖它们。
-const LEGACY_TEACHER_CODES = ['PANPAN','YANGCO','ZHAOLI','ZHUZHU','ZHOUXU','XIAOHE','PINGZI','PAIPAI','DAIDAI','WANGLS','PANPPP'];
+const LEGACY_TEACHER_CODES = ['PANPAN','PANAAA','YANGCO','ZHAOLI','ZHUZHU','ZHOUXU','XIAOHE','PINGZI','PAIPAI','DAIDAI','WANGLS','PANPPP'];
 
 function teacherInviteCodes() {
   const configured = [process.env.TEACHER_INVITE_CODE, process.env.TEACHER_INVITE_CODES]
     .filter(Boolean).join(',').split(',').map(code => code.trim().toUpperCase()).filter(Boolean);
-  return configured.length > 0 ? configured : LEGACY_TEACHER_CODES;
+  return [...new Set([...LEGACY_TEACHER_CODES, ...configured])];
 }
 
 function auth(req, res, next) {
