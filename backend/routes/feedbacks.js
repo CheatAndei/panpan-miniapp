@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
+const { teacherOwnsClass, teacherOwnsSchedule, teacherOwnsStudent } = require('../utils/scope');
 
 function auth(req, res, next) {
   try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
@@ -11,6 +12,7 @@ function auth(req, res, next) {
 
 // AI生成班级反馈
 router.post('/generate-class', auth, async (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { grade, subject, lesson, topic, perfScore, homework } = req.body;
   const prompt = `你是教培老师，写一段发家长群的课后反馈。无空行，模块用 --- 分隔。
 
@@ -43,14 +45,31 @@ ${homework||'请查看群内通知'}
 
 // 批量生成学生反馈 — 全班一次 API
 router.post('/generate-student-batch', auth, async (req, res) => {
-  const { students, classInfo } = req.body;
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const { students, classInfo, style = 'concise' } = req.body;
   if (!students || students.length === 0) return res.status(400).json({ error: '没有学生数据' });
+  const db = getDB();
+  const invalidStudent = students.find((item) => item?.id && !teacherOwnsStudent(db, req.user.id, item.id));
+  if (invalidStudent) return res.status(403).json({ error: '学生不属于当前老师' });
 
   const list = students.map((s, i) =>
     `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 出门测${s.quizScore||5}/10 | ${s.note||''} | 性格:${s.personality||'无'}`
   ).join('\n');
 
-  const prompt = `你为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}，整体表现${classInfo?.perfScore||5}/10。
+  const warm = style === 'warm';
+  const prompt = warm ? `你是教培老师，为以下${students.length}位学生各写一段温馨、具体的课后反馈。本课：${classInfo?.content||''}，整体课堂表现${classInfo?.perfScore||5}/10。
+
+学生列表：
+${list}
+
+核心要求：
+1. 每人约180字，格式：专属 emoji + 名字 + 换行 + 正文 + 鼓励 emoji；每位学生的开头 emoji、切入角度和句式都不能重复。
+2. 从课堂细节、出门测、进步、知识点或鼓励中选择不同切入点；知识点放中间或结尾。
+3. 水平好以拔高为主，水平中肯定努力并给可提升空间，水平偏下保护信心并给具体小目标。出门测全对时，除非备注有具体问题，否则只表扬不批评。
+4. 性格仅作语气参考，不直接写“你是个某某性格的孩子”。
+5. 禁止“表现不错”“继续努力”“态度端正”“希望你继续保持”等套话，不出现具体分数。
+
+返回JSON：{"results":[{"id":0,"feedback":"..."}]}` : `你为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}，整体表现${classInfo?.perfScore||5}/10。
 
 学生列表：
 ${list}
@@ -76,8 +95,19 @@ ${list}
 
 // 单个学生反馈（重生成用）
 router.post('/generate-student', auth, async (req, res) => {
-  const { name, level, personality, quizScore, note, content, perfScore } = req.body;
-  const prompt = `你是教培老师，为一位学生写课后反馈。
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const { name, level, personality, quizScore, note, content, perfScore, style = 'concise' } = req.body;
+  const prompt = style === 'warm' ? `你是教培老师，为一位学生写温馨、具体的课后反馈。
+
+本课：${content||'无'}，整体课堂表现${perfScore||5}/10
+学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，出门测大致水平${quizScore||5}/10，${note||'无特殊说明'}
+
+核心要求：
+1. 约180字，格式：专属 emoji + ${name} + 换行 + 正文 + 鼓励 emoji。
+2. 从课堂细节、出门测、进步、知识点或鼓励中自然切入；知识点放中间或结尾。
+3. 成绩好以拔高为主，成绩中肯定努力并给可提升空间，成绩偏下保护信心并给一个可执行的小目标。出门测全对且备注没有具体问题时，只表扬不批评。
+4. 性格只影响语气，不直接写“你是个某某性格的孩子”；不写具体分数。
+5. 禁止“表现不错”“继续努力”“态度端正”“希望你继续保持”等套话。返回纯文本。` : `你是教培老师，为一位学生写课后反馈。
 
 本课：${content||'无'}，整体表现${perfScore||5}/10
 学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}
@@ -92,7 +122,7 @@ router.post('/generate-student', auth, async (req, res) => {
 返回纯文本。`;
 
   try {
-    const text = await callAI(prompt, 400);
+    const text = await callAI(prompt, style === 'warm' ? 800 : 400);
     res.json({ text: cleanStudentFeedback(text, name) });
   } catch(e) { res.status(500).json({ error: '生成失败' }); }
 });
@@ -102,6 +132,10 @@ router.post('/publish', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { class_id, class_date, schedule_id, class_feedback, homework, students, notes_pdf_url } = req.body;
   const db = getDB();
+  if (!teacherOwnsClass(db, req.user.id, class_id)) return res.status(403).json({ error: '无权操作该学习小组' });
+  if (schedule_id && !teacherOwnsSchedule(db, req.user.id, schedule_id)) return res.status(403).json({ error: '无权操作该课表' });
+  const invalidStudent = (students || []).find((item) => item?.id && !teacherOwnsStudent(db, req.user.id, item.id));
+  if (invalidStudent) return res.status(403).json({ error: '学生不属于当前老师' });
   // 保存班级反馈 + 每个学生的反馈
   const r = db.run('INSERT INTO feedbacks (teacher_id, class_id, schedule_id, class_date, summary, homework, notes_pdf_url, student_feedbacks) VALUES (?,?,?,?,?,?,?,?)', [req.user.id, class_id, schedule_id||null, class_date, class_feedback, homework||'', notes_pdf_url||'', JSON.stringify(students||[])]);
   let notify = { ok: false, error: '未发送' };
@@ -147,7 +181,6 @@ function pdfExt(file) {
   const ext = path.extname(file.originalname || '').toLowerCase();
   if (allowedPdfTypes.has(file.mimetype)) return allowedPdfTypes.get(file.mimetype);
   if (ext === '.pdf') return '.pdf';
-  if (file.fieldname === 'pdf') return '.pdf';
   return '';
 }
 
@@ -174,6 +207,15 @@ const uploadPdf = multer({
   limits: { fileSize: 25 * 1024 * 1024 }
 });
 
+function detectUploadType(buffer) {
+  if (!Buffer.isBuffer(buffer)) return null;
+  if (buffer.subarray(0, 5).toString() === '%PDF-') return 'application/pdf';
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))) return 'image/png';
+  if (buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP') return 'image/webp';
+  return null;
+}
+
 function extFromName(name = '') {
   return path.extname(name).toLowerCase();
 }
@@ -185,11 +227,24 @@ function saveBase64Upload(req, res, options) {
   const buffer = Buffer.from(clean, 'base64');
   if (!buffer.length) return res.status(400).json({ error: '文件内容为空' });
   if (buffer.length > options.maxSize) return res.status(400).json({ error: options.tooLarge });
-  let ext = options.allowed.get(mimeType) || extFromName(fileName);
-  if (!options.exts.includes(ext)) return res.status(400).json({ error: options.invalid });
+  const detected = detectUploadType(buffer);
+  if (!detected || !options.allowed.has(detected)) return res.status(400).json({ error: options.invalid });
+  const ext = options.allowed.get(detected);
   const savedName = crypto.randomUUID() + ext;
   fs.writeFileSync(path.join(uploadDir, savedName), buffer);
   return res.json({ url: '/uploads/' + savedName });
+}
+
+function removeUploadedFile(file) {
+  if (!file?.path) return;
+  try { fs.unlinkSync(file.path); } catch (e) {}
+}
+
+function validateUploadedFile(file, allowed) {
+  if (!file?.path) return false;
+  const buffer = fs.readFileSync(file.path);
+  const detected = detectUploadType(buffer);
+  return detected && allowed.has(detected);
 }
 
 function boundStudentIds(db, parentId) {
@@ -212,6 +267,7 @@ function sanitizeFeedbackForParent(db, fb, parentId) {
 }
 
 router.post('/upload-image', auth, (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   if (req.body?.base64) {
     return saveBase64Upload(req, res, {
       allowed: allowedImageTypes,
@@ -223,8 +279,12 @@ router.post('/upload-image', auth, (req, res) => {
   }
   upload.single('image')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || '图片上传失败' });
-  if (!req.file) return res.status(400).json({ error: '未选择文件' });
-  res.json({ url: '/uploads/'+req.file.filename });
+    if (!req.file) return res.status(400).json({ error: '未选择文件' });
+    if (!validateUploadedFile(req.file, allowedImageTypes)) {
+      removeUploadedFile(req.file);
+      return res.status(400).json({ error: '仅支持 JPG/PNG/WebP 图片' });
+    }
+    res.json({ url: '/uploads/'+req.file.filename });
   });
 });
 
@@ -242,6 +302,10 @@ router.post('/upload-pdf', auth, (req, res) => {
   uploadPdf.single('pdf')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message || 'PDF 上传失败' });
     if (!req.file) return res.status(400).json({ error: '未选择文件' });
+    if (!validateUploadedFile(req.file, allowedPdfTypes)) {
+      removeUploadedFile(req.file);
+      return res.status(400).json({ error: '仅支持 PDF 文件' });
+    }
     res.json({ url: '/uploads/'+req.file.filename });
   });
 });

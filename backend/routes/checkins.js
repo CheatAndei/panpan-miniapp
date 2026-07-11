@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
+const { teacherOwnsStudent, parentBoundStudent } = require('../utils/scope');
 
 function auth(req, res, next) {
   try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
@@ -54,6 +55,9 @@ router.get('/today', auth, (req, res) => {
 router.get('/status', auth, (req, res) => {
   const { student_id, date } = req.query;
   const db = getDB();
+  if (!student_id || !date) return res.status(400).json({ error: '缺少学生或日期' });
+  if (req.user.role === 'teacher' && !teacherOwnsStudent(db, req.user.id, student_id)) return res.status(403).json({ error: '无权操作该学生' });
+  if (req.user.role === 'parent' && !parentBoundStudent(db, req.user.id, student_id)) return res.status(403).json({ error: '无权查看该学生' });
   const ci = latestCheckin(db, student_id, date);
   // 同时查请假
   const leave = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [student_id, date, 'approved']);
@@ -73,6 +77,7 @@ router.post('/check-in', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { studentId, classDate, studentName } = req.body;
   const db = getDB();
+  if (!teacherOwnsStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权操作该学生' });
   const now = new Date().toISOString();
   const leave = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [studentId, classDate, 'approved']);
   if (leave) return res.status(400).json({ error: `${studentName || '学生'}已请假，不能签到` });
@@ -93,11 +98,12 @@ router.post('/check-out', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { studentId, studentName, classDate, special, teacherName } = req.body;
   const db = getDB();
+  if (!teacherOwnsStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权操作该学生' });
   const now = new Date().toISOString();
   const date = classDate || localDateString();
   const teacher = db.get('SELECT nickname FROM users WHERE id=?', [req.user.id]);
-  const displayName = (String(teacherName || teacher?.nickname || '潘潘').trim().replace(/老师$/, '') || '潘潘');
-  const note = special ? `${displayName}老师已离开 请主动联系小朋友。` : '';
+  const displayName = String(teacherName || teacher?.nickname || '').trim().replace(/老师$/, '');
+  const note = special ? `${displayName ? displayName + '老师' : '老师'}已离开 请主动联系小朋友。` : '';
   const existing = latestCheckin(db, studentId, date, true);
   if (!existing || !existing.check_in_time) {
     return res.status(400).json({ error: '未找到签到记录，请先签到' });

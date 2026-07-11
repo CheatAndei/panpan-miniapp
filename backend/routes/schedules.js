@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
+const { teacherOwnsClass } = require('../utils/scope');
 
 function auth(req, res, next) {
   try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
@@ -24,9 +25,21 @@ function deleteFeedbackForSession(db, session) {
 // 家长看全部课表（返回老师的所有班级，家长可区分自己的班级）
 router.get('/parent', auth, (req, res) => {
   const db = getDB();
-  const teacher = db.get('SELECT c.teacher_id FROM students st JOIN classes c ON c.id=st.class_id JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=? LIMIT 1', [req.user.id]);
+  const { student_id } = req.query;
+  let teacher;
+  if (student_id) {
+    teacher = db.get(`SELECT COALESCE(s.teacher_id,c.teacher_id) as teacher_id
+      FROM students s
+      JOIN bindings b ON b.student_id=s.id
+      LEFT JOIN classes c ON c.id=s.class_id
+      WHERE b.parent_id=? AND s.id=?`, [req.user.id, student_id]);
+  } else {
+    teacher = db.get('SELECT c.teacher_id FROM students st JOIN classes c ON c.id=st.class_id JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=? LIMIT 1', [req.user.id]);
+  }
   if (!teacher) return res.json({ schedules: [], myClassIds: [] });
-  const myClasses = db.all('SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=?', [req.user.id]);
+  const myClasses = student_id
+    ? db.all('SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=? AND st.id=?', [req.user.id, student_id])
+    : db.all('SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=?', [req.user.id]);
   const schedules = db.all('SELECT s.*, c.name as class_name, c.id as class_id, (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id) as student_count FROM schedules s JOIN classes c ON c.id=s.class_id WHERE s.teacher_id=? AND s.is_active=1 ORDER BY s.day_of_week, s.start_time', [teacher.teacher_id]);
   const sessions = db.all('SELECT se.*, c.name as class_name, c.id as class_id, (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id) as student_count FROM sessions se JOIN classes c ON c.id=se.class_id WHERE se.teacher_id=? AND se.status IN (?,?) AND se.class_date>=? ORDER BY se.class_date, se.start_time', [teacher.teacher_id, 'published', 'completed', localDateString()]);
   const sessionSchedules = sessions.map((se) => {
@@ -56,8 +69,9 @@ router.post('/', auth, teacherOnly, (req, res) => {
   if (day_of_week===undefined || !start_time || !end_time) return res.status(400).json({ error: '请填写完整' });
   const db = getDB();
   // 用班级名作 title
-  const cls = db.get('SELECT name FROM classes WHERE id=?', [class_id]);
-  const title = cls ? cls.name : '未命名';
+  const cls = db.get('SELECT name FROM classes WHERE id=? AND teacher_id=?', [class_id, req.user.id]);
+  if (!cls) return res.status(403).json({ error: '无权操作该学习小组' });
+  const title = cls.name;
   const r = db.run('INSERT INTO schedules (teacher_id,class_id,title,day_of_week,start_time,end_time,location) VALUES (?,?,?,?,?,?,?)', [req.user.id, class_id, title, day_of_week, start_time, end_time, location||'']);
   res.json({ ok: true, schedule: { id: r.lastInsertRowid, title, day_of_week, start_time, end_time, location } });
 });
@@ -102,7 +116,8 @@ router.post('/special-publish', auth, teacherOnly, async (req, res) => {
   const { class_id, class_date, start_time, end_time, location } = req.body;
   if (!class_id || !class_date || !start_time || !end_time) return res.status(400).json({ error: '缺少信息' });
   const db = getDB();
-  const cls = db.get('SELECT name FROM classes WHERE id=?', [class_id]);
+  const cls = db.get('SELECT name FROM classes WHERE id=? AND teacher_id=?', [class_id, req.user.id]);
+  if (!cls) return res.status(403).json({ error: '无权操作该学习小组' });
   const exists = db.get('SELECT id FROM sessions WHERE teacher_id=? AND class_id=? AND class_date=? AND start_time=?', [req.user.id, class_id, class_date, start_time]);
   if (exists) {
     return res.json({ ok: true, count: 0, skipped: 1, notify: { ok: false, total: 0, sent: 0, failed: 0, errors: [] }, message: '该时间已发布，已跳过重复课程' });
@@ -168,7 +183,7 @@ router.post('/publish', auth, teacherOnly, async (req, res) => {
     target.setDate(target.getDate() + diff);
     const dateStr = localDateString(target);
 
-    const exists = db.get('SELECT id FROM sessions WHERE schedule_id=? AND class_date=?', [sc.id, dateStr]);
+    const exists = db.get('SELECT id FROM sessions WHERE teacher_id=? AND schedule_id=? AND class_date=?', [req.user.id, sc.id, dateStr]);
     if (exists) { skipped++; continue; }
 
     db.run('INSERT INTO sessions (teacher_id,class_id,schedule_id,title,class_date,start_time,end_time) VALUES (?,?,?,?,?,?,?)', [req.user.id, sc.class_id, sc.id, sc.class_name||sc.title, dateStr, sc.start_time, sc.end_time]);

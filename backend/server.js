@@ -33,7 +33,11 @@ app.use((err, req, res, next) => {
 });
 
 // 静态文件（上传的图片/PDF）
-app.use('/uploads', express.static(UPLOAD_DIR));
+app.use('/uploads', express.static(UPLOAD_DIR, {
+  setHeaders(res) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+}));
 
 // 路由
 app.use('/api/auth', authRoutes);

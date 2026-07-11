@@ -4,6 +4,15 @@ const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
 
+// 已发放的邀请码在生产环境漏配变量时仍可登录；部署变量可随时覆盖它们。
+const LEGACY_TEACHER_CODES = ['PANPAN','YANGCO','ZHAOLI','ZHUZHU','ZHOUXU','XIAOHE','PINGZI','PAIPAI','DAIDAI','WANGLS','PANPPP'];
+
+function teacherInviteCodes() {
+  const configured = [process.env.TEACHER_INVITE_CODE, process.env.TEACHER_INVITE_CODES]
+    .filter(Boolean).join(',').split(',').map(code => code.trim().toUpperCase()).filter(Boolean);
+  return configured.length > 0 ? configured : LEGACY_TEACHER_CODES;
+}
+
 function auth(req, res, next) {
   try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
   catch { res.status(401).json({ error: '登录过期' }); }
@@ -37,8 +46,7 @@ router.post('/', auth, (req, res) => {
   const db = getDB();
   const code = (req.body.invite_code||'').toUpperCase().trim();
 
-  // 教师邀请码：默认关闭，部署方需在 .env 显式配置
-  const teacherCodes = (process.env.TEACHER_INVITE_CODE || '').split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
+  const teacherCodes = teacherInviteCodes();
   if (teacherCodes.includes(code)) {
     db.run('UPDATE users SET role=? WHERE id=?', ['teacher', req.user.id]);
     // 角色变更后必须重新签发 token，否则旧 token 里仍是 parent，老师操作会 403「没有权限」

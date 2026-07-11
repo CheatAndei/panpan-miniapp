@@ -83,9 +83,13 @@ router.get('/me', auth, (req, res) => {
 });
 
 router.put('/me', auth, (req, res) => {
-  const nickname = String(req.body?.nickname || '').trim().slice(0, 20);
-  getDB().run('UPDATE users SET nickname=? WHERE id=?', [nickname, req.user.id]);
-  const user = getDB().get('SELECT id,openid,nickname,avatar_url,role,phone FROM users WHERE id=?', [req.user.id]);
+  const db = getDB();
+  const current = db.get('SELECT nickname,avatar_url,phone FROM users WHERE id=?', [req.user.id]) || {};
+  const nickname = String(req.body?.nickname ?? current.nickname ?? '').trim().slice(0, 20);
+  const avatarUrl = String(req.body?.avatar_url ?? current.avatar_url ?? '').trim().slice(0, 300);
+  const phone = String(req.body?.phone ?? current.phone ?? '').trim().slice(0, 30);
+  db.run('UPDATE users SET nickname=?, avatar_url=?, phone=? WHERE id=?', [nickname, avatarUrl, phone, req.user.id]);
+  const user = db.get('SELECT id,openid,nickname,avatar_url,role,phone FROM users WHERE id=?', [req.user.id]);
   res.json({ ok: true, user });
 });
 

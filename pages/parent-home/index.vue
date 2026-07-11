@@ -1,12 +1,13 @@
 <template>
 <view class="page">
-  <view v-if="loading" class="loading">加载中…</view>
+  <view v-if="loading && !child" class="state-card"><pp-state type="loading" title="正在读取学习动态" /></view>
+  <view v-else-if="error && !child" class="state-card"><pp-state type="error" title="暂时无法加载" :description="error" action-text="重新加载" @action="loadData" /></view>
   <!-- 孩子卡片 -->
   <view class="hero hero-navy" v-if="child">
     <view class="greeting">{{ greeting }}，{{ child.name }}家长</view>
     <pp-avatar :name="child.name" :size="128" class="avatar" />
     <text class="child-name">{{ child.name }}</text>
-    <text class="child-class">{{ child.className }}</text>
+    <text class="child-class">{{ child.className }} · {{ teacherName }}</text>
   </view>
 
   <!-- 签到 -->
@@ -16,8 +17,7 @@
       {{ checkinText(todayCheckin) }}
     </view>
     <view v-if="todayCheckin.checkOutNote" class="checkin-note">{{ todayCheckin.checkOutNote }}</view>
-    <button class="notify-btn" @tap="requestSubscribe">接收签到签退和反馈提醒</button>
-    <button class="notify-test-btn" @tap="sendTestNotify">测试服务通知</button>
+    <button class="notify-btn" @tap="requestSubscribe">开启签到、签退和反馈提醒</button>
   </view>
 
   <!-- 学习小组详情入口 -->
@@ -72,19 +72,21 @@
     <button class="btn-outline" @tap="nav('/pages/parent-leave/index')">请假申请</button>
   </view>
 
-  <view class="footer">小程序由潘潘独立制作与维护<br/>如有问题欢迎私信反馈<br/>桂ICP备2026013218号-2</view>
+  <view class="footer">番番记录 · 熟人老师共用版<br/>桂ICP备2026013218号-2</view>
 </view>
 </template>
 
 <script>
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
+import { teacherNameFromChild } from '@/utils/brand';
 export default {
   data(){return{
-    child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,refreshTimer:null,
+    child:null,todayCheckin:null,schedules:[],feedback:null,profile:null,loading:false,error:'',refreshTimer:null,
     dayNames:['周日','周一','周二','周三','周四','周五','周六'],fbImages:[],notifyTpls:[]
   };},
   computed:{
+    teacherName(){return teacherNameFromChild(this.child);},
     greeting(){
       const h=new Date().getHours();
       return h<6?'夜深了':h<12?'上午好':h<14?'中午好':h<18?'下午好':'晚上好';
@@ -98,7 +100,7 @@ export default {
       if(!uni.getStorageSync('token'))return;
       this.loadNotifyTemplates();
       this.loadData();
-      this.refreshTimer=setInterval(()=>this.loadData(),15000);
+      this.refreshTimer=setInterval(()=>this.loadData(),30000);
     },
     stopAutoRefresh(){
       if(this.refreshTimer)clearInterval(this.refreshTimer);
@@ -106,7 +108,9 @@ export default {
     },
     async loadData(){
       const t=uni.getStorageSync('token');if(!t)return;
+      if(this.loading)return;
       this.loading=true;
+      this.error='';
       try{
         const kids=await api.get('/bind/students');
         const list=kids.students||[];
@@ -115,7 +119,7 @@ export default {
         const s={student:this.child};
         const [c,sc,f,p]=await Promise.all([
           api.get('/checkins/today'+(s.student?.id?'?student_id='+s.student.id:'')),
-          api.get('/schedules/parent'),api.get('/feedbacks/latest'+(s.student?.class_id?'?class_id='+s.student.class_id:'')),api.get('/profiles/my')
+          api.get('/schedules/parent'+(s.student?.id?'?student_id='+s.student.id:'')),api.get('/feedbacks/latest'+(s.student?.class_id?'?class_id='+s.student.class_id:'')),api.get(s.student?.id?'/profiles/'+s.student.id:'/profiles/my')
         ]);
         this.todayCheckin=c;
         if(this.todayCheckin&&this.todayCheckin.checkInTime){
@@ -128,10 +132,15 @@ export default {
           .sort((a,b)=>String(a.class_date||'9999-99-99').localeCompare(String(b.class_date||'9999-99-99')) || String(a.start_time||'').localeCompare(String(b.start_time||'')))
           .slice(0,3);
         this.feedback=f.feedback;this.profile=p.profile;
+        if(this.profile){
+          let tags=this.profile.tags;
+          if(typeof tags==='string'){try{tags=JSON.parse(tags);}catch(e){tags=[];}}
+          this.profile={...this.profile,tags:Array.isArray(tags)?tags:[]};
+        }
         if(this.feedback&&this.feedback.image_urls){
           try{this.fbImages=JSON.parse(this.feedback.image_urls).map(u=>api.assetUrl(u));}catch(e){this.fbImages=[];}
         }
-      }catch(e){logError('parentHome.loadData',e);}
+      }catch(e){this.error=e?.error||'请检查网络后重试';logError('parentHome.loadData',e);}
       finally{this.loading=false;}
     },
     previewImg(i){uni.previewImage({current:this.fbImages[i],urls:this.fbImages});},
@@ -178,17 +187,6 @@ export default {
         });
       });
     },
-    async sendTestNotify(){
-      try{
-        const sub=await this.requestSubscribe();
-        if(!sub?.accepted)return;
-        const r=await api.post('/notify/test',{type:'checkin'});
-        uni.showModal({title:'测试已发送',content:'请在微信「服务通知」里查看。',showCancel:false});
-      }catch(e){
-        const msg=e?.error||e?.errmsg||e?.detail||'发送失败';
-        uni.showModal({title:'测试失败',content:String(msg).slice(0,120),showCancel:false});
-      }
-    },
     async openPdf(url){
       try{await api.openPdf(url);}
       catch(e){uni.showToast({title:'PDF 打开失败',icon:'none'});}
@@ -199,42 +197,42 @@ export default {
 </script>
 
 <style scoped>
-.page{padding-bottom:40rpx}
+.page{padding-bottom:calc(44rpx + env(safe-area-inset-bottom))}
+.state-card{margin:22rpx 24rpx;background:#fff;border-radius:22rpx;border:1rpx solid var(--border)}
 .hero{display:flex;flex-direction:column;align-items:center;padding:46rpx 0 44rpx}
-.greeting{font-size:34rpx;font-weight:700;color:#202733;margin-bottom:20rpx}
+.greeting{font-size:34rpx;font-weight:700;color:#183A36;margin-bottom:20rpx}
 .avatar{margin-bottom:8rpx}
-.child-name{font-size:36rpx;font-weight:700;color:#202733;margin-top:14rpx}
-.child-class{font-size:24rpx;color:#69717D;margin-top:4rpx}
+.child-name{font-size:36rpx;font-weight:700;color:#183A36;margin-top:14rpx}
+.child-class{font-size:24rpx;color:#697B76;margin-top:4rpx}
 
 .checkin-badge{display:flex;align-items:center;gap:10rpx;padding:16rpx 20rpx;border-radius:10rpx;font-size:28rpx;font-weight:600}
-.checkin-badge.in{background:#EEF5EF;color:#3F7A5B}
+.checkin-badge.in{background:#E8F4F0;color:#2F735F}
 .checkin-badge.done{background:#EEF2F7;color:#425B76}
-.checkin-badge.out{background:#F7F2E5;color:#7B5B36}
-.checkin-badge.leave{background:#F7EDEA;color:#9F4E43}
-.checkin-note{margin-top:12rpx;color:#9F4E43;font-size:24rpx;line-height:1.5}
+.checkin-badge.out{background:#F4F2E8;color:#3F7167}
+.checkin-badge.leave{background:#FCEEEB;color:#A94F48}
+.checkin-note{margin-top:12rpx;color:#A94F48;font-size:24rpx;line-height:1.5}
 
 .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14rpx}
-.card-title{font-size:28rpx;font-weight:700;color:#202733}
-.card-arrow{font-size:24rpx;color:#8A929B}
+.card-title{font-size:28rpx;font-weight:700;color:#183A36}
+.card-arrow{font-size:24rpx;color:#7C8C87}
 
 .sc-line{display:flex;gap:12rpx;padding:8rpx 0;font-size:26rpx;align-items:center}
-.sc-day{color:#A57945;font-weight:600;min-width:96rpx;font-size:24rpx}
-.sc-time{color:#8A929B;width:120rpx;font-size:24rpx}
-.sc-name{color:#46515C}
+.sc-day{color:#2F7D6B;font-weight:600;min-width:96rpx;font-size:24rpx}
+.sc-time{color:#7C8C87;width:120rpx;font-size:24rpx}
+.sc-name{color:#536762}
 
-.fb-date{font-size:24rpx;color:#8A929B;margin-bottom:8rpx}
-.fb-text{font-size:28rpx;color:#46515C;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+.fb-date{font-size:24rpx;color:#7C8C87;margin-bottom:8rpx}
+.fb-text{font-size:28rpx;color:#536762;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
 .fb-images{display:flex;gap:10rpx;margin-top:14rpx;flex-wrap:wrap}
-.fb-img{width:150rpx;height:150rpx;border-radius:8rpx;background:#ECE8E0}
-.img-more{width:150rpx;height:150rpx;border-radius:8rpx;background:#F8F6F1;display:flex;align-items:center;justify-content:center;font-size:36rpx;color:#8A929B}
-.fb-hw{font-size:24rpx;color:#A57945;margin-top:10rpx}
-.notify-btn{margin-top:16rpx;background:#F3F1EA;color:#202733;border:1rpx solid #E5E0D8;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
-.notify-test-btn{margin-top:12rpx;background:#202733;color:#fff;border:none;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
-.pdf-btn{margin-top:14rpx;background:#202733;color:#fff;border:none;border-radius:10rpx;padding:18rpx;font-size:26rpx;width:100%}
+.fb-img{width:150rpx;height:150rpx;border-radius:8rpx;background:#E5EEEB}
+.img-more{width:150rpx;height:150rpx;border-radius:8rpx;background:#F7FAF8;display:flex;align-items:center;justify-content:center;font-size:36rpx;color:#7C8C87}
+.fb-hw{font-size:24rpx;color:#2F7D6B;margin-top:10rpx}
+.notify-btn{margin-top:16rpx;background:#EDF5F2;color:#183A36;border:1rpx solid #DDE8E4;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
+.pdf-btn{margin-top:14rpx;background:#183A36;color:#fff;border:none;border-radius:10rpx;padding:18rpx;font-size:26rpx;width:100%}
 
 .tags{display:flex;gap:10rpx;flex-wrap:wrap}
-.empty-sm{text-align:center;color:#C3C1BA;padding:24rpx;font-size:26rpx}
+.empty-sm{text-align:center;color:#A4B1AD;padding:24rpx;font-size:26rpx}
 
-.btn-outline{border:1px solid #202733;color:#202733;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;font-weight:600}
-.footer{text-align:center;color:#AAB0B7;font-size:24rpx;padding:40rpx 30rpx 30rpx;line-height:1.6}
+.btn-outline{border:1px solid #183A36;color:#183A36;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;font-weight:600}
+.footer{text-align:center;color:#9AA9A5;font-size:24rpx;padding:40rpx 30rpx 30rpx;line-height:1.6}
 </style>

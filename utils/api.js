@@ -1,5 +1,8 @@
 import { BASE, ASSET_BASE } from './config';
 
+const inFlightGets = new Map();
+let redirectingToLogin = false;
+
 function buildUrl(path) {
   const normalizedPath = path.startsWith('/') ? path : '/' + path;
   return BASE + normalizedPath;
@@ -7,15 +10,34 @@ function buildUrl(path) {
 
 function authHeader() {
   const token = uni.getStorageSync('token');
+  if (token) redirectingToLogin = false;
   return token ? { Authorization: 'Bearer ' + token } : {};
 }
 
-function request(method, path, data) {
+function clearExpiredSession() {
+  const hadSession = Boolean(uni.getStorageSync('token'));
+  uni.removeStorageSync('token');
+  uni.removeStorageSync('user');
+  uni.removeStorageSync('activeChildId');
+  if (!hadSession || redirectingToLogin) return;
+
+  redirectingToLogin = true;
+  uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
+  setTimeout(() => {
+    uni.reLaunch({
+      url: '/pages/index/index',
+      complete: () => { redirectingToLogin = false; }
+    });
+  }, 350);
+}
+
+function executeRequest(method, path, data) {
   return new Promise((resolve, reject) => {
     uni.request({
       url: buildUrl(path),
       method,
       data,
+      timeout: 15000,
       header: authHeader(),
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -24,11 +46,7 @@ function request(method, path, data) {
         }
         const error = res.data || { error: '请求失败' };
         error.statusCode = res.statusCode;
-        if (res.statusCode === 401) {
-          uni.removeStorageSync('token');
-          uni.removeStorageSync('user');
-          uni.removeStorageSync('activeChildId');
-        }
+        if (res.statusCode === 401) clearExpiredSession();
         reject(error);
       },
       fail(err) {
@@ -45,6 +63,17 @@ function request(method, path, data) {
       }
     });
   });
+}
+
+function request(method, path, data) {
+  if (method !== 'GET') return executeRequest(method, path, data);
+
+  const key = `${path}|${JSON.stringify(data || null)}`;
+  if (inFlightGets.has(key)) return inFlightGets.get(key);
+
+  const task = executeRequest(method, path, data).finally(() => inFlightGets.delete(key));
+  inFlightGets.set(key, task);
+  return task;
 }
 
 function friendlyNetworkError(err, fallback) {
@@ -111,11 +140,7 @@ export function uploadFile(path, filePath, name = 'file') {
           else {
             const error = data || { error: '上传失败' };
             error.statusCode = res.statusCode;
-            if (res.statusCode === 401) {
-              uni.removeStorageSync('token');
-              uni.removeStorageSync('user');
-              uni.removeStorageSync('activeChildId');
-            }
+            if (res.statusCode === 401) clearExpiredSession();
             reject(error);
           }
         } catch (err) {
@@ -129,42 +154,52 @@ export function uploadFile(path, filePath, name = 'file') {
   });
 }
 
+function openLocalPdf(filePath) {
+  return new Promise((resolve, reject) => {
+    uni.openDocument({ filePath, fileType: 'pdf', showMenu: true, success: resolve, fail: reject });
+  });
+}
+
+function downloadAndOpenPdf(fileUrl) {
+  return new Promise((resolve, reject) => {
+    uni.downloadFile({
+      url: fileUrl,
+      header: authHeader(),
+      success: (res) => {
+        if (res.statusCode !== 200 || !res.tempFilePath) return reject({ error: 'PDF 下载失败' });
+        openLocalPdf(res.tempFilePath).then(resolve, reject);
+      },
+      fail: (err) => reject(friendlyNetworkError(err, 'PDF 下载失败'))
+    });
+  });
+}
+
 export function openPdfDocument(url) {
   const fileUrl = assetUrl(url);
   const fs = uni.getFileSystemManager && uni.getFileSystemManager();
   const userDataPath = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH)
     || (uni.env && uni.env.USER_DATA_PATH)
     || '';
-  if (!fs || !userDataPath) {
-    return new Promise((resolve, reject) => {
-      uni.downloadFile({
-        url: fileUrl,
-        success: (res) => {
-          if (res.statusCode !== 200) return reject({ error: 'PDF 下载失败' });
-          uni.openDocument({ filePath: res.tempFilePath, fileType: 'pdf', showMenu: true, success: resolve, fail: reject });
-        },
-        fail: reject
-      });
-    });
-  }
+  if (!fs || !userDataPath) return downloadAndOpenPdf(fileUrl);
+
   return new Promise((resolve, reject) => {
+    const fallback = () => downloadAndOpenPdf(fileUrl).then(resolve, reject);
     uni.request({
       url: fileUrl,
       method: 'GET',
       header: authHeader(),
       responseType: 'arraybuffer',
       success: (res) => {
-        if (res.statusCode !== 200 || !res.data) return reject({ error: 'PDF 下载失败' });
+        if (res.statusCode !== 200 || !res.data) return fallback();
         const filePath = `${userDataPath}/panpan-note-${Date.now()}.pdf`;
         fs.writeFile({
           filePath,
           data: res.data,
-          encoding: 'binary',
-          success: () => uni.openDocument({ filePath, fileType: 'pdf', showMenu: true, success: resolve, fail: reject }),
-          fail: reject
+          success: () => openLocalPdf(filePath).then(resolve, fallback),
+          fail: fallback
         });
       },
-      fail: reject
+      fail: fallback
     });
   });
 }

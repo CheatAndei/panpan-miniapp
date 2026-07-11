@@ -98,7 +98,7 @@
       </view>
       <view class="label">性格描述（多选，最多8个）</view>
       <view class="trait-cats">
-        <view v-for="cat in cats" :key="cat.name" class="trait-group">
+          <view v-for="cat in displayCats" :key="cat.name" class="trait-group">
           <view class="cat-head" @tap="toggleCat(cat.name)">
             <text class="cat-label">{{ cat.name }}</text>
             <text class="cat-meta">{{ countCat(cat) }} 个已选 · {{ traitOpen[cat.name] ? '收起' : '展开' }}</text>
@@ -254,6 +254,19 @@ export default {
       try { await api.del('/students/'+sid); c._students=c._students.filter(s=>s.id!==sid); this.totalStudents=Math.max(0,this.totalStudents-1); }
       catch(e) { toastError(e, '删除失败'); }
     }
+  },
+  computed:{
+    displayCats(){
+      const used=new Set();
+      return this.cats.map(cat=>({
+        ...cat,
+        traits:cat.traits.filter(trait=>{
+          if(used.has(trait))return false;
+          used.add(trait);
+          return true;
+        })
+      })).filter(cat=>cat.traits.length>0);
+    }
   }
 };
 </script>
@@ -292,7 +305,7 @@ export default {
 .stu-info { min-width:0; flex:1; display:flex; align-items:center; gap:14rpx; }
 .stu-main { min-width:0; flex:1; }
 .stu-title-row { display:flex; align-items:center; gap:10rpx; min-width:0; }
-.s-name { font-weight:700; font-size:29rpx; color:#183A36; max-width:220rpx; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.s-name { font-weight:700; font-size:29rpx; color:#183A36; max-width:none; overflow:visible; text-overflow:clip; white-space:normal; word-break:break-all; }
 .s-avatar { width:56rpx; height:56rpx; border-radius:50%; flex-shrink:0; }
 .s-level { font-size:20rpx; padding:2rpx 10rpx; border-radius:6rpx; }
 .parent-line{display:flex;align-items:center;gap:8rpx;margin-top:6rpx;min-width:0}
@@ -373,7 +386,9 @@ export default {
 .btn-xs { min-height:48rpx; display:inline-flex; align-items:center; padding:4rpx 14rpx; border-radius:9rpx; background:var(--surface-muted); color:var(--text-muted); }
 .btn-xs.copy,.btn-xs.share { color:var(--accent-strong); background:var(--accent-soft); }
 .btn-xs.del { color:var(--danger); background:var(--danger-soft); }
-.stu-row { min-height:112rpx; padding:20rpx 28rpx; border-color:var(--hairline); }
+.stu-row { min-height:112rpx; padding:20rpx 28rpx; border-color:var(--hairline); align-items:flex-start; flex-wrap:wrap; }
+.stu-info { width:100%; }
+.stu-actions { width:100%; margin-left:70rpx; justify-content:flex-end; flex-wrap:wrap; }
 .s-name { color:var(--ink); }
 .parent-bind { border-radius:8rpx; }
 .s-code { color:var(--text-muted); font-variant-numeric:tabular-nums; }

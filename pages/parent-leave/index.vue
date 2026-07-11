@@ -3,10 +3,11 @@
   <view class="hero">
     <view class="eyebrow">请假</view>
     <text class="hero-title">请假申请</text>
-    <view class="gold-rule"></view>
+    <text class="hero-sub">提前告诉老师，安排更从容</text>
   </view>
 
-  <view class="card">
+  <view v-if="loading && !childName" class="state-card"><pp-state type="loading" title="正在读取请假信息" /></view>
+  <view v-else class="card form-card">
     <view class="field">
       <text class="label">学生</text>
       <text class="value">{{ childName }}</text>
@@ -19,9 +20,11 @@
     </view>
     <view class="field">
       <text class="label">请假原因</text>
-      <textarea v-model="form.reason" class="textarea" placeholder="请填写请假原因" :maxlength="200" />
+      <textarea v-model="form.reason" class="textarea" placeholder="例如：身体不适，需要休息一天" :maxlength="200" />
+      <text class="count-hint num">{{ form.reason.length }}/200</text>
     </view>
-    <button class="btn-primary" @tap="submit" :disabled="!form.reason">提交申请</button>
+    <view v-if="hasPending" class="pending-hint">已有一条请假等待老师审批</view>
+    <button class="btn-primary" @tap="submit" :disabled="!form.reason.trim() || submitting || hasPending">{{ submitting ? '提交中...' : '提交申请' }}</button>
   </view>
 
   <!-- 请假记录 -->
@@ -41,14 +44,22 @@
 <script>
 import { api } from '@/utils/api';
 import { toastSuccess, toastError, logError } from '@/utils/ui';
+
+function localDateString(){
+  const date=new Date();
+  const pad=(n)=>String(n).padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+}
+
 export default {
   data(){return{
-    childId:null,childName:'',hasPending:false,form:{date:new Date().toISOString().slice(0,10),reason:''},
-    leaves:[],statusMap:{pending:'待审批',approved:'已批准',rejected:'已拒绝'}
+    childId:null,childName:'',hasPending:false,form:{date:localDateString(),reason:''},
+    leaves:[],loading:false,submitting:false,statusMap:{pending:'待审批',approved:'已批准',rejected:'已拒绝'}
   };},
   onLoad(opt){this.childId=opt.child_id;this.loadData();},
   methods:{
     async loadData(){
+      this.loading=true;
       try{
         let stu;
         if(this.childId){
@@ -62,45 +73,53 @@ export default {
         this.leaves=(lv.leaves||[]).filter(l=>!this.childId||l.student_id===parseInt(this.childId));
         this.hasPending=this.leaves.some(l=>l.status==='pending');
       }catch(e){logError('parentLeave.loadData',e);}
+      finally{this.loading=false;}
     },
     async submit(){
       if(this.hasPending) return uni.showToast({title:'有待审批的请假',icon:'none'});
+      if(this.submitting||!this.form.reason.trim())return;
+      this.submitting=true;
       try{
         const sid=this.childId||(await api.get('/bind/student')).student?.id;
-        await api.post('/leaves',{student_id:sid,class_date:this.form.date,reason:this.form.reason});
+        await api.post('/leaves',{student_id:sid,class_date:this.form.date,reason:this.form.reason.trim()});
         toastSuccess('已提交');
-        this.form.reason='';this.hasPending=true;this.loadData();
+        this.form.reason='';this.hasPending=true;await this.loadData();
       }catch(e){toastError(e,'提交失败');}
+      finally{this.submitting=false;}
     }
   }
 };
 </script>
 
 <style scoped>
-.page{padding-bottom:60rpx}
-.hero{padding:40rpx 32rpx 30rpx;background:var(--card);border-bottom:1rpx solid var(--hairline)}
+.page{padding-bottom:calc(60rpx + env(safe-area-inset-bottom))}
+.hero{padding:46rpx 34rpx 36rpx;background:linear-gradient(150deg,#F9FCFB,#EEF6F3);border-bottom:1rpx solid var(--hairline)}
 .hero .eyebrow{color:var(--accent)}
-.hero .gold-rule{margin:14rpx 0}
-.hero-title{font-size:38rpx;font-weight:700;color:var(--ink)}
+.hero-title{display:block;margin-top:8rpx;font-size:40rpx;font-weight:760;color:var(--ink)}
+.hero-sub{display:block;margin-top:4rpx;color:var(--text-muted);font-size:24rpx}
+.state-card{margin:22rpx 24rpx;background:#fff;border-radius:22rpx;border:1rpx solid var(--border)}
+.form-card{padding:32rpx}
 .field{margin-bottom:24rpx}
-.label{font-size:28rpx;color:#46515C;display:block;margin-bottom:8rpx}
-.value{font-size:30rpx;color:#202733;font-weight:600}
-.picker{background:#F8F6F1;border-radius:10rpx;padding:20rpx;font-size:28rpx}
-.textarea{border:1rpx solid #E1DDD4;border-radius:10rpx;padding:18rpx;font-size:28rpx;width:100%;min-height:150rpx;box-sizing:border-box}
-.btn-primary{background:#202733;color:#fff;border-radius:12rpx;padding:24rpx;font-size:30rpx;border:none;width:100%;margin-top:12rpx;font-weight:600}
+.label{font-size:26rpx;color:var(--text-secondary);display:block;margin-bottom:10rpx;font-weight:650}
+.value{font-size:30rpx;color:var(--ink);font-weight:680}
+.picker{min-height:88rpx;display:flex;align-items:center;background:#FAFCFB;border:1rpx solid #D5E3DE;border-radius:14rpx;padding:0 22rpx;font-size:29rpx}
+.textarea{min-height:170rpx}
+.count-hint{display:block;margin-top:8rpx;text-align:right;color:var(--faint);font-size:22rpx}
+.pending-hint{margin:4rpx 0 16rpx;padding:16rpx 18rpx;border-radius:13rpx;background:var(--warning-soft);color:var(--warning);font-size:24rpx}
+.btn-primary{width:100%;margin-top:12rpx}
 .btn-primary[disabled]{opacity:.4}
-.section-title{font-size:28rpx;font-weight:700;color:#202733;margin-bottom:16rpx}
+.section-title{font-size:28rpx;font-weight:700;color:#183A36;margin-bottom:16rpx}
 .fb-header{margin-bottom:16rpx}
-.fb-hint{font-size:24rpx;color:#8A929B}
-.leave-item{padding:16rpx 0;border-bottom:1rpx solid #ECE8E0}
+.fb-hint{font-size:24rpx;color:#7C8C87}
+.leave-item{padding:16rpx 0;border-bottom:1rpx solid #E5EEEB}
 .leave-item:last-child{border-bottom:none}
 .l-hd{display:flex;justify-content:space-between;align-items:center}
-.l-date{font-size:26rpx;color:#46515C}
-.l-status{font-size:24rpx;padding:4rpx 12rpx;border-radius:6rpx}
-.l-status.pending{background:#F7F2E5;color:#7B5B36}
-.l-status.approved{background:#EEF5EF;color:#3F7A5B}
-.l-status.rejected{background:#F7EDEA;color:#9F4E43}
-.l-reason{font-size:28rpx;color:#46515C;margin-top:8rpx}
-.btn-outline{border:1px solid #202733;color:#202733;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;margin-top:12rpx;font-weight:600}
+.l-date{font-size:26rpx;color:#536762}
+.l-status{font-size:23rpx;padding:4rpx 12rpx;border-radius:9rpx;font-weight:650}
+.l-status.pending{background:#F4F2E8;color:#3F7167}
+.l-status.approved{background:#E8F4F0;color:#2F735F}
+.l-status.rejected{background:#FCEEEB;color:#A94F48}
+.l-reason{font-size:28rpx;color:#536762;margin-top:8rpx}
+.btn-outline{border:1px solid #183A36;color:#183A36;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;margin-top:12rpx;font-weight:600}
 .btn-outline[disabled]{opacity:.4}
 </style>

@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "教培微信小程序 — 老师+家长双角色",
   "scripts": {
-    "dev:mp": "cross-env UNI_INPUT_DIR=. uni -p mp-weixin",
-    "build:mp": "cross-env UNI_INPUT_DIR=. uni build -p mp-weixin",
+    "dev:mp": "cross-env UNI_INPUT_DIR=. VITE_API_BASE_URL=http://localhost:3300/api uni -p mp-weixin",
+    "dev:mp:prod": "cross-env UNI_INPUT_DIR=. VITE_API_BASE_URL=https://panpan.xpytt.com/api uni -p mp-weixin",
+    "build:mp": "cross-env UNI_INPUT_DIR=. VITE_API_BASE_URL=https://panpan.xpytt.com/api uni build -p mp-weixin",
+    "check:mp": "node scripts/mp-ci-upload.js --check",
     "upload:mp": "npm run build:mp && node scripts/mp-ci-upload.js",
-    "dev:h5": "uni",
-    "build:h5": "uni build"
+    "dev:h5": "cross-env UNI_INPUT_DIR=. uni",
+    "build:h5": "cross-env UNI_INPUT_DIR=. uni build"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-4020920240930001",

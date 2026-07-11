@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS leaves (
 CREATE TABLE IF NOT EXISTS parent_feedbacks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   parent_id INTEGER REFERENCES users(id),
+  student_id INTEGER REFERENCES students(id),
   content TEXT NOT NULL,
   status TEXT DEFAULT 'pending',
   reply TEXT,

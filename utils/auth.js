@@ -11,6 +11,7 @@ export function doLogin() {
         try {
           if (!loginRes.code) throw new Error('微信登录失败');
           const data = await api.post('/auth/login', { code: loginRes.code });
+          if (!data?.token || !data?.user) throw new Error('登录信息不完整，请稍后重试');
 
           uni.setStorageSync('token', data.token);
           uni.setStorageSync('user', JSON.stringify(data.user));
@@ -32,7 +33,12 @@ export function doLogin() {
 
 export function getUser() {
   const raw = uni.getStorageSync('user');
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try { return typeof raw === 'string' ? JSON.parse(raw) : raw; }
+  catch {
+    uni.removeStorageSync('user');
+    return null;
+  }
 }
 
 export function isTeacher() {
@@ -43,5 +49,6 @@ export function isTeacher() {
 export function logout() {
   uni.removeStorageSync('token');
   uni.removeStorageSync('user');
+  uni.removeStorageSync('activeChildId');
   uni.reLaunch({ url: '/pages/index/index' });
 }

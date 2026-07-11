@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
+const { leaveBelongsToTeacher, parentFeedbackBelongsToTeacher, parentBoundStudent, teacherOwnsStudent } = require('../utils/scope');
 
 function auth(req, res, next) {
   try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
@@ -27,15 +28,16 @@ router.get('/', auth, (req, res) => {
   if (req.user.role === 'teacher') {
     const leaveRows = db.all(`SELECT l.*, s.name as student_name, 'leave' as item_type
       FROM leaves l JOIN students s ON s.id=l.student_id
-      WHERE s.teacher_id=?
+      LEFT JOIN classes c ON c.id=s.class_id
+      WHERE COALESCE(s.teacher_id,c.teacher_id)=?
       ORDER BY l.created_at DESC LIMIT 50`, [req.user.id]);
     const feedbackRows = db.all(`SELECT pf.id, NULL as student_id, pf.parent_id, '' as class_date,
       pf.content as reason, pf.status, pf.reply, pf.created_at,
       COALESCE(NULLIF(u.nickname,''),'家长') as student_name, 'feedback' as item_type
       FROM parent_feedbacks pf LEFT JOIN users u ON u.id=pf.parent_id
-      WHERE EXISTS (
-        SELECT 1 FROM bindings b JOIN students s ON s.id=b.student_id
-        WHERE b.parent_id=pf.parent_id AND s.teacher_id=?
+      WHERE pf.student_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM students s LEFT JOIN classes c ON c.id=s.class_id
+        WHERE s.id=pf.student_id AND COALESCE(s.teacher_id,c.teacher_id)=?
       )
       ORDER BY pf.created_at DESC LIMIT 50`, [req.user.id]);
     leaves = [...leaveRows, ...feedbackRows].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0, 80);
@@ -49,8 +51,10 @@ router.put('/:id', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const db = getDB();
   if (req.body.item_type === 'feedback') {
+    if (!parentFeedbackBelongsToTeacher(db, req.user.id, req.params.id)) return res.status(403).json({ error: '无权操作该反馈' });
     db.run('UPDATE parent_feedbacks SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
   } else {
+    if (!leaveBelongsToTeacher(db, req.user.id, req.params.id)) return res.status(403).json({ error: '无权操作该请假' });
     db.run('UPDATE leaves SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
   }
   res.json({ ok: true });
@@ -60,8 +64,10 @@ router.delete('/:id', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const db = getDB();
   if (req.query.type === 'feedback') {
+    if (!parentFeedbackBelongsToTeacher(db, req.user.id, req.params.id)) return res.status(403).json({ error: '无权操作该反馈' });
     db.run('DELETE FROM parent_feedbacks WHERE id=?', [req.params.id]);
   } else {
+    if (!leaveBelongsToTeacher(db, req.user.id, req.params.id)) return res.status(403).json({ error: '无权操作该请假' });
     db.run('DELETE FROM leaves WHERE id=?', [req.params.id]);
   }
   res.json({ ok: true });
@@ -72,7 +78,7 @@ router.post('/teacher-mark', auth, (req, res) => {
   const { student_id, class_date, reason } = req.body || {};
   if (!student_id || !class_date) return res.status(400).json({ error: '缺少学生或日期' });
   const db = getDB();
-  const student = db.get('SELECT id, name FROM students WHERE id=? AND teacher_id=?', [student_id, req.user.id]);
+  const student = teacherOwnsStudent(db, req.user.id, student_id);
   if (!student) return res.status(403).json({ error: '无权操作该学生' });
   const exists = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=?', [student_id, class_date]);
   const finalReason = reason || '老师在签到页标记请假';
@@ -88,7 +94,11 @@ router.post('/feedback', auth, (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
   const content = String(req.body.content || '').trim();
   if (!content) return res.status(400).json({ error: '请填写反馈内容' });
-  const r = getDB().run('INSERT INTO parent_feedbacks (parent_id, content) VALUES (?,?)', [req.user.id, content]);
+  const { student_id } = req.body || {};
+  const db = getDB();
+  const targetStudentId = student_id || db.get('SELECT student_id FROM bindings WHERE parent_id=? ORDER BY id LIMIT 1', [req.user.id])?.student_id;
+  if (!targetStudentId || !parentBoundStudent(db, req.user.id, targetStudentId)) return res.status(403).json({ error: '请先绑定孩子' });
+  const r = db.run('INSERT INTO parent_feedbacks (parent_id, student_id, content) VALUES (?,?,?)', [req.user.id, targetStudentId, content]);
   res.json({ ok: true, id: r.lastInsertRowid });
 });
 

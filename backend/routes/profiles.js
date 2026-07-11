@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
+const { teacherOwnsStudent } = require('../utils/scope');
 
 function auth(req, res, next) {
   try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
@@ -13,6 +14,7 @@ router.put('/:studentId', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { personality, strengths, weaknesses } = req.body;
   const db = getDB();
+  if (!teacherOwnsStudent(db, req.user.id, req.params.studentId)) return res.status(403).json({ error: '无权操作该学生' });
   const existing = db.get('SELECT id FROM student_profiles WHERE student_id=?', [req.params.studentId]);
   if (existing) {
     db.run('UPDATE student_profiles SET personality=?,strengths=?,weaknesses=? WHERE student_id=?', [personality||'', strengths||'', weaknesses||'', req.params.studentId]);
@@ -32,7 +34,7 @@ router.get('/my', auth, (req, res) => {
 router.get('/:studentId', auth, (req, res) => {
   const db = getDB();
   const allowed = req.user.role === 'teacher'
-    ? db.get('SELECT 1 FROM students s JOIN classes c ON c.id=s.class_id WHERE s.id=? AND c.teacher_id=?', [req.params.studentId, req.user.id])
+    ? teacherOwnsStudent(db, req.user.id, req.params.studentId)
     : db.get('SELECT 1 FROM bindings WHERE student_id=? AND parent_id=?', [req.params.studentId, req.user.id]);
   if (!allowed) return res.status(403).json({ error: '无权限' });
   const p = db.get('SELECT * FROM student_profiles WHERE student_id=?', [req.params.studentId]);
@@ -45,7 +47,7 @@ router.post('/generate', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { studentId } = req.body;
   const db = getDB();
-  const s = db.get('SELECT s.* FROM students s JOIN classes c ON c.id=s.class_id WHERE s.id=? AND c.teacher_id=?', [studentId, req.user.id]);
+  const s = teacherOwnsStudent(db, req.user.id, studentId) ? db.get('SELECT * FROM students WHERE id=?', [studentId]) : null;
   if (!s) return res.status(404).json({ error: '学生不存在' });
 
   const prompt = `你是教育心理学家，为学生生成个性画像。

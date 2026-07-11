@@ -1,16 +1,20 @@
 <template>
 <view class="page">
-  <view v-if="!user.role" class="card" style="margin-top:200rpx;text-align:center">
-    <text class="empty-hint" @tap="goLogin">请先登录</text>
+  <view v-if="loading && !user.role" class="mine-state">
+    <pp-state type="loading" title="正在读取账户信息" />
+  </view>
+  <view v-else-if="!user.role" class="mine-state">
+    <pp-state title="还没有登录" description="登录后可查看孩子信息或管理老师资料。" action-text="前往登录" @action="goLogin" />
   </view>
   <template v-else>
   <!-- 用户卡片 -->
   <view class="user-card hero-navy">
     <pp-avatar v-if="user.role==='parent'" :name="studentName" :size="128" class="parent-avatar" />
-    <image v-else-if="!teacherAvatarBroken" src="/static/pantouxiang.webp" class="teacher-avatar" mode="aspectFill" @error="teacherAvatarBroken=true" />
-    <pp-avatar v-else :name="teacherNickname || user.nickname || '潘潘'" :size="128" class="teacher-avatar-fallback" />
-    <text class="name">{{ user.role==='teacher' ? '潘潘老师' : (childName||'家长') }}</text>
+    <image v-else-if="user.avatar_url && !teacherAvatarBroken" :src="user.avatar_url" class="teacher-avatar" mode="aspectFill" @error="teacherAvatarBroken=true" />
+    <pp-avatar v-else :name="teacherDisplay" :size="128" class="teacher-avatar-fallback" />
+    <text class="name">{{ user.role==='teacher' ? teacherDisplay : (childName||'家长') }}</text>
     <text class="role-tag">{{ user.role==='teacher' ? '教师端' : '家长端' }}</text>
+    <text class="user-subtitle">{{ user.role==='teacher' ? '管理课程与家校反馈' : '查看孩子的学习动态' }}</text>
   </view>
 
   <!-- 家长：老师印象 -->
@@ -46,78 +50,128 @@
     <view class="empty-hint">老师还未填写印象</view>
   </view>
 
+  <view v-if="user.role==='parent' && activeTeacher" class="card teacher-contact">
+    <text class="section-title">联系老师</text>
+    <view class="teacher-contact-row">
+      <pp-avatar :name="teacherName(activeTeacher)" :size="82" />
+      <view class="teacher-contact-copy">
+        <text class="teacher-contact-name">{{ teacherName(activeTeacher) }}</text>
+        <text class="teacher-contact-detail">{{ activeTeacher.teacher_phone || '老师暂未填写联系方式' }}</text>
+      </view>
+      <button v-if="activeTeacher.teacher_phone" class="copy-contact" @tap="copyTeacherContact(activeTeacher.teacher_phone)">复制</button>
+    </view>
+  </view>
+
   <!-- 操作区 -->
   <view class="card actions" v-if="user.role==='parent'">
     <view v-for="kid in boundKids" :key="kid.id" class="bind-row">
-      <view>
+      <pp-avatar :name="kid.name" :size="76" />
+      <view class="bind-copy">
         <text class="bind-name">{{ kid.name }}</text>
-        <text class="bind-class">{{ kid.className || '已绑定学生' }}</text>
+        <text class="bind-class">{{ kid.className || '已绑定学生' }} · {{ teacherName(kid) }}</text>
       </view>
       <button class="btn-unbind" @tap.stop="unbind(kid)">解除绑定</button>
     </view>
     <view class="action-row" @tap="nav('/pages/bind/bind')">
-      <text>绑定其他孩子</text>
-      <text class="arrow">›</text>
+      <view class="action-copy"><pp-icon name="plus" :size="38" /><text>绑定其他孩子</text></view>
+      <pp-icon name="arrow" :size="34" />
     </view>
   </view>
 
   <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
-    <text class="section-title">老师称呼</text>
-    <input v-model="teacherNickname" class="input" placeholder="例如：潘潘" />
-    <button class="btn-primary" @tap="saveTeacherName">保存称呼</button>
+    <text class="section-title">老师资料</text>
+    <view class="form-field">
+      <text class="field-label">老师名称</text>
+      <input v-model="teacherNickname" class="input teacher-input" placeholder="例如：李老师" />
+    </view>
+    <view class="form-field">
+      <text class="field-label">老师联系方式</text>
+      <input v-model="teacherPhone" class="input teacher-input" placeholder="手机号或微信号（可选）" />
+    </view>
+    <view class="teacher-preview">家长将看到：{{ teacherDisplay }}</view>
+    <button class="btn-primary" :disabled="savingTeacher" @tap="saveTeacherName">{{ savingTeacher ? '保存中...' : '保存资料' }}</button>
   </view>
 
   <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
-    <text class="section-title">服务通知配置</text>
-    <view class="notify-row"><text>小程序 AppID</text><text :class="notifyStatus.appId?'ok':'bad'">{{ notifyStatus.appId?'已配置':'未配置' }}</text></view>
-    <view class="notify-row"><text>小程序密钥</text><text :class="notifyStatus.appSecret?'ok':'bad'">{{ notifyStatus.appSecret?'已配置':'未配置' }}</text></view>
-    <view class="notify-row"><text>签到提醒</text><text :class="notifyStatus.templates?.checkin?'ok':'bad'">{{ notifyStatus.templates?.checkin?'已配置':'未配置' }}</text></view>
-    <view class="notify-row"><text>签退提醒</text><text :class="notifyStatus.templates?.checkout?'ok':'bad'">{{ notifyStatus.templates?.checkout?'已配置':'未配置' }}</text></view>
-    <view class="notify-row"><text>课后反馈</text><text :class="notifyStatus.templates?.feedback?'ok':'bad'">{{ notifyStatus.templates?.feedback?'已配置':'未配置' }}</text></view>
-    <view class="notify-row"><text>上课提醒</text><text :class="notifyStatus.templates?.reminder?'ok':'bad'">{{ notifyStatus.templates?.reminder?'已配置':'未配置' }}</text></view>
+    <text class="section-title">通知服务</text>
+    <view class="service-health">
+      <view :class="['service-mark',{ok:notifyHealthy}]"><pp-icon name="bell" :size="42" /></view>
+      <view class="service-copy">
+        <text class="service-title">{{ notifyHealthy ? '通知服务运行正常' : '部分通知尚未配置' }}</text>
+        <text class="service-desc">{{ notifyHealthy ? '签到、签退与反馈提醒均已开启' : '如需使用通知，请联系管理员完成配置' }}</text>
+      </view>
+    </view>
   </view>
 
   <view class="card actions">
     <view class="action-row" @tap="logout">
-      <text>退出登录</text>
-      <text class="arrow">›</text>
+      <view class="action-copy action-danger"><pp-icon name="user" :size="38" /><text>退出登录</text></view>
+      <pp-icon name="arrow" :size="34" />
     </view>
   </view>
 
-  <view class="brand">番番记录 v1.0.0<br/>桂ICP备2026013218号-2</view>
+  <view class="brand">番番记录 1.1.0<br/>桂ICP备2026013218号-2</view>
   </template>
 </view>
 </template>
 
 <script>
 import { api } from '@/utils/api';
-import { logError } from '@/utils/ui';
+import { confirmAction, logError, toastError } from '@/utils/ui';
+import { teacherDisplayName } from '@/utils/brand';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',boundKids:[],teacherAvatarBroken:false
+    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',teacherPhone:'',boundKids:[],teacherAvatarBroken:false,
+    loading:false,savingTeacher:false
   };},
+  computed:{
+    teacherDisplay(){return teacherDisplayName(this.teacherNickname || this.user.nickname);},
+    notifyHealthy(){
+      const n=this.notifyStatus;
+      return Boolean(n?.appId&&n?.appSecret&&n?.templates?.checkin&&n?.templates?.checkout&&n?.templates?.feedback);
+    },
+    activeTeacher(){
+      const activeId=String(uni.getStorageSync('activeChildId')||'');
+      return this.boundKids.find(kid=>String(kid.id)===activeId)||this.boundKids[0]||null;
+    }
+  },
   onShow(){this.loadData();},
+  async onPullDownRefresh(){try{await this.loadData();}finally{uni.stopPullDownRefresh();}},
   methods:{
-    loadData(){
+    async loadData(){
+      if(this.loading)return;
+      this.loading=true;
       try{this.user=JSON.parse(uni.getStorageSync('user')||'{}');}catch(e){this.user={};}
-      if(this.user.role==='parent'){this.loadProfile();this.loadBoundKids();}
-      if(this.user.role==='teacher'){this.loadTeacherProfile();this.loadNotifyStatus();}
+      try{
+        if(this.user.role==='parent'){
+          await this.loadBoundKids();
+          await this.loadProfile();
+        }
+        if(this.user.role==='teacher')await Promise.all([this.loadTeacherProfile(),this.loadNotifyStatus()]);
+      }finally{this.loading=false;}
+    },
+    teacherName(kid){return teacherDisplayName(kid?.teacher_name,'孩子的老师');},
+    copyTeacherContact(contact){
+      uni.setClipboardData({data:String(contact),success:()=>uni.showToast({title:'联系方式已复制',icon:'success'})});
     },
     async loadTeacherProfile(){
       try{
         const data=await api.get('/auth/me');
-        if(data.user){this.user={...this.user,...data.user};this.teacherNickname=(data.user.nickname||'').replace(/老师$/,'');uni.setStorageSync('user',JSON.stringify(this.user));}
+        if(data.user){this.user={...this.user,...data.user};this.teacherNickname=data.user.nickname||'';this.teacherPhone=data.user.phone||'';uni.setStorageSync('user',JSON.stringify(this.user));}
       }catch(e){logError('mine.teacherProfile',e);}
     },
     async saveTeacherName(){
       const nickname=(this.teacherNickname||'').trim();
       if(!nickname)return uni.showToast({title:'请填写称呼',icon:'none'});
+      if(this.savingTeacher)return;
+      this.savingTeacher=true;
       try{
-        const data=await api.put('/auth/me',{nickname});
+        const data=await api.put('/auth/me',{nickname,phone:(this.teacherPhone||'').trim(),avatar_url:this.user.avatar_url||''});
         this.user={...this.user,...data.user};
         uni.setStorageSync('user',JSON.stringify(this.user));
         uni.showToast({title:'已保存',icon:'success'});
-      }catch(e){uni.showToast({title:'保存失败',icon:'none'});}
+      }catch(e){toastError(e,'保存失败');}
+      finally{this.savingTeacher=false;}
     },
     async loadNotifyStatus(){
       try{this.notifyStatus=await api.get('/notify/status');}
@@ -139,6 +193,8 @@ export default {
         if(cid){try{s=(await api.get('/students/'+cid)).student;}catch(e){logError('mine.student',e);}}
         if(!s){try{s=(await api.get('/bind/student')).student;}catch(e){logError('mine.bindStudent',e);}}
         if(s){this.studentName=s.name||'';this.childName=(s.name||'')+'家长';}
+        const activeKid=(this.boundKids||[]).find(k=>String(k.id)===String(cid));
+        if(activeKid?.teacher_name)this.childName=(s?.name||activeKid.name||'孩子')+'家长 · '+teacherDisplayName(activeKid.teacher_name);
       }catch(e){logError('mine.loadProfile',e);}
     },
     async loadBoundKids(){
@@ -146,21 +202,21 @@ export default {
       catch(e){logError('mine.boundKids',e);}
     },
     async unbind(kid){
-      uni.showModal({title:'解除绑定',content:'确定解除和 '+kid.name+' 的绑定？解除后可用邀请码重新绑定。',success:async r=>{
-        if(!r.confirm)return;
-        try{
-          await api.del('/bind/'+kid.id);
-          if(String(uni.getStorageSync('activeChildId')||'')===String(kid.id))uni.removeStorageSync('activeChildId');
-          uni.showToast({title:'已解除绑定',icon:'success'});
-          this.loadData();
-        }catch(e){uni.showToast({title:e?.error||'解除失败',icon:'none'});}
-      }});
+      const confirmed=await confirmAction({title:'解除绑定',content:'确定解除和 '+kid.name+' 的绑定？之后仍可用邀请码重新绑定。',confirmText:'解除',danger:true});
+      if(!confirmed)return;
+      try{
+        await api.del('/bind/'+kid.id);
+        if(String(uni.getStorageSync('activeChildId')||'')===String(kid.id))uni.removeStorageSync('activeChildId');
+        uni.showToast({title:'已解除绑定',icon:'success'});
+        await this.loadData();
+      }catch(e){toastError(e,'解除失败');}
     },
     goLogin(){uni.switchTab({url:'/pages/index/index'});},
     nav(url){uni.navigateTo({url});},
     tagColor(i){const cs=['tag-c0','tag-c1','tag-c2','tag-c3','tag-c4','tag-c5'];return cs[i%cs.length];},
-    logout(){
-      uni.showModal({title:'退出',content:'确定退出？',success:r=>{if(r.confirm){uni.clearStorageSync();uni.reLaunch({url:'/pages/index/index'});}}});
+    async logout(){
+      const confirmed=await confirmAction({title:'退出登录',content:'退出后需要重新使用微信登录。',confirmText:'退出'});
+      if(confirmed){uni.clearStorageSync();uni.reLaunch({url:'/pages/index/index'});}
     }
   }
 };
@@ -172,45 +228,95 @@ export default {
 .parent-avatar{margin-bottom:8rpx}
 .teacher-avatar{width:120rpx;height:120rpx;border-radius:50%;box-shadow:0 4rpx 14rpx rgba(36,42,50,.10),inset 0 0 0 2rpx rgba(255,255,255,.7)}
 .teacher-avatar-fallback{margin-bottom:8rpx}
-.name{font-size:36rpx;font-weight:700;color:#202733;margin-top:16rpx}
-.role-tag{font-size:22rpx;background:#F3F1EA;color:#69717D;padding:6rpx 18rpx;border-radius:20rpx;margin-top:10rpx;letter-spacing:1rpx}
+.name{font-size:36rpx;font-weight:700;color:#183A36;margin-top:16rpx}
+.role-tag{font-size:22rpx;background:#EDF5F2;color:#697B76;padding:6rpx 18rpx;border-radius:20rpx;margin-top:10rpx;letter-spacing:1rpx}
 
 .profile-section{padding-bottom:32rpx}
-.section-title{font-size:30rpx;font-weight:700;color:#202733;margin-bottom:24rpx}
+.section-title{font-size:30rpx;font-weight:700;color:#183A36;margin-bottom:24rpx}
 
 /* 人物 + 标签（去掉旋转动画，改为清晰的静态布局） */
 .character-area{display:flex;flex-direction:column;align-items:center;gap:24rpx;margin-bottom:32rpx}
 .tag-cloud{display:flex;flex-wrap:wrap;justify-content:center;gap:12rpx}
 .profile-tag{font-size:24rpx;padding:8rpx 20rpx;border-radius:24rpx;font-weight:600}
-.tag-c0{background:#F3F1EA;color:#202733}.tag-c1{background:#F7F1E7;color:#7B5B36}
-.tag-c2{background:#EFF3F2;color:#52707E}.tag-c3{background:#F7F1E7;color:#8D6A3F}
-.tag-c4{background:#EEF5EF;color:#3F7A5B}.tag-c5{background:#EFEDE7;color:#46515C}
+.tag-c0{background:#EDF5F2;color:#183A36}.tag-c1{background:#EEF7F3;color:#3F7167}
+.tag-c2{background:#EDF4F2;color:#52756F}.tag-c3{background:#EEF7F3;color:#2F6E61}
+.tag-c4{background:#E8F4F0;color:#2F735F}.tag-c5{background:#E9F0ED;color:#536762}
 
 /* 三个信息框 */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16rpx}
-.info-box{background:#F8F6F1;border-radius:14rpx;padding:24rpx}
+.info-box{background:#F7FAF8;border-radius:14rpx;padding:24rpx}
 .info-box:first-child{grid-column:1/-1}
-.info-label{font-size:26rpx;font-weight:700;color:#202733;margin-bottom:12rpx}
-.info-text{font-size:26rpx;line-height:1.7;color:#46515C}
+.info-label{font-size:26rpx;font-weight:700;color:#183A36;margin-bottom:12rpx}
+.info-text{font-size:26rpx;line-height:1.7;color:#536762}
 
-.empty-hint{text-align:center;color:#C3C1BA;padding:30rpx;font-size:28rpx}
+.empty-hint{text-align:center;color:#A4B1AD;padding:30rpx;font-size:28rpx}
 
 .actions{margin-top:12rpx}
 .action-row{display:flex;justify-content:space-between;align-items:center;font-size:28rpx;padding:12rpx 0}
-.bind-row{display:flex;justify-content:space-between;align-items:center;padding:14rpx 0;border-bottom:1rpx solid #ECE8E0}
-.bind-row:last-of-type{border-bottom:1rpx solid #ECE8E0}
-.bind-name{display:block;font-size:28rpx;font-weight:700;color:#202733}
-.bind-class{display:block;font-size:24rpx;color:#8A929B;margin-top:2rpx}
-.btn-unbind{margin:0;background:#F7EDEA;color:#9F4E43;border:none;border-radius:10rpx;padding:10rpx 18rpx;font-size:24rpx;line-height:1.4}
-.arrow{font-size:32rpx;color:#C3C1BA}
+.bind-row{display:flex;justify-content:space-between;align-items:center;padding:14rpx 0;border-bottom:1rpx solid #E5EEEB}
+.bind-row:last-of-type{border-bottom:1rpx solid #E5EEEB}
+.bind-name{display:block;font-size:28rpx;font-weight:700;color:#183A36}
+.bind-class{display:block;font-size:24rpx;color:#7C8C87;margin-top:2rpx}
+.btn-unbind{margin:0;background:#FCEEEB;color:#A94F48;border:none;border-radius:10rpx;padding:10rpx 18rpx;font-size:24rpx;line-height:1.4}
+.arrow{font-size:32rpx;color:#A4B1AD}
 .notify-card{margin-top:12rpx}
-.input{border:1rpx solid #E1DDD4;border-radius:10rpx;padding:18rpx;margin:12rpx 0 16rpx;font-size:28rpx;color:#46515C}
-.btn-primary{background:#202733;color:#fff;border-radius:12rpx;padding:20rpx;font-size:28rpx;text-align:center;border:none;width:100%;margin-bottom:10rpx}
-.notify-row{display:flex;justify-content:space-between;align-items:center;font-size:26rpx;padding:10rpx 0;border-bottom:1rpx solid #ECE8E0;color:#46515C}
+.form-field{margin:18rpx 0 22rpx}
+.field-label{display:block;font-size:27rpx;font-weight:700;color:#183A36;margin-bottom:10rpx}
+.input{border:1rpx solid #D5E3DE;border-radius:16rpx;padding:0 24rpx;margin:0;font-size:31rpx;color:#536762;min-height:92rpx;line-height:92rpx;background:#F8FBFA;box-sizing:border-box}
+.teacher-input{width:100%}
+.teacher-preview{font-size:26rpx;color:#2F6E61;background:#F7FAF8;border-radius:14rpx;padding:18rpx 20rpx;margin:2rpx 0 18rpx;line-height:1.6}
+.btn-primary{background:#183A36;color:#fff;border-radius:14rpx;padding:24rpx;font-size:30rpx;text-align:center;border:none;width:100%;margin-bottom:10rpx}
+.notify-row{display:flex;justify-content:space-between;align-items:center;font-size:26rpx;padding:10rpx 0;border-bottom:1rpx solid #E5EEEB;color:#536762}
 .notify-row:last-child{border-bottom:none}
-.ok{color:#3F8B65;font-weight:700}
-.bad{color:#B85C4E;font-weight:700}
+.ok{color:#2F7D6B;font-weight:700}
+.bad{color:#C75D54;font-weight:700}
 
-.brand{text-align:center;color:#C3C1BA;font-size:22rpx;padding:30rpx 0 20rpx}
-.empty-hint{color:#202733;font-size:32rpx}
+.brand{text-align:center;color:#A4B1AD;font-size:22rpx;padding:30rpx 0 20rpx}
+.empty-hint{color:#183A36;font-size:32rpx}
+</style>
+
+<style scoped>
+.page { padding-bottom: calc(44rpx + env(safe-area-inset-bottom)); }
+.mine-state { margin: 150rpx 24rpx 0; border-radius: 24rpx; background: #FFFFFF; border: 1rpx solid var(--border); box-shadow: var(--shadow-sm); }
+.user-card { padding: 52rpx 0 42rpx; background: linear-gradient(150deg,#F9FCFB 0%,#E9F4F0 100%); }
+.teacher-avatar { width: 128rpx; height: 128rpx; border-radius: 34rpx; box-shadow: 0 12rpx 30rpx rgba(24,58,54,.13); }
+.name { color: var(--ink); font-size: 38rpx; font-weight: 760; }
+.role-tag { padding: 5rpx 16rpx; border-radius: 9rpx; background: var(--accent-soft); color: var(--accent-strong); font-size: 21rpx; font-weight: 650; }
+.user-subtitle { margin-top: 8rpx; color: var(--text-muted); font-size: 24rpx; }
+.section-title { color: var(--ink); font-size: 30rpx; }
+
+.profile-section { margin-top: 22rpx; }
+.character-area { align-items: flex-start; flex-direction: row; }
+.tag-cloud { justify-content: flex-start; flex: 1; }
+.profile-tag { border-radius: 11rpx; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+.info-box { border-radius: 18rpx; background: var(--surface-muted); }
+.info-label { color: var(--ink); }
+.info-text { color: var(--text-secondary); }
+
+.bind-row { min-height: 92rpx; gap: 16rpx; border-color: var(--hairline); }
+.bind-copy { flex: 1; min-width: 0; }
+.bind-name { color: var(--ink); }
+.bind-class { color: var(--text-muted); }
+.btn-unbind { min-height: 58rpx; padding: 8rpx 16rpx; background: var(--danger-soft); color: var(--danger); border-radius: 11rpx; }
+.action-row { min-height: 76rpx; padding: 8rpx 0; color: var(--ink); }
+.action-copy { display: flex; align-items: center; gap: 14rpx; font-weight: 620; }
+.action-danger { color: var(--danger); }
+
+.form-field { margin: 20rpx 0; }
+.field-label { color: var(--text-secondary); font-size: 25rpx; }
+.teacher-preview { color: var(--accent-strong); background: var(--accent-soft); border-radius: 14rpx; }
+.teacher-contact{margin-top:22rpx}
+.teacher-contact-row{display:flex;align-items:center;gap:16rpx}
+.teacher-contact-copy{min-width:0;flex:1}
+.teacher-contact-name,.teacher-contact-detail{display:block}
+.teacher-contact-name{font-size:29rpx;font-weight:700;color:var(--ink)}
+.teacher-contact-detail{margin-top:4rpx;font-size:24rpx;color:var(--text-muted);word-break:break-all}
+.copy-contact{min-height:58rpx;margin:0;padding:8rpx 16rpx;background:var(--accent-soft);color:var(--accent-strong);border:none;border-radius:11rpx;font-size:24rpx}
+.service-health { display: flex; align-items: center; gap: 18rpx; padding: 20rpx; border-radius: 18rpx; background: var(--surface-muted); }
+.service-mark { width: 70rpx; height: 70rpx; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: var(--warning-soft); }
+.service-mark.ok { background: var(--accent-soft); }
+.service-copy { flex: 1; }
+.service-title { display: block; color: var(--ink); font-size: 27rpx; font-weight: 680; }
+.service-desc { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 23rpx; line-height: 1.55; }
+.brand { color: var(--faint); padding-bottom: calc(18rpx + env(safe-area-inset-bottom)); }
 </style>

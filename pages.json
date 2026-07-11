@@ -1,6 +1,6 @@
 {
   "pages": [
-    { "path": "pages/index/index", "style": { "navigationBarTitleText": "番番记录" } },
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "番番记录", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/bind/bind", "style": { "navigationBarTitleText": "绑定孩子" } },
     { "path": "pages/parent-home/index", "style": { "navigationBarTitleText": "学习动态" } },
     { "path": "pages/parent-schedule/index", "style": { "navigationBarTitleText": "学习小组详情" } },
@@ -13,22 +13,32 @@
     { "path": "pages/teacher-schedule/index", "style": { "navigationBarTitleText": "课表管理" } },
     { "path": "pages/teacher-leaves/index", "style": { "navigationBarTitleText": "请假审批" } },
     { "path": "pages/student-detail/index", "style": { "navigationBarTitleText": "学习印象" } },
-    { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的" } }
+    { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "番番记录",
-    "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#F5F6F8"
+    "navigationBarBackgroundColor": "#F8FBFA",
+    "backgroundColor": "#F3F7F5"
   },
   "tabBar": {
-    "color": "#A0AEC0",
-    "selectedColor": "#1A365D",
-    "backgroundColor": "#FFFFFF",
-    "borderStyle": "white",
+    "color": "#879792",
+    "selectedColor": "#2F7D6B",
+    "backgroundColor": "#FCFEFD",
+    "borderStyle": "black",
     "list": [
-      { "pagePath": "pages/index/index", "text": "工作台" },
-      { "pagePath": "pages/mine/index", "text": "设置" }
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/icons/home-tab.png",
+        "selectedIconPath": "static/icons/home-tab-active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "static/icons/user-tab.png",
+        "selectedIconPath": "static/icons/user-tab-active.png"
+      }
     ]
   }
 }

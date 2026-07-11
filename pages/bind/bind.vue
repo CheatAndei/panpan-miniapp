@@ -1,26 +1,26 @@
 <template>
 <view class="page">
   <view class="hero">
-    <view class="hero-badge">邀请码</view>
+    <view class="hero-mark"><pp-icon name="brand" :size="104" /></view>
     <view class="hero-title">绑定孩子</view>
-    <view class="gold-rule"></view>
-    <view class="hero-desc">输入潘潘老师提供的 6 位邀请码，查看孩子的学习动态</view>
+    <view class="hero-desc">输入老师提供的 6 位邀请码，查看孩子的学习动态</view>
   </view>
 
   <view class="card" v-if="!bound">
     <view class="code-group">
       <input class="code-input" :value="code" maxlength="6" placeholder="000000" @input="code=$event.detail.value.toUpperCase()" focus />
-      <view class="code-hint">潘潘老师会通过微信发给您</view>
+      <view class="code-hint">邀请码由孩子的老师发给您</view>
     </view>
-    <button class="btn-primary" @tap="doBind" :disabled="code.length!==6">
-      {{ code.length===6 ? '确认绑定' : '请输入完整邀请码' }}
+    <button class="btn-primary" @tap="doBind" :disabled="code.length!==6 || binding">
+      {{ binding ? '正在绑定...' : (code.length===6 ? '确认绑定' : '请输入完整邀请码') }}
     </button>
   </view>
 
   <view v-if="bound" class="card result-card">
-    <view class="result-icon"><view class="check-circle"></view></view>
+    <view class="result-icon"><view class="check-circle"><pp-icon name="check" :size="64" /></view></view>
     <view class="result-name">{{ bound.name }}</view>
     <view class="result-class">{{ bound.className }}</view>
+    <view v-if="bound.teacher_name" class="result-teacher">来自 {{ teacherName(bound) }}</view>
     <text class="result-tip">绑定成功</text>
     <button class="btn-primary" @tap="goHome">进入首页</button>
   </view>
@@ -30,10 +30,18 @@
 <script>
 import { api } from '@/utils/api';
 import { toastSuccess, toastError } from '@/utils/ui';
+import { teacherNameFromChild } from '@/utils/brand';
 export default {
-  data(){return{code:'',bound:null};},
+  data(){return{code:'',bound:null,binding:false};},
+  onLoad(options){
+    const code=String(options?.code||'').trim().toUpperCase();
+    if(code)this.code=code.slice(0,6);
+  },
   methods:{
+    teacherName(student){return teacherNameFromChild(student);},
     async doBind(){
+      if(this.binding||this.code.length!==6)return;
+      this.binding=true;
       try{
         const res=await api.post('/bind',{invite_code:this.code});
         if(res.role==='teacher'){
@@ -45,7 +53,9 @@ export default {
           return;
         }
         this.bound=res.student;
+        if(res.student?.id)uni.setStorageSync('activeChildId',res.student.id);
       }catch(e){toastError(e,'绑定失败，请检查邀请码');}
+      finally{this.binding=false;}
     },
     goHome(){
       uni.switchTab({url:'/pages/index/index'});
@@ -55,25 +65,24 @@ export default {
 </script>
 
 <style scoped>
-.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:80rpx 40rpx 0;background:var(--bg)}
-.hero{text-align:center;margin-bottom:48rpx;width:100%}
-.hero-badge{display:inline-block;background:#202733;color:#fff;font-size:22rpx;padding:6rpx 20rpx;border-radius:20rpx;letter-spacing:4rpx;margin-bottom:20rpx}
-.hero-title{font-size:44rpx;font-weight:800;color:#202733;margin-bottom:8rpx;letter-spacing:4rpx}
-.hero .gold-rule{margin:18rpx auto}
-.hero-desc{font-size:28rpx;color:#69717D;line-height:1.6;max-width:500rpx;margin:0 auto}
-.card{width:100%;background:#fff;border-radius:16rpx;padding:40rpx 32rpx}
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:88rpx 40rpx calc(48rpx + env(safe-area-inset-bottom));background:radial-gradient(circle at 85% 0,rgba(47,125,107,.09),transparent 32%),var(--bg);box-sizing:border-box}
+.hero{text-align:center;margin-bottom:42rpx;width:100%}
+.hero-mark{width:104rpx;height:104rpx;margin:0 auto 24rpx;filter:drop-shadow(0 14rpx 24rpx rgba(24,58,54,.15))}
+.hero-title{font-size:44rpx;font-weight:780;color:var(--ink);margin-bottom:10rpx;letter-spacing:2rpx}
+.hero-desc{font-size:27rpx;color:var(--text-muted);line-height:1.65;max-width:500rpx;margin:0 auto}
+.card{width:100%;max-width:680rpx;background:#fff;border-radius:26rpx;padding:38rpx 32rpx;border:1rpx solid var(--border);box-shadow:var(--shadow)}
 .code-group{margin-bottom:32rpx}
-.code-input{border:2px solid #E1DDD4;border-radius:14rpx;height:100rpx;line-height:100rpx;padding:0 16rpx;font-size:52rpx;text-align:center;letter-spacing:28rpx;font-weight:700;color:#202733;width:100%;box-sizing:border-box;background:#F8F6F1}
-.code-input:focus{border-color:#202733}
-.code-hint{text-align:center;font-size:24rpx;color:#8A929B;margin-top:16rpx}
-.btn-primary{background:#202733;color:#fff;border-radius:12rpx;padding:26rpx;font-size:32rpx;border:none;width:100%;font-weight:700}
-.btn-primary[disabled]{background:#C3C1BA;color:#fff}
+.code-input{border:2rpx solid #C9DAD4;border-radius:18rpx;height:108rpx;line-height:108rpx;padding:0 8rpx 0 28rpx;font-size:48rpx;text-align:center;letter-spacing:24rpx;font-variant-numeric:tabular-nums;font-weight:740;color:var(--ink);width:100%;box-sizing:border-box;background:#FAFCFB}
+.code-input:focus{border-color:var(--accent);box-shadow:0 0 0 5rpx rgba(47,125,107,.08)}
+.code-hint{text-align:center;font-size:24rpx;color:var(--text-muted);margin-top:16rpx}
+.btn-primary{width:100%;}
+.btn-primary[disabled]{box-shadow:none}
 .result-card{text-align:center}
 .result-icon{margin-bottom:24rpx;display:flex;justify-content:center}
-.check-circle{width:80rpx;height:80rpx;border-radius:50%;background:#EEF5EF;position:relative;animation:pop .3s ease-out}
-.check-circle::after{content:'';position:absolute;left:28rpx;top:20rpx;width:18rpx;height:34rpx;border:solid #3F8B65;border-width:0 4rpx 4rpx 0;transform:rotate(45deg)}
+.check-circle{width:100rpx;height:100rpx;border-radius:30rpx;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;animation:pop .3s ease-out}
 @keyframes pop{0%{transform:scale(0)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
-.result-name{font-size:40rpx;font-weight:800;color:#202733;margin-bottom:8rpx}
-.result-class{font-size:28rpx;color:#69717D;margin-bottom:6rpx}
-.result-tip{font-size:24rpx;color:#3F8B65;display:block;margin-bottom:32rpx}
+.result-name{font-size:40rpx;font-weight:780;color:var(--ink);margin-bottom:8rpx}
+.result-class{font-size:28rpx;color:var(--text-muted);margin-bottom:6rpx}
+.result-teacher{font-size:26rpx;color:var(--accent-strong);margin-bottom:8rpx}
+.result-tip{font-size:24rpx;color:var(--success);display:block;margin-bottom:32rpx}
 </style>
