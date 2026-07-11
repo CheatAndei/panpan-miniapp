@@ -53,7 +53,7 @@ app.use('/api/notify', notifyRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'bug5-pdf-note-v1' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'bug5-v2-1.1.2' });
 });
 
 // 初始化数据库并启动
