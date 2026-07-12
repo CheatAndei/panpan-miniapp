@@ -31,7 +31,8 @@ function clearExpiredSession() {
   }, 350);
 }
 
-function executeRequest(method, path, data) {
+function executeRequest(method, path, data, options = {}) {
+  const { handleUnauthorized = true } = options;
   return new Promise((resolve, reject) => {
     uni.request({
       url: buildUrl(path),
@@ -46,7 +47,7 @@ function executeRequest(method, path, data) {
         }
         const error = res.data || { error: '请求失败' };
         error.statusCode = res.statusCode;
-        if (res.statusCode === 401) clearExpiredSession();
+        if (res.statusCode === 401 && handleUnauthorized) clearExpiredSession();
         reject(error);
       },
       fail(err) {
@@ -65,13 +66,13 @@ function executeRequest(method, path, data) {
   });
 }
 
-function request(method, path, data) {
-  if (method !== 'GET') return executeRequest(method, path, data);
+function request(method, path, data, options = {}) {
+  if (method !== 'GET') return executeRequest(method, path, data, options);
 
-  const key = `${path}|${JSON.stringify(data || null)}`;
+  const key = `${path}|${JSON.stringify(data || null)}|${JSON.stringify(options || null)}`;
   if (inFlightGets.has(key)) return inFlightGets.get(key);
 
-  const task = executeRequest(method, path, data).finally(() => inFlightGets.delete(key));
+  const task = executeRequest(method, path, data, options).finally(() => inFlightGets.delete(key));
   inFlightGets.set(key, task);
   return task;
 }
@@ -205,10 +206,10 @@ export function openPdfDocument(url) {
 }
 
 export const api = {
-  get(path, data) { return request('GET', path, data); },
-  post(path, data) { return request('POST', path, data); },
-  put(path, data) { return request('PUT', path, data); },
-  del(path) { return request('DELETE', path); },
+  get(path, data, options) { return request('GET', path, data, options); },
+  post(path, data, options) { return request('POST', path, data, options); },
+  put(path, data, options) { return request('PUT', path, data, options); },
+  del(path, options) { return request('DELETE', path, undefined, options); },
   upload(path, filePath, name) { return uploadFile(path, filePath, name); },
   assetUrl,
   openPdf(url) { return openPdfDocument(url); }

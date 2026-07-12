@@ -40,12 +40,21 @@ export default {
   },
   methods:{
     teacherName(student){return teacherNameFromChild(student);},
+    async submitBinding(){
+      try{
+        return await api.post('/bind',{invite_code:this.code},{handleUnauthorized:false});
+      }catch(e){
+        if(e?.statusCode!==401)throw e;
+        await doLogin();
+        return api.post('/bind',{invite_code:this.code},{handleUnauthorized:false});
+      }
+    },
     async doBind(){
       if(this.binding||this.code.length!==6)return;
       this.binding=true;
       try{
         await doLogin();
-        const res=await api.post('/bind',{invite_code:this.code});
+        const res=await this.submitBinding();
         if(res.role==='teacher'){
           if(res.token) uni.setStorageSync('token', res.token);
           const u=JSON.parse(uni.getStorageSync('user')||'{}');
