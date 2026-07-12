@@ -152,6 +152,15 @@
         <view v-if="!latestFeedback && !stuFeedback" class="hint">暂无反馈</view>
       </view>
 
+      <view class="card homework-entry" @tap="child&&navTo('/pages/parent-homework/index?student_id='+child.id)">
+        <view class="homework-entry-icon"><pp-icon name="clipboard" :size="42" /></view>
+        <view class="homework-entry-copy">
+          <text class="homework-entry-title">作业批改</text>
+          <text class="homework-entry-desc">查看逐题结果、错题与积分</text>
+        </view>
+        <pp-icon name="arrow" :size="34" />
+      </view>
+
       <!-- 反馈详情弹窗 -->
       <view v-if="showFbDetail" class="modal-mask" @tap="showFbDetail=''">
         <view class="modal" @tap.stop>
@@ -335,7 +344,7 @@ async function requestSubscribe() {
 async function loadNotifyTemplates() {
   try {
     const tplRes = await api.get('/notify/templates');
-    notifyTpls.value = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.feedback].filter(Boolean))];
+    notifyTpls.value = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.feedback, tplRes.homework].filter(Boolean))];
   } catch (e) {
     logError('loadNotifyTemplates', e);
   }
@@ -616,6 +625,11 @@ function scheduleLabel(sc) {
 .pdf-btn { background: #183A36; color: #fff; border: none; padding: 18rpx; font-size: 28rpx; text-align: center; width: 100%; border-radius: 12rpx; margin-top: 16rpx; }
 .fb-imgs { display: flex; gap: 10rpx; flex-wrap: wrap; margin-top: 16rpx; }
 .fb-thumb { width: 150rpx; height: 150rpx; border-radius: 8rpx; }
+.homework-entry { display:flex; align-items:center; gap:18rpx; }
+.homework-entry-icon { width:68rpx; height:68rpx; border-radius:20rpx; display:flex; align-items:center; justify-content:center; background:var(--accent-soft); }
+.homework-entry-copy { flex:1; }
+.homework-entry-title { display:block; color:var(--ink); font-size:28rpx; font-weight:680; }
+.homework-entry-desc { display:block; margin-top:2rpx; color:var(--text-muted); font-size:23rpx; }
 
 .profile-preview { display: flex; gap: 12rpx; flex-wrap: wrap; }
 

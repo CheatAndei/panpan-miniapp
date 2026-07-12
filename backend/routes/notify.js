@@ -14,7 +14,8 @@ const TPLS = {
   checkin:  process.env.TPL_CHECKIN  || '',
   checkout: process.env.TPL_CHECKOUT || '',
   reminder: process.env.TPL_REMINDER || '',
-  feedback: process.env.TPL_FEEDBACK || ''
+  feedback: process.env.TPL_FEEDBACK || '',
+  homework: process.env.TPL_HOMEWORK || ''
 };
 const FIELDS = {
   checkin: {
@@ -37,6 +38,11 @@ const FIELDS = {
     title: process.env.TPL_FIELD_FEEDBACK_TITLE || 'thing1',
     time: process.env.TPL_FIELD_FEEDBACK_TIME || 'time2',
     note: process.env.TPL_FIELD_FEEDBACK_NOTE || 'thing3'
+  },
+  homework: {
+    title: process.env.TPL_FIELD_HOMEWORK_TITLE || 'thing1',
+    time: process.env.TPL_FIELD_HOMEWORK_TIME || 'time2',
+    note: process.env.TPL_FIELD_HOMEWORK_NOTE || 'thing3'
   }
 };
 
@@ -95,7 +101,7 @@ function userOpenid(userId, fallback = '') {
 }
 
 function templateByType(type) {
-  const key = ['checkin', 'checkout', 'feedback', 'reminder'].includes(type) ? type : 'checkin';
+  const key = ['checkin', 'checkout', 'feedback', 'reminder', 'homework'].includes(type) ? type : 'checkin';
   return { key, tplId: TPLS[key], fields: FIELDS[key] };
 }
 
@@ -111,7 +117,8 @@ router.get('/status', auth, (req, res) => {
       checkin: !!TPLS.checkin,
       checkout: !!TPLS.checkout,
       reminder: !!TPLS.reminder,
-      feedback: !!TPLS.feedback
+      feedback: !!TPLS.feedback,
+      homework: !!TPLS.homework
     },
     fields: FIELDS,
     miniprogramState: process.env.WX_MINIPROGRAM_STATE || 'formal'
@@ -127,7 +134,12 @@ router.post('/test', auth, async (req, res) => {
     const isCheckout = key === 'checkout';
     const isFeedback = key === 'feedback';
     const isReminder = key === 'reminder';
-    const result = await sendMsg(openid, tplId, templateData(isFeedback ? [
+    const isHomework = key === 'homework';
+    const result = await sendMsg(openid, tplId, templateData(isHomework ? [
+      [fields.title, '作业批改测试'],
+      [fields.time, bjDate()],
+      [fields.note, '收到说明配置正常']
+    ] : isFeedback ? [
       [fields.title, '课后反馈测试'],
       [fields.time, bjDate()],
       [fields.note, '收到说明配置正常']
@@ -234,6 +246,17 @@ router.notifyCheckin = async (studentId) => {
   ]), 'pages/index/index');
 };
 
+router.notifyArrivalReminder = async (studentId) => {
+  const db = getDB();
+  const s = db.get('SELECT name FROM students WHERE id=?', [studentId]);
+  const now = wxTime();
+  return notifyParents(studentId, TPLS.checkin, templateData([
+    [FIELDS.checkin.student, s?.name || '学生'],
+    [FIELDS.checkin.time, now],
+    [FIELDS.checkin.status, '仍未到达']
+  ]), 'pages/index/index');
+};
+
 router.notifyCheckout = async (studentId, note = '') => {
   const db = getDB();
   const s = db.get('SELECT name FROM students WHERE id=?', [studentId]);
@@ -259,6 +282,27 @@ router.notifyFeedback = async (classId) => {
     [FIELDS.feedback.time, bjDate()],
     [FIELDS.feedback.note, cls?.name || '学习小组']
   ]), 'pages/parent-feedback/index');
+};
+
+router.notifyHomework = async (studentId, batchId, title = '作业批改已完成') => {
+  const db = getDB();
+  const student = db.get('SELECT name FROM students WHERE id=?', [studentId]);
+  return notifyParents(studentId, TPLS.homework, templateData([
+    [FIELDS.homework.title, title],
+    [FIELDS.homework.time, bjDate()],
+    [FIELDS.homework.note, student?.name || '学生']
+  ]), `pages/parent-homework/index?batch_id=${batchId}`);
+};
+
+router.notifyHomeworkParent = async (parentId, studentId, batchId, title = '作业批改已完成') => {
+  const db = getDB();
+  const student = db.get('SELECT name FROM students WHERE id=?', [studentId]);
+  const openid = userOpenid(parentId);
+  return sendMsg(openid, TPLS.homework, templateData([
+    [FIELDS.homework.title, title],
+    [FIELDS.homework.time, bjDate()],
+    [FIELDS.homework.note, student?.name || '学生']
+  ]), `pages/parent-homework/index?batch_id=${batchId}`);
 };
 
 async function notifyParentsByClass(classId, tplId, data, page) {

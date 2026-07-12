@@ -39,6 +39,7 @@
             <text v-if="s._outNote" class="note-text">{{ s._outNote }}</text>
           </view>
           <view class="stu-right">
+            <button v-if="!s._leave&&!s._checked" class="btn-sm btn-remind" :disabled="s._busy||s._reminding" @tap="remindArrival(se,s)">{{ s._reminding ? '发送中' : '提醒' }}</button>
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-in" :disabled="s._busy" @tap="checkIn(se,s)">签到</button>
             <button v-if="!s._leave&&!s._checked" class="btn-sm btn-leave" :disabled="s._busy" @tap="markLeave(se,s)">请假</button>
             <button v-if="s._checked&&!s._out" class="btn-sm btn-out" :disabled="s._busy" @tap="checkOut(se,s)">签退</button>
@@ -85,7 +86,7 @@ export default {
       try{
         const res=await api.get('/students?class_id='+se.class_id);
         const students=(res.students||[]).map(s=>{
-          s._checked=false;s._out=false;s._leave=false;s._inTime='';s._outTime='';s._outNote='';s._busy=false;
+          s._checked=false;s._out=false;s._leave=false;s._inTime='';s._outTime='';s._outNote='';s._busy=false;s._reminding=false;
           return s;
         });
         // 并行查询各学生签到状态（原为逐个 await 的串行瀑布，N 人=N 次往返）
@@ -110,6 +111,16 @@ export default {
         if(!silent)toastSuccess(res.notify?.ok?s.name+' 已签到并提醒':s.name+' 已签到，提醒未送达');return true;}
       catch(e){if(!silent)toastError(e,'签到失败');return false;}
       finally{s._busy=false;}
+    },
+    async remindArrival(se,s){
+      if(s._busy||s._reminding||s._checked||s._leave)return;
+      s._reminding=true;
+      try{
+        const res=await api.post('/checkins/remind-arrival',{studentId:s.id,classDate:se.class_date});
+        if(res.notify?.ok)toastSuccess(s.name+' 的到达提醒已发送');
+        else toastError(res.notify||{},'提醒未送达');
+      }catch(e){toastError(e,'提醒发送失败');}
+      finally{s._reminding=false;}
     },
     async checkOut(se,s,special=false,silent=false){
       if(s._busy)return false;
@@ -195,7 +206,7 @@ export default {
 .btn-special-main{background:#183A36;color:#fff;border-radius:12rpx;padding:14rpx;font-size:26rpx;border:none;width:100%;font-weight:700}
 .mb-sm{margin-bottom:16rpx}
 .btn-sm{padding:10rpx 24rpx;border-radius:8rpx;font-size:24rpx;border:none}
-.btn-in{background:#2F7D6B;color:#fff}.btn-out{background:#52756F;color:#fff}.btn-leave{background:#F4F2E8;color:#3F7167}
+.btn-in{background:#2F7D6B;color:#fff}.btn-out{background:#52756F;color:#fff}.btn-leave{background:#F4F2E8;color:#3F7167}.btn-remind{background:#EEF5F2;color:#2F6E61;border:1rpx solid #BFD2CC}
 .stats{display:flex;gap:24rpx;margin-bottom:16rpx}
 .stat{font-size:26rpx;color:#536762}.stat.green{color:#2F7D6B}.stat.gray{color:#7C8C87}
 .stu-row{display:flex;justify-content:space-between;align-items:center;padding:18rpx 0;border-bottom:1rpx solid #E5EEEB}
@@ -237,6 +248,6 @@ export default {
 .stu-row.leave{opacity:.6}
 .s-name{color:var(--ink);font-weight:680}
 .stu-right .btn-sm{min-height:64rpx;border-radius:11rpx;font-weight:650}
-.btn-in{background:var(--accent);color:#fff}.btn-out{background:var(--info);color:#fff}.btn-leave{background:var(--warning-soft);color:var(--warning)}
+.btn-in{background:var(--accent);color:#fff}.btn-out{background:var(--info);color:#fff}.btn-leave{background:var(--warning-soft);color:var(--warning)}.btn-remind{background:var(--accent-soft);color:var(--accent-strong);border-color:#BFD2CC}
 .swipe-del{background:var(--danger)}
 </style>

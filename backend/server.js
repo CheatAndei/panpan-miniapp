@@ -15,9 +15,10 @@ const leaveRoutes = require('./routes/leaves');
 const bindRoutes = require('./routes/bind');
 const profileRoutes = require('./routes/profiles');
 const notifyRoutes = require('./routes/notify');
+const homeworkRoutes = require('./routes/homework');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((item) => item.trim()).filter(Boolean);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -50,10 +51,11 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/bind', bindRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/notify', notifyRoutes);
+app.use('/api/homework', homeworkRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'bug5-v2-1.1.2' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'bug6-homework-v1.1.3' });
 });
 
 // 初始化数据库并启动
@@ -62,18 +64,24 @@ async function start() {
   console.log('Database ready');
 
   // 启动定时提醒
-  try {
-    require('./jobs/reminder').start();
-  } catch (e) {
-    console.log('Reminder cron skipped');
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      require('./jobs/reminder').start();
+    } catch (e) {
+      console.log('Reminder cron skipped');
+    }
   }
 
-  app.listen(PORT, () => {
+  return app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
-start().catch(err => {
-  console.error('Startup failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch(err => {
+    console.error('Startup failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, start };

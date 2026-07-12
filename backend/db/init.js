@@ -59,6 +59,8 @@ function runMigrations() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   ensureColumn('parent_feedbacks', 'student_id', 'INTEGER REFERENCES students(id)');
+  // 作业批改表由 schema.sql 以 CREATE TABLE IF NOT EXISTS 创建。
+  // 这里保留可向后兼容的增量字段迁移位置。
 }
 
 async function initDB() {
@@ -69,7 +71,8 @@ async function initDB() {
   _db.run(schema);
   runMigrations();
   saveDB();
-  setInterval(saveDB, 30000);
+  const saveTimer = setInterval(saveDB, 30000);
+  saveTimer.unref?.();
   console.log(`DB ready: ${DB_PATH}`);
 }
 

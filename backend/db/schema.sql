@@ -147,3 +147,88 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   suggestion TEXT,
   generated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- AI 作业批改批次。idempotency_key 防止本地后台重复提交。
+CREATE TABLE IF NOT EXISTS homework_batches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  teacher_id INTEGER REFERENCES users(id),
+  title TEXT NOT NULL,
+  subject TEXT,
+  assigned_date DATE NOT NULL,
+  status TEXT DEFAULT 'reviewed',
+  prompt_version TEXT,
+  source_manifest TEXT,
+  idempotency_key TEXT UNIQUE NOT NULL,
+  confirmed_at DATETIME,
+  published_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS homework_submissions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  batch_id INTEGER REFERENCES homework_batches(id),
+  student_id INTEGER REFERENCES students(id),
+  original_image_urls TEXT,
+  processed_image_urls TEXT,
+  grading_status TEXT DEFAULT 'confirmed',
+  overall_comment TEXT,
+  points_delta INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(batch_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS homework_answers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER REFERENCES homework_submissions(id),
+  question_no TEXT NOT NULL,
+  question_image_url TEXT,
+  student_answer TEXT,
+  is_correct INTEGER NOT NULL DEFAULT 0,
+  wrong_step TEXT,
+  error_type TEXT,
+  comment TEXT,
+  confidence REAL,
+  teacher_status TEXT DEFAULT 'confirmed',
+  teacher_note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id, question_no)
+);
+
+CREATE TABLE IF NOT EXISTS wrong_questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER REFERENCES students(id),
+  answer_id INTEGER REFERENCES homework_answers(id) UNIQUE,
+  status TEXT DEFAULT 'open',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS point_ledger (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER REFERENCES students(id),
+  submission_id INTEGER REFERENCES homework_submissions(id) UNIQUE,
+  delta INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS operation_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor_id INTEGER REFERENCES users(id),
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id INTEGER,
+  detail TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS push_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER REFERENCES homework_submissions(id),
+  parent_id INTEGER REFERENCES users(id),
+  status TEXT DEFAULT 'pending',
+  attempts INTEGER DEFAULT 0,
+  error TEXT,
+  sent_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id, parent_id)
+);

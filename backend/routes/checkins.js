@@ -93,6 +93,23 @@ router.post('/check-in', auth, async (req, res) => {
   res.json({ ok: true, notify });
 });
 
+// 老师提醒尚未到达的学生家长
+router.post('/remind-arrival', auth, async (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
+  const { studentId, classDate } = req.body;
+  if (!studentId || !classDate) return res.status(400).json({ error: '缺少学生或日期' });
+  const db = getDB();
+  if (!teacherOwnsStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权操作该学生' });
+  const leave = db.get('SELECT id FROM leaves WHERE student_id=? AND class_date=? AND status=?', [studentId, classDate, 'approved']);
+  if (leave) return res.status(400).json({ error: '该学生已请假，无需发送到达提醒' });
+  const existing = latestCheckin(db, studentId, classDate);
+  if (existing?.check_in_time) return res.status(400).json({ error: '该学生已签到，无需重复提醒' });
+  let notify = { ok: false, error: '未发送' };
+  try { notify = await require('./notify').notifyArrivalReminder(studentId); }
+  catch(e) { notify = { ok: false, error: e.message }; }
+  res.json({ ok: true, notify });
+});
+
 // 老师签退
 router.post('/check-out', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });

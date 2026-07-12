@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const DB_PATH = path.join(__dirname, 'teach.db');
 
-const data = JSON.parse(fs.readFileSync('d:/biancheng/qian/classtest/data/classes.json','utf-8'));
+const CLASSES_FILE = path.join(__dirname, '..', '..', '..', 'classtest', 'data', 'classes.json');
+const data = JSON.parse(fs.readFileSync(CLASSES_FILE, 'utf-8'));
 
 // 提取 level
 function extractLevel(personality) {

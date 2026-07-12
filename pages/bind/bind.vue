@@ -29,6 +29,7 @@
 
 <script>
 import { api } from '@/utils/api';
+import { doLogin } from '@/utils/auth';
 import { toastSuccess, toastError } from '@/utils/ui';
 import { teacherNameFromChild } from '@/utils/brand';
 export default {
@@ -43,6 +44,7 @@ export default {
       if(this.binding||this.code.length!==6)return;
       this.binding=true;
       try{
+        await doLogin();
         const res=await api.post('/bind',{invite_code:this.code});
         if(res.role==='teacher'){
           if(res.token) uni.setStorageSync('token', res.token);

@@ -5,6 +5,7 @@
     { "path": "pages/parent-home/index", "style": { "navigationBarTitleText": "学习动态" } },
     { "path": "pages/parent-schedule/index", "style": { "navigationBarTitleText": "学习小组详情" } },
     { "path": "pages/parent-feedback/index", "style": { "navigationBarTitleText": "课后反馈" } },
+    { "path": "pages/parent-homework/index", "style": { "navigationBarTitleText": "作业批改" } },
     { "path": "pages/parent-profile/index", "style": { "navigationBarTitleText": "老师印象" } },
     { "path": "pages/parent-leave/index", "style": { "navigationBarTitleText": "请假" } },
     { "path": "pages/teacher-classes/index", "style": { "navigationBarTitleText": "学习小组管理" } },
