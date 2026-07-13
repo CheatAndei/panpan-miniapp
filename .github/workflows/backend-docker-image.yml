@@ -228,5 +228,20 @@ jobs:
             echo "=== container image/mounts ==="
             docker inspect panpan-api --format 'image={{.Config.Image}} mounts={{json .Mounts}}' || true
             echo "=== container code markers ==="
-            docker exec panpan-api sh -lc "grep -n 'bug2-notify-fields-v3\|time.*<= 20\|phrase.*<= 20\|thing.*<= 20\|function wxTime' /app/server.js /app/routes/notify.js || true"
-            curl -fsS http://127.0.0.1:3000/api/health || true
+            docker exec panpan-api sh -lc "grep -n 'bug2-notify-fields-v3\|time.*<= 20\|phrase.*<= 20\|thing.*<= 20\|function wxTime' /app/server.js /app/routes/notify.js || true" || true
+
+            HEALTHY=0
+            for attempt in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:3000/api/health; then
+                HEALTHY=1
+                break
+              fi
+              sleep 2
+            done
+            if [ "$HEALTHY" != "1" ]; then
+              echo "Backend failed its startup health check"
+              docker ps -a --filter name=panpan-api
+              docker inspect panpan-api --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' || true
+              docker logs --tail 240 panpan-api 2>&1 || true
+              exit 1
+            fi

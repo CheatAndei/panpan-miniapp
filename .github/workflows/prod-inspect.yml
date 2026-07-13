@@ -25,6 +25,12 @@ jobs:
             echo "=== current mounts ==="
             docker inspect panpan-api --format 'mounts={{json .Mounts}}' || true
 
+            echo "=== container state ==="
+            docker inspect panpan-api --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' || true
+
+            echo "=== container logs ==="
+            docker logs --tail 240 panpan-api 2>&1 || true
+
             echo "=== db candidates ==="
             find /opt /var/lib/docker/volumes /var/lib/docker/overlay2 -type f \( -name '*.db' -o -name '*.sqlite' \) -printf '%s %TY-%Tm-%Td %TH:%TM %p\n' 2>/dev/null | sort -nr | head -120 || true
 
