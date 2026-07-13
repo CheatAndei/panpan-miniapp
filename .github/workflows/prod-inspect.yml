@@ -31,6 +31,16 @@ jobs:
             echo "=== container logs ==="
             docker logs --tail 240 panpan-api 2>&1 || true
 
+            echo "=== port 3000 owner ==="
+            ss -ltnp '( sport = :3000 )' || true
+            lsof -nP -iTCP:3000 -sTCP:LISTEN || true
+            docker ps -a --format 'name={{.Names}} ports={{.Ports}} networks={{.Networks}}'
+            ps -ef | grep -E '[n]ode|[p]m2|[p]anpan' || true
+
+            echo "=== caddy routing ==="
+            docker inspect panpan-caddy --format 'network={{.HostConfig.NetworkMode}} mounts={{json .Mounts}} ports={{json .NetworkSettings.Ports}}' || true
+            docker exec panpan-caddy sh -lc 'find /etc/caddy /config -maxdepth 3 -type f -print -exec sed -n "1,180p" {} \;' 2>/dev/null || true
+
             echo "=== db candidates ==="
             find /opt /var/lib/docker/volumes /var/lib/docker/overlay2 -type f \( -name '*.db' -o -name '*.sqlite' \) -printf '%s %TY-%Tm-%Td %TH:%TM %p\n' 2>/dev/null | sort -nr | head -120 || true
 
