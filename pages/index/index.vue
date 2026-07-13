@@ -9,6 +9,7 @@
       <button class="login-btn" :disabled="loginLoading" @tap="handleLogin">
         {{ loginLoading ? '登录中...' : '微信登录' }}
       </button>
+      <button class="repair-login-btn" :disabled="loginLoading" @tap="handleLoginRepair">切换身份 / 登录修复</button>
       <view class="welcome-note">首次登录默认为家长身份</view>
     </view>
 
@@ -83,6 +84,16 @@
           <view class="class-tail"><text class="class-count num">{{ c.studentCount || 0 }}</text><text>人</text><pp-icon name="arrow" :size="34" /></view>
         </view>
       </view>
+
+      <view class="card practice-entry practice-entry-teacher" @tap="navTo('/pages/practice-teacher/index')">
+        <view class="practice-entry-icon"><pp-icon name="clipboard" :size="42" /></view>
+        <view class="practice-entry-copy">
+          <text class="practice-entry-kicker">假期个性化练习</text>
+          <text class="practice-entry-title">打卡计划与复核</text>
+          <text class="practice-entry-desc">发布题目、查看上传、下载五日 PDF</text>
+        </view>
+        <pp-icon name="arrow" :size="34" />
+      </view>
     </view>
 
     <!-- 家长端 -->
@@ -136,13 +147,20 @@
         </view>
       </view>
 
+      <pp-homework-brief
+        v-if="child"
+        :content="feedbackHomework(latestFeedback)"
+        :date="latestFeedback?.class_date || ''"
+        :class-name="child.className || ''"
+      />
+
       <!-- 最新反馈 -->
       <view class="card">
         <view class="section-title" @tap="navTo('/pages/parent-feedback/index')">最新反馈</view>
         <view class="fb-box" v-if="latestFeedback" @tap="showFbDetail='class'">
           <text class="fb-label">学习小组总反馈</text>
           <text class="fb-date">{{ latestFeedback.class_date }}</text>
-          <text class="fb-preview">{{ (latestFeedback.summary||'').slice(0,60) }}...</text>
+          <text class="fb-preview">{{ feedbackSummaryWithoutHomework(latestFeedback.summary).slice(0,60) }}{{ feedbackSummaryWithoutHomework(latestFeedback.summary).length>60?'...':'' }}</text>
         </view>
         <view class="fb-box" v-if="stuFeedback" @tap="showFbDetail='student'">
           <text class="fb-label">学生个人反馈</text>
@@ -152,11 +170,12 @@
         <view v-if="!latestFeedback && !stuFeedback" class="hint">暂无反馈</view>
       </view>
 
-      <view class="card homework-entry" @tap="child&&navTo('/pages/parent-homework/index?student_id='+child.id)">
-        <view class="homework-entry-icon"><pp-icon name="clipboard" :size="42" /></view>
-        <view class="homework-entry-copy">
-          <text class="homework-entry-title">作业批改</text>
-          <text class="homework-entry-desc">查看逐题结果、错题与积分</text>
+      <view class="card practice-entry" @tap="child&&navTo('/pages/practice-parent/index?student_id='+child.id)">
+        <view class="practice-entry-icon"><pp-icon name="clipboard" :size="42" /></view>
+        <view class="practice-entry-copy">
+          <text class="practice-entry-kicker">每日约 20 分钟</text>
+          <text class="practice-entry-title">每日打卡</text>
+          <text class="practice-entry-desc">领取今日题目、拍照提交、查看复核结果</text>
         </view>
         <pp-icon name="arrow" :size="34" />
       </view>
@@ -167,8 +186,7 @@
           <text class="modal-title">{{ showFbDetail==='class'?'学习小组总反馈':'学生个人反馈' }}</text>
           <scroll-view scroll-y class="fb-modal-body">
             <template v-if="showFbDetail==='class' && latestFeedback">
-              <text class="fb-full-text">{{ latestFeedback.summary }}</text>
-              <view v-if="latestFeedback.homework" class="hw-card">作业：{{ latestFeedback.homework }}</view>
+              <text class="fb-full-text">{{ feedbackSummaryWithoutHomework(latestFeedback.summary) }}</text>
               <button v-if="latestFeedback.notes_pdf_url" class="pdf-btn" @tap="openPdf(latestFeedback.notes_pdf_url)">打开学习笔记 PDF</button>
             </template>
             <template v-if="showFbDetail==='student' && stuFeedback">
@@ -223,20 +241,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { onHide, onShow, onPullDownRefresh } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
-import { doLogin } from '@/utils/auth';
+import { clearLocalSession, doLogin, getUser } from '@/utils/auth';
+import { feedbackHomework, feedbackSummaryWithoutHomework } from '@/utils/feedback';
 import { BRAND, FOOTER_TEXT, teacherDisplayName, teacherNameFromChild } from '@/utils/brand';
 import { toastError, logError } from '@/utils/ui';
 
 const user = ref({});
 // 启动时从storage恢复
 const token = uni.getStorageSync('token');
-const saved = uni.getStorageSync('user');
-if (token && saved) {
-  try { user.value = JSON.parse(saved); } catch(e) { logError('parseUser', e); }
-} else if (saved) {
+const savedUser = getUser();
+if (token && savedUser?.role) {
+  user.value = savedUser;
+} else if (savedUser?.role) {
   uni.removeStorageSync('user');
   uni.removeStorageSync('activeChildId');
 }
@@ -248,12 +267,17 @@ function stopParentRefresh() {
   parentRefreshTimer = null;
 }
 
+function resetHomeScroll() {
+  nextTick(() => uni.pageScrollTo({ scrollTop: 0, duration: 0 }));
+}
+
 onShow(() => {
   stopParentRefresh();
   if (user.value.role === 'teacher') loadTeacherData();
   else if (user.value.role === 'parent') {
     loadNotifyTemplates();
-    loadParentData();
+    // tabBar 页面会保留上次滚动位置；等异步孩子头部插入后再回顶，避免顶部看似被裁掉。
+    loadParentData().finally(resetHomeScroll);
     parentRefreshTimer = setInterval(() => loadParentData(child.value?.id), 30000);
   }
 });
@@ -394,6 +418,32 @@ async function handleLogin() {
   }
 }
 
+async function handleLoginRepair() {
+  if (loginLoading.value) return;
+  loginLoading.value = true;
+  stopParentRefresh();
+  clearLocalSession();
+  user.value = {};
+  child.value = null;
+  boundKids.value = [];
+  try {
+    const loggedInUser = await doLogin({ preferRole: 'parent' });
+    user.value = loggedInUser;
+    if (loggedInUser.role === 'teacher') {
+      uni.showToast({ title: '请输入学生邀请码，切换到家长端', icon: 'none' });
+      uni.navigateTo({ url: '/pages/bind/bind?source=repair' });
+    } else {
+      await loadNotifyTemplates();
+      const hasChild = await loadParentData();
+      if (!hasChild) uni.navigateTo({ url: '/pages/bind/bind' });
+    }
+  } catch (e) {
+    toastError(e, '修复登录失败，请稍后重试');
+  } finally {
+    loginLoading.value = false;
+  }
+}
+
 
 async function loadTeacherData() {
   if (teacherLoading.value) return;
@@ -425,9 +475,9 @@ async function loadParentData(childId) {
     boundKids.value = kids.students || [];
     // 选指定孩子或第一个
     const savedChildId = childId || uni.getStorageSync('activeChildId');
-    const target = savedChildId
-      ? boundKids.value.find(k=>String(k.id)===String(savedChildId))
-      : (boundKids.value.length>0 ? boundKids.value[0] : null);
+    const target = boundKids.value.find(k=>String(k.id)===String(savedChildId))
+      || boundKids.value[0]
+      || null;
     if (!target) {
       child.value = null;
       todayStatus.value = null;
@@ -625,11 +675,13 @@ function scheduleLabel(sc) {
 .pdf-btn { background: #183A36; color: #fff; border: none; padding: 18rpx; font-size: 28rpx; text-align: center; width: 100%; border-radius: 12rpx; margin-top: 16rpx; }
 .fb-imgs { display: flex; gap: 10rpx; flex-wrap: wrap; margin-top: 16rpx; }
 .fb-thumb { width: 150rpx; height: 150rpx; border-radius: 8rpx; }
-.homework-entry { display:flex; align-items:center; gap:18rpx; }
-.homework-entry-icon { width:68rpx; height:68rpx; border-radius:20rpx; display:flex; align-items:center; justify-content:center; background:var(--accent-soft); }
-.homework-entry-copy { flex:1; }
-.homework-entry-title { display:block; color:var(--ink); font-size:28rpx; font-weight:680; }
-.homework-entry-desc { display:block; margin-top:2rpx; color:var(--text-muted); font-size:23rpx; }
+.practice-entry { display:flex; align-items:center; gap:18rpx; overflow:hidden; }
+.practice-entry-teacher { margin-top:20rpx; background:linear-gradient(135deg,#F2F8F5,#FFFFFF); border-color:#CFE2DB; }
+.practice-entry-icon { width:72rpx; height:72rpx; flex:none; border-radius:22rpx; display:flex; align-items:center; justify-content:center; background:var(--accent-soft); color:var(--accent-strong); }
+.practice-entry-copy { flex:1; min-width:0; }
+.practice-entry-kicker { display:block; margin-bottom:2rpx; color:var(--accent-strong); font-size:20rpx; font-weight:700; letter-spacing:1rpx; }
+.practice-entry-title { display:block; color:var(--ink); font-size:29rpx; font-weight:700; }
+.practice-entry-desc { display:block; margin-top:4rpx; color:var(--text-muted); font-size:23rpx; line-height:1.45; }
 
 .profile-preview { display: flex; gap: 12rpx; flex-wrap: wrap; }
 
@@ -681,6 +733,7 @@ function scheduleLabel(sc) {
   transition: transform .16s var(--ease-out), opacity .16s var(--ease-out);
 }
 .login-btn:active { transform: scale(.975); opacity: .92; }
+.repair-login-btn { width: 100%; max-width: 540rpx; min-height: 78rpx; margin-top: 18rpx; border: 1rpx solid var(--border); border-radius: 16rpx; background: #fff; color: var(--accent-strong); font-size: 27rpx; }
 .welcome-note { margin-top: 24rpx; color: var(--faint); font-size: 23rpx; }
 
 .teacher-hero.hero-navy,
@@ -688,7 +741,8 @@ function scheduleLabel(sc) {
 .teacher-hero .eyebrow,
 .parent-hero .eyebrow { color: var(--accent-strong); }
 .hero-greeting,
-.child-greeting { margin-top: 10rpx; color: var(--ink); font-size: 40rpx; font-weight: 760; letter-spacing: -1rpx; }
+.child-greeting { margin-top: 10rpx; color: var(--ink); font-size: 40rpx; font-weight: 700; letter-spacing: -1rpx; }
+.child-greeting { display: block; line-height: 1.45; padding: 2rpx 0; overflow: visible; }
 .hero-date,
 .child-class { margin-top: 8rpx; color: var(--text-muted); font-size: 25rpx; }
 .parent-hero .gold-rule { display: none; }

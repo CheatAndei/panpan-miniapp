@@ -25,8 +25,15 @@ initSqlJs().then(SQL => {
     return rows;
   }
 
-  const teachers = all("SELECT id FROM users WHERE role='teacher'");
-  if (!teachers.length) { console.log('NO TEACHER USER — 请先用 PANPAN 登录+升级'); process.exit(1); }
+  db.run(`CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id, role)
+  )`);
+  db.run("INSERT OR IGNORE INTO user_roles(user_id,role) SELECT id,role FROM users WHERE role IN ('parent','teacher')");
+  const teachers = all("SELECT u.id FROM users u JOIN user_roles ur ON ur.user_id=u.id WHERE ur.role='teacher'");
+  if (!teachers.length) { console.log('NO TEACHER USER — 请先用管理员发放的教师邀请码登录升级'); process.exit(1); }
   const tid = teachers[0].id;
 
   // 清空旧数据

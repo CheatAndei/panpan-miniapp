@@ -1,14 +1,8 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
-const { JWT_SECRET } = require('../config');
+const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsStudent, parentBoundStudent } = require('../utils/scope');
-
-function auth(req, res, next) {
-  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
-  catch { res.status(401).json({ error: '登录过期' }); }
-}
 
 function localDateString(date = new Date()) {
   return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);

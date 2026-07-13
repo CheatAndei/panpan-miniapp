@@ -3,67 +3,114 @@ const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { JWT_SECRET } = require('../config');
+const { ensureRole, setActiveRole, toPublicUser } = require('../utils/roles');
+const { authRequired: auth } = require('../middleware/auth');
+const { createFailureLimiter } = require('../utils/failure-limiter');
+const { withExternalStudentId } = require('../utils/student-identity');
 
-// 已发放的邀请码在生产环境漏配变量时仍可登录；部署变量可随时覆盖它们。
-const LEGACY_TEACHER_CODES = ['PANPAN','PANAAA','YANGCO','ZHAOLI','ZHUZHU','ZHOUXU','XIAOHE','PINGZI','PAIPAI','DAIDAI','WANGLS','PANPPP'];
+const BIND_FAILURE_WINDOW_MS = 10 * 60 * 1000;
+const BIND_FAILURE_LIMIT = 5;
+const bindFailureLimiter = createFailureLimiter({
+  limit: BIND_FAILURE_LIMIT,
+  windowMs: BIND_FAILURE_WINDOW_MS,
+  maxKeys: 5000,
+});
+
+function rejectIfRateLimited(req, res) {
+  const state = bindFailureLimiter.check(req.user.id);
+  if (!state.limited) return false;
+  res.set('Retry-After', String(state.retryAfter));
+  res.status(429).json({ error: '尝试次数过多，请稍后再试' });
+  return true;
+}
+
+function recordBindFailure(userId) {
+  bindFailureLimiter.fail(userId);
+}
+
+function clearBindFailures(userId) {
+  bindFailureLimiter.clear(userId);
+}
 
 function teacherInviteCodes() {
   const configured = [process.env.TEACHER_INVITE_CODE, process.env.TEACHER_INVITE_CODES]
     .filter(Boolean).join(',').split(',').map(code => code.trim().toUpperCase()).filter(Boolean);
-  return [...new Set([...LEGACY_TEACHER_CODES, ...configured])];
-}
-
-function auth(req, res, next) {
-  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
-  catch { res.status(401).json({ error: '登录过期' }); }
+  return [...new Set(configured)];
 }
 
 function studentWithTeacher(db, whereSql, params) {
-  return db.get(`SELECT s.*, c.name as className,
+  return withExternalStudentId(db.get(`SELECT s.*, c.name as className,
     u.id as teacher_id,
     COALESCE(NULLIF(u.nickname,''),'老师') as teacher_name,
-    u.avatar_url as teacher_avatar_url,
-    u.phone as teacher_phone
+    u.avatar_url as teacher_avatar_url
     FROM students s
     LEFT JOIN classes c ON c.id=s.class_id
     LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
-    ${whereSql}`, params);
+    ${whereSql}`, params));
 }
 
 function studentsWithTeacher(db, whereSql, params) {
   return db.all(`SELECT s.*, c.name as className,
     u.id as teacher_id,
     COALESCE(NULLIF(u.nickname,''),'老师') as teacher_name,
-    u.avatar_url as teacher_avatar_url,
-    u.phone as teacher_phone
+    u.avatar_url as teacher_avatar_url
     FROM students s
     LEFT JOIN classes c ON c.id=s.class_id
     LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
-    ${whereSql}`, params);
+    ${whereSql}`, params).map(withExternalStudentId);
+}
+
+function issueRoleSession(db, userId, role) {
+  ensureRole(db, userId, role);
+  const user = setActiveRole(db, userId, role);
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    JWT_SECRET,
+    { algorithm: 'HS256', expiresIn: '30d' }
+  );
+  return { role: user.role, roles: user.roles, token, user: toPublicUser(user) };
 }
 
 router.post('/', auth, (req, res) => {
   const db = getDB();
   const code = (req.body.invite_code||'').toUpperCase().trim();
+  if (rejectIfRateLimited(req, res)) return;
+  if (code.length < 6 || code.length > 32) {
+    recordBindFailure(req.user.id);
+    return res.status(400).json({ error: '邀请码无效' });
+  }
 
   const teacherCodes = teacherInviteCodes();
-  if (teacherCodes.includes(code)) {
-    db.run('UPDATE users SET role=? WHERE id=?', ['teacher', req.user.id]);
-    // 角色变更后必须重新签发 token，否则旧 token 里仍是 parent，老师操作会 403「没有权限」
-    const token = jwt.sign({ id: req.user.id, openid: req.user.openid, role: 'teacher' }, JWT_SECRET, { algorithm: 'HS256', expiresIn: '30d' });
-    return res.json({ ok: true, role: 'teacher', token });
+  if (teacherCodes.length > 0 && teacherCodes.includes(code)) {
+    clearBindFailures(req.user.id);
+    return res.json({ ok: true, ...issueRoleSession(db, req.user.id, 'teacher') });
   }
 
   // 学生邀请码
-  if (req.user.role !== 'parent') return res.status(400).json({ error: '请使用学生邀请码' });
   const s = studentWithTeacher(db, 'WHERE s.invite_code=?', [code]);
-  if (!s) return res.status(404).json({ error: '邀请码无效' });
+  if (!s) {
+    recordBindFailure(req.user.id);
+    return res.status(404).json({ error: '邀请码无效' });
+  }
   const exists = db.get('SELECT id FROM bindings WHERE parent_id=? AND student_id=?', [req.user.id, s.id]);
-  if (exists) return res.json({ ok: true, student: s, already: true });
+  if (exists) {
+    clearBindFailures(req.user.id);
+    return res.json({
+      ok: true,
+      student: s,
+      already: true,
+      ...issueRoleSession(db, req.user.id, 'parent'),
+    });
+  }
   const boundCount = db.get('SELECT COUNT(*) AS count FROM bindings WHERE student_id=?', [s.id])?.count || 0;
   if (boundCount >= 3) return res.status(400).json({ error: '该学生已绑定 3 位家长，请联系老师处理' });
   db.run('INSERT INTO bindings (parent_id, student_id) VALUES (?,?)', [req.user.id, s.id]);
-  res.json({ ok: true, student: s });
+  clearBindFailures(req.user.id);
+  res.json({
+    ok: true,
+    student: s,
+    ...issueRoleSession(db, req.user.id, 'parent'),
+  });
 });
 
 router.get('/students', auth, (req, res) => {

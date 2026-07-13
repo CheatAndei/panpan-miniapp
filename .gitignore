@@ -21,6 +21,7 @@ private.*.key
 # Runtime data
 uploads/
 backend/uploads/
+backend/private-uploads/
 backend/db/teach.db
 *.db
 *.sqlite

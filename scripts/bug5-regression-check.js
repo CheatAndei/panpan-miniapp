@@ -40,6 +40,5 @@ assert('反馈风格会传入单个和批量 AI 请求', teacherFeedback.include
 assert('温馨模式使用长反馈提示词', feedbacks.includes("style === 'warm'") && feedbacks.includes('每人约180字'));
 assert('学生姓名不再省略显示', teacherClasses.includes('max-width:none') && teacherClasses.includes('white-space:normal'));
 assert('性格选项会跨分类去重', teacherClasses.includes('displayCats') && teacherClasses.includes('const used=new Set()'));
-assert('教师邀请码有生产环境兼容兜底', bind.includes('LEGACY_TEACHER_CODES') && bind.includes('teacherInviteCodes'));
-assert('PANAAA 老师邀请码会和生产配置合并生效', bind.includes("'PANAAA'") && bind.includes('new Set([...LEGACY_TEACHER_CODES, ...configured])'));
-assert('家长我的页展示老师联系方式', mine.includes('teacher-contact') && mine.includes('teacher_phone'));
+assert('教师邀请码只从部署环境变量读取', !bind.includes('LEGACY_TEACHER_CODES') && bind.includes('TEACHER_INVITE_CODES'));
+assert('教师邀请码响应包含完整用户、角色和新令牌', bind.includes('roles: user.roles') && bind.includes('token, user: toPublicUser(user)'));

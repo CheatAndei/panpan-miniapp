@@ -1,19 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { getUser, saveUser } from '@/utils/auth';
 
 export const useStore = defineStore('app', () => {
   const token = ref(uni.getStorageSync('token') || '');
-  let initialUser = null;
-  try {
-    const stored = uni.getStorageSync('user');
-    initialUser = stored ? (typeof stored === 'string' ? JSON.parse(stored) : stored) : null;
-  } catch {
-    uni.removeStorageSync('user');
-  }
+  const initialUser = getUser();
   const user = ref(initialUser);
 
   function setToken(t) { token.value = t; uni.setStorageSync('token', t); }
-  function setUser(u) { user.value = u; uni.setStorageSync('user', JSON.stringify(u)); }
+  function setUser(u) { user.value = saveUser(u); }
   function logout() {
     token.value = '';
     user.value = null;

@@ -1,14 +1,9 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
-const { JWT_SECRET } = require('../config');
+const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsClass } = require('../utils/scope');
 
-function auth(req, res, next) {
-  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
-  catch { res.status(401).json({ error: '登录过期' }); }
-}
 function teacherOnly(req, res, next) {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   next();

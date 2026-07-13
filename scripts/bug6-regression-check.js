@@ -25,6 +25,6 @@ assert('复制分享删除按钮保持同一行', classes.includes('.stu-actions
 assert('签到页提供未到达提醒按钮', checkin.includes('remindArrival(se,s)') && checkin.includes('提醒'));
 assert('提醒接口校验老师所属学生', checkinRoutes.includes("router.post('/remind-arrival'") && checkinRoutes.includes('teacherOwnsStudent'));
 assert('打卡提醒复用签到模板并发送仍未到达', notify.includes('notifyArrivalReminder') && notify.includes("[FIELDS.checkin.status, '仍未到达']"));
-assert('绑定邀请码前刷新微信登录 token', bind.includes("import { doLogin }") && bind.includes('await doLogin();') && bind.includes('await this.submitBinding();'));
+assert('绑定邀请码前刷新微信登录 token', bind.includes('doLogin') && bind.includes('await doLogin();') && bind.includes('await this.submitBinding();'));
 assert('绑定请求可禁止全局登录过期跳转', api.includes('const { handleUnauthorized = true } = options;') && api.includes('res.statusCode === 401 && handleUnauthorized'));
 assert('绑定遇到 401 会静默刷新并仅重试一次', bind.includes("handleUnauthorized:false") && bind.includes('e?.statusCode!==401') && bind.includes('async submitBinding()'));

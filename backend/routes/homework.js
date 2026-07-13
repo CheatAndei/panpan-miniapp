@@ -1,19 +1,12 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const crypto = require('node:crypto');
 const { getDB } = require('../db/init');
-const { JWT_SECRET } = require('../config');
+const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsStudent, parentBoundStudent } = require('../utils/scope');
+const { resolveTeacherStudentId } = require('../utils/student-identity');
+const { decodePrivateImage, storePrivateFile, removePrivateFile } = require('../utils/private-files');
 
 const router = express.Router();
-
-function auth(req, res, next) {
-  try {
-    req.user = jwt.verify((req.headers.authorization || '').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] });
-    next();
-  } catch {
-    res.status(401).json({ error: '登录过期' });
-  }
-}
 
 function teacherOnly(req, res, next) {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
@@ -27,6 +20,13 @@ function json(value, fallback = []) {
 function finiteConfidence(value) {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 && number <= 1 ? number : null;
+}
+
+function validDate(value) {
+  const text = String(value || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const parsed = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
 }
 
 function answerPayload(answer) {
@@ -44,16 +44,133 @@ function answerPayload(answer) {
   };
 }
 
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  }
+  return value;
+}
+
+function semanticBatchPayload(body) {
+  const sourceManifest = { ...(body.source_manifest || {}) };
+  delete sourceManifest.server_payload_digest;
+  delete sourceManifest.client_payload_digest;
+  return {
+    title: String(body.title || ''),
+    subject: String(body.subject || ''),
+    assigned_date: String(body.assigned_date || ''),
+    prompt_version: String(body.prompt_version || ''),
+    source_manifest: sourceManifest,
+    submissions: (Array.isArray(body.submissions) ? body.submissions : []).map((submission) => ({
+      ...(submission.external_student_id
+        ? { external_student_id: String(submission.external_student_id) }
+        : { student_id: Number(submission.student_id) }),
+      processed_image_sha256s: (submission.processed_image_sha256s || []).map(String),
+      original_image_sha256s: (submission.original_image_sha256s || []).map(String),
+      overall_comment: String(submission.overall_comment || ''),
+      points_delta: Number(submission.points_delta || 0),
+      answers: (Array.isArray(submission.answers) ? submission.answers : []).map((answer) => ({
+        question_no: String(answer.question_no || ''),
+        student_answer: String(answer.student_answer || ''),
+        is_correct: !!answer.is_correct,
+        wrong_step: String(answer.wrong_step || ''),
+        error_type: String(answer.error_type || ''),
+        comment: String(answer.comment || ''),
+        confidence: Number(answer.confidence || 0).toFixed(6),
+        teacher_status: String(answer.teacher_status || ''),
+        teacher_note: String(answer.teacher_note || ''),
+        question_image_sha256: String(answer.question_image_sha256 || ''),
+      })),
+    })),
+  };
+}
+
+function batchPayloadDigest(body) {
+  return crypto.createHash('sha256')
+    .update(JSON.stringify(stableValue(semanticBatchPayload(body))))
+    .digest('hex');
+}
+
+function privateFileToken(url) {
+  return String(url || '').match(/^\/api\/private-files\/([a-f0-9]{32})$/)?.[1] || '';
+}
+
+function submissionPrivateTokens(submission) {
+  const urls = [
+    ...(Array.isArray(submission.processed_image_urls) ? submission.processed_image_urls : []),
+    ...(Array.isArray(submission.original_image_urls) ? submission.original_image_urls : []),
+    ...(Array.isArray(submission.answers) ? submission.answers.map((item) => item?.question_image_url) : []),
+  ].filter(Boolean);
+  return [...new Set(urls.map(privateFileToken).filter(Boolean))];
+}
+
+function validateDraftFiles(db, teacherId, submissions) {
+  const errors = [];
+  for (const submission of submissions) {
+    const expectedHashes = new Map();
+    const groups = [
+      ['整页图片', submission.processed_image_urls, submission.processed_image_sha256s],
+      ['原始图片', submission.original_image_urls, submission.original_image_sha256s],
+    ];
+    for (const [label, rawUrls, rawHashes] of groups) {
+      const urls = Array.isArray(rawUrls) ? rawUrls : [];
+      const hashes = Array.isArray(rawHashes) ? rawHashes.map(String) : [];
+      if (urls.length !== hashes.length) errors.push(`学生 ${submission.student_id} 的${label}哈希数量不匹配`);
+      urls.forEach((url, index) => expectedHashes.set(privateFileToken(url), hashes[index] || ''));
+    }
+    for (const answer of Array.isArray(submission.answers) ? submission.answers : []) {
+      if (answer.question_image_url) {
+        expectedHashes.set(privateFileToken(answer.question_image_url), String(answer.question_image_sha256 || ''));
+      }
+    }
+    for (const token of submissionPrivateTokens(submission)) {
+      const file = db.get('SELECT * FROM private_files WHERE token=?', [token]);
+      if (!file || file.owner_type !== 'homework_draft'
+        || Number(file.owner_id) !== Number(teacherId)
+        || Number(file.created_by) !== Number(teacherId)
+        || Number(file.student_id) !== Number(submission.student_id)) {
+        errors.push(`学生 ${submission.student_id} 的作业图片无效或不属于当前任务`);
+      } else if (!/^[a-f0-9]{64}$/.test(expectedHashes.get(token) || '')
+        || expectedHashes.get(token) !== file.sha256) {
+        errors.push(`学生 ${submission.student_id} 的作业图片哈希不匹配`);
+      }
+    }
+  }
+  return errors;
+}
+
+function claimDraftFiles(db, teacherId, submissionId, submission) {
+  for (const token of submissionPrivateTokens(submission)) {
+    const result = db.run(`UPDATE private_files SET owner_type='homework_submission',owner_id=?
+      WHERE token=? AND owner_type='homework_draft' AND owner_id=? AND student_id=? AND created_by=?`, [
+      submissionId, token, teacherId, submission.student_id, teacherId,
+    ]);
+    if (Number(result.changes) !== 1) throw new Error('作业私有图片关联失败');
+  }
+}
+
+function cleanupIncomingDrafts(db, teacherId, submissions) {
+  for (const submission of submissions) {
+    for (const token of submissionPrivateTokens(submission)) {
+      const file = db.get(`SELECT * FROM private_files
+        WHERE token=? AND owner_type='homework_draft' AND owner_id=? AND created_by=?`, [token, teacherId, teacherId]);
+      if (file) removePrivateFile(db, file);
+    }
+  }
+}
+
 function validateBatch(db, teacherId, body) {
   const errors = [];
   const submissions = Array.isArray(body.submissions) ? body.submissions : [];
   if (!String(body.title || '').trim()) errors.push('缺少作业标题');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.assigned_date || ''))) errors.push('作业日期格式应为 YYYY-MM-DD');
+  if (!validDate(body.assigned_date)) errors.push('作业日期格式应为有效的 YYYY-MM-DD');
   if (!String(body.idempotency_key || '').trim()) errors.push('缺少幂等键');
   if (submissions.length === 0) errors.push('没有学生作业');
   const seen = new Set();
+  const normalizedSubmissions = [];
   for (const submission of submissions) {
-    const studentId = Number(submission.student_id);
+    const studentId = resolveTeacherStudentId(db, teacherId, submission);
     if (!teacherOwnsStudent(db, teacherId, studentId)) errors.push(`学生 ${studentId || '?'} 不属于当前老师`);
     if (seen.has(studentId)) errors.push(`学生 ${studentId} 重复`);
     seen.add(studentId);
@@ -69,10 +186,79 @@ function validateBatch(db, teacherId, body) {
       questionNumbers.add(answer.question_no);
       if (answer.teacher_status !== 'confirmed') errors.push(`学生 ${studentId} 的题目 ${answer.question_no} 尚未人工确认`);
       if (answer.confidence === null) errors.push(`学生 ${studentId} 的题目 ${answer.question_no} 置信度无效`);
+      if (answer.question_image_url && !privateFileToken(answer.question_image_url)) {
+        errors.push(`学生 ${studentId} 的题目 ${answer.question_no} 图片必须使用私有文件`);
+      }
     }
+    if ((submission.processed_image_urls || []).some((url) => !privateFileToken(url))) {
+      errors.push(`学生 ${studentId} 的整页图片必须使用私有文件`);
+    }
+    if ((submission.original_image_urls || []).some((url) => !privateFileToken(url))) {
+      errors.push(`学生 ${studentId} 的原始图片必须使用私有文件`);
+    }
+    normalizedSubmissions.push({ ...submission, student_id: studentId });
   }
-  return { errors, submissions };
+  return { errors, submissions: normalizedSubmissions };
 }
+
+function persistBatch(db, teacherId, body, submissions, serverPayloadDigest) {
+  return db.transaction(() => {
+    const storedManifest = { ...(body.source_manifest || {}), server_payload_digest: serverPayloadDigest };
+    const batch = db.run(`INSERT INTO homework_batches
+      (teacher_id,title,subject,assigned_date,status,prompt_version,source_manifest,idempotency_key,confirmed_at)
+      VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`, [
+      teacherId, String(body.title).trim(), String(body.subject || ''), body.assigned_date, 'reviewed',
+      String(body.prompt_version || 'manual-chatgpt-v1'), JSON.stringify(storedManifest), String(body.idempotency_key)
+    ]);
+
+    for (const rawSubmission of submissions) {
+      const submission = db.run(`INSERT INTO homework_submissions
+        (batch_id,student_id,original_image_urls,processed_image_urls,grading_status,overall_comment,points_delta)
+        VALUES(?,?,?,?,?,?,?)`, [
+        batch.lastInsertRowid, Number(rawSubmission.student_id), JSON.stringify(rawSubmission.original_image_urls || []),
+        JSON.stringify(rawSubmission.processed_image_urls || []), 'confirmed', String(rawSubmission.overall_comment || ''),
+        Math.max(-999, Math.min(999, Number(rawSubmission.points_delta || 0)))
+      ]);
+      for (const rawAnswer of rawSubmission.answers) {
+        const answer = answerPayload(rawAnswer);
+        db.run(`INSERT INTO homework_answers
+          (submission_id,question_no,question_image_url,student_answer,is_correct,wrong_step,error_type,comment,confidence,teacher_status,teacher_note)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?)`, [submission.lastInsertRowid, answer.question_no, answer.question_image_url,
+          answer.student_answer, answer.is_correct, answer.wrong_step, answer.error_type, answer.comment,
+          answer.confidence, answer.teacher_status, answer.teacher_note]);
+      }
+      claimDraftFiles(db, teacherId, submission.lastInsertRowid, rawSubmission);
+    }
+    logOperation(db, teacherId, 'homework_batch_created', 'homework_batch', batch.lastInsertRowid, { students: submissions.length });
+    return batch.lastInsertRowid;
+  });
+}
+
+router.post('/upload-image', auth, teacherOnly, async (req, res) => {
+  const db = getDB();
+  const studentId = resolveTeacherStudentId(db, req.user.id, req.body || {});
+  if (!teacherOwnsStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权操作该学生' });
+  const purpose = String(req.body?.purpose || 'homework_question');
+  if (!['homework_page', 'homework_question'].includes(purpose)) return res.status(400).json({ error: '图片用途无效' });
+  let decoded;
+  try { decoded = await decodePrivateImage(req.body?.base64); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
+  const duplicate = db.get(`SELECT token,sha256 FROM private_files
+    WHERE student_id=? AND purpose=? AND owner_type='homework_draft' AND owner_id=? AND created_by=? AND sha256=?
+    ORDER BY id DESC LIMIT 1`, [studentId, purpose, req.user.id, req.user.id, decoded.sha256]);
+  if (duplicate) {
+    return res.json({ ok: true, url: `/api/private-files/${duplicate.token}`, sha256: duplicate.sha256, idempotent: true });
+  }
+  try {
+    const stored = storePrivateFile(db, {
+      ...decoded, studentId, purpose, ownerType: 'homework_draft', ownerId: req.user.id,
+      createdBy: req.user.id, originalName: req.body?.fileName || 'homework-image',
+    });
+    return res.status(201).json({ ok: true, url: `/api/private-files/${stored.token}`, sha256: decoded.sha256 });
+  } catch {
+    return res.status(500).json({ error: '图片保存失败' });
+  }
+});
 
 function logOperation(db, actorId, action, entityType, entityId, detail = {}) {
   db.run('INSERT INTO operation_logs(actor_id,action,entity_type,entity_id,detail) VALUES(?,?,?,?,?)', [
@@ -83,6 +269,9 @@ function logOperation(db, actorId, action, entityType, entityId, detail = {}) {
 router.post('/preview', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const { errors, submissions } = validateBatch(db, req.user.id, req.body || {});
+  if (req.body?.payload_digest && req.body.payload_digest !== batchPayloadDigest(req.body || {})) {
+    errors.push('发布载荷摘要不匹配');
+  }
   const answerCount = submissions.reduce((sum, item) => sum + (Array.isArray(item.answers) ? item.answers.length : 0), 0);
   const wrongCount = submissions.reduce((sum, item) => sum + (Array.isArray(item.answers) ? item.answers.filter((a) => !a.is_correct).length : 0), 0);
   res.status(errors.length ? 400 : 200).json({ ok: errors.length === 0, errors, students: submissions.length, answers: answerCount, wrong: wrongCount });
@@ -91,37 +280,30 @@ router.post('/preview', auth, teacherOnly, (req, res) => {
 router.post('/batches', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const body = req.body || {};
-  const existing = db.get('SELECT id,status FROM homework_batches WHERE idempotency_key=? AND teacher_id=?', [body.idempotency_key, req.user.id]);
-  if (existing) return res.json({ ok: true, batch_id: existing.id, status: existing.status, idempotent: true });
-  const { errors, submissions } = validateBatch(db, req.user.id, body);
-  if (errors.length) return res.status(400).json({ error: '批改数据校验失败', errors });
-
-  const batch = db.run(`INSERT INTO homework_batches
-    (teacher_id,title,subject,assigned_date,status,prompt_version,source_manifest,idempotency_key,confirmed_at)
-    VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`, [
-    req.user.id, String(body.title).trim(), String(body.subject || ''), body.assigned_date, 'reviewed',
-    String(body.prompt_version || 'manual-chatgpt-v1'), JSON.stringify(body.source_manifest || {}), String(body.idempotency_key)
-  ]);
-
-  for (const rawSubmission of submissions) {
-    const submission = db.run(`INSERT INTO homework_submissions
-      (batch_id,student_id,original_image_urls,processed_image_urls,grading_status,overall_comment,points_delta)
-      VALUES(?,?,?,?,?,?,?)`, [
-      batch.lastInsertRowid, Number(rawSubmission.student_id), JSON.stringify(rawSubmission.original_image_urls || []),
-      JSON.stringify(rawSubmission.processed_image_urls || []), 'confirmed', String(rawSubmission.overall_comment || ''),
-      Math.max(-999, Math.min(999, Number(rawSubmission.points_delta || 0)))
-    ]);
-    for (const rawAnswer of rawSubmission.answers) {
-      const answer = answerPayload(rawAnswer);
-      db.run(`INSERT INTO homework_answers
-        (submission_id,question_no,question_image_url,student_answer,is_correct,wrong_step,error_type,comment,confidence,teacher_status,teacher_note)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?)`, [submission.lastInsertRowid, answer.question_no, answer.question_image_url,
-        answer.student_answer, answer.is_correct, answer.wrong_step, answer.error_type, answer.comment,
-        answer.confidence, answer.teacher_status, answer.teacher_note]);
+  const serverPayloadDigest = batchPayloadDigest(body);
+  const existing = db.get('SELECT id,status,source_manifest FROM homework_batches WHERE idempotency_key=? AND teacher_id=?', [body.idempotency_key, req.user.id]);
+  if (existing) {
+    const storedDigest = json(existing.source_manifest, {}).server_payload_digest;
+    cleanupIncomingDrafts(db, req.user.id, Array.isArray(body.submissions) ? body.submissions : []);
+    if (storedDigest && storedDigest !== serverPayloadDigest) {
+      return res.status(409).json({ error: '幂等键已用于不同的批改内容' });
     }
+    return res.json({ ok: true, batch_id: existing.id, status: existing.status, idempotent: true });
   }
-  logOperation(db, req.user.id, 'homework_batch_created', 'homework_batch', batch.lastInsertRowid, { students: submissions.length });
-  res.status(201).json({ ok: true, batch_id: batch.lastInsertRowid, status: 'reviewed' });
+  if (!/^[a-f0-9]{64}$/.test(String(body.payload_digest || ''))
+    || body.payload_digest !== serverPayloadDigest
+    || body.idempotency_key !== body.payload_digest) {
+    return res.status(400).json({ error: '发布载荷摘要不匹配' });
+  }
+  const { errors, submissions } = validateBatch(db, req.user.id, body);
+  errors.push(...validateDraftFiles(db, req.user.id, submissions));
+  if (errors.length) return res.status(400).json({ error: '批改数据校验失败', errors });
+  try {
+    const batchId = persistBatch(db, req.user.id, body, submissions, serverPayloadDigest);
+    res.status(201).json({ ok: true, batch_id: batchId, status: 'reviewed' });
+  } catch (error) {
+    res.status(500).json({ error: '批次保存失败，所有数据库修改已回滚' });
+  }
 });
 
 function batchSummary(db, batchId, teacherId) {
@@ -146,7 +328,7 @@ router.get('/batches/:id', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const summary = batchSummary(db, req.params.id, req.user.id);
   if (!summary) return res.status(404).json({ error: '批次不存在' });
-  const submissions = db.all(`SELECT s.*,st.name student_name,
+  const submissions = db.all(`SELECT s.*,st.name student_name,st.external_id external_student_id,
     COALESCE((SELECT SUM(delta) FROM point_ledger p WHERE p.student_id=s.student_id),0) point_balance
     FROM homework_submissions s JOIN students st ON st.id=s.student_id WHERE s.batch_id=? ORDER BY st.name`, [req.params.id]);
   for (const submission of submissions) {
@@ -199,22 +381,24 @@ router.post('/batches/:id/publish', auth, teacherOnly, async (req, res) => {
   }
 
   const submissions = db.all('SELECT * FROM homework_submissions WHERE batch_id=?', [batch.id]);
-  for (const submission of submissions) {
-    const answers = db.all('SELECT * FROM homework_answers WHERE submission_id=?', [submission.id]);
-    for (const answer of answers) {
-      if (!answer.is_correct) {
-        db.run('INSERT OR IGNORE INTO wrong_questions(student_id,answer_id,status) VALUES(?,?,?)', [submission.student_id, answer.id, 'open']);
+  db.transaction(() => {
+    for (const submission of submissions) {
+      const answers = db.all('SELECT * FROM homework_answers WHERE submission_id=?', [submission.id]);
+      for (const answer of answers) {
+        if (!answer.is_correct) {
+          db.run('INSERT OR IGNORE INTO wrong_questions(student_id,answer_id,status) VALUES(?,?,?)', [submission.student_id, answer.id, 'open']);
+        }
       }
+      if (Number(submission.points_delta || 0) !== 0) {
+        db.run('INSERT OR IGNORE INTO point_ledger(student_id,submission_id,delta,reason) VALUES(?,?,?,?)', [
+          submission.student_id, submission.id, Number(submission.points_delta), `作业批改：${batch.title}`
+        ]);
+      }
+      db.run('UPDATE homework_submissions SET grading_status=? WHERE id=?', ['published', submission.id]);
     }
-    if (Number(submission.points_delta || 0) !== 0) {
-      db.run('INSERT OR IGNORE INTO point_ledger(student_id,submission_id,delta,reason) VALUES(?,?,?,?)', [
-        submission.student_id, submission.id, Number(submission.points_delta), `作业批改：${batch.title}`
-      ]);
-    }
-    db.run('UPDATE homework_submissions SET grading_status=? WHERE id=?', ['published', submission.id]);
-  }
-  db.run('UPDATE homework_batches SET status=?,published_at=CURRENT_TIMESTAMP WHERE id=?', ['published', batch.id]);
-  logOperation(db, req.user.id, 'homework_batch_published', 'homework_batch', batch.id, { students: submissions.length, notify: !!req.body?.send_notifications });
+    db.run('UPDATE homework_batches SET status=?,published_at=CURRENT_TIMESTAMP WHERE id=?', ['published', batch.id]);
+    logOperation(db, req.user.id, 'homework_batch_published', 'homework_batch', batch.id, { students: submissions.length, notify: !!req.body?.send_notifications });
+  });
 
   const notifications = { requested: !!req.body?.send_notifications, total: 0, sent: 0, failed: 0 };
   if (req.body?.send_notifications === true) {
@@ -273,3 +457,4 @@ router.get('/parent/:batchId', auth, (req, res) => {
 });
 
 module.exports = router;
+module.exports._test = { batchPayloadDigest, persistBatch, semanticBatchPayload };

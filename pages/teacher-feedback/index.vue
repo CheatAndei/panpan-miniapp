@@ -114,6 +114,7 @@
 <script>
 import { api } from '@/utils/api';
 import { confirmAction, toastSuccess, toastError, logError } from '@/utils/ui';
+import { formatStudentFeedbackText } from '@/utils/feedback';
 export default {
   data(){return{
     completedSessions:[],loading:false,error:''
@@ -262,11 +263,7 @@ export default {
       finally{se._publishing=false;}
     },
     formatStudentFeedback(s,text){
-      let body=String(text||'').replace(/\r/g,'').trim();
-      body=body.replace(new RegExp('^'+s.name+'[：:，,\\s]*'),'').replace(/^[🌸🌟✨⭐]\s*/,'');
-      const parts=body.split(/\n+/).map(p=>p.trim()).filter(Boolean);
-      const normalized=(parts.length?parts:[body]).map(p=>'  '+p.replace(/^　+|^\s+/, '')).join('\n');
-      return `${s.name}\n${normalized}`;
+      return formatStudentFeedbackText(s.name,text);
     },
     async publishNotes(se){
       if(!se._pdfTemp&&!se._noteRemark) return uni.showToast({title:'请选择学习笔记或填写备注',icon:'none'});

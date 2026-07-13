@@ -4,7 +4,7 @@ const path = require('path');
 const appid = process.env.MP_APPID || 'wx77f8ea684b6420ca';
 const root = path.resolve(__dirname, '..');
 const projectPath = path.join(root, 'dist', 'build', 'mp-weixin');
-const defaultKeyPath = path.resolve(root, '..', 'teach-miniapp', `private.${appid}.key`);
+const defaultKeyPath = path.join(root, `private.${appid}.key`);
 const privateKeyPath = process.env.MP_PRIVATE_KEY_PATH
   ? path.resolve(process.env.MP_PRIVATE_KEY_PATH)
   : defaultKeyPath;

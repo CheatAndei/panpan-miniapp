@@ -64,11 +64,12 @@ jobs:
           PANPAN_TPL_CHECKOUT: ${{ secrets.PANPAN_TPL_CHECKOUT }}
           PANPAN_TPL_FEEDBACK: ${{ secrets.PANPAN_TPL_FEEDBACK }}
           PANPAN_TPL_REMINDER: ${{ secrets.PANPAN_TPL_REMINDER }}
+          PANPAN_TEACHER_INVITE_CODES: ${{ secrets.PANPAN_TEACHER_INVITE_CODES }}
         with:
           host: 134.175.69.59
           username: root
           key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
-          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER
+          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER,PANPAN_TEACHER_INVITE_CODES
           script: |
             set -euo pipefail
             upsert_env() {
@@ -101,6 +102,8 @@ jobs:
               upsert_env APP_SECRET "$PANPAN_APP_SECRET" "$ENV_FILE"
               upsert_env DATABASE_PATH /app/data/teach.db "$ENV_FILE"
               upsert_env UPLOAD_DIR /app/uploads "$ENV_FILE"
+              upsert_env PRIVATE_UPLOAD_DIR /app/private-uploads "$ENV_FILE"
+              upsert_env TEACHER_INVITE_CODES "$PANPAN_TEACHER_INVITE_CODES" "$ENV_FILE"
               upsert_env WX_MINIPROGRAM_STATE trial "$ENV_FILE"
               upsert_env TPL_CHECKIN "$PANPAN_TPL_CHECKIN" "$ENV_FILE"
               upsert_env TPL_CHECKOUT "$PANPAN_TPL_CHECKOUT" "$ENV_FILE"
@@ -153,9 +156,11 @@ jobs:
                 volumes:
                   - panpan-data:/app/data
                   - panpan-uploads:/app/uploads
+                  - panpan-private-uploads:/app/private-uploads
             volumes:
               panpan-data:
               panpan-uploads:
+              panpan-private-uploads:
             EOF
               fi
             fi

@@ -175,6 +175,22 @@ function downloadAndOpenPdf(fileUrl) {
   });
 }
 
+export function downloadPrivateFile(url) {
+  const fileUrl = assetUrl(url);
+  return new Promise((resolve, reject) => {
+    uni.downloadFile({
+      url: fileUrl,
+      header: authHeader(),
+      success: (res) => {
+        if (res.statusCode === 401) clearExpiredSession();
+        if (res.statusCode !== 200 || !res.tempFilePath) return reject({ error: '私有文件下载失败' });
+        resolve(res.tempFilePath);
+      },
+      fail: (err) => reject(friendlyNetworkError(err, '私有文件下载失败'))
+    });
+  });
+}
+
 export function openPdfDocument(url) {
   const fileUrl = assetUrl(url);
   const fs = uni.getFileSystemManager && uni.getFileSystemManager();
@@ -211,6 +227,7 @@ export const api = {
   put(path, data, options) { return request('PUT', path, data, options); },
   del(path, options) { return request('DELETE', path, undefined, options); },
   upload(path, filePath, name) { return uploadFile(path, filePath, name); },
+  downloadPrivate(url) { return downloadPrivateFile(url); },
   assetUrl,
   openPdf(url) { return openPdfDocument(url); }
 };

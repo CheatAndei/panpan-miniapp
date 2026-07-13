@@ -1,13 +1,7 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
-const { JWT_SECRET } = require('../config');
-
-function auth(req, res, next) {
-  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
-  catch { res.status(401).json({ error: '登录过期' }); }
-}
+const { authRequired: auth } = require('../middleware/auth');
 
 // 模板ID（审核通过后替换）
 const TPLS = {
@@ -281,7 +275,7 @@ router.notifyFeedback = async (classId) => {
     [FIELDS.feedback.title, '课后反馈已发布'],
     [FIELDS.feedback.time, bjDate()],
     [FIELDS.feedback.note, cls?.name || '学习小组']
-  ]), 'pages/parent-feedback/index');
+  ]), 'pages/index/index');
 };
 
 router.notifyHomework = async (studentId, batchId, title = '作业批改已完成') => {

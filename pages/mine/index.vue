@@ -50,18 +50,6 @@
     <view class="empty-hint">老师还未填写印象</view>
   </view>
 
-  <view v-if="user.role==='parent' && activeTeacher" class="card teacher-contact">
-    <text class="section-title">联系老师</text>
-    <view class="teacher-contact-row">
-      <pp-avatar :name="teacherName(activeTeacher)" :size="82" />
-      <view class="teacher-contact-copy">
-        <text class="teacher-contact-name">{{ teacherName(activeTeacher) }}</text>
-        <text class="teacher-contact-detail">{{ activeTeacher.teacher_phone || '老师暂未填写联系方式' }}</text>
-      </view>
-      <button v-if="activeTeacher.teacher_phone" class="copy-contact" @tap="copyTeacherContact(activeTeacher.teacher_phone)">复制</button>
-    </view>
-  </view>
-
   <!-- 操作区 -->
   <view class="card actions" v-if="user.role==='parent'">
     <view v-for="kid in boundKids" :key="kid.id" class="bind-row">
@@ -84,10 +72,6 @@
       <text class="field-label">老师名称</text>
       <input v-model="teacherNickname" class="input teacher-input" placeholder="例如：李老师" />
     </view>
-    <view class="form-field">
-      <text class="field-label">老师联系方式</text>
-      <input v-model="teacherPhone" class="input teacher-input" placeholder="手机号或微信号（可选）" />
-    </view>
     <view class="teacher-preview">家长将看到：{{ teacherDisplay }}</view>
     <button class="btn-primary" :disabled="savingTeacher" @tap="saveTeacherName">{{ savingTeacher ? '保存中...' : '保存资料' }}</button>
   </view>
@@ -103,6 +87,20 @@
     </view>
   </view>
 
+  <view class="card actions" v-if="user.roles && user.roles.length > 1">
+    <view class="action-row" @tap="switchRole(user.role==='teacher'?'parent':'teacher')">
+      <view class="action-copy"><pp-icon name="users" :size="38" /><text>{{ user.role==='teacher' ? '切换到家长端' : '切换到教师端' }}</text></view>
+      <pp-icon name="arrow" :size="34" />
+    </view>
+  </view>
+
+  <view class="card actions" v-if="user.role==='teacher' && (!user.roles || !user.roles.includes('parent'))">
+    <view class="action-row" @tap="nav('/pages/bind/bind?source=repair')">
+      <view class="action-copy"><pp-icon name="users" :size="38" /><text>绑定学生并切换到家长端</text></view>
+      <pp-icon name="arrow" :size="34" />
+    </view>
+  </view>
+
   <view class="card actions">
     <view class="action-row" @tap="logout">
       <view class="action-copy action-danger"><pp-icon name="user" :size="38" /><text>退出登录</text></view>
@@ -110,29 +108,26 @@
     </view>
   </view>
 
-  <view class="brand">番番记录 1.1.0<br/>桂ICP备2026013218号-2</view>
+  <view class="brand">番番记录 1.2.1<br/>桂ICP备2026013218号-2</view>
   </template>
 </view>
 </template>
 
 <script>
 import { api } from '@/utils/api';
+import { getUser, saveUser } from '@/utils/auth';
 import { confirmAction, logError, toastError } from '@/utils/ui';
 import { teacherDisplayName } from '@/utils/brand';
 export default {
   data(){return{
-    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',teacherPhone:'',boundKids:[],teacherAvatarBroken:false,
-    loading:false,savingTeacher:false
+    user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',boundKids:[],teacherAvatarBroken:false,
+    loading:false,savingTeacher:false,switchingRole:false
   };},
   computed:{
     teacherDisplay(){return teacherDisplayName(this.teacherNickname || this.user.nickname);},
     notifyHealthy(){
       const n=this.notifyStatus;
       return Boolean(n?.appId&&n?.appSecret&&n?.templates?.checkin&&n?.templates?.checkout&&n?.templates?.feedback);
-    },
-    activeTeacher(){
-      const activeId=String(uni.getStorageSync('activeChildId')||'');
-      return this.boundKids.find(kid=>String(kid.id)===activeId)||this.boundKids[0]||null;
     }
   },
   onShow(){this.loadData();},
@@ -141,24 +136,22 @@ export default {
     async loadData(){
       if(this.loading)return;
       this.loading=true;
-      try{this.user=JSON.parse(uni.getStorageSync('user')||'{}');}catch(e){this.user={};}
+      this.user=getUser()||{};
       try{
+        if(this.user.role)await this.loadAccountProfile();
         if(this.user.role==='parent'){
           await this.loadBoundKids();
           await this.loadProfile();
         }
-        if(this.user.role==='teacher')await Promise.all([this.loadTeacherProfile(),this.loadNotifyStatus()]);
+        if(this.user.role==='teacher')await this.loadNotifyStatus();
       }finally{this.loading=false;}
     },
     teacherName(kid){return teacherDisplayName(kid?.teacher_name,'孩子的老师');},
-    copyTeacherContact(contact){
-      uni.setClipboardData({data:String(contact),success:()=>uni.showToast({title:'联系方式已复制',icon:'success'})});
-    },
-    async loadTeacherProfile(){
+    async loadAccountProfile(){
       try{
         const data=await api.get('/auth/me');
-        if(data.user){this.user={...this.user,...data.user};this.teacherNickname=data.user.nickname||'';this.teacherPhone=data.user.phone||'';uni.setStorageSync('user',JSON.stringify(this.user));}
-      }catch(e){logError('mine.teacherProfile',e);}
+        if(data.user){this.user=saveUser({...this.user,...data.user});this.teacherNickname=data.user.nickname||'';}
+      }catch(e){logError('mine.accountProfile',e);}
     },
     async saveTeacherName(){
       const nickname=(this.teacherNickname||'').trim();
@@ -166,9 +159,8 @@ export default {
       if(this.savingTeacher)return;
       this.savingTeacher=true;
       try{
-        const data=await api.put('/auth/me',{nickname,phone:(this.teacherPhone||'').trim(),avatar_url:this.user.avatar_url||''});
-        this.user={...this.user,...data.user};
-        uni.setStorageSync('user',JSON.stringify(this.user));
+        const data=await api.put('/auth/me',{nickname,avatar_url:this.user.avatar_url||''});
+        this.user=saveUser({...this.user,...data.user});
         uni.showToast({title:'已保存',icon:'success'});
       }catch(e){toastError(e,'保存失败');}
       finally{this.savingTeacher=false;}
@@ -214,6 +206,18 @@ export default {
     goLogin(){uni.switchTab({url:'/pages/index/index'});},
     nav(url){uni.navigateTo({url});},
     tagColor(i){const cs=['tag-c0','tag-c1','tag-c2','tag-c3','tag-c4','tag-c5'];return cs[i%cs.length];},
+    async switchRole(role){
+      if(this.switchingRole)return;
+      this.switchingRole=true;
+      try{
+        const data=await api.post('/auth/switch-role',{role});
+        if(!data?.token||!data?.user)throw new Error('身份切换结果不完整');
+        uni.setStorageSync('token',data.token);
+        this.user=saveUser(data.user);
+        uni.reLaunch({url:'/pages/index/index'});
+      }catch(e){toastError(e,'身份切换失败');}
+      finally{this.switchingRole=false;}
+    },
     async logout(){
       const confirmed=await confirmAction({title:'退出登录',content:'退出后需要重新使用微信登录。',confirmText:'退出'});
       if(confirmed){uni.clearStorageSync();uni.reLaunch({url:'/pages/index/index'});}
@@ -305,13 +309,6 @@ export default {
 .form-field { margin: 20rpx 0; }
 .field-label { color: var(--text-secondary); font-size: 25rpx; }
 .teacher-preview { color: var(--accent-strong); background: var(--accent-soft); border-radius: 14rpx; }
-.teacher-contact{margin-top:22rpx}
-.teacher-contact-row{display:flex;align-items:center;gap:16rpx}
-.teacher-contact-copy{min-width:0;flex:1}
-.teacher-contact-name,.teacher-contact-detail{display:block}
-.teacher-contact-name{font-size:29rpx;font-weight:700;color:var(--ink)}
-.teacher-contact-detail{margin-top:4rpx;font-size:24rpx;color:var(--text-muted);word-break:break-all}
-.copy-contact{min-height:58rpx;margin:0;padding:8rpx 16rpx;background:var(--accent-soft);color:var(--accent-strong);border:none;border-radius:11rpx;font-size:24rpx}
 .service-health { display: flex; align-items: center; gap: 18rpx; padding: 20rpx; border-radius: 18rpx; background: var(--surface-muted); }
 .service-mark { width: 70rpx; height: 70rpx; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: var(--warning-soft); }
 .service-mark.ok { background: var(--accent-soft); }

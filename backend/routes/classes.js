@@ -1,15 +1,7 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
-const { JWT_SECRET } = require('../config');
-
-function auth(req, res, next) {
-  const h = req.headers.authorization;
-  if (!h) return res.status(401).json({ error: '未登录' });
-  try { req.user = jwt.verify(h.split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
-  catch { res.status(401).json({ error: '登录过期' }); }
-}
+const { authRequired: auth } = require('../middleware/auth');
 
 router.get('/', auth, (req, res) => {
   const db = getDB();

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
+const { getUserWithRoles } = require('../utils/roles');
 
 const { JWT_SECRET } = require('../config');
 
@@ -16,7 +17,11 @@ function authRequired(req, res, next) {
   try {
     const token = header.split(' ')[1];
     const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-    req.user = payload;
+    const user = getUserWithRoles(getDB(), payload.id, payload.role);
+    if (!user || !user.roles.includes(payload.role)) {
+      return res.status(401).json({ error: '登录身份已失效，请重新登录' });
+    }
+    req.user = { ...payload, openid: user.openid, role: payload.role };
     next();
   } catch (err) {
     return res.status(401).json({ error: '登录已过期，请重新登录' });

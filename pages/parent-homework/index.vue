@@ -40,7 +40,7 @@
               <text class="question-no">第 {{ answer.question_no }} 题</text>
               <text :class="['answer-status',answer.is_correct?'correct':'wrong']">{{ answer.is_correct ? '正确' : '需要订正' }}</text>
             </view>
-            <image v-if="answer.question_image_url" :src="api.assetUrl(answer.question_image_url)" mode="widthFix" class="question-image" @tap="preview(answer.question_image_url)" />
+            <image v-if="questionImageSource(answer)" :src="questionImageSource(answer)" mode="widthFix" class="question-image" @tap="preview(answer)" />
             <view class="answer-line"><text class="label">学生答案</text><text>{{ answer.student_answer || '未填写' }}</text></view>
             <view v-if="!answer.is_correct && answer.wrong_step" class="answer-line"><text class="label">错误步骤</text><text>{{ answer.wrong_step }}</text></view>
             <view v-if="!answer.is_correct && answer.error_type" class="answer-line"><text class="label">错误类型</text><text>{{ answer.error_type }}</text></view>
@@ -104,13 +104,31 @@ async function openBatch(batchId) {
   try {
     const result = await api.get(`/homework/parent/${batchId}?student_id=${child.value.id}`);
     detail.value = result.submission || null;
+    if (detail.value) {
+      await Promise.all((detail.value.answers || []).map(async (answer) => {
+        if (!isPrivateUrl(answer.question_image_url)) return;
+        try { answer.local_image_path = await api.downloadPrivate(answer.question_image_url); }
+        catch (err) { logError('parentHomework.downloadPrivate', err); }
+      }));
+    }
   } catch (err) {
     uni.showToast({ title: err?.error || '加载失败', icon: 'none' });
   }
 }
 
-function preview(url) {
-  uni.previewImage({ current: api.assetUrl(url), urls: [api.assetUrl(url)] });
+function isPrivateUrl(url) {
+  return /^\/api\/private-files\/[a-f0-9]{32}$/.test(String(url || ''));
+}
+
+function questionImageSource(answer) {
+  if (!answer?.question_image_url) return '';
+  if (isPrivateUrl(answer.question_image_url)) return answer.local_image_path || '';
+  return api.assetUrl(answer.question_image_url);
+}
+
+function preview(answer) {
+  const url = questionImageSource(answer);
+  if (url) uni.previewImage({ current: url, urls: [url] });
 }
 
 onLoad((query) => {

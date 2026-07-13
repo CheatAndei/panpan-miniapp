@@ -16,6 +16,8 @@ const bindRoutes = require('./routes/bind');
 const profileRoutes = require('./routes/profiles');
 const notifyRoutes = require('./routes/notify');
 const homeworkRoutes = require('./routes/homework');
+const practiceRoutes = require('./routes/practice');
+const privateFileRoutes = require('./routes/private-files');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -52,10 +54,12 @@ app.use('/api/bind', bindRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/notify', notifyRoutes);
 app.use('/api/homework', homeworkRoutes);
+app.use('/api/practice', practiceRoutes);
+app.use('/api/private-files', privateFileRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'bug6-homework-v1.1.3' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.2.1' });
 });
 
 // 初始化数据库并启动
@@ -64,9 +68,10 @@ async function start() {
   console.log('Database ready');
 
   // 启动定时提醒
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_REMINDER !== 'true') {
     try {
       require('./jobs/reminder').start();
+      require('./jobs/practice-generator').start();
     } catch (e) {
       console.log('Reminder cron skipped');
     }

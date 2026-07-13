@@ -3,16 +3,17 @@
   <view class="hero">
     <view class="hero-mark"><pp-icon name="brand" :size="104" /></view>
     <view class="hero-title">绑定孩子</view>
-    <view class="hero-desc">输入老师提供的 6 位邀请码，查看孩子的学习动态</view>
+    <view class="hero-desc">输入老师提供的邀请码，查看孩子的学习动态</view>
   </view>
 
   <view class="card" v-if="!bound">
+    <view v-if="repairMode" class="repair-tip">当前微信曾登录教师端。输入学生邀请码后，将自动新增家长身份并切换到家长首页。</view>
     <view class="code-group">
-      <input class="code-input" :value="code" maxlength="6" placeholder="000000" @input="code=$event.detail.value.toUpperCase()" focus />
+      <input class="code-input" :value="code" maxlength="32" placeholder="输入邀请码" @input="code=$event.detail.value.toUpperCase()" focus />
       <view class="code-hint">邀请码由孩子的老师发给您</view>
     </view>
-    <button class="btn-primary" @tap="doBind" :disabled="code.length!==6 || binding">
-      {{ binding ? '正在绑定...' : (code.length===6 ? '确认绑定' : '请输入完整邀请码') }}
+    <button class="btn-primary" @tap="doBind" :disabled="code.length<6 || code.length>32 || binding">
+      {{ binding ? '正在绑定...' : (code.length>=6 && code.length<=32 ? '确认绑定' : '请输入完整邀请码') }}
     </button>
   </view>
 
@@ -29,14 +30,15 @@
 
 <script>
 import { api } from '@/utils/api';
-import { doLogin } from '@/utils/auth';
+import { doLogin, saveUser } from '@/utils/auth';
 import { toastSuccess, toastError } from '@/utils/ui';
 import { teacherNameFromChild } from '@/utils/brand';
 export default {
-  data(){return{code:'',bound:null,binding:false};},
+  data(){return{code:'',bound:null,binding:false,repairMode:false};},
   onLoad(options){
     const code=String(options?.code||'').trim().toUpperCase();
-    if(code)this.code=code.slice(0,6);
+    if(code)this.code=code.slice(0,32);
+    this.repairMode=options?.source==='repair';
   },
   methods:{
     teacherName(student){return teacherNameFromChild(student);},
@@ -50,18 +52,22 @@ export default {
       }
     },
     async doBind(){
-      if(this.binding||this.code.length!==6)return;
+      if(this.binding||this.code.length<6||this.code.length>32)return;
       this.binding=true;
       try{
         await doLogin();
         const res=await this.submitBinding();
         if(res.role==='teacher'){
-          if(res.token) uni.setStorageSync('token', res.token);
-          const u=JSON.parse(uni.getStorageSync('user')||'{}');
-          u.role='teacher';uni.setStorageSync('user',JSON.stringify(u));
+          if(!res.token||!res.user)throw new Error('教师身份签发失败，请重试');
+          uni.setStorageSync('token', res.token);
+          saveUser(res.user);
           toastSuccess('已成为老师');
           setTimeout(()=>uni.reLaunch({url:'/pages/index/index'}),800);
           return;
+        }
+        if(res.token&&res.user){
+          uni.setStorageSync('token',res.token);
+          saveUser(res.user);
         }
         this.bound=res.student;
         if(res.student?.id)uni.setStorageSync('activeChildId',res.student.id);
@@ -69,7 +75,7 @@ export default {
       finally{this.binding=false;}
     },
     goHome(){
-      uni.switchTab({url:'/pages/index/index'});
+      uni.reLaunch({url:'/pages/index/index'});
     }
   }
 };
@@ -82,8 +88,9 @@ export default {
 .hero-title{font-size:44rpx;font-weight:780;color:var(--ink);margin-bottom:10rpx;letter-spacing:2rpx}
 .hero-desc{font-size:27rpx;color:var(--text-muted);line-height:1.65;max-width:500rpx;margin:0 auto}
 .card{width:100%;max-width:680rpx;background:#fff;border-radius:26rpx;padding:38rpx 32rpx;border:1rpx solid var(--border);box-shadow:var(--shadow)}
+.repair-tip{margin-bottom:28rpx;padding:20rpx 22rpx;border-radius:16rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:25rpx;line-height:1.65}
 .code-group{margin-bottom:32rpx}
-.code-input{border:2rpx solid #C9DAD4;border-radius:18rpx;height:108rpx;line-height:108rpx;padding:0 8rpx 0 28rpx;font-size:48rpx;text-align:center;letter-spacing:24rpx;font-variant-numeric:tabular-nums;font-weight:740;color:var(--ink);width:100%;box-sizing:border-box;background:#FAFCFB}
+.code-input{border:2rpx solid #C9DAD4;border-radius:18rpx;height:108rpx;line-height:108rpx;padding:0 22rpx;font-size:38rpx;text-align:center;letter-spacing:6rpx;font-variant-numeric:tabular-nums;font-weight:740;color:var(--ink);width:100%;box-sizing:border-box;background:#FAFCFB}
 .code-input:focus{border-color:var(--accent);box-shadow:0 0 0 5rpx rgba(47,125,107,.08)}
 .code-hint{text-align:center;font-size:24rpx;color:var(--text-muted);margin-top:16rpx}
 .btn-primary{width:100%;}

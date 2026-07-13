@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "batch_key": "guangzhou-original-math-v1",
+  "title": "广州情境数学原创题 v1",
+  "region": "广州",
+  "retrieved_at": "2026-07-13",
+  "provenance": "self_authored",
+  "license": "project-original",
+  "copy_allowed": false,
+  "sources": [
+    {
+      "title": "2025 年广州中考各学科命题思路分析",
+      "url": "https://jyj.gz.gov.cn/gk/zfxxgkml/ywgz/zsks/content/post_10341698.html",
+      "usage": "仅提取真实情境、四基四能、应用与创新等命题方向，不复制原题"
+    },
+    {
+      "title": "2027—2029 年广州市初中学业水平考试试卷结构",
+      "url": "https://gzzk.gz.gov.cn/zkzz/zkxx/wjtz/content/post_10582286.html",
+      "usage": "仅提取数学题型结构与时长，不复制原题"
+    },
+    {
+      "title": "广州义务教育作业设计指引",
+      "url": "https://www.gz.gov.cn/zwgk/zdly/jyxx/zcfg/content/post_7829487.html",
+      "usage": "仅提取分层、预计时长、生活情境和减负要求"
+    }
+  ],
+  "authoring_rules": [
+    "题目全部由项目原创，不导入官网、学校或商业教辅原题",
+    "情境贴近广州生活，但数值均为练习设定，不冒充真实统计",
+    "覆盖基础运算、应用、建模和表达，避免偏题怪题与机械重复",
+    "每题必须有明确答案、预计时长、唯一签名和可复核生成公式"
+  ]
+}

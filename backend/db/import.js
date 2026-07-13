@@ -2,6 +2,7 @@
 const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('node:crypto');
 const DB_PATH = path.join(__dirname, 'teach.db');
 
 const CLASSES_FILE = path.join(__dirname, '..', '..', '..', 'classtest', 'data', 'classes.json');
@@ -29,18 +30,32 @@ async function main() {
     db = new SQL.Database(fs.readFileSync(DB_PATH));
   } else {
     db = new SQL.Database();
-    const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
-    db.run(schema);
   }
+  const studentColumns = db.exec('PRAGMA table_info(students)')[0]?.values || [];
+  if (studentColumns.length > 0 && !studentColumns.some((column) => column[1] === 'external_id')) {
+    db.run('ALTER TABLE students ADD COLUMN external_id TEXT');
+  }
+  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
+  db.run(schema);
+  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_students_external_id ON students(external_id)');
+
+  db.run(`CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id, role)
+  )`);
+  db.run("INSERT OR IGNORE INTO user_roles(user_id,role) SELECT id,role FROM users WHERE role IN ('parent','teacher')");
 
   // 确保有 teacher（使用 dev openid）
-  const teacher = db.exec("SELECT id FROM users WHERE role='teacher' LIMIT 1");
+  const teacher = db.exec("SELECT u.id FROM users u JOIN user_roles ur ON ur.user_id=u.id WHERE ur.role='teacher' LIMIT 1");
   let teacherId;
   if (teacher.length > 0 && teacher[0].values.length > 0) {
     teacherId = teacher[0].values[0][0];
   } else {
     db.run("INSERT INTO users (openid, role, nickname) VALUES ('dev_panpan_teacher','teacher','潘潘老师')");
     teacherId = db.exec("SELECT last_insert_rowid()")[0].values[0][0];
+    db.run("INSERT OR IGNORE INTO user_roles(user_id,role) VALUES (?,'teacher')", [teacherId]);
   }
   console.log('Teacher ID:', teacherId);
 
@@ -67,8 +82,9 @@ async function main() {
       const level = extractLevel(s.personality);
       const personality = cleanPersonality(s.personality);
 
-      db.run('INSERT INTO students (class_id, name, level, personality, invite_code) VALUES (?,?,?,?,?)',
-        [classId, s.name, level, personality, code]);
+      const externalStudentId = `stu_${crypto.randomBytes(16).toString('hex')}`;
+      db.run('INSERT INTO students (class_id, name, level, personality, invite_code, external_id) VALUES (?,?,?,?,?,?)',
+        [classId, s.name, level, personality, code, externalStudentId]);
       console.log(`  + ${s.name} [${level}] ${personality} 邀请码:${code}`);
     }
   }

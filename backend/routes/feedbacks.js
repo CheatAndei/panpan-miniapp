@@ -1,14 +1,19 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { getDB } = require('../db/init');
 const router = express.Router();
-const { JWT_SECRET } = require('../config');
+const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsClass, teacherOwnsSchedule, teacherOwnsStudent } = require('../utils/scope');
+const feedbackEmojiConfig = require('../../shared/feedback-emojis.json');
+const FEEDBACK_EMOJIS = Object.freeze([...feedbackEmojiConfig.emojis]);
+const SUPPORTED_FEEDBACK_EMOJIS = new Set(FEEDBACK_EMOJIS);
+const FEEDBACK_EMOJI_PROMPT = FEEDBACK_EMOJIS.join('、');
 
-function auth(req, res, next) {
-  try { req.user = jwt.verify((req.headers.authorization||'').split(' ')[1], JWT_SECRET, { algorithms: ['HS256'] }); next(); }
-  catch { res.status(401).json({ error: '登录过期' }); }
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+const FEEDBACK_EMOJI_PATTERN = new RegExp(FEEDBACK_EMOJIS.map(escapeRegExp).join('|'), 'gu');
+const LEADING_FEEDBACK_EMOJI_PATTERN = new RegExp(`^(?:${FEEDBACK_EMOJIS.map(escapeRegExp).join('|')})\\s*`, 'u');
 
 // AI生成班级反馈
 router.post('/generate-class', auth, async (req, res) => {
@@ -16,7 +21,7 @@ router.post('/generate-class', auth, async (req, res) => {
   const { grade, subject, lesson, topic, perfScore, homework } = req.body;
   const prompt = `你是教培老师，写一段发家长群的课后反馈。无空行，模块用 --- 分隔。
 
-信息：${grade} ${subject} ${lesson||''} 课题《${topic||'未设定'}》课堂表现${perfScore||5}/10 作业:${homework||'无'}
+信息：${grade} ${subject} ${lesson||''} 课题《${topic||'未设定'}》课堂表现${perfScore||5}/10。独立作业字段：${homework||'无'}
 
 格式（严格按此）：
 各位家长好📘
@@ -27,15 +32,12 @@ ${grade} ${lesson||''} ${topic||''}
 · 知识点2
 · 知识点3
 ---
-[加油]课堂表现
+💪 课堂表现
 [一段话，根据分数写。8-10分肯定为主，5-7分有进步空间，1-4分温和提醒。说具体表现不要说空话]
----
-📚 作业说明
-${homework||'请查看群内通知'}
 ---
 [一句鼓励收尾，体现学科价值]
 
-要求：200-300字，不要空行，知识点准确。返回纯文本。`;
+要求：200-300字，不要空行，知识点准确。作业由独立组件展示，不要把作业写进反馈正文。返回纯文本。`;
 
   try {
     const text = await callAI(prompt, 900);
@@ -63,7 +65,7 @@ router.post('/generate-student-batch', auth, async (req, res) => {
 ${list}
 
 核心要求：
-1. 每人约180字，格式：专属 emoji + 名字 + 换行 + 正文 + 鼓励 emoji；每位学生的开头 emoji、切入角度和句式都不能重复。
+1. 每人约180字，格式：专属 emoji + 名字 + 换行 + 正文 + 鼓励 emoji；每位学生的切入角度和句式都不能重复。只使用这些兼容 emoji：${FEEDBACK_EMOJI_PROMPT}。
 2. 从课堂细节、出门测、进步、知识点或鼓励中选择不同切入点；知识点放中间或结尾。
 3. 水平好以拔高为主，水平中肯定努力并给可提升空间，水平偏下保护信心并给具体小目标。出门测全对时，除非备注有具体问题，否则只表扬不批评。
 4. 性格仅作语气参考，不直接写“你是个某某性格的孩子”。
@@ -85,11 +87,24 @@ ${list}
 返回JSON：{"results":[{"id":0,"feedback":"..."}]}`;
 
   try {
-    const text = await callAI(prompt);
+    const text = await callAI(prompt, batchMaxTokens(students.length, style));
     const json = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
     const data = JSON.parse(json);
-    data.results.forEach((r, i) => { if (students[i]) { r.name = students[i].name; r.feedback = cleanStudentFeedback(r.feedback, students[i].name); } });
-    res.json(data);
+    if (!Array.isArray(data.results) || data.results.length < students.length) {
+      throw new Error('AI 返回的学生反馈不完整');
+    }
+    const results = students.map((student, index) => {
+      const generated = data.results.find((item) => Number(item?.id) === index) || data.results[index];
+      if (!generated?.feedback) throw new Error('AI 返回的学生反馈不完整');
+      return {
+        ...generated,
+        // 提示词里的 id 是数组下标；响应给前端时必须恢复成真实学生 id。
+        id: student.id ?? index,
+        name: student.name,
+        feedback: cleanStudentFeedback(generated.feedback, student.name, style)
+      };
+    });
+    res.json({ ...data, results });
   } catch(e) { res.status(500).json({ error: '批量生成失败' }); }
 });
 
@@ -103,7 +118,7 @@ router.post('/generate-student', auth, async (req, res) => {
 学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，出门测大致水平${quizScore||5}/10，${note||'无特殊说明'}
 
 核心要求：
-1. 约180字，格式：专属 emoji + ${name} + 换行 + 正文 + 鼓励 emoji。
+1. 约180字，格式：专属 emoji + ${name} + 换行 + 正文 + 鼓励 emoji。只使用这些兼容 emoji：${FEEDBACK_EMOJI_PROMPT}。
 2. 从课堂细节、出门测、进步、知识点或鼓励中自然切入；知识点放中间或结尾。
 3. 成绩好以拔高为主，成绩中肯定努力并给可提升空间，成绩偏下保护信心并给一个可执行的小目标。出门测全对且备注没有具体问题时，只表扬不批评。
 4. 性格只影响语气，不直接写“你是个某某性格的孩子”；不写具体分数。
@@ -123,7 +138,7 @@ router.post('/generate-student', auth, async (req, res) => {
 
   try {
     const text = await callAI(prompt, style === 'warm' ? 800 : 400);
-    res.json({ text: cleanStudentFeedback(text, name) });
+    res.json({ text: cleanStudentFeedback(text, name, style) });
   } catch(e) { res.status(500).json({ error: '生成失败' }); }
 });
 
@@ -358,21 +373,56 @@ router.get('/:id', auth, (req, res) => {
   res.json({ feedback: req.user.role === 'parent' ? sanitizeFeedbackForParent(db, fb, req.user.id) : fb });
 });
 
-function cleanStudentFeedback(text, name = '') {
-  let value = String(text || '')
+function normalizeFeedbackEmojis(text) {
+  let normalizedText = String(text || '');
+  for (const [placeholder, emoji] of Object.entries(feedbackEmojiConfig.placeholders || {})) {
+    normalizedText = normalizedText.replaceAll(placeholder, emoji);
+  }
+  return normalizedText
+    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, (emoji) => {
+      const normalized = emoji.replace(/\uFE0F/g, '');
+      return SUPPORTED_FEEDBACK_EMOJIS.has(normalized) ? normalized : '';
+    })
+    .replace(/[\u200D\uFE0F\u{1F3FB}-\u{1F3FF}]/gu, '');
+}
+
+function cleanStudentFeedback(text, name = '', style = 'concise') {
+  let value = normalizeFeedbackEmojis(String(text || '')
     .replace(/\*/g, '')
-    .replace(/```json\n?|```\n?/g, '')
-    .replace(/[🎯🌟💡🔥💎🚀🐣🎨🏆🎵✨⭐🧸✏️🌱🎪📘📖📚]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/```json\n?|```\n?/g, ''));
+  if (style === 'warm') {
+    value = value
+      .replace(/\r/g, '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n')
+      .trim();
+  } else {
+    value = value
+      .replace(FEEDBACK_EMOJI_PATTERN, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
   const banned = ['总体来说', '首先', '此外', '同时', '相信在未来', '表现不错', '继续努力', '态度端正'];
   for (const word of banned) value = value.replaceAll(word, '');
-  value = value.replace(/\s+/g, ' ').trim();
-  if (name && !value.startsWith(name)) value = `${name}：${value.replace(/^：|:/, '')}`;
-  if (value.length <= 130) return value;
-  const cut = value.slice(0, 130);
+  value = style === 'warm'
+    ? value.replace(/[^\S\n]+/g, ' ').trim()
+    : value.replace(/\s+/g, ' ').trim();
+  const valueWithoutLeadingEmoji = value.replace(LEADING_FEEDBACK_EMOJI_PATTERN, '');
+  if (name && !value.startsWith(name) && !valueWithoutLeadingEmoji.startsWith(name)) {
+    value = `${name}：${value.replace(/^：|:/, '')}`;
+  }
+  const limit = style === 'warm' ? 240 : 130;
+  if (value.length <= limit) return value;
+  const cut = value.slice(0, limit);
   const lastPunc = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('；'), cut.lastIndexOf('，'));
   return (lastPunc > 50 ? cut.slice(0, lastPunc + 1) : cut).trim();
+}
+
+function batchMaxTokens(studentCount, style) {
+  const perStudent = style === 'warm' ? 280 : 150;
+  return Math.min(8192, Math.max(600, 240 + Number(studentCount || 0) * perStudent));
 }
 
 async function callAI(prompt, maxTokens = 400) {
