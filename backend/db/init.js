@@ -131,6 +131,17 @@ function seedGuangzhouPracticeQuestions() {
   importQuestionDataset(getDB(), dataset, { dryRun: false });
 }
 
+function retireLegacyJuniorPracticeQuestions() {
+  _db.run(`UPDATE practice_questions SET is_active=0
+    WHERE grade_band='初中' AND (source_batch IS NULL OR source_batch='guangzhou-original-math-v1')`);
+}
+
+function seedJunior1PracticeQuestions() {
+  const { importQuestionDataset } = require('../services/practice-question-import');
+  const dataset = require('../resources/practice/junior1-math-v2');
+  importQuestionDataset(getDB(), dataset, { dryRun: false });
+}
+
 function ensureColumn(table, column, definition) {
   const columns = execSQL(`PRAGMA table_info(${table})`);
   if (!columns.some((item) => item.name === column)) {
@@ -214,6 +225,8 @@ async function initDB() {
   runMigrations();
   seedPracticeQuestions();
   seedGuangzhouPracticeQuestions();
+  retireLegacyJuniorPracticeQuestions();
+  seedJunior1PracticeQuestions();
   saveDB();
   const saveTimer = setInterval(saveDB, 30000);
   saveTimer.unref?.();

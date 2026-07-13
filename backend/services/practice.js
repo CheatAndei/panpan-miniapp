@@ -335,7 +335,7 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
       writePdfText(doc, items.map((item) => `${item.position}.${item.snapshot_answer}`).join('　'), { size: 10, characters: 40 });
     });
   });
-  writePdfText(doc, '题目来源：项目自编题库；广州情境题仅参考官方命题方向，不复制原题。答案仅供教师核对。', { size: 9, color: '#697B76' });
+  writePdfText(doc, '题目来源：项目自编参数化题库，不复制教材或真题。答案仅供教师核对。', { size: 9, color: '#697B76' });
   doc.end();
 }
 

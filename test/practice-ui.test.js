@@ -37,7 +37,7 @@ test('家长页领取结构化题目并上传照片', () => {
 
 test('教师页可选题型、调整学生范围、复核并下载五日 PDF', () => {
   assert.match(teacher, /全部题型/);
-  assert.match(teacher, /广州原创情境题/);
+  assert.match(teacher, /答案由教师复核后可见/);
   assert.match(teacher, /toggleType/);
   assert.match(teacher, /学生个性化范围/);
   assert.match(teacher, /current_module/);

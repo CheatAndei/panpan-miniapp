@@ -64,7 +64,7 @@
 
       <view v-if="preview" class="preview-box">
         <text class="preview-title">{{ preview.students }} 名学生 · {{ preview.days }} 天</text>
-        <text class="preview-copy">题库 {{ preview.available_questions }} 题，其中广州原创情境题 {{ preview.guangzhou_questions || 0 }} 题；生成时本地题优先穿插，并按 60% 当前模块、25% 易错、15% 间隔复习。</text>
+        <text class="preview-copy">题库 {{ preview.available_questions }} 题；生成时按 60% 当前模块、25% 易错、15% 间隔复习，答案由教师复核后可见。</text>
       </view>
       <view class="action-row">
         <button class="secondary-btn" :disabled="busy" @tap="previewPlan">预览范围</button>
