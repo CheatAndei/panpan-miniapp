@@ -6,8 +6,6 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
-    ports:
-      - "3000:3000"
     volumes:
       - panpan-data:/app/data
       - panpan-uploads:/app/uploads
