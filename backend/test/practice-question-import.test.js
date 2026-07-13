@@ -7,7 +7,7 @@ const dbPath = path.resolve(__dirname, '..', '..', '..', '..', 'z-rubbish', `pra
 process.env.DATABASE_PATH = dbPath;
 
 const { initDB, getDB } = require('../db/init');
-const dataset = require('../data/practice/guangzhou-original-v1');
+const dataset = require('../resources/practice/guangzhou-original-v1');
 const {
   importQuestionDataset,
   validateQuestionDataset,

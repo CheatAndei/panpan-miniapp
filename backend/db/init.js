@@ -127,7 +127,7 @@ function seedPracticeQuestions() {
 
 function seedGuangzhouPracticeQuestions() {
   const { importQuestionDataset } = require('../services/practice-question-import');
-  const dataset = require('../data/practice/guangzhou-original-v1');
+  const dataset = require('../resources/practice/guangzhou-original-v1');
   importQuestionDataset(getDB(), dataset, { dryRun: false });
 }
 

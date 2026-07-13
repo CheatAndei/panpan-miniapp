@@ -1,4 +1,4 @@
-# 每日打卡题库数据
+# 每日打卡题库静态资源
 
 `guangzhou-blueprint-v1.json` 只保存广州官方公开资料中的命题方向、结构和来源链接，
 不保存或复制考试原题。`guangzhou-original-v1.js` 根据该蓝图生成 60 道项目原创题，
