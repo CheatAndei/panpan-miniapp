@@ -136,10 +136,15 @@ function retireLegacyJuniorPracticeQuestions() {
     WHERE grade_band='初中' AND (source_batch IS NULL OR source_batch='guangzhou-original-math-v1')`);
 }
 
-function seedJunior1PracticeQuestions() {
+function seedJuniorCalculationQuestions() {
   const { importQuestionDataset } = require('../services/practice-question-import');
-  const dataset = require('../resources/practice/junior1-math-v2');
+  const dataset = require('../resources/practice/junior-calculation-v3');
   importQuestionDataset(getDB(), dataset, { dryRun: false });
+}
+
+function activateJuniorCalculationQuestions() {
+  _db.run(`UPDATE practice_questions SET is_active=CASE WHEN source_batch='panpan-junior-calculation-v3' THEN 1 ELSE 0 END
+    WHERE grade_band='初中'`);
 }
 
 function ensureColumn(table, column, definition) {
@@ -226,7 +231,8 @@ async function initDB() {
   seedPracticeQuestions();
   seedGuangzhouPracticeQuestions();
   retireLegacyJuniorPracticeQuestions();
-  seedJunior1PracticeQuestions();
+  seedJuniorCalculationQuestions();
+  activateJuniorCalculationQuestions();
   saveDB();
   const saveTimer = setInterval(saveDB, 30000);
   saveTimer.unref?.();

@@ -86,12 +86,12 @@ test('每日 01:00 才切换逻辑日', () => {
   assert.equal(practiceDateAt(new Date('2026-07-13T01:00:00+08:00')), '2026-07-13');
 });
 
-test('教师只能给自己的小组创建范围有效的连续计划', async () => {
+test('教师只能给自己的小组创建固定初中计算连续计划', async () => {
   const end = new Date(`${logicalToday}T00:00:00Z`);
   end.setUTCDate(end.getUTCDate() + 4);
   const body = {
     title: '测试五日计划', class_id: classId, start_date: logicalToday, end_date: end.toISOString().slice(0, 10),
-    grade_band: '小学', module: '四则运算', difficulty: 2, target_minutes: 20, auto_advance: true,
+    grade_band: '小学', module: '应用题', difficulty: 1, target_minutes: 20, auto_advance: true,
   };
   const forbidden = await request('POST', '/practice/plans/preview', otherTeacherToken, body);
   assert.equal(forbidden.response.status, 400);
@@ -101,8 +101,8 @@ test('教师只能给自己的小组创建范围有效的连续计划', async ()
   assert.equal(preview.response.status, 200);
   assert.equal(preview.payload.days, 5);
   assert.equal(preview.payload.students, 1);
-  assert.ok(preview.payload.available_questions >= 8);
-  assert.ok(preview.payload.guangzhou_questions >= 8);
+  assert.equal(preview.payload.available_questions, 960);
+  assert.equal(preview.payload.guangzhou_questions, 960);
   const invalidDate = await request('POST', '/practice/plans/preview', teacherToken, { ...body, start_date: '2026-02-31' });
   assert.equal(invalidDate.response.status, 400);
   assert.match(invalidDate.payload.errors.join(' '), /日期/);
@@ -110,6 +110,10 @@ test('教师只能给自己的小组创建范围有效的连续计划', async ()
   const created = await request('POST', '/practice/plans', teacherToken, body);
   assert.equal(created.response.status, 201);
   assert.equal(created.payload.days, 5);
+  assert.equal(created.payload.plan.grade_band, '初中');
+  assert.equal(created.payload.plan.module, '综合计算');
+  assert.equal(created.payload.plan.difficulty, 3);
+  assert.equal(created.payload.plan.auto_advance, 0);
   const overlap = await request('POST', '/practice/plans', teacherToken, body);
   assert.equal(overlap.response.status, 409);
 });
@@ -124,11 +128,13 @@ test('家长并发领取幂等且永不返回答案', async () => {
   for (const item of results[0].payload.assignment.items) {
     assert.equal(Object.hasOwn(item, 'answer'), false);
     assert.equal(Object.hasOwn(item, 'snapshot_answer'), false);
+    assert.equal(Object.hasOwn(item, 'difficulty'), false);
+    assert.equal(item.module, '综合计算');
   }
   const count = getDB().get('SELECT COUNT(*) count FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, logicalToday]);
   assert.equal(Number(count.count), 1);
   const meta = JSON.parse(getDB().get('SELECT selection_meta FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, logicalToday]).selection_meta);
-  assert.ok(meta.selected_guangzhou > 0, '每日题单应优先穿插广州原创情境题');
+  assert.equal(meta.selected_guangzhou, results[0].payload.assignment.items.length, '每日题单应全部来自固定 960 题计算题库');
   const forbidden = await request('GET', `/practice/today?student_id=${studentId}`, otherParentToken);
   assert.equal(forbidden.response.status, 403);
 });
@@ -182,7 +188,13 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(list.response.status, 200);
   assert.equal(list.payload.submissions.length, 1);
   const submission = list.payload.submissions[0];
+  assert.equal(Number(submission.student_id), Number(studentId));
+  assert.equal(submission.attachments.length, 1);
   assert.ok(submission.items.every((item) => item.answer));
+  const answerSnapshots = getDB().all(`SELECT id,position,snapshot_answer answer FROM practice_assignment_items
+    WHERE assignment_id=? ORDER BY position`, [submission.assignment_id]);
+  assert.deepEqual(submission.items.map(({ id, position, answer }) => ({ id, position, answer })), answerSnapshots,
+    '学生照片必须与该学生当天题单的标准答案一起返回');
   const body = { teacher_note: '已认真完成', results: submission.items.map((item, index) => ({ item_id: item.id, is_correct: index >= 3 })) };
   const forbidden = await request('PUT', `/practice/submissions/${submission.id}/review`, otherTeacherToken, body);
   assert.equal(forbidden.response.status, 404);
@@ -204,28 +216,25 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(all.payload.pagination.total, 1);
 });
 
-test('已有复核历史时按约 60/25/15 跨模块选题', async () => {
+test('固定题库不允许按学生调整模块或难度', async () => {
   const db = getDB();
   const plan = db.get('SELECT * FROM practice_plans WHERE teacher_id=(SELECT teacher_id FROM classes WHERE id=?) LIMIT 1', [classId]);
   const changed = await request('PUT', `/practice/plans/${plan.id}/students/${studentId}`, teacherToken, {
     module: '乘除法', difficulty: 2, auto_advance: false, is_locked: true,
   });
-  assert.equal(changed.response.status, 200);
+  assert.equal(changed.response.status, 409);
+  assert.match(changed.payload.error, /不支持单独调整/);
   const oldDate = new Date(`${logicalToday}T00:00:00Z`);
   oldDate.setUTCDate(oldDate.getUTCDate() - 4);
   db.run('UPDATE practice_assignments SET practice_date=? WHERE student_id=? AND practice_date=?', [oldDate.toISOString().slice(0, 10), studentId, logicalToday]);
   const next = new Date(`${logicalToday}T00:00:00Z`);
   next.setUTCDate(next.getUTCDate() + 1);
   const assignment = generateAssignment(db, plan, studentId, next.toISOString().slice(0, 10));
-  const items = db.all('SELECT snapshot_module,estimated_seconds FROM practice_assignment_items WHERE assignment_id=?', [assignment.id]);
-  const currentSeconds = items.filter((item) => item.snapshot_module === '乘除法').reduce((sum, item) => sum + Number(item.estimated_seconds), 0);
+  const items = db.all('SELECT snapshot_module,snapshot_difficulty,estimated_seconds FROM practice_assignment_items WHERE assignment_id=?', [assignment.id]);
   const totalSeconds = items.reduce((sum, item) => sum + Number(item.estimated_seconds), 0);
-  const historySeconds = totalSeconds - currentSeconds;
-  const meta = JSON.parse(assignment.selection_meta);
-  assert.ok(totalSeconds >= 1080 && totalSeconds <= 1320, `混合模块时长应为18-22分钟，实际${totalSeconds}秒`);
-  assert.ok(currentSeconds / totalSeconds >= 0.5 && currentSeconds / totalSeconds <= 0.7, `当前模块应约60%，实际${currentSeconds}/${totalSeconds}`);
-  assert.ok(historySeconds / totalSeconds >= 0.3 && historySeconds / totalSeconds <= 0.5, `历史复习应约40%，实际${historySeconds}/${totalSeconds}`);
-  assert.ok(meta.selected_wrong_seconds > 0 && meta.selected_mastered_seconds > 0, '应同时包含易错与间隔复习');
+  assert.ok(totalSeconds >= 1080 && totalSeconds <= 1320, `练习时长应为18-22分钟，实际${totalSeconds}秒`);
+  assert.ok(items.every((item) => item.snapshot_module === '综合计算'));
+  assert.ok(items.every((item) => Number(item.snapshot_difficulty) === 3));
 });
 
 test('五日 PDF 是鉴权后的真 PDF，且跨老师不可导出', async () => {
@@ -243,7 +252,7 @@ test('五日 PDF 是鉴权后的真 PDF，且跨老师不可导出', async () =>
 test('计划不能跨越其他老师的小组', async () => {
   const preview = await request('POST', '/practice/plans/preview', teacherToken, {
     title: '越权计划', class_id: otherClassId, start_date: logicalToday, end_date: logicalToday,
-    grade_band: '小学', module: '四则运算', difficulty: 2, target_minutes: 20,
+    target_minutes: 20,
   });
   assert.equal(preview.response.status, 400);
 });

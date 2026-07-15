@@ -3,8 +3,8 @@ const { getDB } = require('../db/init');
 const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsClass, parentBoundStudent } = require('../utils/scope');
 const {
-  MODULES, practiceDateAt, dateRange, generateAssignment, preGenerateDate,
-  evaluateProgression, generatePlanPdf,
+  MODULES, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
+  practiceDateAt, dateRange, generateAssignment, preGenerateDate, evaluateProgression, generatePlanPdf,
 } = require('../services/practice');
 const {
   decodePrivateImage, storePrivateFile, removePrivateFile,
@@ -36,24 +36,18 @@ function validatePlan(db, teacherId, body) {
   if (!validDate(body.start_date) || !validDate(body.end_date)) errors.push('日期格式应为 YYYY-MM-DD');
   const dates = dateRange(body.start_date, body.end_date, 32);
   if (!dates.length || dates.length > 31) errors.push('连续打卡应为 1-31 天');
-  const grade = String(body.grade_band || '');
-  const module = String(body.module || '');
-  if (!MODULES[grade]?.includes(module)) errors.push('年级或模块无效');
-  const difficulty = Number(body.difficulty || 1);
-  if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) errors.push('难度应为 1-5');
+  const grade = FIXED_GRADE;
+  const module = FIXED_MODULE;
+  const difficulty = FIXED_DIFFICULTY;
   const targetMinutes = Number(body.target_minutes || 20);
   if (!Number.isFinite(targetMinutes) || targetMinutes < 18 || targetMinutes > 22) errors.push('目标时长应为 18-22 分钟');
-  const types = Array.isArray(body.question_types) ? [...new Set(body.question_types.map(String).filter(Boolean))] : [];
+  const types = [];
   let count = 0;
   let guangzhouCount = 0;
   if (MODULES[grade]?.includes(module)) {
     let sql = `SELECT template_key,estimated_seconds,source_region FROM practice_questions
-      WHERE grade_band=? AND subject='数学' AND module=? AND difficulty<=? AND is_active=1`;
-    const params = [grade, module, difficulty];
-    if (types.length) {
-      sql += ` AND question_type IN (${types.map(() => '?').join(',')})`;
-      params.push(...types);
-    }
+      WHERE grade_band=? AND subject='数学' AND module=? AND is_active=1`;
+    const params = [grade, module];
     const candidates = db.all(sql, params);
     count = candidates.length;
     guangzhouCount = candidates.filter((item) => item.source_region === '广州').length;
@@ -66,16 +60,16 @@ function validatePlan(db, teacherId, body) {
       templateUse.set(item.template_key, used + 1);
       availableSeconds += Number(item.estimated_seconds || 90);
     }
-    if (availableSeconds < targetMinutes * 60 * 0.9) errors.push('当前题库范围不足 18 分钟，请扩大题型或难度');
+    if (availableSeconds < targetMinutes * 60 * 0.9) errors.push('初中计算题库不足 18 分钟，请联系管理员补充题库');
   }
   return { errors, dates, classId, grade, module, difficulty, targetMinutes, types, questionCount: count, guangzhouQuestionCount: guangzhouCount };
 }
 
 router.get('/catalog', auth, teacherOnly, (req, res) => {
-  const rows = getDB().all(`SELECT grade_band,module,question_type,MIN(difficulty) min_difficulty,
-    MAX(difficulty) max_difficulty,COUNT(*) question_count,
+  const rows = getDB().all(`SELECT grade_band,module,question_type,COUNT(*) question_count,
     SUM(CASE WHEN source_region='广州' THEN 1 ELSE 0 END) guangzhou_question_count FROM practice_questions
-    WHERE is_active=1 GROUP BY grade_band,module,question_type ORDER BY grade_band,module,question_type`);
+    WHERE is_active=1 AND grade_band=? AND module=?
+    GROUP BY grade_band,module,question_type ORDER BY grade_band,module,question_type`, [FIXED_GRADE, FIXED_MODULE]);
   res.json({ modules: MODULES, scopes: rows });
 });
 
@@ -110,14 +104,14 @@ router.post('/plans', auth, teacherOnly, (req, res) => {
     const created = db.run(`INSERT INTO practice_plans
       (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,question_types,difficulty,target_seconds,auto_advance,status)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
-      req.user.id, value.classId, String(body.title || '假期每日打卡').trim().slice(0, 60), body.start_date,
+      req.user.id, value.classId, String(body.title || '初中计算每日打卡').trim().slice(0, 60), body.start_date,
       body.end_date, value.grade, '数学', value.module, JSON.stringify(value.types), value.difficulty,
-      Math.round(value.targetMinutes * 60), body.auto_advance === false ? 0 : 1, 'published',
+      Math.round(value.targetMinutes * 60), 0, 'published',
     ]);
     for (const student of students) {
       db.run(`INSERT INTO practice_student_settings
         (plan_id,student_id,current_module,difficulty,auto_advance,is_locked) VALUES(?,?,?,?,?,0)`, [
-        created.lastInsertRowid, student.id, value.module, value.difficulty, body.auto_advance === false ? 0 : 1,
+        created.lastInsertRowid, student.id, value.module, value.difficulty, 0,
       ]);
     }
     db.run(`INSERT INTO operation_logs(actor_id,action,entity_type,entity_id,detail)
@@ -163,15 +157,7 @@ router.put('/plans/:planId/students/:studentId', auth, teacherOnly, (req, res) =
   if (!plan) return res.status(404).json({ error: '计划或学生不存在' });
   const existing = db.get('SELECT * FROM practice_student_settings WHERE plan_id=? AND student_id=?', [plan.id, studentId]);
   if (!existing) return res.status(404).json({ error: '学生不在该计划中' });
-  const module = req.body.module === undefined ? existing.current_module : String(req.body.module);
-  if (!MODULES[plan.grade_band]?.includes(module)) return res.status(400).json({ error: '模块无效' });
-  const difficulty = req.body.difficulty === undefined ? existing.difficulty : Number(req.body.difficulty);
-  if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) return res.status(400).json({ error: '难度应为 1-5' });
-  db.run(`UPDATE practice_student_settings SET current_module=?,difficulty=?,auto_advance=?,is_locked=?,updated_at=CURRENT_TIMESTAMP
-    WHERE plan_id=? AND student_id=?`, [module, difficulty,
-    req.body.auto_advance === undefined ? existing.auto_advance : req.body.auto_advance ? 1 : 0,
-    req.body.is_locked === undefined ? existing.is_locked : req.body.is_locked ? 1 : 0, plan.id, studentId]);
-  res.json({ ok: true, setting: db.get('SELECT * FROM practice_student_settings WHERE plan_id=? AND student_id=?', [plan.id, studentId]) });
+  return res.status(409).json({ error: '初中计算题已统一，不支持单独调整模块或难度' });
 });
 
 router.get('/today', auth, parentOnly, (req, res) => {
@@ -186,7 +172,7 @@ router.get('/today', auth, parentOnly, (req, res) => {
   const assignment = generateAssignment(db, plan, studentId, practiceDate);
   if (!assignment.claimed_at) db.run('UPDATE practice_assignments SET claimed_at=CURRENT_TIMESTAMP WHERE id=?', [assignment.id]);
   const items = db.all(`SELECT id,position,snapshot_stem stem,snapshot_module module,snapshot_type question_type,
-    snapshot_difficulty difficulty,estimated_seconds FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignment.id]);
+    estimated_seconds FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignment.id]);
   const submission = db.get('SELECT id,status,teacher_note,submitted_at,reviewed_at FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
   let attachments = [];
   if (submission) attachments = db.all(`SELECT pa.id,pf.token,pf.mime_type,pf.byte_size FROM practice_attachments pa

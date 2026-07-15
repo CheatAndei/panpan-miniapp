@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 
 const GRADE_MODULES = {
   小学: new Set(['四则运算', '乘除法', '应用题']),
-  初中: new Set(['有理数', '一元一次方程', '整式运算']),
+  初中: new Set(['有理数', '一元一次方程', '整式运算', '综合计算']),
 };
 const COPY_LICENSES = new Set(['CC0-1.0', 'CC-BY-4.0', 'public-domain']);
 const ORIGINAL_LICENSES = new Set(['project-original', ...COPY_LICENSES]);

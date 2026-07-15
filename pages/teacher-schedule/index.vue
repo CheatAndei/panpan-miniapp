@@ -193,9 +193,10 @@ export default {
         return uni.showToast({title:`没有新增课程${skipped}`,icon:'none'});
       }
       const notify=res.notify||{};
+      const notifyReason=notify.error||notify.errors?.[0]||'';
       const msg=notify.ok
         ? `${title} ${res.count} 节并提醒家长${skipped}`
-        : `${title} ${res.count} 节，提醒未送达${skipped}`;
+        : `${title} ${res.count} 节，提醒未送达${notifyReason?'：'+notifyReason:''}${skipped}`;
       uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#2F7D6B'});
     }
   }

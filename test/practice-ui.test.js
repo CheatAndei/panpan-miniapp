@@ -33,15 +33,30 @@ test('家长页领取结构化题目并上传照片', () => {
   assert.match(parent, /chooseMedia|chooseImage/);
   assert.match(parent, /\/practice\/assignments\/\$\{assignment\.value\.id\}\/upload/);
   assert.match(parent, /min-height:92rpx/);
+  assert.doesNotMatch(parent, /难度 \{\{ item\.difficulty \}\}/);
+  assert.match(parent, /照片会对应今天题单和标准答案/);
 });
 
-test('教师页可选题型、调整学生范围、复核并下载五日 PDF', () => {
-  assert.match(teacher, /全部题型/);
-  assert.match(teacher, /答案由教师复核后可见/);
-  assert.match(teacher, /toggleType/);
-  assert.match(teacher, /学生个性化范围/);
-  assert.match(teacher, /current_module/);
-  assert.match(teacher, /auto_advance/);
+test('教师页使用固定初中计算题库并支持左右对照式极速批改', () => {
+  assert.match(teacher, /固定题库 · 初中计算/);
+  assert.match(teacher, /统一训练层级，无需选择难度/);
+  assert.doesNotMatch(teacher, /<slider[^>]+difficulty/);
+  assert.doesNotMatch(teacher, /学生个性化范围/);
+  assert.doesNotMatch(teacher, /changeSettingDifficulty/);
+  assert.match(teacher, /compare-workspace/);
+  assert.match(teacher, /photo-pane/);
+  assert.match(teacher, /answer-pane/);
+  assert.ok(teacher.indexOf('photo-pane') < teacher.indexOf('answer-pane'), '照片必须位于答案左侧');
+  assert.match(teacher, /只点错题/);
+  assert.match(teacher, /默认正确/);
+  assert.match(teacher, /toggleWrong/);
+  assert.match(teacher, /item\._correct = item\._correct === false/);
+  assert.match(teacher, /保存并下一位/);
+  assert.match(teacher, /moveToNextSubmission/);
+  assert.match(teacher, /grid-template-columns:minmax\(0,1\.08fr\) minmax\(0,\.92fr\)/);
+  assert.match(teacher, /min-height:88rpx/);
+  assert.doesNotMatch(teacher, />正确<\/button>/);
+  assert.doesNotMatch(teacher, />需巩固<\/button>/);
   assert.match(teacher, /\/practice\/submissions\/\$\{submission\.id\}\/review/);
   assert.match(teacher, /\/api\/practice\/plans\/\$\{item\.id\}\/pdf/);
   assert.match(teacher, /上一页/);

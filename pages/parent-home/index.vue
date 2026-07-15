@@ -17,7 +17,7 @@
       {{ checkinText(todayCheckin) }}
     </view>
     <view v-if="todayCheckin.checkOutNote" class="checkin-note">{{ todayCheckin.checkOutNote }}</view>
-    <button class="notify-btn" @tap="requestSubscribe">开启签到、签退和反馈提醒</button>
+    <button class="notify-btn" @tap="requestSubscribe">开启全部学习提醒</button>
   </view>
 
   <!-- 学习小组详情入口 -->
@@ -161,7 +161,7 @@ export default {
     async loadNotifyTemplates(){
       try{
         const tplRes=await api.get('/notify/templates');
-        this.notifyTpls=[...new Set([tplRes.checkin,tplRes.checkout,tplRes.feedback].filter(Boolean))];
+        this.notifyTpls=[...new Set([tplRes.checkin,tplRes.checkout,tplRes.reminder,tplRes.feedback,tplRes.homework].filter(Boolean))];
       }catch(e){logError('parentHome.loadNotifyTemplates',e);}
     },
     async requestSubscribe(){

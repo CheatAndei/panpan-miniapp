@@ -59,7 +59,7 @@ app.use('/api/private-files', privateFileRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.2.1' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.3.0' });
 });
 
 // 初始化数据库并启动

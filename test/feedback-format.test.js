@@ -10,6 +10,11 @@ async function loadFeedbackModule() {
   return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 }
 
+test('小程序端反馈格式化不使用微信旧 JS 引擎不支持的 Unicode 属性正则', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'utils', 'feedback.js'), 'utf8');
+  assert.equal(source.includes('\\p{'), false);
+});
+
 test('学生反馈统一使用兼容 emoji，并保留分段缩进', async () => {
   const { formatStudentFeedbackText } = await loadFeedbackModule();
   const text = formatStudentFeedbackText('小明', '🪄小明\n第一段。\n第二段。✨');
@@ -44,6 +49,12 @@ test('标题使用 AI 输出中第一个兼容 emoji，不被结尾表情抢占'
   const { formatStudentFeedbackText } = await loadFeedbackModule();
   const text = formatStudentFeedbackText('小明', '🏆小明\n今天主动讲清了思路。✨');
   assert.equal(text, '小明🏆\n　　今天主动讲清了思路。');
+});
+
+test('不兼容的组合 emoji 会移除，且保留后续可用的单码点 emoji', async () => {
+  const { formatStudentFeedbackText } = await loadFeedbackModule();
+  const text = formatStudentFeedbackText('小明', '🪄小明\n今天主动讲清了思路。🌱');
+  assert.equal(text, '小明🌱\n　　今天主动讲清了思路。');
 });
 
 test('作业说明优先读取结构化字段，并从历史小组反馈中干净拆出', async () => {

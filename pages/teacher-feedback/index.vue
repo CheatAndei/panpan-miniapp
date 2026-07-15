@@ -52,7 +52,7 @@
           <text :class="['style-choice',{on:se._feedbackStyle==='concise'}]" @tap="se._feedbackStyle='concise'">简洁</text>
           <text :class="['style-choice',{on:se._feedbackStyle==='warm'}]" @tap="se._feedbackStyle='warm'">温馨</text>
         </view>
-        <text class="style-hint">{{ se._feedbackStyle==='warm' ? '温馨：更具体、更有鼓励感' : '简洁：原有短反馈模板' }}</text>
+        <text class="style-hint">{{ se._feedbackStyle==='warm' ? '温馨：语气稍缓，仍然直接克制' : '简洁：课堂观察，短句直说' }}</text>
         <button class="btn-accent batch-button" @tap="genAllStu(se)" :disabled="se._batching">
           {{ se._batching?'生成中...':'一键生成全部学生' }}
         </button>

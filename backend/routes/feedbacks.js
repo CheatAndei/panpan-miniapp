@@ -14,6 +14,25 @@ function escapeRegExp(value) {
 
 const FEEDBACK_EMOJI_PATTERN = new RegExp(FEEDBACK_EMOJIS.map(escapeRegExp).join('|'), 'gu');
 const LEADING_FEEDBACK_EMOJI_PATTERN = new RegExp(`^(?:${FEEDBACK_EMOJIS.map(escapeRegExp).join('|')})\\s*`, 'u');
+const EMOJI_LIKE_PATTERN = /(?:[\u2300-\u23FF]|[\u2600-\u27BF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDFFF])\uFE0F?/g;
+const EMOJI_JOINER_OR_MODIFIER_PATTERN = /[\u200D\uFE0F]|\uD83C[\uDFFB-\uDFFF]/g;
+
+function studentFeedbackRules(style, studentLabel = '姓名') {
+  if (style === 'warm') {
+    return `1. 正文 80-130 个中文字符，最多 4 句。语气温和但克制，是熟悉学生的老师在说课堂情况，不哄、不煽情。
+2. 第一行格式：${studentLabel} + 一个兼容 emoji；第二行开始写正文。只放 1 个 emoji，从这些里面选：${FEEDBACK_EMOJI_PROMPT}。
+3. 先写一个真实课堂细节，再写本节课的进步、卡点或下一步；有问题就直接说明，不绕弯，也不要拔高成性格结论。
+4. 只使用输入中已有的课堂内容、备注和出门测信息，不编造动作、对话、情绪或前后对比。
+5. 禁止过度温柔和 AI 套话：“宝贝”“闪闪发光”“令人欣慰”“让人眼前一亮”“潜力无限”“未来可期”“老师相信你”“成长的路上”“继续保持”。
+6. 不要写成 AI 评语、总结、分析报告或鸡汤；不用“首先、此外、同时、总体来说”等连接词。`;
+  }
+  return `1. 正文 45-90 个中文字符，2-3 个短句，像老师课后随手发给家长的记录，短、准、直接。
+2. 第一行格式：${studentLabel} + 一个兼容 emoji；第二行开始写正文。只放 1 个 emoji，从这些里面选：${FEEDBACK_EMOJI_PROMPT}。
+3. 开头直接写一个具体观察：课堂动作、答题步骤、出门测情况或老师备注；接着给一句肯定或提醒。没有问题就不要硬找问题。
+4. 只使用输入中已有的信息，不编造学生的动作、对话、情绪或“比上次更好”等前后对比。
+5. 不要写成总结、评语、分析报告，不讲大道理，不夸张，不鸡汤。
+6. 禁止 AI 套话：“表现不错”“继续努力”“态度端正”“总体来说”“首先”“此外”“同时”“相信在未来”“值得肯定”“未来可期”。`;
+}
 
 // AI生成班级反馈
 router.post('/generate-class', auth, async (req, res) => {
@@ -58,31 +77,14 @@ router.post('/generate-student-batch', auth, async (req, res) => {
     `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 出门测${s.quizScore||5}/10 | ${s.note||''} | 性格:${s.personality||'无'}`
   ).join('\n');
 
-  const warm = style === 'warm';
-  const prompt = warm ? `你是教培老师，为以下${students.length}位学生各写一段温馨、具体的课后反馈。本课：${classInfo?.content||''}，整体课堂表现${classInfo?.perfScore||5}/10。
-
-学生列表：
-${list}
-
-核心要求：
-1. 每人约180字，格式：专属 emoji + 名字 + 换行 + 正文 + 鼓励 emoji；每位学生的切入角度和句式都不能重复。只使用这些兼容 emoji：${FEEDBACK_EMOJI_PROMPT}。
-2. 从课堂细节、出门测、进步、知识点或鼓励中选择不同切入点；知识点放中间或结尾。
-3. 水平好以拔高为主，水平中肯定努力并给可提升空间，水平偏下保护信心并给具体小目标。出门测全对时，除非备注有具体问题，否则只表扬不批评。
-4. 性格仅作语气参考，不直接写“你是个某某性格的孩子”。
-5. 禁止“表现不错”“继续努力”“态度端正”“希望你继续保持”等套话，不出现具体分数。
-
-返回JSON：{"results":[{"id":0,"feedback":"..."}]}` : `你为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}，整体表现${classInfo?.perfScore||5}/10。
+  const prompt = `你是教培老师，为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}，整体课堂表现${classInfo?.perfScore||5}/10。
 
 学生列表：
 ${list}
 
 要求：
-1. 每人 70-110 个中文字符，最多 3 句，像老师顺手写给家长，不像 AI 报告。
-2. 格式：名字：正文。不要 emoji，不要标题，不要换行。
-3. 必须写具体课堂行为或知识点，只说一个观察 + 一个提醒/肯定。
-4. 性格只作语气参考，正文不要写"你是个xxx的孩子"。
-5. 禁止套话和 AI 味："表现不错""继续努力""态度端正""总体来说""首先""此外""同时""相信在未来"。
-6. 不要夸张，不要鸡汤，不要长段落。
+${studentFeedbackRules(style)}
+7. 每位学生的切入点和句式要自然区分，不出现具体分数。性格只作语气参考，不直接评价性格。
 
 返回JSON：{"results":[{"id":0,"feedback":"..."}]}`;
 
@@ -112,29 +114,14 @@ ${list}
 router.post('/generate-student', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { name, level, personality, quizScore, note, content, perfScore, style = 'concise' } = req.body;
-  const prompt = style === 'warm' ? `你是教培老师，为一位学生写温馨、具体的课后反馈。
+  const prompt = `你是教培老师，为一位学生写课后反馈。
 
 本课：${content||'无'}，整体课堂表现${perfScore||5}/10
 学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，出门测大致水平${quizScore||5}/10，${note||'无特殊说明'}
 
-核心要求：
-1. 约180字，格式：专属 emoji + ${name} + 换行 + 正文 + 鼓励 emoji。只使用这些兼容 emoji：${FEEDBACK_EMOJI_PROMPT}。
-2. 从课堂细节、出门测、进步、知识点或鼓励中自然切入；知识点放中间或结尾。
-3. 成绩好以拔高为主，成绩中肯定努力并给可提升空间，成绩偏下保护信心并给一个可执行的小目标。出门测全对且备注没有具体问题时，只表扬不批评。
-4. 性格只影响语气，不直接写“你是个某某性格的孩子”；不写具体分数。
-5. 禁止“表现不错”“继续努力”“态度端正”“希望你继续保持”等套话。返回纯文本。` : `你是教培老师，为一位学生写课后反馈。
-
-本课：${content||'无'}，整体表现${perfScore||5}/10
-学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}
-出门测大致水平：${quizScore||5}/10，${note||'无特殊说明'}
-
 要求：
-1. 70-110 个中文字符，最多 3 句。
-2. 格式：${name}：正文。不要 emoji，不要标题，不要换行。
-3. 像老师顺手写给家长，不像 AI 报告。
-4. 只写一个具体观察 + 一个提醒/肯定。
-5. 禁止："表现不错""继续努力""态度端正""总体来说""首先""此外""同时""相信在未来"。
-返回纯文本。`;
+${studentFeedbackRules(style, name)}
+7. 不出现具体分数；性格只作语气参考，不直接评价性格。返回纯文本。`;
 
   try {
     const text = await callAI(prompt, style === 'warm' ? 800 : 400);
@@ -379,11 +366,11 @@ function normalizeFeedbackEmojis(text) {
     normalizedText = normalizedText.replaceAll(placeholder, emoji);
   }
   return normalizedText
-    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, (emoji) => {
+    .replace(EMOJI_LIKE_PATTERN, (emoji) => {
       const normalized = emoji.replace(/\uFE0F/g, '');
       return SUPPORTED_FEEDBACK_EMOJIS.has(normalized) ? normalized : '';
     })
-    .replace(/[\u200D\uFE0F\u{1F3FB}-\u{1F3FF}]/gu, '');
+    .replace(EMOJI_JOINER_OR_MODIFIER_PATTERN, '');
 }
 
 function cleanStudentFeedback(text, name = '', style = 'concise') {
@@ -400,11 +387,14 @@ function cleanStudentFeedback(text, name = '', style = 'concise') {
       .trim();
   } else {
     value = value
-      .replace(FEEDBACK_EMOJI_PATTERN, '')
       .replace(/\s+/g, ' ')
       .trim();
   }
-  const banned = ['总体来说', '首先', '此外', '同时', '相信在未来', '表现不错', '继续努力', '态度端正'];
+  const banned = [
+    '总体来说', '首先', '此外', '同时', '相信在未来', '表现不错', '继续努力', '态度端正',
+    '希望你继续保持', '宝贝', '闪闪发光', '令人欣慰', '让人眼前一亮', '潜力无限',
+    '未来可期', '老师相信你', '成长的路上', '值得肯定'
+  ];
   for (const word of banned) value = value.replaceAll(word, '');
   value = style === 'warm'
     ? value.replace(/[^\S\n]+/g, ' ').trim()
@@ -413,7 +403,7 @@ function cleanStudentFeedback(text, name = '', style = 'concise') {
   if (name && !value.startsWith(name) && !valueWithoutLeadingEmoji.startsWith(name)) {
     value = `${name}：${value.replace(/^：|:/, '')}`;
   }
-  const limit = style === 'warm' ? 240 : 130;
+  const limit = style === 'warm' ? 160 : 120;
   if (value.length <= limit) return value;
   const cut = value.slice(0, limit);
   const lastPunc = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('；'), cut.lastIndexOf('，'));

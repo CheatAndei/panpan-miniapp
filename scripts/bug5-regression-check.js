@@ -37,7 +37,7 @@ assert('PDF ArrayBuffer 写入不强设 binary 编码', !api.includes("encoding:
 assert('PDF 写入、打开或请求失败会回退下载', api.includes('downloadAndOpenPdf') && api.includes('fail: fallback'));
 assert('个人反馈可切换简洁和温馨模式', teacherFeedback.includes("_feedbackStyle:'concise'") && teacherFeedback.includes("se._feedbackStyle='warm'"));
 assert('反馈风格会传入单个和批量 AI 请求', teacherFeedback.includes('style:se._feedbackStyle'));
-assert('温馨模式使用长反馈提示词', feedbacks.includes("style === 'warm'") && feedbacks.includes('每人约180字'));
+assert('温馨模式保持克制并限制篇幅', feedbacks.includes("style === 'warm'") && feedbacks.includes('80-130 个中文字符') && feedbacks.includes('温和但克制'));
 assert('学生姓名不再省略显示', teacherClasses.includes('max-width:none') && teacherClasses.includes('white-space:normal'));
 assert('性格选项会跨分类去重', teacherClasses.includes('displayCats') && teacherClasses.includes('const used=new Set()'));
 assert('教师邀请码只从部署环境变量读取', !bind.includes('LEGACY_TEACHER_CODES') && bind.includes('TEACHER_INVITE_CODES'));

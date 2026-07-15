@@ -81,8 +81,8 @@
     <view class="service-health">
       <view :class="['service-mark',{ok:notifyHealthy}]"><pp-icon name="bell" :size="42" /></view>
       <view class="service-copy">
-        <text class="service-title">{{ notifyHealthy ? '通知服务运行正常' : '部分通知尚未配置' }}</text>
-        <text class="service-desc">{{ notifyHealthy ? '签到、签退与反馈提醒均已开启' : '如需使用通知，请联系管理员完成配置' }}</text>
+        <text class="service-title">{{ notifyHealthy ? '通知配置已就绪' : '部分通知尚未配置' }}</text>
+        <text class="service-desc">{{ notifyHealthy ? '实际送达仍取决于家长是否完成本次订阅' : '如需使用通知，请联系管理员完成配置' }}</text>
       </view>
     </view>
   </view>
@@ -127,7 +127,7 @@ export default {
     teacherDisplay(){return teacherDisplayName(this.teacherNickname || this.user.nickname);},
     notifyHealthy(){
       const n=this.notifyStatus;
-      return Boolean(n?.appId&&n?.appSecret&&n?.templates?.checkin&&n?.templates?.checkout&&n?.templates?.feedback);
+      return Boolean(n?.appId&&n?.appSecret&&n?.templates?.checkin&&n?.templates?.checkout&&n?.templates?.reminder&&n?.templates?.feedback&&n?.templates?.homework);
     }
   },
   onShow(){this.loadData();},

@@ -2,7 +2,7 @@
   <view class="page">
     <view class="practice-hero">
       <text class="eyebrow">DAILY PRACTICE</text>
-      <text class="hero-title">每日个性化打卡</text>
+      <text class="hero-title">每日初中计算打卡</text>
       <text class="hero-sub">{{ practiceDate || '今日' }} · 约 20 分钟</text>
     </view>
 
@@ -28,7 +28,7 @@
           <text class="question-no">{{ item.position }}</text>
           <view class="question-copy">
             <text class="question-text">{{ item.stem }}</text>
-            <text class="question-type">{{ item.question_type }} · 难度 {{ item.difficulty }}</text>
+            <text class="question-type">{{ item.question_type }}</text>
           </view>
         </view>
       </view>
@@ -37,7 +37,7 @@
         <view class="section-head">
           <view>
             <text class="section-title">拍照提交</text>
-            <text class="upload-help">拍清题号和解题过程，最多 6 张</text>
+            <text class="upload-help">拍清题号和解题过程；照片会对应今天题单和标准答案供老师核对，最多 6 张</text>
           </view>
           <text v-if="attachmentCount" class="photo-count">已传 {{ attachmentCount }} 张</text>
         </view>
@@ -45,7 +45,7 @@
           {{ uploading ? `正在上传 ${uploadProgress}` : attachmentCount ? '继续补充照片' : '拍照或选择图片' }}
         </button>
         <view v-if="assignment.submission" class="submit-note">
-          <text>{{ assignment.submission.status === 'reviewed' ? '老师已复核' : '提交成功，等待老师复核' }}</text>
+          <text>{{ assignment.submission.status === 'reviewed' ? '老师已对照答案复核' : '提交成功，等待老师对照答案复核' }}</text>
           <text v-if="assignment.submission.teacher_note" class="teacher-note">{{ assignment.submission.teacher_note }}</text>
         </view>
       </view>

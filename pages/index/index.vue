@@ -128,7 +128,7 @@
         <view class="notify-icon"><pp-icon name="bell" :size="42" /></view>
         <view class="notify-copy">
           <text class="notify-title">开启学习提醒</text>
-          <text class="notify-desc">及时接收签到、签退和课后反馈</text>
+          <text class="notify-desc">接收签到、签退、上课、反馈和作业提醒</text>
         </view>
         <pp-icon name="arrow" :size="34" />
       </view>
@@ -368,7 +368,7 @@ async function requestSubscribe() {
 async function loadNotifyTemplates() {
   try {
     const tplRes = await api.get('/notify/templates');
-    notifyTpls.value = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.feedback, tplRes.homework].filter(Boolean))];
+    notifyTpls.value = [...new Set([tplRes.checkin, tplRes.checkout, tplRes.reminder, tplRes.feedback, tplRes.homework].filter(Boolean))];
   } catch (e) {
     logError('loadNotifyTemplates', e);
   }

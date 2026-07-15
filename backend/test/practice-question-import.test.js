@@ -7,7 +7,7 @@ const dbPath = path.resolve(__dirname, '..', '..', '..', '..', 'z-rubbish', `pra
 process.env.DATABASE_PATH = dbPath;
 
 const { initDB, getDB } = require('../db/init');
-const dataset = require('../resources/practice/junior1-math-v2');
+const dataset = require('../resources/practice/junior-calculation-v3');
 const {
   importQuestionDataset,
   validateQuestionDataset,
@@ -21,33 +21,35 @@ test.after(() => {
   try { fs.unlinkSync(dbPath); } catch {}
 });
 
-test('初一自编题库有 500 道、分布完整且答案可审计', () => {
-  assert.equal(dataset.questions.length, 500);
-  assert.equal(new Set(dataset.questions.map((item) => item.signature)).size, 500);
-  assert.equal(new Set(dataset.questions.map((item) => item.module)).size, 3);
-  assert.equal(new Set(dataset.questions.map((item) => item.question_type)).size, 12);
+test('固定初中计算题库有 960 道、题干唯一且答案可审计', () => {
+  assert.equal(dataset.questions.length, 960);
+  assert.equal(new Set(dataset.questions.map((item) => item.signature)).size, 960);
+  assert.equal(new Set(dataset.questions.map((item) => item.stem)).size, 960);
+  assert.deepEqual([...new Set(dataset.questions.map((item) => item.module))], ['综合计算']);
+  assert.equal(new Set(dataset.questions.map((item) => item.question_type)).size, 8);
   const typeCounts = dataset.questions.reduce((counts, item) => {
     counts[item.question_type] = (counts[item.question_type] || 0) + 1;
     return counts;
   }, {});
   assert.deepEqual(typeCounts, {
-    '有理数加减': 55, '有理数乘除': 50, '有理数混合': 60, '绝对值与数轴': 45, '有理数巧算': 35,
-    '去括号与合并': 45, '整式加减': 40, '整式求值': 35,
-    '基础移项': 35, '含括号方程': 35, '分数小数方程': 35, '实际问题方程': 30,
+    '有理数加减': 120, '有理数乘除': 120, '有理数混合': 150, '绝对值计算': 90,
+    '有理数巧算': 80, '整式化简': 150, '整式求值': 90, '一元一次方程': 160,
   });
   const difficultyCounts = dataset.questions.reduce((counts, item) => {
     counts[item.difficulty] = (counts[item.difficulty] || 0) + 1;
     return counts;
   }, {});
-  assert.deepEqual(difficultyCounts, { 1: 150, 2: 210, 3: 110, 4: 30 });
+  assert.deepEqual(difficultyCounts, { 3: 960 });
+  assert.ok(dataset.questions.every((item) => item.answer.trim()));
+  assert.ok(dataset.questions.every((item) => !/购买|票价|路程|数轴|如图/.test(item.stem)), '只允许纯计算题');
   assert.deepEqual(validateQuestionDataset(dataset).errors, []);
 
   const db = getDB();
   const count = db.get(`SELECT COUNT(*) count FROM practice_questions
-    WHERE source_batch='panpan-junior1-math-v2'`);
-  assert.equal(Number(count.count), 500);
+    WHERE source_batch='panpan-junior-calculation-v3'`);
+  assert.equal(Number(count.count), 960);
   const audit = db.get(`SELECT * FROM practice_question_imports
-    WHERE batch_key='panpan-junior1-math-v2'`);
+    WHERE batch_key='panpan-junior-calculation-v3'`);
   assert.equal(audit.source_region, '广州');
   assert.equal(Number(audit.copy_allowed), 0);
   assert.equal(audit.provenance, 'self_authored');
@@ -55,13 +57,16 @@ test('初一自编题库有 500 道、分布完整且答案可审计', () => {
   const activeLegacy = db.get(`SELECT COUNT(*) count FROM practice_questions
     WHERE grade_band='初中' AND is_active=1 AND (source_batch IS NULL OR source_batch<>?)`, [dataset.metadata.batch_key]);
   assert.equal(Number(activeLegacy.count), 0);
+  const active = db.get(`SELECT COUNT(*) count FROM practice_questions
+    WHERE grade_band='初中' AND is_active=1 AND source_batch=?`, [dataset.metadata.batch_key]);
+  assert.equal(Number(active.count), 960);
 });
 
 test('题库导入默认可预检且重复提交幂等', () => {
   const db = getDB();
   const dryRun = importQuestionDataset(db, dataset);
   assert.equal(dryRun.dry_run, true);
-  assert.equal(dryRun.existing, 500);
+  assert.equal(dryRun.existing, 960);
   assert.equal(dryRun.inserted, 0);
 
   const repeated = importQuestionDataset(db, dataset, { dryRun: false });

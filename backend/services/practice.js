@@ -3,10 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 
-const MODULES = {
-  小学: ['四则运算', '乘除法', '应用题'],
-  初中: ['有理数', '一元一次方程', '整式运算'],
-};
+const FIXED_GRADE = '初中';
+const FIXED_MODULE = '综合计算';
+const FIXED_DIFFICULTY = 3;
+const MODULES = { [FIXED_GRADE]: [FIXED_MODULE] };
 
 function practiceDateAt(value = new Date()) {
   const shanghai = new Date(new Date(value).getTime() + 8 * 60 * 60 * 1000);
@@ -51,15 +51,9 @@ function localityAwareSort(items, seed) {
 }
 
 function scopedQuestionPool(db, plan, setting, module = null) {
-  const types = parseJson(plan.question_types, []).filter(Boolean);
-  let sql = `SELECT * FROM practice_questions
-    WHERE grade_band=? AND subject=? AND difficulty<=? AND is_active=1`;
-  const params = [plan.grade_band, plan.subject, setting.difficulty];
-  if (module) { sql += ' AND module=?'; params.push(module); }
-  if (types.length) {
-    sql += ` AND question_type IN (${types.map(() => '?').join(',')})`;
-    params.push(...types);
-  }
+  const sql = `SELECT * FROM practice_questions
+    WHERE grade_band=? AND subject=? AND module=? AND is_active=1`;
+  const params = [FIXED_GRADE, '数学', FIXED_MODULE];
   return db.all(sql, params);
 }
 
@@ -168,7 +162,10 @@ function selectQuestions(db, plan, setting, studentId, practiceDate) {
 function ensureStudentSetting(db, plan, studentId) {
   db.run(`INSERT OR IGNORE INTO practice_student_settings
     (plan_id,student_id,current_module,difficulty,auto_advance,is_locked)
-    VALUES(?,?,?,?,?,0)`, [plan.id, studentId, plan.module, plan.difficulty, plan.auto_advance]);
+    VALUES(?,?,?,?,0,1)`, [plan.id, studentId, FIXED_MODULE, FIXED_DIFFICULTY]);
+  db.run(`UPDATE practice_student_settings
+    SET current_module=?,difficulty=?,auto_advance=0,is_locked=1,updated_at=CURRENT_TIMESTAMP
+    WHERE plan_id=? AND student_id=?`, [FIXED_MODULE, FIXED_DIFFICULTY, plan.id, studentId]);
   return db.get('SELECT * FROM practice_student_settings WHERE plan_id=? AND student_id=?', [plan.id, studentId]);
 }
 
@@ -221,25 +218,7 @@ function preGenerateDate(db, practiceDate) {
 }
 
 function evaluateProgression(db, planId, studentId) {
-  const setting = db.get('SELECT * FROM practice_student_settings WHERE plan_id=? AND student_id=?', [planId, studentId]);
-  if (!setting || !setting.auto_advance || setting.is_locked) return { advanced: false, reason: 'locked' };
-  const rows = db.all(`SELECT r.is_correct,a.practice_date FROM practice_reviews r
-    JOIN practice_assignment_items i ON i.id=r.assignment_item_id
-    JOIN practice_assignments a ON a.id=i.assignment_id
-    WHERE a.student_id=? AND a.plan_id=? AND i.snapshot_module=?
-    ORDER BY r.reviewed_at DESC LIMIT 60`, [studentId, planId, setting.current_module]);
-  const days = new Set(rows.map((row) => row.practice_date));
-  if (rows.length < 20 || days.size < 2) return { advanced: false, reason: 'insufficient_reviewed_data' };
-  const accuracy = rows.filter((row) => Number(row.is_correct)).length / rows.length;
-  const lastFiveWrong = rows.slice(0, 5).filter((row) => !Number(row.is_correct)).length;
-  if (accuracy < 0.85 || lastFiveWrong > 1) return { advanced: false, reason: 'not_mastered', accuracy };
-  const plan = db.get('SELECT grade_band FROM practice_plans WHERE id=?', [planId]);
-  const sequence = MODULES[plan?.grade_band] || [];
-  const next = sequence[sequence.indexOf(setting.current_module) + 1];
-  if (!next) return { advanced: false, reason: 'last_module', accuracy };
-  db.run(`UPDATE practice_student_settings SET current_module=?,updated_at=CURRENT_TIMESTAMP
-    WHERE plan_id=? AND student_id=?`, [next, planId, studentId]);
-  return { advanced: true, from: setting.current_module, to: next, accuracy };
+  return { advanced: false, reason: 'fixed_junior_calculation' };
 }
 
 let fontRanges;
@@ -309,8 +288,8 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
   response.set('Content-Disposition', `attachment; filename="practice-plan-${plan.id}.pdf"`);
   response.set('Cache-Control', 'private, no-store');
   doc.pipe(response);
-  writePdfText(doc, `${plan.title} · 个性化打卡练习`, { size: 18, characters: 28 });
-  writePdfText(doc, `${dates[0]} 至 ${dates[dates.length - 1]}｜${plan.grade_band} ${plan.module}`, { size: 10, color: '#536762' });
+  writePdfText(doc, `${plan.title} · 初中计算打卡`, { size: 18, characters: 28 });
+  writePdfText(doc, `${dates[0]} 至 ${dates[dates.length - 1]}｜有理数 · 整式 · 一元一次方程`, { size: 10, color: '#536762' });
 
   students.forEach((student) => {
     dates.forEach((date) => {
@@ -341,6 +320,9 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
 
 module.exports = {
   MODULES,
+  FIXED_GRADE,
+  FIXED_MODULE,
+  FIXED_DIFFICULTY,
   practiceDateAt,
   dateRange,
   generateAssignment,
