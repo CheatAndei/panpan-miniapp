@@ -402,6 +402,26 @@ CREATE TABLE IF NOT EXISTS practice_reviews (
   PRIMARY KEY(submission_id, assignment_item_id)
 );
 
+-- 口算王挑战。题目与答案使用快照保存，保证题库更新后历史成绩仍可复核。
+CREATE TABLE IF NOT EXISTS mental_challenges (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  battle TEXT NOT NULL CHECK(battle IN ('primary', 'junior')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'abandoned')),
+  questions_json TEXT NOT NULL,
+  answer_detail TEXT,
+  started_at DATETIME NOT NULL,
+  completed_at DATETIME,
+  elapsed_seconds INTEGER,
+  correct_count INTEGER,
+  total_questions INTEGER NOT NULL DEFAULT 20,
+  speed_bonus INTEGER,
+  score INTEGER,
+  is_fishing INTEGER NOT NULL DEFAULT 0 CHECK(is_fishing IN (0, 1)),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_practice_question_scope
   ON practice_questions(grade_band, subject, module, difficulty, is_active);
 CREATE INDEX IF NOT EXISTS idx_practice_question_region
@@ -422,3 +442,7 @@ CREATE INDEX IF NOT EXISTS idx_private_file_student
   ON private_files(student_id, purpose);
 CREATE INDEX IF NOT EXISTS idx_practice_review_item
   ON practice_reviews(assignment_item_id, is_correct);
+CREATE INDEX IF NOT EXISTS idx_mental_challenge_student
+  ON mental_challenges(student_id, battle, status, completed_at);
+CREATE INDEX IF NOT EXISTS idx_mental_challenge_ranking
+  ON mental_challenges(battle, status, score, completed_at);

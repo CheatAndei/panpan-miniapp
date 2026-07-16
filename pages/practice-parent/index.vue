@@ -50,6 +50,16 @@
         </view>
       </view>
 
+      <view v-if="attachmentCount" class="card share-card">
+        <view class="share-mark">✓</view>
+        <view class="share-copy">
+          <text class="share-title">今日练习已完成</text>
+          <text class="share-desc">分享到群里，邀请大家一起坚持每天多练一点</text>
+          <text class="share-privacy">仅分享打卡鼓励卡，不包含学生作业照片</text>
+        </view>
+        <button class="share-btn" open-type="share">分享至群聊</button>
+      </view>
+
       <view v-if="history.length" class="card history-card">
         <text class="section-title">最近记录</text>
         <view v-for="item in history.slice(0, 7)" :key="item.id" class="history-row">
@@ -65,7 +75,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { onLoad, onShareAppMessage, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 
@@ -89,6 +99,10 @@ const statusClass = computed(() => assignment.value?.submission?.status || 'read
 
 onLoad((options) => { studentId.value = String(options?.student_id || ''); });
 onShow(() => loadData());
+onShareAppMessage(() => ({
+  title: '今日练习已打卡，一起坚持每天多练一点！',
+  path: '/pages/index/index?from=practice-share',
+}));
 
 async function resolveStudent() {
   if (studentId.value) return studentId.value;
@@ -177,4 +191,6 @@ async function chooseAndUpload() {
 .submit-note{margin-top:18rpx;padding:18rpx 20rpx;border-radius:14rpx;background:var(--surface-muted);color:var(--accent-strong);font-size:24rpx}.teacher-note{display:block;margin-top:8rpx;color:var(--ink);line-height:1.55}
 .history-row{min-height:76rpx;display:flex;align-items:center;justify-content:space-between;border-bottom:1rpx solid var(--hairline);color:var(--ink);font-size:25rpx}.history-row:last-child{border-bottom:0}
 .history-status{color:var(--warning)}.history-status.reviewed{color:var(--success)}
+.share-card{display:flex;align-items:center;gap:18rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFFBED,#FFFFFF)}.share-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:20rpx;background:#F5B83D;color:#493000;font-size:35rpx;font-weight:900}.share-copy{flex:1;min-width:0}.share-title{display:block;color:var(--ink);font-size:28rpx;font-weight:760}.share-desc{display:block;margin-top:4rpx;color:#6C572F;font-size:22rpx;line-height:1.45}.share-privacy{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx}.share-btn{flex:none;min-height:84rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:23rpx;font-weight:750}.share-btn::after{border:0}
+@media (max-width:380px){.share-card{align-items:flex-start;flex-wrap:wrap}.share-copy{min-width:calc(100% - 90rpx)}.share-btn{width:100%}}
 </style>

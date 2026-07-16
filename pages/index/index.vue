@@ -24,7 +24,7 @@
       <view class="card focus-card">
         <view class="focus-topline">
           <text class="focus-label">今日工作</text>
-          <text v-if="pendingLeaves>0" class="focus-pending">{{ pendingLeaves }} 项待审批</text>
+          <text v-if="totalPending>0" class="focus-pending">{{ totalPending }} 项待办</text>
           <text v-else class="focus-ready">待办已清</text>
         </view>
         <view class="focus-metrics">
@@ -66,6 +66,24 @@
             <text>审批</text>
           </view>
         </view>
+      </view>
+
+      <view v-if="pendingPracticeCount" class="card practice-todo-card">
+        <view class="practice-todo-head">
+          <view>
+            <text class="practice-todo-kicker">今日待办</text>
+            <text class="practice-todo-title">学生打卡待批改 {{ pendingPracticeCount }} 份</text>
+          </view>
+          <text class="practice-todo-badge">待批改</text>
+        </view>
+        <view v-for="item in pendingPracticeTodos" :key="item.submission_id" class="practice-todo-row" @tap="openPracticeTodo(item)">
+          <view>
+            <text class="practice-todo-name">{{ item.student_name }} · {{ item.practice_date }}</text>
+            <text class="practice-todo-meta">{{ item.class_name }} · {{ item.plan_title }}</text>
+          </view>
+          <text class="practice-todo-action">批改 ›</text>
+        </view>
+        <button class="practice-todo-all" @tap="navTo('/pages/practice-teacher/index')">进入批改台</button>
       </view>
 
       <view class="card">
@@ -180,6 +198,16 @@
         <pp-icon name="arrow" :size="34" />
       </view>
 
+      <view class="card practice-entry arena-entry" @tap="child&&navTo('/pages/mental-arena/index?student_id='+child.id)">
+        <view class="practice-entry-icon arena-icon"><text class="arena-symbol">王</text></view>
+        <view class="practice-entry-copy">
+          <text class="practice-entry-kicker arena-kicker">20 题限时挑战</text>
+          <text class="practice-entry-title">口算王</text>
+          <text class="practice-entry-desc">小学、初中战场自由选择 · 本周榜与历史榜</text>
+        </view>
+        <pp-icon name="arrow" :size="34" />
+      </view>
+
       <!-- 反馈详情弹窗 -->
       <view v-if="showFbDetail" class="modal-mask" @tap="showFbDetail=''">
         <view class="modal" @tap.stop>
@@ -248,6 +276,7 @@ import { clearLocalSession, doLogin, getUser } from '@/utils/auth';
 import { feedbackHomework, feedbackSummaryWithoutHomework } from '@/utils/feedback';
 import { BRAND, FOOTER_TEXT, teacherDisplayName, teacherNameFromChild } from '@/utils/brand';
 import { toastError, logError } from '@/utils/ui';
+import { requestSubscribeBatches, subscribeResultTitle } from '@/utils/subscribe';
 
 const user = ref({});
 // 启动时从storage恢复
@@ -294,6 +323,8 @@ onPullDownRefresh(async () => {
 
 const classes = ref([]);
 const pendingLeaves = ref(0);
+const pendingPracticeCount = ref(0);
+const pendingPracticeTodos = ref([]);
 const todaySessions = ref([]);
 const child = ref(null);
 const boundKids = ref([]);
@@ -319,6 +350,7 @@ const currentTeacherName = computed(() => teacherDisplayName(user.value?.nicknam
 const childTeacherName = computed(() => teacherNameFromChild(child.value));
 const feedbackPlaceholder = computed(() => `有任何问题或建议告诉${childTeacherName.value}`);
 const totalStudents = computed(() => classes.value.reduce((sum, item) => sum + Number(item.studentCount || 0), 0));
+const totalPending = computed(() => Number(pendingLeaves.value || 0) + Number(pendingPracticeCount.value || 0));
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
 const today = new Date().toLocaleDateString('zh-CN', { month:'long', day:'numeric', weekday:'long' });
@@ -346,23 +378,17 @@ async function requestSubscribe() {
     notifyRequesting.value = false;
     return { accepted: 0 };
   }
-  return new Promise((resolve, reject) => {
-    uni.requestSubscribeMessage({
-      tmplIds: tpls,
-      success: (res) => {
-        const accepted = tpls.filter(id => res[id] === 'accept').length;
-        uni.showToast({ title: accepted > 0 ? '提醒已开启' : '未开启提醒', icon: accepted > 0 ? 'success' : 'none' });
-        notifyRequesting.value = false;
-        resolve({ accepted, raw: res });
-      },
-      fail(e) {
-        logError('requestSubscribe', e);
-        uni.showToast({ title: '订阅弹窗失败', icon: 'none' });
-        notifyRequesting.value = false;
-        reject(e);
-      }
-    });
-  });
+  try {
+    const result = await requestSubscribeBatches(tpls);
+    uni.showToast({ title: subscribeResultTitle(result), icon: result.accepted === result.total ? 'success' : 'none' });
+    return result;
+  } catch (e) {
+    logError('requestSubscribe', e);
+    uni.showToast({ title: '订阅弹窗失败', icon: 'none' });
+    throw e;
+  } finally {
+    notifyRequesting.value = false;
+  }
 }
 
 async function loadNotifyTemplates() {
@@ -397,6 +423,9 @@ async function sendFeedback() {
   }
 }
 function navTo(url) { uni.navigateTo({ url }); }
+function openPracticeTodo(item) {
+  navTo(`/pages/practice-teacher/index?plan_id=${item.plan_id}&submission_id=${item.submission_id}`);
+}
 
 async function handleLogin() {
   if (loginLoading.value) return;
@@ -450,13 +479,16 @@ async function loadTeacherData() {
   teacherLoading.value = true;
   teacherError.value = '';
   try {
-    const [cRes, lRes, sessionRes] = await Promise.all([
+    const [cRes, lRes, sessionRes, practiceTodos] = await Promise.all([
       api.get('/classes'),
       api.get('/leaves'),
-      api.get('/schedules/sessions')
+      api.get('/schedules/sessions'),
+      api.get('/practice/todos?limit=3')
     ]);
     classes.value = cRes.classes || [];
     pendingLeaves.value = (lRes.leaves||[]).filter(l=>l.status==='pending').length;
+    pendingPracticeCount.value = Number(practiceTodos.count || 0);
+    pendingPracticeTodos.value = practiceTodos.todos || [];
     todaySessions.value = (sessionRes.sessions || []).filter(item => item.class_date === localDateKey());
   } catch (e) {
     teacherError.value = e?.error || '请检查网络后重试';
@@ -682,6 +714,8 @@ function scheduleLabel(sc) {
 .practice-entry-kicker { display:block; margin-bottom:2rpx; color:var(--accent-strong); font-size:20rpx; font-weight:700; letter-spacing:1rpx; }
 .practice-entry-title { display:block; color:var(--ink); font-size:29rpx; font-weight:700; }
 .practice-entry-desc { display:block; margin-top:4rpx; color:var(--text-muted); font-size:23rpx; line-height:1.45; }
+.arena-entry{border-color:#E8C879!important;background:linear-gradient(135deg,#FFF9E8,#FFFFFF)!important}.arena-icon{background:#F5B83D!important}.arena-symbol{color:#493000;font-size:34rpx!important;font-weight:950!important}.arena-kicker{color:#9A6A0D}
+.practice-todo-card{border-color:#E8C879!important;background:linear-gradient(135deg,#FFFBF0,#FFFFFF)!important}.practice-todo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx}.practice-todo-kicker{display:block;color:#9A6A0D;font-size:20rpx;font-weight:800;letter-spacing:2rpx}.practice-todo-title{display:block;margin-top:5rpx;color:var(--ink);font-size:29rpx;font-weight:760}.practice-todo-badge{flex:none;padding:9rpx 15rpx;border-radius:999rpx;background:#F5B83D;color:#493000;font-size:21rpx;font-weight:800}.practice-todo-row{display:flex;align-items:center;justify-content:space-between;gap:14rpx;padding:18rpx 0;border-bottom:1rpx solid #F0E3C4}.practice-todo-name{display:block;color:var(--ink);font-size:26rpx;font-weight:700}.practice-todo-meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx}.practice-todo-action{flex:none;color:#9A6A0D;font-size:23rpx;font-weight:800}.practice-todo-all{min-height:84rpx;margin:20rpx 0 0;border-radius:14rpx;background:#183A36;color:#fff;font-size:25rpx;font-weight:720}.practice-todo-all::after{border:0}
 
 .profile-preview { display: flex; gap: 12rpx; flex-wrap: wrap; }
 

@@ -6,6 +6,23 @@
       <text class="hero-sub">固定初中计算题，每天生成约 20 分钟练习</text>
     </view>
 
+    <view class="card todo-card">
+      <view class="section-head">
+        <view>
+          <text class="section-title">待批改</text>
+          <text class="todo-summary">{{ todoCount ? `还有 ${todoCount} 份学生打卡等待批改` : '当前没有待批改打卡' }}</text>
+        </view>
+        <text :class="['todo-count', todoCount ? 'pending' : 'done']">{{ todoCount }}</text>
+      </view>
+      <view v-for="item in todos" :key="item.submission_id" class="todo-row">
+        <view class="todo-copy">
+          <text class="todo-name">{{ item.student_name }} · {{ item.practice_date }}</text>
+          <text class="todo-meta">{{ item.class_name }} · {{ item.plan_title }}</text>
+        </view>
+        <button class="review-now-btn" @tap="openTodo(item)">批改</button>
+      </view>
+    </view>
+
     <view class="card builder-card">
       <view class="section-head">
         <text class="section-title">新建连续计划</text>
@@ -61,9 +78,12 @@
           <text class="plan-meta">{{ item.class_name }} · {{ item.start_date }} 至 {{ item.end_date }}</text>
           <text class="plan-meta">{{ item.grade_band }} / {{ item.module }} · {{ item.submission_count }} 份提交</text>
         </view>
-        <picker mode="date" :value="item.start_date" :start="item.start_date" :end="item.end_date" @tap.stop @change="downloadPdf(item,$event.detail.value)">
-          <view class="pdf-btn" aria-label="选择起始日并下载教师版五日练习 PDF">五日 PDF</view>
-        </picker>
+        <view class="plan-actions">
+          <button v-if="item.pending_submission_count" class="plan-review-btn" @tap.stop="choosePlan(item)">批改 {{ item.pending_submission_count }}</button>
+          <picker mode="date" :value="item.start_date" :start="item.start_date" :end="item.end_date" @tap.stop @change="downloadPdf(item,$event.detail.value)">
+            <view class="pdf-btn" aria-label="选择起始日并下载教师版五日练习 PDF">五日 PDF</view>
+          </picker>
+        </view>
       </view>
     </view>
 
@@ -153,7 +173,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onLoad, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 
@@ -166,6 +186,8 @@ function dateText(offset = 0) {
 
 const classes = ref([]);
 const plans = ref([]);
+const todos = ref([]);
+const todoCount = ref(0);
 const submissions = ref([]);
 const submissionPage = ref(1);
 const submissionPagination = ref({ page: 1, limit: 20, total: 0, pages: 0 });
@@ -173,6 +195,8 @@ const activeSubmissionIndex = ref(0);
 const preview = ref(null);
 const busy = ref(false);
 const selectedPlanId = ref(null);
+const requestedPlanId = ref('');
+const requestedSubmissionId = ref('');
 const form = reactive({
   title: '初中计算打卡', class_id: '', grade_band: '初中', module: '综合计算', difficulty: 3,
   start_date: dateText(0), end_date: dateText(4), target_minutes: 20, auto_advance: false, question_types: [],
@@ -183,21 +207,50 @@ const classIndex = computed(() => Math.max(0, classes.value.findIndex((item) => 
 const activeSubmission = computed(() => submissions.value[activeSubmissionIndex.value] || null);
 const pendingSubmissionCount = computed(() => submissions.value.filter((item) => item.status !== 'reviewed').length);
 
+onLoad((options) => {
+  requestedPlanId.value = String(options?.plan_id || '');
+  requestedSubmissionId.value = String(options?.submission_id || '');
+});
 onShow(() => loadBase());
 
 async function loadBase() {
   try {
-    const [classData, planData] = await Promise.all([
-      api.get('/classes'), api.get('/practice/plans'),
+    const [classData, planData, todoData] = await Promise.all([
+      api.get('/classes'), api.get('/practice/plans'), api.get('/practice/todos?limit=20'),
     ]);
     classes.value = classData.classes || [];
     if (!form.class_id && classes.value[0]) form.class_id = classes.value[0].id;
     plans.value = planData.plans || [];
-    if (selectedPlanId.value) await loadSelectedPlan();
+    todos.value = todoData.todos || [];
+    todoCount.value = Number(todoData.count || 0);
+    if (requestedPlanId.value) {
+      selectedPlanId.value = Number(requestedPlanId.value);
+      const submissionId = requestedSubmissionId.value;
+      requestedPlanId.value = '';
+      requestedSubmissionId.value = '';
+      await loadSubmissions(submissionId);
+    } else if (selectedPlanId.value) await loadSelectedPlan();
   } catch (err) {
     logError('practiceTeacher.loadBase', err);
     uni.showToast({ title: err?.error || '打卡计划加载失败', icon: 'none' });
   }
+}
+
+async function loadTodos() {
+  const [result, planData] = await Promise.all([
+    api.get('/practice/todos?limit=20'), api.get('/practice/plans'),
+  ]);
+  todos.value = result.todos || [];
+  todoCount.value = Number(result.count || 0);
+  plans.value = planData.plans || [];
+}
+
+async function openTodo(item) {
+  selectedPlanId.value = Number(item.plan_id);
+  submissionPage.value = 1;
+  activeSubmissionIndex.value = 0;
+  await loadSubmissions(item.submission_id);
+  setTimeout(() => uni.pageScrollTo({ selector: '.review-card', duration: 280 }), 30);
 }
 
 function selectClass(event) { form.class_id = classes.value[Number(event.detail.value)]?.id || ''; preview.value = null; }
@@ -235,7 +288,8 @@ async function loadSelectedPlan() {
 async function loadSubmissions(preferredId = '') {
   if (!selectedPlanId.value) return;
   try {
-    const result = await api.get(`/practice/submissions?plan_id=${selectedPlanId.value}&status=all&limit=20&page=${submissionPage.value}`);
+    const preferredQuery = preferredId ? `&submission_id=${preferredId}` : '';
+    const result = await api.get(`/practice/submissions?plan_id=${selectedPlanId.value}&status=all&limit=20&page=${submissionPage.value}${preferredQuery}`);
     submissionPagination.value = result.pagination || { page: submissionPage.value, limit: 20, total: 0, pages: 0 };
     if (!(result.submissions || []).length && submissionPage.value > 1 && submissionPagination.value.total > 0) {
       submissionPage.value--;
@@ -334,6 +388,7 @@ async function saveReview(submission) {
     submission.status = 'reviewed';
     submission.items.forEach((item) => { item.is_correct = item._correct ? 1 : 0; });
     uni.showToast({ title: `已保存，错 ${wrongCount(submission)} 题`, icon: 'success' });
+    await loadTodos();
     await moveToNextSubmission(currentIndex);
   } catch (err) { uni.showToast({ title: err?.error || '复核保存失败', icon: 'none' }); }
   finally { submission._saving = false; }
@@ -349,6 +404,7 @@ async function downloadPdf(item, startDate = item.start_date) {
 .page{min-height:100vh;padding:0 24rpx calc(56rpx + env(safe-area-inset-bottom));background:var(--page-bg)}
 .hero{margin:0 -24rpx 24rpx;padding:52rpx 36rpx 46rpx;background:linear-gradient(145deg,#173A36,#315D56);color:#fff;border-radius:0 0 34rpx 34rpx}.eyebrow{display:block;font-size:20rpx;letter-spacing:4rpx;color:#BBD9D1;font-weight:700}.hero-title{display:block;margin-top:12rpx;font-size:42rpx;font-weight:760}.hero-sub{display:block;margin-top:10rpx;color:#D6E7E3;font-size:24rpx;line-height:1.55}
 .card{margin-bottom:20rpx;padding:28rpx;background:#fff;border:1rpx solid var(--border);border-radius:22rpx;box-shadow:var(--shadow-sm)}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22rpx}.section-title{color:var(--ink);font-size:30rpx;font-weight:730}.step-mark{color:var(--accent);font-size:20rpx;letter-spacing:1rpx}.field-label{display:block;margin:20rpx 0 9rpx;color:var(--ink);font-size:24rpx;font-weight:650}.field{box-sizing:border-box;width:100%;min-height:88rpx;padding:0 22rpx;border:1rpx solid var(--border);border-radius:14rpx;background:var(--surface-muted);color:var(--ink);font-size:27rpx}.picker-field{display:flex;align-items:center;justify-content:space-between}.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:16rpx}.switch-row{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-top:24rpx;padding:20rpx;border-radius:14rpx;background:var(--surface-muted)}.switch-title{display:block;color:var(--ink);font-size:25rpx;font-weight:650}.switch-help{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx;line-height:1.45}.preview-box{margin-top:22rpx;padding:20rpx;border-left:6rpx solid var(--accent);border-radius:12rpx;background:var(--accent-soft)}.preview-title{display:block;color:var(--accent-strong);font-size:26rpx;font-weight:720}.preview-copy{display:block;margin-top:7rpx;color:var(--ink);font-size:22rpx;line-height:1.55}.action-row{display:grid;grid-template-columns:1fr 1.4fr;gap:14rpx;margin-top:24rpx}.primary-btn,.secondary-btn,.save-btn{min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:15rpx;font-size:27rpx;font-weight:700}.primary-btn,.save-btn{background:var(--primary);color:#fff}.secondary-btn{background:#fff;color:var(--primary);border:1rpx solid var(--primary)}button::after{border:0}button[disabled]{opacity:.42}
+.todo-card{border-color:#E8C879;background:linear-gradient(135deg,#FFFBF0,#FFFFFF)}.todo-summary{display:block;margin-top:7rpx;color:var(--text-muted);font-size:22rpx}.todo-count{min-width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;border-radius:20rpx;font-size:27rpx;font-weight:800}.todo-count.pending{background:#F5B83D;color:#493000}.todo-count.done{background:var(--accent-soft);color:var(--accent-strong)}.todo-row{display:flex;align-items:center;gap:16rpx;padding:18rpx 0;border-top:1rpx solid #F0E3C4}.todo-copy{flex:1;min-width:0}.todo-name{display:block;color:var(--ink);font-size:27rpx;font-weight:720}.todo-meta{display:block;margin-top:4rpx;overflow:hidden;color:var(--text-muted);font-size:21rpx;text-overflow:ellipsis;white-space:nowrap}.review-now-btn,.plan-review-btn{flex:none;min-height:72rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 24rpx;border-radius:14rpx;background:#F5B83D;color:#493000;font-size:24rpx;font-weight:800}.plan-actions{display:flex;flex-direction:column;align-items:stretch;gap:10rpx}.plan-review-btn{min-height:64rpx;padding:0 16rpx;font-size:21rpx}
 .fixed-scope{margin-top:22rpx;padding:22rpx;border-radius:16rpx;background:var(--accent-soft);border:1rpx solid #CFE5DE}.fixed-scope-title{display:block;color:var(--accent-strong);font-size:27rpx;font-weight:720}.fixed-scope-copy{display:block;margin-top:8rpx;color:var(--ink);font-size:23rpx;line-height:1.6}
 .type-chips{display:flex;gap:12rpx;flex-wrap:wrap}.type-chip{min-height:88rpx;margin:0;padding:0 22rpx;border:1rpx solid var(--border);border-radius:999rpx;background:#fff;color:var(--text-muted);font-size:23rpx}.type-chip.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);font-weight:680}
 .plan-row{display:flex;align-items:center;gap:16rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.plan-row:last-child{border-bottom:0}.plan-row.active{margin:0 -12rpx;padding:22rpx 12rpx;border-radius:14rpx;background:var(--accent-soft)}.plan-main{flex:1;min-width:0}.plan-name{display:block;color:var(--ink);font-size:27rpx;font-weight:700}.plan-meta{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx;line-height:1.4}.pdf-btn,.photo-btn{flex:none;min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:12rpx;background:#EDF4F2;color:var(--accent-strong);font-size:23rpx;font-weight:650}

@@ -17,6 +17,7 @@ const profileRoutes = require('./routes/profiles');
 const notifyRoutes = require('./routes/notify');
 const homeworkRoutes = require('./routes/homework');
 const practiceRoutes = require('./routes/practice');
+const mentalArenaRoutes = require('./routes/mental-arena');
 const privateFileRoutes = require('./routes/private-files');
 
 const app = express();
@@ -55,6 +56,7 @@ app.use('/api/profiles', profileRoutes);
 app.use('/api/notify', notifyRoutes);
 app.use('/api/homework', homeworkRoutes);
 app.use('/api/practice', practiceRoutes);
+app.use('/api/mental-arena', mentalArenaRoutes);
 app.use('/api/private-files', privateFileRoutes);
 
 // 健康检查

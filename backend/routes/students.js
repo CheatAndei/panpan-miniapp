@@ -86,7 +86,8 @@ router.delete('/:id', auth, (req, res) => {
     EXISTS(SELECT 1 FROM wrong_questions WHERE student_id=?) OR
     EXISTS(SELECT 1 FROM point_ledger WHERE student_id=?) OR
     EXISTS(SELECT 1 FROM practice_assignments WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM private_files WHERE student_id=?) AS found`, Array(11).fill(req.params.id));
+    EXISTS(SELECT 1 FROM private_files WHERE student_id=?) OR
+    EXISTS(SELECT 1 FROM mental_challenges WHERE student_id=?) AS found`, Array(12).fill(req.params.id));
   if (Number(dependency?.found)) return res.status(409).json({ error: '该学生已有绑定或学习历史，不能删除；可修改姓名或停止后续计划' });
   const result = db.run('DELETE FROM students WHERE id=? AND class_id IN (SELECT id FROM classes WHERE teacher_id=?)', [req.params.id, req.user.id]);
   if (result.changes === 0) return res.status(404).json({ error: '学生不存在' });

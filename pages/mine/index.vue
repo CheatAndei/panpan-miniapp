@@ -82,7 +82,7 @@
       <view :class="['service-mark',{ok:notifyHealthy}]"><pp-icon name="bell" :size="42" /></view>
       <view class="service-copy">
         <text class="service-title">{{ notifyHealthy ? '通知配置已就绪' : '部分通知尚未配置' }}</text>
-        <text class="service-desc">{{ notifyHealthy ? '实际送达仍取决于家长是否完成本次订阅' : '如需使用通知，请联系管理员完成配置' }}</text>
+        <text class="service-desc">{{ notifyHealthy ? '实际送达仍取决于家长是否完成本次订阅' : notifyMissingText }}</text>
       </view>
     </view>
   </view>
@@ -128,6 +128,24 @@ export default {
     notifyHealthy(){
       const n=this.notifyStatus;
       return Boolean(n?.appId&&n?.appSecret&&n?.templates?.checkin&&n?.templates?.checkout&&n?.templates?.reminder&&n?.templates?.feedback&&n?.templates?.homework);
+    },
+    notifyMissingLabels(){
+      const n=this.notifyStatus||{};
+      const templates=n.templates||{};
+      return [
+        [n.appId,'小程序 AppID'],
+        [n.appSecret,'小程序密钥'],
+        [templates.checkin,'签到通知'],
+        [templates.checkout,'签退通知'],
+        [templates.reminder,'上课提醒'],
+        [templates.feedback,'课后反馈'],
+        [templates.homework,'作业提醒']
+      ].filter(([ready])=>!ready).map(([,label])=>label);
+    },
+    notifyMissingText(){
+      return this.notifyMissingLabels.length
+        ? `缺少：${this.notifyMissingLabels.join('、')}。请联系管理员完成配置`
+        : '通知配置状态尚未加载完整，请稍后重试';
     }
   },
   onShow(){this.loadData();},

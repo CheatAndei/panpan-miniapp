@@ -79,6 +79,7 @@
 <script>
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
+import { requestSubscribeBatches, subscribeResultTitle } from '@/utils/subscribe';
 import { teacherNameFromChild } from '@/utils/brand';
 export default {
   data(){return{
@@ -165,27 +166,21 @@ export default {
       }catch(e){logError('parentHome.loadNotifyTemplates',e);}
     },
     async requestSubscribe(){
+      if(this.notifyTpls.length===0) await this.loadNotifyTemplates();
       const tmplIds=this.notifyTpls;
       if(tmplIds.length===0){
-        this.loadNotifyTemplates();
         uni.showToast({title:'提醒模板未加载',icon:'none'});
         return {accepted:0};
       }
-      return new Promise((resolve,reject)=>{
-        uni.requestSubscribeMessage({
-          tmplIds,
-          success:res=>{
-            const accepted=tmplIds.filter(id=>res[id]==='accept').length;
-            uni.showToast({title:accepted>0?'提醒已开启':'未开启提醒',icon:accepted>0?'success':'none'});
-            resolve({accepted,raw:res});
-          },
-          fail:e=>{
-            logError('parentHome.subscribe',e);
-            uni.showToast({title:'订阅弹窗失败',icon:'none'});
-            reject(e);
-          }
-        });
-      });
+      try{
+        const result=await requestSubscribeBatches(tmplIds);
+        uni.showToast({title:subscribeResultTitle(result),icon:result.accepted===result.total?'success':'none'});
+        return result;
+      }catch(e){
+        logError('parentHome.subscribe',e);
+        uni.showToast({title:'订阅弹窗失败',icon:'none'});
+        throw e;
+      }
     },
     async openPdf(url){
       try{await api.openPdf(url);}

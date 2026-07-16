@@ -188,6 +188,11 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(list.response.status, 200);
   assert.equal(list.payload.submissions.length, 1);
   const submission = list.payload.submissions[0];
+  const todos = await request('GET', '/practice/todos?limit=3', teacherToken);
+  assert.equal(todos.response.status, 200);
+  assert.equal(todos.payload.count, 1);
+  assert.equal(Number(todos.payload.todos[0].submission_id), Number(submission.id));
+  assert.equal((await request('GET', '/practice/todos', otherTeacherToken)).payload.count, 0);
   assert.equal(Number(submission.student_id), Number(studentId));
   assert.equal(submission.attachments.length, 1);
   assert.ok(submission.items.every((item) => item.answer));
@@ -206,6 +211,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   const reviewed = await request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, body);
   assert.equal(reviewed.response.status, 200);
   assert.equal(reviewed.payload.status, 'reviewed');
+  assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0);
   db.run('UPDATE students SET class_id=?,teacher_id=? WHERE id=?', [classId, originalTeacherId, studentId]);
   const today = await request('GET', `/practice/today?student_id=${studentId}`, parentToken);
   assert.equal(today.payload.assignment.submission.status, 'reviewed');

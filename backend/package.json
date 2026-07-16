@@ -7,8 +7,9 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "db:init": "node db/init.js",
-    "test": "node --test test/*.test.js",
-    "practice:import": "node scripts/import-practice-questions.js"
+    "test": "UPLOAD_DIR=../../../z-rubbish/backend-test-uploads PRIVATE_UPLOAD_DIR=../../../z-rubbish/backend-test-private node --test --test-concurrency=1 test/*.test.js",
+    "practice:import": "node scripts/import-practice-questions.js",
+    "notify:inspect": "node scripts/inspect-notification-templates.js"
   },
   "dependencies": {
     "@fontsource/noto-sans-sc": "^5.2.9",

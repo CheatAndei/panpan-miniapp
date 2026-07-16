@@ -1,0 +1,19 @@
+name: Production Notification Inspect
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Inspect WeChat templates from whitelisted production IP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run safe template inspection on production server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            docker exec panpan-api node /app/scripts/inspect-notification-templates.js

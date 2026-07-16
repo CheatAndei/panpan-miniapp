@@ -64,12 +64,13 @@ jobs:
           PANPAN_TPL_CHECKOUT: ${{ secrets.PANPAN_TPL_CHECKOUT }}
           PANPAN_TPL_FEEDBACK: ${{ secrets.PANPAN_TPL_FEEDBACK }}
           PANPAN_TPL_REMINDER: ${{ secrets.PANPAN_TPL_REMINDER }}
+          PANPAN_TPL_HOMEWORK: ${{ secrets.PANPAN_TPL_HOMEWORK }}
           PANPAN_TEACHER_INVITE_CODES: ${{ secrets.PANPAN_TEACHER_INVITE_CODES }}
         with:
           host: 134.175.69.59
           username: root
           key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
-          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER,PANPAN_TEACHER_INVITE_CODES
+          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER,PANPAN_TPL_HOMEWORK,PANPAN_TEACHER_INVITE_CODES
           script: |
             set -euo pipefail
             upsert_env() {
@@ -109,6 +110,7 @@ jobs:
               upsert_env TPL_CHECKOUT "$PANPAN_TPL_CHECKOUT" "$ENV_FILE"
               upsert_env TPL_FEEDBACK "$PANPAN_TPL_FEEDBACK" "$ENV_FILE"
               upsert_env TPL_REMINDER "$PANPAN_TPL_REMINDER" "$ENV_FILE"
+              upsert_env TPL_HOMEWORK "$PANPAN_TPL_HOMEWORK" "$ENV_FILE"
               upsert_env TPL_FIELD_CHECKIN_STUDENT thing1 "$ENV_FILE"
               upsert_env TPL_FIELD_CHECKIN_TIME time3 "$ENV_FILE"
               upsert_env TPL_FIELD_CHECKIN_STATUS phrase2 "$ENV_FILE"
@@ -121,6 +123,9 @@ jobs:
               upsert_env TPL_FIELD_REMINDER_CLASS thing1 "$ENV_FILE"
               upsert_env TPL_FIELD_REMINDER_TIME time2 "$ENV_FILE"
               upsert_env TPL_FIELD_REMINDER_NOTE thing3 "$ENV_FILE"
+              upsert_env TPL_FIELD_HOMEWORK_TITLE thing1 "$ENV_FILE"
+              upsert_env TPL_FIELD_HOMEWORK_TIME time2 "$ENV_FILE"
+              upsert_env TPL_FIELD_HOMEWORK_NOTE thing3 "$ENV_FILE"
             done
 
             rm -rf "$SRC_DIR"

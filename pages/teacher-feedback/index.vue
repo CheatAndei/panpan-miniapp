@@ -43,6 +43,7 @@
           {{ se._cf._genning?'生成中...':(se._cf._text?'重新生成':'一键生成学习小组反馈') }}
         </button>
         <textarea v-model="se._cf._text" class="result-area" placeholder="可直接手动输入学习小组总反馈" :maxlength="500" />
+        <button v-if="se._cf._text" class="copy-feedback-btn" @tap="copyFeedback(se._cf._text,'学习小组反馈')">复制反馈</button>
       </view>
 
       <!-- 学生反馈板块 -->
@@ -70,6 +71,7 @@
           <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#2F7D6B" />
           <input v-model="s._note" class="input big" placeholder="大致情况" />
           <textarea v-model="s._text" class="result-area" placeholder="可直接手动输入学生反馈" :maxlength="240" />
+          <button v-if="s._text" class="copy-feedback-btn" @tap="copyFeedback(s._text,s.name+'的反馈')">复制反馈</button>
           <!-- 图片 -->
           <view v-if="s._images && s._images.length>0" class="img-row">
             <view v-for="(img,i) in s._images" :key="i" class="thumb-wrap">
@@ -265,6 +267,18 @@ export default {
     formatStudentFeedback(s,text){
       return formatStudentFeedbackText(s.name,text);
     },
+    copyFeedback(text,label='反馈'){
+      const value=String(text||'').trim();
+      if(!value)return uni.showToast({title:'暂无可复制内容',icon:'none'});
+      uni.setClipboardData({
+        data:value,
+        success:()=>uni.showToast({title:`${label}已复制`,icon:'success'}),
+        fail:e=>{
+          logError('feedback.copy',e);
+          uni.showToast({title:'复制失败，请重试',icon:'none'});
+        }
+      });
+    },
     async publishNotes(se){
       if(!se._pdfTemp&&!se._noteRemark) return uni.showToast({title:'请选择学习笔记或填写备注',icon:'none'});
       se._publishingNotes=true;
@@ -397,4 +411,5 @@ export default {
 .style-choice{min-width:112rpx;padding:12rpx 18rpx;text-align:center;color:var(--text-muted);font-size:25rpx;border-radius:9rpx;font-weight:650}
 .style-choice.on{background:#fff;color:var(--accent-strong);box-shadow:0 3rpx 10rpx rgba(24,58,54,.09)}
 .style-hint{display:block;margin:0 0 16rpx;color:var(--text-muted);font-size:23rpx}
+.copy-feedback-btn{min-height:72rpx;margin:12rpx 0 4rpx;border:1rpx solid #BFD2CC;border-radius:12rpx;background:#FFFFFF;color:var(--accent-strong);font-size:26rpx;font-weight:680}
 </style>

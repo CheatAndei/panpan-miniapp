@@ -131,10 +131,30 @@ router.post('/plans', auth, teacherOnly, (req, res) => {
 router.get('/plans', auth, teacherOnly, (req, res) => {
   const plans = getDB().all(`SELECT p.*,c.name class_name,
     (SELECT COUNT(*) FROM practice_student_settings s WHERE s.plan_id=p.id) student_count,
-    (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id) submission_count
+    (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id) submission_count,
+    (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id AND ps.status='submitted') pending_submission_count
     FROM practice_plans p JOIN classes c ON c.id=p.class_id
     WHERE p.teacher_id=? ORDER BY p.created_at DESC LIMIT 50`, [req.user.id]);
   res.json({ plans: plans.map((plan) => ({ ...plan, question_types: JSON.parse(plan.question_types || '[]') })) });
+});
+
+router.get('/todos', auth, teacherOnly, (req, res) => {
+  const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit || '20', 10) || 20));
+  const db = getDB();
+  const total = Number(db.get(`SELECT COUNT(*) count FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN practice_plans p ON p.id=a.plan_id
+    WHERE p.teacher_id=? AND ps.status='submitted'`, [req.user.id])?.count || 0);
+  const todos = db.all(`SELECT ps.id submission_id,ps.submitted_at,a.plan_id,a.practice_date,a.student_id,
+    st.name student_name,p.title plan_title,c.name class_name
+    FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN practice_plans p ON p.id=a.plan_id
+    JOIN students st ON st.id=a.student_id
+    JOIN classes c ON c.id=p.class_id
+    WHERE p.teacher_id=? AND ps.status='submitted'
+    ORDER BY ps.submitted_at ASC,ps.id ASC LIMIT ?`, [req.user.id, limit]);
+  res.json({ count: total, todos });
 });
 
 router.get('/plans/:id/settings', auth, teacherOnly, (req, res) => {
@@ -248,6 +268,7 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
   if (!['submitted', 'reviewed', 'all'].includes(status)) return res.status(400).json({ error: '提交状态无效' });
   const page = Math.max(1, Number.parseInt(req.query.page || '1', 10) || 1);
   const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit || '20', 10) || 20));
+  const preferredId = Math.max(0, Number.parseInt(req.query.submission_id || '0', 10) || 0);
   const offset = (page - 1) * limit;
   const plan = db.get('SELECT * FROM practice_plans WHERE id=? AND teacher_id=?', [planId, req.user.id]);
   if (!plan) return res.status(404).json({ error: '计划不存在' });
@@ -258,7 +279,7 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
   const submissions = db.all(`SELECT ps.*,a.student_id,a.practice_date,a.plan_id,st.name student_name
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN students st ON st.id=a.student_id WHERE a.plan_id=?${statusSql}
-    ORDER BY a.practice_date DESC,st.name LIMIT ? OFFSET ?`, [...params, limit, offset]);
+    ORDER BY CASE WHEN ps.id=? THEN 0 ELSE 1 END,a.practice_date DESC,st.name LIMIT ? OFFSET ?`, [...params, preferredId, limit, offset]);
   for (const submission of submissions) {
     submission.items = db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
       r.is_correct,r.teacher_note review_note FROM practice_assignment_items i

@@ -23,6 +23,7 @@ TPL_CHECKIN=签到订阅消息模板ID
 TPL_CHECKOUT=签退订阅消息模板ID
 TPL_FEEDBACK=课后反馈订阅消息模板ID
 TPL_REMINDER=上课提醒订阅消息模板ID
+TPL_HOMEWORK=作业提醒订阅消息模板ID
 
 TPL_FIELD_CHECKIN_STUDENT=thing1
 TPL_FIELD_CHECKIN_TIME=time3
@@ -37,6 +38,9 @@ TPL_FIELD_FEEDBACK_NOTE=thing3
 TPL_FIELD_REMINDER_CLASS=thing1
 TPL_FIELD_REMINDER_TIME=time2
 TPL_FIELD_REMINDER_NOTE=thing3
+TPL_FIELD_HOMEWORK_TITLE=thing1
+TPL_FIELD_HOMEWORK_TIME=time2
+TPL_FIELD_HOMEWORK_NOTE=thing3
 ```
 
 订阅消息模板 ID 获取位置：
@@ -44,17 +48,21 @@ TPL_FIELD_REMINDER_NOTE=thing3
 1. 打开微信公众平台。
 2. 进入你的小程序。
 3. 左侧菜单点「功能」->「订阅消息」。
-4. 选择或添加 4 个一次性订阅模板：签到通知、签退通知、课后反馈通知、上课提醒。
+4. 选择或添加 5 个一次性订阅模板：签到通知、签退通知、课后反馈通知、上课提醒、作业提醒。
 5. 复制每个模板详情里的「模板 ID」。
-6. 粘贴到上面的 `TPL_CHECKIN`、`TPL_CHECKOUT`、`TPL_FEEDBACK`、`TPL_REMINDER`。
+6. 粘贴到上面的 `TPL_CHECKIN`、`TPL_CHECKOUT`、`TPL_FEEDBACK`、`TPL_REMINDER`、`TPL_HOMEWORK`。
 
 注意：模板里的字段名要和 `.env` 一致：
 
 - 签到：`thing1`、`phrase2`、`time3`
 - 签退：`thing1`、`phrase2`、`time3`，特殊签退长文案优先使用 `thing3`
-- 课后反馈 / 上课提醒：`thing1`、`time2`、`thing3`
+- 课后反馈 / 上课提醒 / 作业提醒：`thing1`、`time2`、`thing3`
 
 如果微信后台模板字段不是这些名字，不用改代码，只改 `.env` 里的 `TPL_FIELD_...`。
+
+真实模板必须从微信接口白名单内的固定出口 IP `134.175.69.59` 读取。仓库中的
+`Production Notification Inspect` 手动工作流会 SSH 到这台生产服务器，再在
+`panpan-api` 容器内执行只读检查；不会从开发者本机直连，也不会输出 AppSecret 或完整访问令牌。
 
 配置后可登录小程序，请求：
 
@@ -72,7 +80,8 @@ https://你的域名/api/notify/status
     "checkin": true,
     "checkout": true,
     "feedback": true,
-    "reminder": true
+    "reminder": true,
+    "homework": true
   }
 }
 ```
