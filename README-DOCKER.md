@@ -25,22 +25,22 @@ TPL_FEEDBACK=课后反馈订阅消息模板ID
 TPL_REMINDER=上课提醒订阅消息模板ID
 TPL_HOMEWORK=作业提醒订阅消息模板ID
 
-TPL_FIELD_CHECKIN_STUDENT=thing1
-TPL_FIELD_CHECKIN_TIME=time3
-TPL_FIELD_CHECKIN_STATUS=phrase2
-TPL_FIELD_CHECKOUT_STUDENT=thing1
-TPL_FIELD_CHECKOUT_TIME=time3
-TPL_FIELD_CHECKOUT_STATUS=phrase2
+TPL_FIELD_CHECKIN_TIME=time5
+TPL_FIELD_CHECKIN_STATUS=phrase6
+TPL_FIELD_CHECKIN_NOTE=thing3
+TPL_FIELD_CHECKOUT_TIME=time5
+TPL_FIELD_CHECKOUT_STATUS=phrase6
 TPL_FIELD_CHECKOUT_NOTE=thing3
 TPL_FIELD_FEEDBACK_TITLE=thing1
-TPL_FIELD_FEEDBACK_TIME=time2
-TPL_FIELD_FEEDBACK_NOTE=thing3
+TPL_FIELD_FEEDBACK_TIME=time3
+TPL_FIELD_FEEDBACK_NOTE=thing4
 TPL_FIELD_REMINDER_CLASS=thing1
-TPL_FIELD_REMINDER_TIME=time2
-TPL_FIELD_REMINDER_NOTE=thing3
+TPL_FIELD_REMINDER_TIME=time3
+TPL_FIELD_REMINDER_NOTE=thing4
 TPL_FIELD_HOMEWORK_TITLE=thing1
-TPL_FIELD_HOMEWORK_TIME=time2
-TPL_FIELD_HOMEWORK_NOTE=thing3
+TPL_FIELD_HOMEWORK_TIME=time4
+TPL_FIELD_HOMEWORK_NOTE=thing5
+TPL_FIELD_HOMEWORK_STATUS=phrase2
 ```
 
 订阅消息模板 ID 获取位置：
@@ -54,9 +54,9 @@ TPL_FIELD_HOMEWORK_NOTE=thing3
 
 注意：模板里的字段名要和 `.env` 一致：
 
-- 签到：`thing1`、`phrase2`、`time3`
-- 签退：`thing1`、`phrase2`、`time3`，特殊签退长文案优先使用 `thing3`
-- 课后反馈 / 上课提醒 / 作业提醒：`thing1`、`time2`、`thing3`
+- 签到 / 签退：`time5`、`phrase6`、`thing3`
+- 课后反馈 / 上课提醒：`thing1`、`time3`、`thing4`
+- 作业提醒：`thing1`、`time4`、`thing5`、`phrase2`
 
 如果微信后台模板字段不是这些名字，不用改代码，只改 `.env` 里的 `TPL_FIELD_...`。
 

@@ -18,12 +18,23 @@ process.env.TPL_CHECKIN = 'tpl-checkin';
 process.env.TPL_CHECKOUT = 'tpl-checkout';
 process.env.TPL_FEEDBACK = 'tpl-feedback';
 process.env.TPL_REMINDER = 'tpl-reminder';
-process.env.TPL_FIELD_CHECKIN_STUDENT = 'thing1';
-process.env.TPL_FIELD_CHECKIN_TIME = 'time3';
-process.env.TPL_FIELD_CHECKIN_STATUS = 'phrase2';
+process.env.TPL_HOMEWORK = 'tpl-homework';
+process.env.TPL_FIELD_CHECKIN_TIME = 'time5';
+process.env.TPL_FIELD_CHECKIN_STATUS = 'phrase6';
+process.env.TPL_FIELD_CHECKIN_NOTE = 'thing3';
+process.env.TPL_FIELD_CHECKOUT_TIME = 'time5';
+process.env.TPL_FIELD_CHECKOUT_STATUS = 'phrase6';
+process.env.TPL_FIELD_CHECKOUT_NOTE = 'thing3';
 process.env.TPL_FIELD_REMINDER_CLASS = 'thing1';
-process.env.TPL_FIELD_REMINDER_TIME = 'time2';
-process.env.TPL_FIELD_REMINDER_NOTE = 'thing3';
+process.env.TPL_FIELD_REMINDER_TIME = 'time3';
+process.env.TPL_FIELD_REMINDER_NOTE = 'thing4';
+process.env.TPL_FIELD_FEEDBACK_TITLE = 'thing1';
+process.env.TPL_FIELD_FEEDBACK_TIME = 'time3';
+process.env.TPL_FIELD_FEEDBACK_NOTE = 'thing4';
+process.env.TPL_FIELD_HOMEWORK_TITLE = 'thing1';
+process.env.TPL_FIELD_HOMEWORK_TIME = 'time4';
+process.env.TPL_FIELD_HOMEWORK_NOTE = 'thing5';
+process.env.TPL_FIELD_HOMEWORK_STATUS = 'phrase2';
 process.env.UPLOAD_DIR = path.join(__dirname, '..', '..', '..', '..', 'z-rubbish', 'notification-uploads');
 process.env.PRIVATE_UPLOAD_DIR = path.join(__dirname, '..', '..', '..', '..', 'z-rubbish', 'notification-private-uploads');
 
@@ -32,8 +43,11 @@ const originalAxiosPost = axios.post;
 axios.get = async (url) => {
   if (String(url).includes('/wxaapi/newtmpl/gettemplate')) {
     return { data: { data: [
-      { priTmplId: 'tpl-checkin', title: '签到通知', content: '{{thing1.DATA}}\n{{phrase2.DATA}}\n{{time3.DATA}}' },
-      { priTmplId: 'tpl-reminder', title: '上课提醒', content: '{{thing1.DATA}}\n{{time2.DATA}}\n{{thing3.DATA}}' },
+      { priTmplId: 'tpl-checkin', title: '打卡提醒', content: '{{time5.DATA}}\n{{phrase6.DATA}}\n{{thing3.DATA}}' },
+      { priTmplId: 'tpl-checkout', title: '打卡提醒', content: '{{time5.DATA}}\n{{phrase6.DATA}}\n{{thing3.DATA}}' },
+      { priTmplId: 'tpl-reminder', title: '上课提醒', content: '{{thing1.DATA}}\n{{time3.DATA}}\n{{thing4.DATA}}' },
+      { priTmplId: 'tpl-feedback', title: '课后反馈', content: '{{thing1.DATA}}\n{{time3.DATA}}\n{{thing4.DATA}}' },
+      { priTmplId: 'tpl-homework', title: '作业状态通知', content: '{{thing1.DATA}}\n{{time4.DATA}}\n{{thing5.DATA}}\n{{phrase2.DATA}}' },
     ] } };
   }
   return { data: { access_token: 'test-access-token', expires_in: 7200 } };
@@ -90,7 +104,7 @@ test('发送数据只包含当前模板配置的字段，不伪造 thing/time/ph
   };
   const result = await post('/notify/test', { type: 'checkin' });
   assert.equal(result.response.status, 200);
-  assert.deepEqual(Object.keys(capturedPayload.data).sort(), ['phrase2', 'thing1', 'time3']);
+  assert.deepEqual(Object.keys(capturedPayload.data).sort(), ['phrase6', 'thing3', 'time5']);
 });
 
 test('模板诊断由后端固定出口读取真实字段并报告匹配结果', async () => {
@@ -100,7 +114,8 @@ test('模板诊断由后端固定出口读取真实字段并报告匹配结果',
   const reminder = result.payload.templates.find((item) => item.name === 'reminder');
   assert.equal(checkin.fields_match, true);
   assert.equal(reminder.fields_match, true);
-  assert.deepEqual(reminder.actual_fields, ['thing1', 'time2', 'thing3']);
+  assert.equal(result.payload.templates.every((item) => item.fields_match), true);
+  assert.deepEqual(reminder.actual_fields, ['thing1', 'time3', 'thing4']);
 });
 
 test('上课提醒按微信 time 字段发送 HH:mm，并把课程日期放入备注', async () => {
@@ -117,8 +132,19 @@ test('上课提醒按微信 time 字段发送 HH:mm，并把课程日期放入�
   });
   assert.equal(result.response.status, 200);
   assert.equal(result.payload.notify.ok, true);
-  assert.equal(capturedPayload.data.time2.value, '18:30');
-  assert.equal(capturedPayload.data.thing3.value, '7月20日 · 黄埔教室');
+  assert.equal(capturedPayload.data.time3.value, '18:30');
+  assert.equal(capturedPayload.data.thing4.value, '7月20日 · 黄埔教室');
+});
+
+test('作业提醒发送真实模板要求的状态字段', async () => {
+  axios.post = async (_url, payload) => {
+    capturedPayload = payload;
+    return { data: { errcode: 0, errmsg: 'ok' } };
+  };
+  const result = await post('/notify/test', { type: 'homework' });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(Object.keys(capturedPayload.data).sort(), ['phrase2', 'thing1', 'thing5', 'time4']);
+  assert.equal(capturedPayload.data.phrase2.value, '已完成');
 });
 
 test('微信模板字段错误会返回可读错误，而不是把英文 errmsg 当页面提示', async () => {

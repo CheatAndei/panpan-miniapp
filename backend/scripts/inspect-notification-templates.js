@@ -10,11 +10,11 @@ const templates = {
 };
 
 const configuredFields = {
-  checkin: [process.env.TPL_FIELD_CHECKIN_STUDENT || 'thing1', process.env.TPL_FIELD_CHECKIN_TIME || 'time2', process.env.TPL_FIELD_CHECKIN_STATUS || 'phrase3'],
-  checkout: [process.env.TPL_FIELD_CHECKOUT_STUDENT || 'thing1', process.env.TPL_FIELD_CHECKOUT_TIME || 'time2', process.env.TPL_FIELD_CHECKOUT_STATUS || 'phrase3', process.env.TPL_FIELD_CHECKOUT_NOTE || 'thing3'],
-  reminder: [process.env.TPL_FIELD_REMINDER_CLASS || 'thing1', process.env.TPL_FIELD_REMINDER_TIME || 'time2', process.env.TPL_FIELD_REMINDER_NOTE || 'thing3'],
-  feedback: [process.env.TPL_FIELD_FEEDBACK_TITLE || 'thing1', process.env.TPL_FIELD_FEEDBACK_TIME || 'time2', process.env.TPL_FIELD_FEEDBACK_NOTE || 'thing3'],
-  homework: [process.env.TPL_FIELD_HOMEWORK_TITLE || 'thing1', process.env.TPL_FIELD_HOMEWORK_TIME || 'time2', process.env.TPL_FIELD_HOMEWORK_NOTE || 'thing3'],
+  checkin: [process.env.TPL_FIELD_CHECKIN_TIME || 'time5', process.env.TPL_FIELD_CHECKIN_STATUS || 'phrase6', process.env.TPL_FIELD_CHECKIN_NOTE || process.env.TPL_FIELD_CHECKIN_STUDENT || 'thing3'],
+  checkout: [process.env.TPL_FIELD_CHECKOUT_TIME || 'time5', process.env.TPL_FIELD_CHECKOUT_STATUS || 'phrase6', process.env.TPL_FIELD_CHECKOUT_NOTE || process.env.TPL_FIELD_CHECKOUT_STUDENT || 'thing3'],
+  reminder: [process.env.TPL_FIELD_REMINDER_CLASS || 'thing1', process.env.TPL_FIELD_REMINDER_TIME || 'time3', process.env.TPL_FIELD_REMINDER_NOTE || 'thing4'],
+  feedback: [process.env.TPL_FIELD_FEEDBACK_TITLE || 'thing1', process.env.TPL_FIELD_FEEDBACK_TIME || 'time3', process.env.TPL_FIELD_FEEDBACK_NOTE || 'thing4'],
+  homework: [process.env.TPL_FIELD_HOMEWORK_TITLE || 'thing1', process.env.TPL_FIELD_HOMEWORK_TIME || 'time4', process.env.TPL_FIELD_HOMEWORK_NOTE || 'thing5', process.env.TPL_FIELD_HOMEWORK_STATUS || 'phrase2'],
 };
 
 function fields(content) {

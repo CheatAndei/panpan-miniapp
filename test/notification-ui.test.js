@@ -46,6 +46,11 @@ test('生产部署链路会写入作业通知模板及字段映射', () => {
   assert.match(workflow, /PANPAN_TPL_HOMEWORK/u);
   assert.match(workflow, /upsert_env TPL_HOMEWORK/u);
   assert.match(workflow, /TPL_FIELD_HOMEWORK_TITLE thing1/u);
-  assert.match(workflow, /TPL_FIELD_HOMEWORK_TIME time2/u);
-  assert.match(workflow, /TPL_FIELD_HOMEWORK_NOTE thing3/u);
+  assert.match(workflow, /TPL_FIELD_HOMEWORK_TIME time4/u);
+  assert.match(workflow, /TPL_FIELD_HOMEWORK_NOTE thing5/u);
+  assert.match(workflow, /TPL_FIELD_HOMEWORK_STATUS phrase2/u);
+  assert.match(workflow, /TPL_FIELD_CHECKIN_TIME time5/u);
+  assert.match(workflow, /TPL_FIELD_CHECKIN_STATUS phrase6/u);
+  assert.match(workflow, /TPL_FIELD_FEEDBACK_TIME time3/u);
+  assert.match(workflow, /TPL_FIELD_FEEDBACK_NOTE thing4/u);
 });
