@@ -120,7 +120,7 @@
           <view class="photo-pane">
             <view class="pane-head">
               <text class="pane-title">学生照片</text>
-              <text class="pane-count">{{ activeSubmission._photoPaths.length || activeSubmission.attachments.length }} 张</text>
+              <text class="pane-count">已读 {{ activeSubmission._photoPaths.length }} / {{ activeSubmission.attachments.length }} 张</text>
             </view>
             <view class="photo-stage">
               <view v-if="activeSubmission._photosLoading" class="pane-state"><text>正在读取私有照片…</text></view>
@@ -129,9 +129,18 @@
                   <image :src="photo" mode="aspectFit" class="submission-photo" :aria-label="`${activeSubmission.student_name}第${index + 1}张作业照片`" @tap="previewPhoto(activeSubmission,index)" />
                 </swiper-item>
               </swiper>
-              <view v-else class="pane-state error"><text>照片读取失败，暂不能保存</text></view>
+              <view v-else class="pane-state error">
+                <text class="pane-state-title">照片暂未读到</text>
+                <text class="pane-state-help">请点击下方“重新读取”，无需让学生重复提交。</text>
+              </view>
             </view>
-            <button class="zoom-btn" :disabled="!activeSubmission._photoPaths.length" aria-label="放大当前学生作业照片" @tap="previewPhoto(activeSubmission,activeSubmission._activePhoto)">放大当前照片</button>
+            <view v-if="activeSubmission._photoFailures" class="photo-warning">
+              <text>{{ activeSubmission._photoError || `还有 ${activeSubmission._photoFailures} 张照片未读到` }}</text>
+            </view>
+            <view class="photo-actions">
+              <button class="zoom-btn" :disabled="!activeSubmission._photoPaths.length" aria-label="放大当前学生作业照片" @tap="previewPhoto(activeSubmission,activeSubmission._activePhoto)">放大照片</button>
+              <button v-if="activeSubmission._photoFailures" class="retry-photo-btn" :disabled="activeSubmission._photosLoading" aria-label="重新读取学生作业照片" @tap="retrySubmissionPhotos(activeSubmission)">重新读取</button>
+            </view>
           </view>
 
           <scroll-view scroll-y class="answer-pane">
@@ -156,7 +165,7 @@
             <text class="review-result-main">已标错 {{ wrongCount(activeSubmission) }} 题</text>
             <text class="review-result-sub">其余 {{ activeSubmission.items.length - wrongCount(activeSubmission) }} 题按正确保存</text>
           </view>
-          <button class="save-next-btn" :disabled="activeSubmission._saving || activeSubmission._photosLoading || !activeSubmission._photoPaths.length" @tap="saveReview(activeSubmission)">
+          <button class="save-next-btn" :disabled="activeSubmission._saving || activeSubmission._photosLoading || !photosReady(activeSubmission)" @tap="saveReview(activeSubmission)">
             {{ activeSubmission._saving ? '保存中…' : activeSubmission.status === 'reviewed' ? '更新并下一位' : '保存并下一位' }}
           </button>
         </view>
@@ -300,6 +309,8 @@ async function loadSubmissions(preferredId = '') {
       _saving: false,
       _teacherNote: submission.teacher_note || '',
       _photosLoading: false,
+      _photoFailures: 0,
+      _photoError: '',
       _activePhoto: 0,
       _photoPaths: [],
       items: submission.items.map((item) => ({
@@ -326,13 +337,28 @@ async function ensureSubmissionPhotos(submission) {
   if (!submission || submission._photosLoading || submission._photoPaths.length) return;
   try {
     submission._photosLoading = true;
-    for (const file of submission.attachments) submission._photoPaths.push(await api.downloadPrivate(file.url));
-  } catch (err) {
-    submission._photoPaths = [];
-    uni.showToast({ title: err?.error || '照片读取失败', icon: 'none' });
+    submission._photoError = '';
+    const results = await Promise.allSettled((submission.attachments || []).map((file) => api.downloadPrivate(file.url)));
+    submission._photoPaths = results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
+    const failures = results.filter((result) => result.status === 'rejected');
+    submission._photoFailures = failures.length;
+    submission._photoError = failures[0]?.reason?.error || '';
+    if (failures.length) uni.showToast({ title: `已读取 ${submission._photoPaths.length}/${submission.attachments.length} 张，可重新读取`, icon: 'none' });
   } finally {
     submission._photosLoading = false;
   }
+}
+
+async function retrySubmissionPhotos(submission) {
+  submission._photoPaths = [];
+  submission._photoFailures = 0;
+  submission._photoError = '';
+  await ensureSubmissionPhotos(submission);
+}
+
+function photosReady(submission) {
+  const total = submission?.attachments?.length || 0;
+  return total > 0 && submission?._photoPaths?.length === total;
 }
 
 async function goSubmission(delta) {
@@ -377,7 +403,7 @@ async function moveToNextSubmission(currentIndex) {
 }
 
 async function saveReview(submission) {
-  if (!submission._photoPaths.length) return uni.showToast({ title: '请先确认作业照片已加载', icon: 'none' });
+  if (!photosReady(submission)) return uni.showToast({ title: '请先重新读取全部作业照片', icon: 'none' });
   const currentIndex = activeSubmissionIndex.value;
   submission._saving = true;
   try {
@@ -411,7 +437,7 @@ async function downloadPdf(item, startDate = item.start_date) {
 .queue-bar{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-bottom:18rpx;padding:18rpx 20rpx;border-radius:16rpx;background:var(--surface-muted)}.queue-title{display:block;color:var(--ink);font-size:25rpx;font-weight:700}.queue-meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx}.queue-actions{display:flex;gap:12rpx}.queue-btn{min-width:118rpx;min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 16rpx;border-radius:12rpx;background:#fff;color:var(--accent-strong);font-size:22rpx;font-weight:650}.queue-btn[disabled]{opacity:.38}
 .submission{padding:22rpx;border:1rpx solid var(--border);border-radius:18rpx}.submission-head{display:flex;align-items:center;justify-content:space-between;gap:14rpx}.student-name{display:block;color:var(--ink);font-size:30rpx;font-weight:750}.submission-date{display:block;margin-top:4rpx;color:var(--text-muted);font-size:22rpx}.review-status{flex:none;padding:10rpx 16rpx;border-radius:999rpx;font-size:21rpx;font-weight:700}.review-status.pending{background:var(--warning-soft);color:var(--warning)}.review-status.reviewed{background:var(--accent-soft);color:var(--accent-strong)}
 .quick-review-tip{display:flex;align-items:center;gap:12rpx;margin-top:18rpx;padding:16rpx 18rpx;border-radius:14rpx;background:var(--accent-soft)}.quick-review-title{flex:none;color:var(--accent-strong);font-size:25rpx;font-weight:750}.quick-review-copy{color:var(--ink);font-size:21rpx;line-height:1.45}
-.compare-workspace{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:16rpx;margin-top:18rpx}.photo-pane,.answer-pane{box-sizing:border-box;min-width:0;border:1rpx solid var(--border);border-radius:16rpx;background:var(--surface-muted)}.photo-pane{padding:16rpx}.answer-pane{height:850rpx;padding:16rpx}.pane-head{display:flex;align-items:center;justify-content:space-between;gap:8rpx;min-height:52rpx}.pane-title{color:var(--ink);font-size:25rpx;font-weight:720}.pane-count{color:var(--text-muted);font-size:20rpx}.photo-stage{height:690rpx;margin-top:12rpx;overflow:hidden;border-radius:12rpx;background:#E9EFED}.photo-swiper,.submission-photo{width:100%;height:100%}.pane-state{height:100%;display:flex;align-items:center;justify-content:center;padding:24rpx;box-sizing:border-box;color:var(--text-muted);font-size:22rpx;text-align:center}.pane-state.error{color:var(--danger)}.zoom-btn{width:100%;min-height:88rpx;margin:12rpx 0 0;border-radius:12rpx;background:#fff;color:var(--accent-strong);font-size:23rpx;font-weight:680}.answer-head{position:sticky;top:0;z-index:2;padding-bottom:12rpx;background:var(--surface-muted)}.wrong-total{color:var(--danger);font-size:21rpx;font-weight:700}
+.compare-workspace{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:16rpx;margin-top:18rpx}.photo-pane,.answer-pane{box-sizing:border-box;min-width:0;border:1rpx solid var(--border);border-radius:16rpx;background:var(--surface-muted)}.photo-pane{padding:16rpx}.answer-pane{height:850rpx;padding:16rpx}.pane-head{display:flex;align-items:center;justify-content:space-between;gap:8rpx;min-height:52rpx}.pane-title{color:var(--ink);font-size:25rpx;font-weight:720}.pane-count{color:var(--text-muted);font-size:20rpx}.photo-stage{height:690rpx;margin-top:12rpx;overflow:hidden;border-radius:12rpx;background:#E9EFED}.photo-swiper,.submission-photo{width:100%;height:100%}.pane-state{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24rpx;box-sizing:border-box;color:var(--text-muted);font-size:22rpx;text-align:center}.pane-state.error{color:var(--danger)}.pane-state-title{font-size:25rpx;font-weight:720}.pane-state-help{display:block;margin-top:8rpx;color:var(--text-muted);font-size:20rpx;line-height:1.55}.photo-warning{margin-top:10rpx;padding:12rpx 14rpx;border-radius:10rpx;background:var(--warning-soft);color:var(--warning);font-size:20rpx;line-height:1.45}.photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:10rpx;margin-top:12rpx}.zoom-btn,.retry-photo-btn{width:100%;min-height:88rpx;margin:0;border-radius:12rpx;font-size:23rpx;font-weight:680}.zoom-btn{background:#fff;color:var(--accent-strong)}.retry-photo-btn{background:var(--accent-strong);color:#fff}.photo-actions .zoom-btn:only-child{grid-column:1/-1}.answer-head{position:sticky;top:0;z-index:2;padding-bottom:12rpx;background:var(--surface-muted)}.wrong-total{color:var(--danger);font-size:21rpx;font-weight:700}
 .answer-row{box-sizing:border-box;width:100%;min-height:132rpx;margin:0 0 12rpx;padding:14rpx;border:2rpx solid var(--border);border-radius:14rpx;background:#fff;text-align:left;transition:background-color .18s ease,border-color .18s ease}.answer-row::after{border:0}.answer-row.wrong{border-color:var(--danger);background:var(--danger-soft)}.answer-row-top{display:flex;align-items:center;justify-content:space-between;gap:8rpx}.answer-no{width:44rpx;height:44rpx;display:flex;align-items:center;justify-content:center;border-radius:10rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:23rpx;font-weight:750}.answer-row.wrong .answer-no{background:var(--danger);color:#fff}.answer-state{color:var(--accent-strong);font-size:20rpx;font-weight:700}.answer-row.wrong .answer-state{color:var(--danger)}.answer-value{display:block;margin-top:10rpx;color:var(--ink);font-size:29rpx;font-weight:780;line-height:1.35;word-break:break-all}.answer-stem{display:-webkit-box;margin-top:7rpx;overflow:hidden;color:var(--text-muted);font-size:20rpx;line-height:1.45;-webkit-box-orient:vertical;-webkit-line-clamp:2}.answer-action{display:block;margin-top:8rpx;color:var(--text-muted);font-size:19rpx}.answer-row.wrong .answer-action{color:var(--danger)}
 .review-footer{position:sticky;bottom:calc(16rpx + env(safe-area-inset-bottom));z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16rpx;margin-top:18rpx;padding:16rpx;border:1rpx solid var(--border);border-radius:16rpx;background:rgba(255,255,255,.96);box-shadow:0 10rpx 30rpx rgba(24,58,54,.12)}.review-result-copy{min-width:0}.review-result-main{display:block;color:var(--ink);font-size:25rpx;font-weight:750}.review-result-sub{display:block;margin-top:4rpx;color:var(--text-muted);font-size:20rpx}.save-next-btn{flex:none;min-width:230rpx;min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 22rpx;border-radius:14rpx;background:var(--primary);color:#fff;font-size:25rpx;font-weight:750}.save-next-btn[disabled]{opacity:.42}
 .section-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx}.setting-row{padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.setting-row:last-child{border-bottom:0}.setting-name{display:block;color:var(--ink);font-size:28rpx;font-weight:720}.setting-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin-top:16rpx}.mini-label{display:block;margin-bottom:7rpx;color:var(--text-muted);font-size:21rpx}.mini-field{min-height:88rpx;display:flex;align-items:center;padding:0 16rpx;border-radius:12rpx;background:var(--surface-muted);color:var(--ink);font-size:23rpx}.setting-switches{display:flex;gap:22rpx;margin-top:16rpx;flex-wrap:wrap}.setting-switches label{min-height:88rpx;display:flex;align-items:center;gap:10rpx;color:var(--ink);font-size:22rpx}.setting-save{min-height:88rpx;width:100%;margin:14rpx 0 0;border-radius:12rpx;background:var(--accent);color:#fff;font-size:24rpx;font-weight:680}

@@ -422,6 +422,78 @@ CREATE TABLE IF NOT EXISTS mental_challenges (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 家长端学习闭环：服务端保存题目快照与判题结果，前端领取时永不返回答案。
+CREATE TABLE IF NOT EXISTS learning_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  task_type TEXT NOT NULL,
+  task_title TEXT NOT NULL,
+  logical_date DATE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed')),
+  battle TEXT NOT NULL CHECK(battle IN ('primary', 'junior')),
+  questions_json TEXT NOT NULL,
+  answer_detail TEXT,
+  started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  elapsed_seconds INTEGER,
+  correct_count INTEGER,
+  total_questions INTEGER NOT NULL,
+  score INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, task_type, logical_date)
+);
+
+-- 错题来源可来自老师复核、作业批改、口算挑战和学习中心；连续答对两次后掌握。
+CREATE TABLE IF NOT EXISTS wrong_item_progress (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  source_type TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  grade_band TEXT NOT NULL,
+  module TEXT,
+  question_type TEXT,
+  snapshot_stem TEXT,
+  snapshot_answer TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'mastered')),
+  consecutive_correct INTEGER NOT NULL DEFAULT 0,
+  total_attempts INTEGER NOT NULL DEFAULT 0,
+  last_attempt_at DATETIME,
+  mastered_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, source_type, source_id)
+);
+
+CREATE TABLE IF NOT EXISTS achievement_awards (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  badge_code TEXT NOT NULL,
+  awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, badge_code)
+);
+
+CREATE TABLE IF NOT EXISTS weekly_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  week_start DATE NOT NULL,
+  metrics_json TEXT NOT NULL DEFAULT '{}',
+  summary TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, week_start)
+);
+
+CREATE TABLE IF NOT EXISTS engagement_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  parent_id INTEGER REFERENCES users(id),
+  event_name TEXT NOT NULL,
+  event_key TEXT NOT NULL,
+  detail_json TEXT NOT NULL DEFAULT '{}',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, event_key)
+);
+
 CREATE INDEX IF NOT EXISTS idx_practice_question_scope
   ON practice_questions(grade_band, subject, module, difficulty, is_active);
 CREATE INDEX IF NOT EXISTS idx_practice_question_region
@@ -446,3 +518,11 @@ CREATE INDEX IF NOT EXISTS idx_mental_challenge_student
   ON mental_challenges(student_id, battle, status, completed_at);
 CREATE INDEX IF NOT EXISTS idx_mental_challenge_ranking
   ON mental_challenges(battle, status, score, completed_at);
+CREATE INDEX IF NOT EXISTS idx_learning_attempt_student_date
+  ON learning_attempts(student_id, logical_date, status);
+CREATE INDEX IF NOT EXISTS idx_learning_attempt_week
+  ON learning_attempts(student_id, completed_at);
+CREATE INDEX IF NOT EXISTS idx_wrong_progress_student_status
+  ON wrong_item_progress(student_id, status, last_attempt_at);
+CREATE INDEX IF NOT EXISTS idx_weekly_report_student_week
+  ON weekly_reports(student_id, week_start);

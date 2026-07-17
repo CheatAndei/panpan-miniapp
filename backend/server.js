@@ -19,6 +19,8 @@ const homeworkRoutes = require('./routes/homework');
 const practiceRoutes = require('./routes/practice');
 const mentalArenaRoutes = require('./routes/mental-arena');
 const privateFileRoutes = require('./routes/private-files');
+const learningRoutes = require('./routes/learning');
+const growthRoutes = require('./routes/growth');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -58,10 +60,12 @@ app.use('/api/homework', homeworkRoutes);
 app.use('/api/practice', practiceRoutes);
 app.use('/api/mental-arena', mentalArenaRoutes);
 app.use('/api/private-files', privateFileRoutes);
+app.use('/api/learning', learningRoutes);
+app.use('/api/growth', growthRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.3.0' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.4.0' });
 });
 
 // 初始化数据库并启动

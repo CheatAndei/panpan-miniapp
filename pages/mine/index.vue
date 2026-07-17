@@ -108,7 +108,7 @@
     </view>
   </view>
 
-  <view class="brand">番番记录 1.2.1<br/>桂ICP备2026013218号-2</view>
+  <view class="brand">番番记录 1.4.0<br/>桂ICP备2026013218号-2</view>
   </template>
 </view>
 </template>

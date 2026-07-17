@@ -23,20 +23,26 @@
 
       <view class="card focus-card">
         <view class="focus-topline">
-          <text class="focus-label">今日工作</text>
+          <view>
+            <text class="focus-label">今日工作</text>
+            <text class="focus-summary">{{ totalPending ? `还有 ${totalPending} 项需要处理` : '待办已完成，看看今天的课程安排' }}</text>
+          </view>
           <text v-if="totalPending>0" class="focus-pending">{{ totalPending }} 项待办</text>
           <text v-else class="focus-ready">待办已清</text>
         </view>
         <view class="focus-metrics">
-          <view class="focus-metric">
+          <button class="focus-metric" aria-label="查看待批改学生打卡" @tap="navTo('/pages/practice-teacher/index')">
+            <text class="focus-number num">{{ pendingPracticeCount }}</text>
+            <text class="focus-copy">待批改</text>
+          </button>
+          <button class="focus-metric" aria-label="查看待审批请假" @tap="navTo('/pages/teacher-leaves/index')">
+            <text class="focus-number num">{{ pendingLeaves }}</text>
+            <text class="focus-copy">待审批</text>
+          </button>
+          <button class="focus-metric" aria-label="查看今日课程" @tap="navTo('/pages/teacher-schedule/index')">
             <text class="focus-number num">{{ todaySessions.length }}</text>
-            <text class="focus-copy">节待处理课程</text>
-          </view>
-          <view class="focus-divider"></view>
-          <view class="focus-metric">
-            <text class="focus-number num">{{ totalStudents }}</text>
-            <text class="focus-copy">位学生</text>
-          </view>
+            <text class="focus-copy">今日课程</text>
+          </button>
         </view>
       </view>
 
@@ -129,8 +135,46 @@
         <view class="child-class">{{ child.className }} · {{ childTeacherName }}</view>
       </view>
 
+      <view v-if="child" class="parent-section-nav" aria-label="家长端学习导航">
+        <button class="parent-nav-item active" aria-current="page">今日</button>
+        <button class="parent-nav-item" @tap="navTo('/pages/learning-center/index?student_id='+child.id)">学习</button>
+        <button class="parent-nav-item" @tap="navTo('/pages/growth/index?student_id='+child.id)">成长</button>
+      </view>
+
       <pp-state v-if="parentLoading && !child" type="loading" title="正在读取孩子的学习动态" />
       <pp-state v-else-if="parentError && !child" type="error" title="暂时无法加载" :description="parentError" action-text="重新加载" @action="loadParentData()" />
+
+      <view v-if="child && learningToday" class="today-learning-card">
+        <view class="today-learning-head">
+          <view>
+            <text class="today-eyebrow">TODAY'S PLAN</text>
+            <text class="today-title">今日学习任务</text>
+            <text class="today-summary">{{ learningToday.progress.completed }} / {{ learningToday.progress.total }} 已完成 · 连续学习 {{ learningToday.stats.streak_days }} 天</text>
+          </view>
+          <view class="today-percent"><text class="num">{{ learningToday.progress.percent }}</text>%</view>
+        </view>
+        <view class="today-progress"><view class="today-progress-fill" :style="{width:learningToday.progress.percent+'%'}"></view></view>
+        <button v-for="task in learningToday.tasks" :key="task.key" class="today-task" @tap="openTodayTask(task)">
+          <view :class="['task-position',{done:task.completed,pending:task.status==='pending_review'}]">
+            <text>{{ task.completed ? '✓' : task.position }}</text>
+          </view>
+          <view class="task-copy">
+            <text class="task-title">{{ task.title }}</text>
+            <text class="task-desc">{{ task.description }}</text>
+          </view>
+          <text :class="['task-state',task.status]">{{ taskStatusLabel(task) }}</text>
+          <pp-icon name="arrow" :size="30" />
+        </button>
+        <view class="today-footer">
+          <text>近期正确率 {{ learningToday.stats.accuracy===null?'待积累':learningToday.stats.accuracy+'%' }}</text>
+          <text>{{ learningToday.stats.open_wrong_count }} 道错题待掌握</text>
+        </view>
+      </view>
+
+      <view v-else-if="child && learningError" class="card learning-error-strip">
+        <text>今日学习任务暂未加载</text>
+        <button @tap="loadParentData(child.id)">重试</button>
+      </view>
 
       <!-- 今日状态 -->
       <view class="card status-card" v-if="todayStatus">
@@ -188,24 +232,20 @@
         <view v-if="!latestFeedback && !stuFeedback" class="hint">暂无反馈</view>
       </view>
 
-      <view class="card practice-entry" @tap="child&&navTo('/pages/practice-parent/index?student_id='+child.id)">
-        <view class="practice-entry-icon"><pp-icon name="clipboard" :size="42" /></view>
-        <view class="practice-entry-copy">
-          <text class="practice-entry-kicker">每日约 20 分钟</text>
-          <text class="practice-entry-title">每日打卡</text>
-          <text class="practice-entry-desc">领取今日题目、拍照提交、查看复核结果</text>
+      <view v-if="child" class="card learning-shortcuts">
+        <view class="section-title">更多练习<text class="card-hint" @tap="navTo('/pages/learning-center/index?student_id='+child.id)">进入学习中心</text></view>
+        <view class="shortcut-grid">
+          <button class="learning-shortcut" @tap="child&&navTo('/pages/practice-parent/index?student_id='+child.id)">
+            <view class="shortcut-icon"><pp-icon name="clipboard" :size="38" /></view>
+            <text class="practice-entry-title">每日打卡</text>
+            <text class="shortcut-desc">老师题单 · 拍照提交</text>
+          </button>
+          <button class="learning-shortcut" @tap="child&&navTo('/pages/mental-arena/index?student_id='+child.id)">
+            <view class="shortcut-icon"><pp-icon name="check" :size="38" /></view>
+            <text>口算王</text>
+            <text class="shortcut-desc">20 题限时挑战</text>
+          </button>
         </view>
-        <pp-icon name="arrow" :size="34" />
-      </view>
-
-      <view class="card practice-entry arena-entry" @tap="child&&navTo('/pages/mental-arena/index?student_id='+child.id)">
-        <view class="practice-entry-icon arena-icon"><text class="arena-symbol">王</text></view>
-        <view class="practice-entry-copy">
-          <text class="practice-entry-kicker arena-kicker">20 题限时挑战</text>
-          <text class="practice-entry-title">口算王</text>
-          <text class="practice-entry-desc">小学、初中战场自由选择 · 本周榜与历史榜</text>
-        </view>
-        <pp-icon name="arrow" :size="34" />
       </view>
 
       <!-- 反馈详情弹窗 -->
@@ -338,6 +378,8 @@ const latestFeedback = ref(null);
 const stuFeedback = ref(null);
 const showFbDetail = ref('');
 const profile = ref(null);
+const learningToday = ref(null);
+const learningError = ref('');
 const notifyTpls = ref([]);
 const loginLoading = ref(false);
 const teacherLoading = ref(false);
@@ -349,7 +391,6 @@ const parentError = ref('');
 const currentTeacherName = computed(() => teacherDisplayName(user.value?.nickname));
 const childTeacherName = computed(() => teacherNameFromChild(child.value));
 const feedbackPlaceholder = computed(() => `有任何问题或建议告诉${childTeacherName.value}`);
-const totalStudents = computed(() => classes.value.reduce((sum, item) => sum + Number(item.studentCount || 0), 0));
 const totalPending = computed(() => Number(pendingLeaves.value || 0) + Number(pendingPracticeCount.value || 0));
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
@@ -406,6 +447,8 @@ function switchChild(k) {
   stuFeedback.value = null;
   leaves.value = [];
   weekSchedules.value = [];
+  learningToday.value = null;
+  learningError.value = '';
   loadParentData(k.id);
 }
 async function sendFeedback() {
@@ -425,6 +468,20 @@ async function sendFeedback() {
 function navTo(url) { uni.navigateTo({ url }); }
 function openPracticeTodo(item) {
   navTo(`/pages/practice-teacher/index?plan_id=${item.plan_id}&submission_id=${item.submission_id}`);
+}
+
+function taskStatusLabel(task) {
+  if (task.completed) return '已完成';
+  if (task.status === 'pending_review') return '待批改';
+  return task.status === 'active' ? '继续' : '开始';
+}
+
+function openTodayTask(task) {
+  if (!child.value) return;
+  if (task.route === 'practice') return navTo(`/pages/practice-parent/index?student_id=${child.value.id}`);
+  if (task.route === 'session' && task.session_type) {
+    return navTo(`/pages/learning-session/index?student_id=${child.value.id}&type=${task.session_type}`);
+  }
 }
 
 async function handleLogin() {
@@ -516,16 +573,26 @@ async function loadParentData(childId) {
       weekSchedules.value = [];
       latestFeedback.value = null;
       stuFeedback.value = null;
+      learningToday.value = null;
       return false;
     }
     child.value = target;
 
-    const [schedParent, checkin, lv, fb] = await Promise.all([
+    const [schedParent, checkin, lv, fb, learning] = await Promise.all([
       api.get('/schedules/parent?student_id='+target.id),
       api.get('/checkins/today?student_id='+target.id),
       api.get('/leaves'),
-      api.get('/feedbacks/latest?class_id='+target.class_id)
+      api.get('/feedbacks/latest?class_id='+target.class_id),
+      api.get('/learning/today?student_id='+target.id).catch(error => ({ __error: error }))
     ]);
+    if (learning.__error) {
+      learningToday.value = null;
+      learningError.value = learning.__error?.error || '学习任务加载失败';
+      logError('loadLearningToday', learning.__error);
+    } else {
+      learningToday.value = learning;
+      learningError.value = '';
+    }
     todayStatus.value = checkin;
     if (checkin.checkInTime) {
       todayStatus.value.checkInTime = new Date(checkin.checkInTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
@@ -781,18 +848,20 @@ function scheduleLabel(sc) {
 .child-class { margin-top: 8rpx; color: var(--text-muted); font-size: 25rpx; }
 .parent-hero .gold-rule { display: none; }
 
-.focus-card { margin-top: 22rpx; padding: 28rpx 30rpx 30rpx; background: var(--primary); border: none; box-shadow: 0 18rpx 40rpx rgba(24,58,54,.18); }
+.page .focus-card { margin-top: 22rpx; padding: 26rpx 28rpx 28rpx; background: linear-gradient(145deg,#173A36,#315D56); border: none; box-shadow: 0 18rpx 40rpx rgba(24,58,54,.18); }
 .focus-topline { display: flex; align-items: center; justify-content: space-between; }
 .focus-label { color: rgba(255,255,255,.74); font-size: 24rpx; font-weight: 600; }
+.focus-summary { display: block; margin-top: 3rpx; color: rgba(255,255,255,.9); font-size: 25rpx; font-weight: 680; }
 .focus-pending,
 .focus-ready { padding: 5rpx 13rpx; border-radius: 9rpx; font-size: 21rpx; font-weight: 650; }
 .focus-pending { color: #FFE7DE; background: rgba(230,115,85,.18); }
 .focus-ready { color: #D5F2EA; background: rgba(119,195,176,.16); }
-.focus-metrics { display: flex; align-items: center; margin-top: 24rpx; }
-.focus-metric { flex: 1; display: flex; align-items: baseline; gap: 10rpx; }
-.focus-number { color: #FFFFFF; font-size: 52rpx; font-weight: 760; line-height: 1; }
-.focus-copy { color: rgba(255,255,255,.7); font-size: 23rpx; }
-.focus-divider { width: 1rpx; height: 50rpx; margin: 0 30rpx; background: rgba(255,255,255,.14); }
+.focus-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10rpx; margin-top: 20rpx; }
+.focus-metric { min-width: 0; min-height: 96rpx; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3rpx; margin: 0; padding: 12rpx 16rpx; border-radius: 14rpx; background: rgba(255,255,255,.1); text-align: left; transition: opacity .16s var(--ease-out); }
+.focus-metric::after { border: 0; }
+.focus-metric:active { opacity: .72; }
+.focus-number { color: #FFFFFF; font-size: 38rpx; font-weight: 780; line-height: 1.1; }
+.focus-copy { color: rgba(255,255,255,.78); font-size: 21rpx; }
 
 .quick-actions { padding: 24rpx 16rpx 22rpx; }
 .action-row { gap: 4rpx; }
@@ -813,6 +882,40 @@ function scheduleLabel(sc) {
 .child-switcher { justify-content: flex-start; overflow-x: auto; padding: 14rpx 24rpx; border-color: var(--hairline); background: rgba(255,255,255,.92); }
 .cs-chip { flex-shrink: 0; min-height: 52rpx; display: flex; align-items: center; padding: 4rpx 22rpx; border-radius: 14rpx; color: var(--text-muted); background: var(--surface-muted); }
 .cs-chip.on { color: #FFFFFF; background: var(--primary); }
+
+.parent-section-nav { display: grid; grid-template-columns: repeat(3,1fr); gap: 8rpx; margin: 20rpx 24rpx 0; padding: 8rpx; border: 1rpx solid var(--border); border-radius: 18rpx; background: #FFFFFF; }
+.parent-nav-item { min-height: 78rpx; border-radius: 13rpx; background: transparent; color: var(--text-muted); font-size: 27rpx; font-weight: 650; }
+.parent-nav-item.active { background: var(--primary); color: #FFFFFF; box-shadow: 0 7rpx 18rpx rgba(24,58,54,.14); }
+.today-learning-card { margin: 20rpx 24rpx 24rpx; overflow: hidden; border-radius: 26rpx; background: #FFFFFF; border: 1rpx solid var(--border); box-shadow: 0 14rpx 38rpx rgba(24,58,54,.09); }
+.today-learning-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18rpx; padding: 30rpx 28rpx 22rpx; background: linear-gradient(145deg,#183A36,#2F6E61); color: #FFFFFF; }
+.today-eyebrow { display: block; color: #ACD4C9; font-size: 20rpx; font-weight: 760; letter-spacing: 2rpx; }
+.today-title { display: block; margin-top: 5rpx; font-size: 34rpx; font-weight: 760; }
+.today-summary { display: block; margin-top: 6rpx; color: #D4E9E3; font-size: 22rpx; }
+.today-percent { flex: none; width: 92rpx; height: 92rpx; display: flex; align-items: baseline; justify-content: center; padding-top: 17rpx; box-sizing: border-box; border: 2rpx solid rgba(255,255,255,.34); border-radius: 50%; color: #DDF1EB; font-size: 20rpx; }
+.today-percent .num { color: #FFFFFF; font-size: 37rpx; font-weight: 800; }
+.today-progress { height: 8rpx; background: #D5E6E0; }
+.today-progress-fill { height: 100%; background: #74B9A6; transition: width .22s var(--ease-out); }
+.today-task { width: 100%; min-height: 122rpx; display: flex; align-items: center; gap: 15rpx; padding: 20rpx 24rpx; border-bottom: 1rpx solid var(--hairline); border-radius: 0; background: #FFFFFF; text-align: left; }
+.today-task:active { background: var(--surface-muted); }
+.task-position { width: 58rpx; height: 58rpx; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 17rpx; background: var(--accent-soft); color: var(--accent-strong); font-size: 24rpx; font-weight: 800; }
+.task-position.done { background: var(--accent); color: #FFFFFF; }
+.task-position.pending { background: var(--warning-soft); color: var(--warning); }
+.task-copy { flex: 1; min-width: 0; }
+.task-title { display: block; color: var(--ink); font-size: 27rpx; font-weight: 720; }
+.task-desc { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 21rpx; line-height: 1.45; }
+.task-state { flex: none; color: var(--accent-strong); font-size: 21rpx; font-weight: 720; }
+.task-state.completed { color: var(--success); }
+.task-state.pending_review { color: var(--warning); }
+.today-footer { display: flex; justify-content: space-between; gap: 12rpx; padding: 18rpx 24rpx 20rpx; background: #F8FBFA; color: var(--text-muted); font-size: 20rpx; }
+.learning-error-strip { min-height: 92rpx; display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 24rpx; }
+.learning-error-strip button { min-height: 62rpx; padding: 8rpx 24rpx; border-radius: 12rpx; background: var(--accent-soft); color: var(--accent-strong); font-size: 23rpx; font-weight: 700; }
+.learning-shortcuts { padding-bottom: 26rpx; }
+.learning-shortcuts .section-title { display: flex; align-items: center; justify-content: space-between; }
+.shortcut-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; }
+.learning-shortcut { min-height: 146rpx; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 20rpx; border-radius: 18rpx; background: var(--surface-muted); color: var(--ink); font-size: 26rpx; font-weight: 700; text-align: left; }
+.learning-shortcut:active { transform: scale(.975); opacity: .88; }
+.shortcut-icon { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 8rpx; border-radius: 16rpx; background: var(--accent-soft); }
+.shortcut-desc { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 20rpx; font-weight: 500; }
 
 .status-card { flex-direction: row; align-items: center; gap: 20rpx; padding: 28rpx 30rpx; }
 .status-mark { width: 76rpx; height: 76rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); flex-shrink: 0; }

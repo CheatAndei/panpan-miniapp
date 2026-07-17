@@ -175,8 +175,7 @@ function downloadAndOpenPdf(fileUrl) {
   });
 }
 
-export function downloadPrivateFile(url) {
-  const fileUrl = assetUrl(url);
+function downloadPrivateByFileApi(fileUrl) {
   return new Promise((resolve, reject) => {
     uni.downloadFile({
       url: fileUrl,
@@ -189,6 +188,63 @@ export function downloadPrivateFile(url) {
       fail: (err) => reject(friendlyNetworkError(err, '私有文件下载失败'))
     });
   });
+}
+
+function responseHeader(headers, name) {
+  const target = String(name || '').toLowerCase();
+  const entry = Object.entries(headers || {}).find(([key]) => String(key).toLowerCase() === target);
+  return entry ? String(entry[1] || '') : '';
+}
+
+function privateImageExtension(headers) {
+  const type = responseHeader(headers, 'content-type').toLowerCase();
+  if (type.includes('png')) return '.png';
+  if (type.includes('webp')) return '.webp';
+  return '.jpg';
+}
+
+function downloadPrivateByRequest(fileUrl) {
+  const fs = uni.getFileSystemManager && uni.getFileSystemManager();
+  const userDataPath = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH)
+    || (uni.env && uni.env.USER_DATA_PATH)
+    || '';
+  if (!fs || !userDataPath) return Promise.reject({ error: '当前环境无法读取私有照片' });
+
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: fileUrl,
+      method: 'GET',
+      timeout: 15000,
+      header: authHeader(),
+      responseType: 'arraybuffer',
+      success: (res) => {
+        if (res.statusCode === 401) clearExpiredSession();
+        if (res.statusCode !== 200 || !res.data) {
+          const message = res.statusCode === 404 ? '照片文件不存在，请让家长重新提交' : '私有照片读取失败';
+          return reject({ error: message, statusCode: res.statusCode });
+        }
+        const filePath = `${userDataPath}/panpan-private-${Date.now()}-${Math.random().toString(16).slice(2)}${privateImageExtension(res.header)}`;
+        fs.writeFile({
+          filePath,
+          data: res.data,
+          success: () => resolve(filePath),
+          fail: (err) => reject(friendlyNetworkError(err, '私有照片写入失败'))
+        });
+      },
+      fail: (err) => reject(friendlyNetworkError(err, '私有照片读取失败'))
+    });
+  });
+}
+
+export async function downloadPrivateFile(url) {
+  const fileUrl = assetUrl(url);
+  try {
+    // 真机只需配置 request 合法域名即可工作，避免 downloadFile 域名配置遗漏导致整页照片不可读。
+    return await downloadPrivateByRequest(fileUrl);
+  } catch (requestError) {
+    try { return await downloadPrivateByFileApi(fileUrl); }
+    catch { throw requestError; }
+  }
 }
 
 export function openPdfDocument(url) {
