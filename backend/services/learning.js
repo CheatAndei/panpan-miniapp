@@ -6,9 +6,10 @@ const { practiceDateAt } = require('./practice');
 const TASKS = {
   warmup: { title: '每日 5 题热身', count: 5, description: '短时启动，保持计算手感' },
   basics: { title: '计算基础', count: 10, description: '按当前学段巩固基础计算' },
+  weakness: { title: '薄弱点刷题', count: 4, description: '完成 4 道针对性练习即计入今日任务' },
   wrong: { title: '错题清零', count: 3, description: '同类题连续答对 2 次即掌握' },
   weekly: { title: '每周挑战', count: 12, description: '一组有梯度的综合计算' },
-  context: { title: '广州情境题', count: 8, description: '结合本地命题方向练习' },
+  context: { title: '广州真题大全', count: 8, description: '广州七年级上学期原卷与配套答案' },
   weekend: { title: '周末小测', count: 10, description: '用 10 题检查本周掌握情况' },
 };
 
@@ -160,10 +161,33 @@ function retryQuestions(db, studentId, battle, count, seed) {
   });
 }
 
+function mentalTypesForWeakness(questionType) {
+  const text = String(questionType || '');
+  if (/绝对值/.test(text)) return ['绝对值'];
+  if (/整式/.test(text)) return ['整式求值'];
+  if (/方程/.test(text)) return ['一元一次方程'];
+  if (/分数/.test(text)) return ['分数口算'];
+  if (/小数/.test(text)) return ['小数口算'];
+  if (/有理数|计算|口算/.test(text)) return ['有理数加减', '有理数混合'];
+  return [];
+}
+
+function weaknessQuestions(db, studentId, battle, count, seed) {
+  const wrongs = syncWrongSources(db, studentId).filter((item) => item.status === 'open');
+  const counts = new Map();
+  wrongs.forEach((item) => counts.set(item.question_type || '', (counts.get(item.question_type || '') || 0) + 1));
+  const preferred = [...counts.entries()]
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 2)
+    .flatMap(([type]) => mentalTypesForWeakness(type));
+  return mentalQuestions(battle, count, seed, [...new Set(preferred)]);
+}
+
 function questionsForTask(db, { studentId, battle, taskType, logicalDate }) {
   const config = TASKS[taskType];
   const seed = `${studentId}|${taskType}|${logicalDate}`;
   if (taskType === 'wrong') return retryQuestions(db, studentId, battle, config.count, seed);
+  if (taskType === 'weakness') return weaknessQuestions(db, studentId, battle, config.count, seed);
   if (taskType === 'basics') return practiceBankQuestions(db, battle, config.count, seed);
   if (taskType === 'context') return practiceBankQuestions(db, battle, config.count, seed, true);
   return mentalQuestions(battle, config.count, seed);
@@ -294,15 +318,27 @@ function todayOverview(db, { studentId, now = new Date() }) {
     LEFT JOIN practice_submissions ps ON ps.assignment_id=a.id
     WHERE s.id=? AND p.status='published' AND p.start_date<=? AND p.end_date>=?
     ORDER BY p.created_at DESC LIMIT 1`, [logicalDate, studentId, logicalDate, logicalDate]);
-  const fallbackThird = openWrongs > 0 ? 'wrong' : (Number(logicalDate.slice(-2)) % 2 ? 'weekly' : 'context');
-  const taskTypes = ['warmup', practice ? 'practice' : 'basics', fallbackThird];
+  const fallbackThird = openWrongs > 0 ? 'wrong' : 'weekly';
+  const taskTypes = [practice ? 'practice' : 'warmup', 'weakness', fallbackThird];
   const tasks = taskTypes.map((type, index) => {
     if (type === 'practice') {
-      const completed = Boolean(practice.reviewed_at || practice.submission_status === 'reviewed');
+      const completed = Boolean(practice.submission_status === 'submitted' || practice.submission_status === 'reviewed');
       return {
         key: 'practice', position: index + 1, title: practice.title || '老师每日练习',
         description: practice.submission_status === 'submitted' ? '已提交，等待老师批改' : '完成后拍照提交，由老师逐题复核',
         route: 'practice', status: completed ? 'completed' : (practice.submission_status === 'submitted' ? 'pending_review' : 'ready'),
+        completed,
+      };
+    }
+    if (type === 'weekly') {
+      const challenge = db.get(`SELECT sub.status FROM weekly_challenge_assignments a
+        LEFT JOIN weekly_challenge_submissions sub ON sub.assignment_id=a.id
+        WHERE a.student_id=? AND a.week_start=?`, [studentId, weekStartKey(now)]);
+      const completed = Boolean(challenge?.status === 'submitted' || challenge?.status === 'reviewed');
+      return {
+        key: 'weekly', position: index + 1, title: TASKS.weekly.title,
+        description: completed ? (challenge.status === 'reviewed' ? '老师已完成批阅' : '已提交，等待老师批阅') : '选择题、填空题或解答题，完成后拍照提交',
+        route: 'weekly_challenge', status: completed ? (challenge.status === 'reviewed' ? 'completed' : 'pending_review') : 'ready',
         completed,
       };
     }
@@ -342,10 +378,10 @@ function catalog(db, { studentId, now = new Date() }) {
     open_wrong_count: overview.stats.open_wrong_count,
     sections: [
       { type: 'warmup', ...TASKS.warmup, accent: 'mint' },
-      { type: 'basics', ...TASKS.basics, accent: 'blue' },
+      { type: 'weakness', ...TASKS.weakness, accent: 'blue' },
       { type: 'wrong', ...TASKS.wrong, title: overview.stats.open_wrong_count ? `错题清零 · ${overview.stats.open_wrong_count} 待掌握` : '错题清零 · 今日巩固', accent: 'amber' },
-      { type: 'weekly', ...TASKS.weekly, accent: 'navy' },
-      { type: 'context', ...TASKS.context, accent: 'rose' },
+      { type: 'weekly', ...TASKS.weekly, description: '选择题、填空题或解答题，每周完成一题并拍照提交', route: 'weekly_challenge', accent: 'navy' },
+      { type: 'exams', title: '广州真题大全', description: '按期中、期末、月考和年份查看原卷', route: 'exams', accent: 'rose' },
       { type: 'weekend', ...TASKS.weekend, accent: 'purple', locked: ![0, 6].includes(weekday), lock_text: '周末开放' },
       { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },
       { type: 'arena', title: '口算王', description: '20 题限时挑战与本周排行', route: 'arena', accent: 'gold' },

@@ -170,6 +170,18 @@ function compareAttempts(a, b) {
     || String(a.completed_at).localeCompare(String(b.completed_at));
 }
 
+const COMPOUND_SURNAMES = ['欧阳', '司马', '上官', '诸葛', '东方', '皇甫', '尉迟', '公孙', '慕容', '司徒'];
+function maskStudentName(value) {
+  const name = String(value || '').trim();
+  const chars = Array.from(name);
+  if (!chars.length) return '同学';
+  if (chars.length === 1) return `${chars[0]}X`;
+  if (chars.length === 2) return `${chars[0]}X`;
+  const compound = COMPOUND_SURNAMES.find((surname) => name.startsWith(surname));
+  if (compound) return `${compound}X${chars.length > 3 ? chars[chars.length - 1] : ''}`;
+  return `${chars[0]}X${chars[chars.length - 1]}`;
+}
+
 function leaderboard(db, { studentId, battle, period = 'week', now = new Date() }) {
   if (!BATTLES[battle]) throw new Error('战场无效');
   if (!['week', 'history'].includes(period)) throw new Error('排行榜周期无效');
@@ -196,7 +208,8 @@ function leaderboard(db, { studentId, battle, period = 'week', now = new Date() 
   const ranked = [...best.values()].sort(compareAttempts).slice(0, 100).map((row, index) => ({
     rank: index + 1,
     student_id: row.student_id,
-    student_name: row.student_name,
+    student_name: Number(row.student_id) === Number(studentId) ? row.student_name : maskStudentName(row.student_name),
+    is_self: Number(row.student_id) === Number(studentId),
     score: Number(row.score),
     correct_count: Number(row.correct_count),
     total_questions: Number(row.total_questions),
@@ -226,5 +239,6 @@ module.exports = {
   speedBonus,
   shanghaiWeekStart,
   leaderboard,
+  maskStudentName,
   isJuniorStudent,
 };

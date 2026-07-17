@@ -26,6 +26,16 @@ function canAccessPrivateFile(db, user, file) {
     }
     return false;
   }
+  if (file.owner_type === 'weekly_challenge_submission') {
+    const owner = db.get(`SELECT sub.parent_id,a.student_id,COALESCE(s.teacher_id,c.teacher_id) teacher_id
+      FROM weekly_challenge_submissions sub JOIN weekly_challenge_assignments a ON a.id=sub.assignment_id
+      JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id WHERE sub.id=?`, [file.owner_id]);
+    if (!owner) return false;
+    if (user.role === 'teacher') return Number(owner.teacher_id) === Number(user.id);
+    if (user.role === 'parent') return Number(owner.parent_id) === Number(user.id)
+      && parentBoundStudent(db, user.id, Number(owner.student_id));
+    return false;
+  }
   if (!file.student_id) return false;
   if (file.owner_type === 'homework_submission') {
     const owner = db.get(`SELECT b.teacher_id,b.status FROM homework_submissions s

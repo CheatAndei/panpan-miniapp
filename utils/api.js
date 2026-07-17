@@ -277,6 +277,23 @@ export function openPdfDocument(url) {
   });
 }
 
+export function openRemoteDocument(url, fileType = 'docx') {
+  const fileUrl = assetUrl(url);
+  const normalizedType = ['pdf', 'doc', 'docx'].includes(String(fileType).toLowerCase()) ? String(fileType).toLowerCase() : 'docx';
+  return new Promise((resolve, reject) => {
+    uni.downloadFile({
+      url: fileUrl,
+      header: authHeader(),
+      success: (res) => {
+        if (res.statusCode === 401) clearExpiredSession();
+        if (res.statusCode !== 200 || !res.tempFilePath) return reject({ error: '试卷下载失败' });
+        uni.openDocument({ filePath: res.tempFilePath, fileType: normalizedType, showMenu: true, success: resolve, fail: reject });
+      },
+      fail: (err) => reject(friendlyNetworkError(err, '试卷下载失败')),
+    });
+  });
+}
+
 export const api = {
   get(path, data, options) { return request('GET', path, data, options); },
   post(path, data, options) { return request('POST', path, data, options); },
@@ -285,5 +302,6 @@ export const api = {
   upload(path, filePath, name) { return uploadFile(path, filePath, name); },
   downloadPrivate(url) { return downloadPrivateFile(url); },
   assetUrl,
-  openPdf(url) { return openPdfDocument(url); }
+  openPdf(url) { return openPdfDocument(url); },
+  openDocument(url, fileType) { return openRemoteDocument(url, fileType); }
 };

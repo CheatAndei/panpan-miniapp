@@ -72,7 +72,7 @@ const studentId = ref(0);
 const catalog = ref(null);
 const loading = ref(false);
 const error = ref('');
-const dailyTypes = new Set(['warmup', 'basics', 'wrong', 'practice']);
+const dailyTypes = new Set(['warmup', 'weakness', 'wrong', 'practice']);
 const dailySections = computed(() => (catalog.value?.sections || []).filter((item) => dailyTypes.has(item.type)));
 const challengeSections = computed(() => (catalog.value?.sections || []).filter((item) => !dailyTypes.has(item.type)));
 
@@ -102,6 +102,8 @@ function openSection(item) {
   if (item.locked) return uni.showToast({ title: item.lock_text || '暂未开放', icon: 'none' });
   if (item.route === 'practice') return uni.navigateTo({ url: `/pages/practice-parent/index?student_id=${studentId.value}` });
   if (item.route === 'arena') return uni.navigateTo({ url: `/pages/mental-arena/index?student_id=${studentId.value}` });
+  if (item.route === 'weekly_challenge') return uni.navigateTo({ url: `/pages/weekly-challenge/index?student_id=${studentId.value}` });
+  if (item.route === 'exams') return uni.navigateTo({ url: `/pages/exam-library/index?student_id=${studentId.value}` });
   if (!item.type) return;
   uni.navigateTo({ url: `/pages/learning-session/index?student_id=${studentId.value}&type=${item.type}` });
 }

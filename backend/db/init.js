@@ -159,6 +159,9 @@ function runMigrations() {
   ensureColumn('feedbacks', 'notes_pdf_url', 'TEXT');
   ensureColumn('checkins', 'check_out_note', 'TEXT');
   ensureColumn('students', 'external_id', 'TEXT');
+  ensureColumn('classes', 'deleted_at', 'DATETIME');
+  ensureColumn('homework_batches', 'class_id', 'INTEGER REFERENCES classes(id)');
+  ensureColumn('practice_plans', 'topic_keys', "TEXT NOT NULL DEFAULT '[]'");
   ensureColumn('practice_questions', 'source_batch', 'TEXT');
   ensureColumn('practice_questions', 'source_title', 'TEXT');
   ensureColumn('practice_questions', 'source_url', 'TEXT');
@@ -168,6 +171,17 @@ function runMigrations() {
   ensureColumn('practice_questions', 'source_snapshot_sha256', 'TEXT');
   ensureColumn('practice_questions', 'content_sha256', 'TEXT');
   ensureColumn('practice_questions', 'copy_allowed', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('weekly_challenge_questions', 'source_key', 'TEXT');
+  _db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_challenge_source_key ON weekly_challenge_questions(source_key)');
+  _db.run('CREATE INDEX IF NOT EXISTS idx_classes_teacher_active ON classes(teacher_id, deleted_at)');
+  _db.run(`UPDATE practice_plans SET topic_keys='["rational_numbers","absolute_value","algebra","linear_equation"]'
+    WHERE topic_keys IS NULL OR trim(topic_keys)='' OR topic_keys='[]'`);
+  _db.run(`UPDATE homework_batches SET class_id=(
+      SELECT s.class_id FROM homework_submissions hs JOIN students s ON s.id=hs.student_id
+      WHERE hs.batch_id=homework_batches.id AND s.class_id IS NOT NULL LIMIT 1
+    ) WHERE class_id IS NULL`);
+  _db.run(`INSERT OR IGNORE INTO class_students(class_id, student_id)
+    SELECT class_id,id FROM students WHERE class_id IS NOT NULL`);
   const students = execSQL('SELECT id,external_id FROM students');
   for (const student of students) {
     if (!/^stu_[a-f0-9]{32}$/.test(String(student.external_id || ''))) {
@@ -228,6 +242,7 @@ async function initDB() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   _db.run(schema);
   runMigrations();
+  require('../services/weekly-challenge-seed').seedWeeklyChallenges(getDB());
   seedPracticeQuestions();
   seedGuangzhouPracticeQuestions();
   retireLegacyJuniorPracticeQuestions();

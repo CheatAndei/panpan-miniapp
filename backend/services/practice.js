@@ -7,6 +7,13 @@ const FIXED_GRADE = '初中';
 const FIXED_MODULE = '综合计算';
 const FIXED_DIFFICULTY = 3;
 const MODULES = { [FIXED_GRADE]: [FIXED_MODULE] };
+const TOPICS = Object.freeze({
+  rational_numbers: { label: '有理数运算', questionTypes: ['有理数加减', '有理数乘除', '有理数混合', '有理数巧算'] },
+  absolute_value: { label: '绝对值计算', questionTypes: ['绝对值计算'] },
+  algebra: { label: '整式化简与求值', questionTypes: ['整式化简', '整式求值'] },
+  linear_equation: { label: '一元一次方程', questionTypes: ['一元一次方程'] },
+});
+const DEFAULT_TOPIC_KEYS = Object.freeze(Object.keys(TOPICS));
 
 function practiceDateAt(value = new Date()) {
   const shanghai = new Date(new Date(value).getTime() + 8 * 60 * 60 * 1000);
@@ -30,6 +37,16 @@ function parseJson(value, fallback = []) {
   try { return JSON.parse(value || ''); } catch { return fallback; }
 }
 
+function normalizeTopicKeys(value) {
+  const source = Array.isArray(value) ? value : parseJson(value, []);
+  const unique = [...new Set(source.map(String).filter((key) => TOPICS[key]))];
+  return unique.length ? unique : [...DEFAULT_TOPIC_KEYS];
+}
+
+function questionTypesForTopics(topicKeys) {
+  return normalizeTopicKeys(topicKeys).flatMap((key) => TOPICS[key].questionTypes);
+}
+
 function deterministicSort(items, seed) {
   return [...items].sort((a, b) => {
     const ah = crypto.createHash('sha256').update(`${seed}|${a.signature}`).digest('hex');
@@ -51,9 +68,12 @@ function localityAwareSort(items, seed) {
 }
 
 function scopedQuestionPool(db, plan, setting, module = null) {
+  const questionTypes = questionTypesForTopics(plan.topic_keys);
+  const placeholders = questionTypes.map(() => '?').join(',');
   const sql = `SELECT * FROM practice_questions
-    WHERE grade_band=? AND subject=? AND module=? AND is_active=1`;
-  const params = [FIXED_GRADE, '数学', FIXED_MODULE];
+    WHERE grade_band=? AND subject=? AND module=? AND is_active=1
+      AND question_type IN (${placeholders})`;
+  const params = [FIXED_GRADE, '数学', FIXED_MODULE, ...questionTypes];
   return db.all(sql, params);
 }
 
@@ -289,7 +309,8 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
   response.set('Cache-Control', 'private, no-store');
   doc.pipe(response);
   writePdfText(doc, `${plan.title} · 初中计算打卡`, { size: 18, characters: 28 });
-  writePdfText(doc, `${dates[0]} 至 ${dates[dates.length - 1]}｜有理数 · 整式 · 一元一次方程`, { size: 10, color: '#536762' });
+  const topicLabel = normalizeTopicKeys(plan.topic_keys).map((key) => TOPICS[key].label).join(' · ');
+  writePdfText(doc, `${dates[0]} 至 ${dates[dates.length - 1]}｜${topicLabel}`, { size: 10, color: '#536762' });
 
   students.forEach((student) => {
     dates.forEach((date) => {
@@ -320,11 +341,15 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
 
 module.exports = {
   MODULES,
+  TOPICS,
+  DEFAULT_TOPIC_KEYS,
   FIXED_GRADE,
   FIXED_MODULE,
   FIXED_DIFFICULTY,
   practiceDateAt,
   dateRange,
+  normalizeTopicKeys,
+  questionTypesForTopics,
   generateAssignment,
   preGenerateDate,
   evaluateProgression,

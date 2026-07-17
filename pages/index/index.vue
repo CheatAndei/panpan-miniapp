@@ -58,7 +58,7 @@
           </view>
           <view class="action-item" @tap="navTo('/pages/teacher-classes/index')">
             <view class="action-icon action-groups"><pp-icon name="users" /></view>
-            <text>学习小组</text>
+            <text>小组管理</text>
           </view>
           <view class="action-item" @tap="navTo('/pages/teacher-schedule/index')">
             <view class="action-icon action-schedule"><pp-icon name="calendar" /></view>
@@ -92,21 +92,29 @@
         <button class="practice-todo-all" @tap="navTo('/pages/practice-teacher/index')">进入批改台</button>
       </view>
 
-      <view class="card">
-        <view class="section-title">
-          <text>学习小组</text>
-          <text class="card-hint" @tap="navTo('/pages/teacher-classes/index')">管理</text>
-        </view>
-        <pp-state v-if="teacherLoading && classes.length === 0" type="loading" title="正在整理工作台" />
-        <pp-state v-else-if="teacherError && classes.length === 0" type="error" title="工作台加载失败" :description="teacherError" action-text="重新加载" @action="loadTeacherData" />
-        <pp-state v-else-if="classes.length === 0" title="还没有学习小组" description="创建小组并添加学生后，即可开始排课。" action-text="新建小组" @action="navTo('/pages/teacher-classes/index')" />
-        <view v-for="c in classes" :key="c.id" class="class-item" @tap="navTo('/pages/teacher-classes/index')">
+      <view class="card class-history-card">
+        <view class="section-title class-history-head" @tap="teacherClassesExpanded=!teacherClassesExpanded">
           <view>
-            <text class="c-name">{{ c.name }}</text>
-            <text class="c-meta">{{ c.grade || '未设置年级' }} · {{ c.subject || '未设置科目' }}</text>
+            <text>学习小组历史查看</text>
+            <text class="class-history-summary">{{ classes.length }} 个现有小组 · 点击{{ teacherClassesExpanded ? '收起' : '展开' }}</text>
           </view>
-          <view class="class-tail"><text class="class-count num">{{ c.studentCount || 0 }}</text><text>人</text><pp-icon name="arrow" :size="34" /></view>
+          <view class="class-history-actions">
+            <text class="card-hint" @tap.stop="navTo('/pages/teacher-classes/index')">管理</text>
+            <text class="collapse-label">{{ teacherClassesExpanded ? '收起⌃' : '展开⌄' }}</text>
+          </view>
         </view>
+        <template v-if="teacherClassesExpanded">
+          <pp-state v-if="teacherLoading && classes.length === 0" type="loading" title="正在整理历史" />
+          <pp-state v-else-if="teacherError && classes.length === 0" type="error" title="历史加载失败" :description="teacherError" action-text="重新加载" @action="loadTeacherData" />
+          <pp-state v-else-if="classes.length === 0" title="还没有学习小组" description="创建小组并添加学生后，即可开始排课。" action-text="新建小组" @action="navTo('/pages/teacher-classes/index')" />
+          <view v-for="c in classes" :key="c.id" class="class-item" @tap="navTo('/pages/class-history/index?id='+c.id)">
+            <view>
+              <text class="c-name">{{ c.name }}</text>
+              <text class="c-meta">{{ c.grade || '未设置年级' }} · {{ c.subject || '未设置科目' }} · {{ c.feedback_count || 0 }} 条反馈</text>
+            </view>
+            <view class="class-tail"><text class="class-count num">{{ c.studentCount || 0 }}</text><text>人</text><pp-icon name="arrow" :size="34" /></view>
+          </view>
+        </template>
       </view>
 
       <view class="card practice-entry practice-entry-teacher" @tap="navTo('/pages/practice-teacher/index')">
@@ -115,6 +123,15 @@
           <text class="practice-entry-kicker">假期个性化练习</text>
           <text class="practice-entry-title">打卡计划与复核</text>
           <text class="practice-entry-desc">发布题目、查看上传、下载五日 PDF</text>
+        </view>
+        <pp-icon name="arrow" :size="34" />
+      </view>
+      <view class="card practice-entry teacher-tools-entry" @tap="navTo('/pages/teacher-tools/index')">
+        <view class="practice-entry-icon tools-entry-icon"><pp-icon name="book" :size="42" /></view>
+        <view class="practice-entry-copy">
+          <text class="practice-entry-kicker tools-entry-kicker">新增教学工具</text>
+          <text class="practice-entry-title">真题、周挑战与口算目标</text>
+          <text class="practice-entry-desc">集中查看原卷下载、答案申请、挑战批阅与真实冲榜目标</text>
         </view>
         <pp-icon name="arrow" :size="34" />
       </view>
@@ -130,9 +147,19 @@
       </view>
       <!-- 孩子卡片 -->
       <view class="parent-hero hero-navy" v-if="child">
-        <view class="eyebrow">{{ BRAND }}</view>
-        <view class="child-greeting">{{ greeting }}，{{ child.name }}家长</view>
-        <view class="child-class">{{ child.className }} · {{ childTeacherName }}</view>
+        <view class="parent-hero-grid">
+          <view class="parent-hero-copy">
+            <view class="eyebrow">{{ BRAND }}</view>
+            <view class="child-greeting">{{ greeting }}，{{ child.name }}家长</view>
+            <view class="child-class">{{ child.className }} · {{ childTeacherName }}</view>
+          </view>
+          <button class="mental-hero-mini" @tap="navTo('/pages/mental-arena/index?student_id='+child.id)">
+            <text class="mental-mini-kicker">口算王</text>
+            <text class="mental-mini-rank">{{ mentalSummary?.rank ? `本周第 ${mentalSummary.rank} 名` : '本周未上榜' }}</text>
+            <text class="mental-mini-goal" v-if="mentalSummary?.goal && mentalSummary.goal.remaining_score">距目标差 {{ mentalSummary.goal.remaining_score }} 分</text>
+            <text class="mental-mini-goal" v-else>{{ mentalSummary?.campaign?.reward_text || '前三名有奶茶红包' }}</text>
+          </button>
+        </view>
       </view>
 
       <view v-if="child" class="parent-section-nav" aria-label="家长端学习导航">
@@ -176,6 +203,13 @@
         <button @tap="loadParentData(child.id)">重试</button>
       </view>
 
+      <pp-homework-brief
+        v-if="child"
+        :content="feedbackHomework(latestFeedback)"
+        :date="latestFeedback?.class_date || ''"
+        :class-name="child.className || ''"
+      />
+
       <!-- 今日状态 -->
       <view class="card status-card" v-if="todayStatus">
         <view class="status-mark"><pp-icon :name="todayStatus.checkedIn ? 'check' : 'calendar'" :size="48" /></view>
@@ -209,13 +243,6 @@
         </view>
       </view>
 
-      <pp-homework-brief
-        v-if="child"
-        :content="feedbackHomework(latestFeedback)"
-        :date="latestFeedback?.class_date || ''"
-        :class-name="child.className || ''"
-      />
-
       <!-- 最新反馈 -->
       <view class="card">
         <view class="section-title" @tap="navTo('/pages/parent-feedback/index')">最新反馈</view>
@@ -235,15 +262,15 @@
       <view v-if="child" class="card learning-shortcuts">
         <view class="section-title">更多练习<text class="card-hint" @tap="navTo('/pages/learning-center/index?student_id='+child.id)">进入学习中心</text></view>
         <view class="shortcut-grid">
-          <button class="learning-shortcut" @tap="child&&navTo('/pages/practice-parent/index?student_id='+child.id)">
-            <view class="shortcut-icon"><pp-icon name="clipboard" :size="38" /></view>
-            <text class="practice-entry-title">每日打卡</text>
-            <text class="shortcut-desc">老师题单 · 拍照提交</text>
+          <button class="learning-shortcut" @tap="child&&navTo('/pages/weekly-challenge/index?student_id='+child.id)">
+            <view class="shortcut-icon"><pp-icon name="calendar" :size="38" /></view>
+            <text class="practice-entry-title">每周挑战</text>
+            <text class="shortcut-desc">三种题型 · 拍照提交</text>
           </button>
-          <button class="learning-shortcut" @tap="child&&navTo('/pages/mental-arena/index?student_id='+child.id)">
-            <view class="shortcut-icon"><pp-icon name="check" :size="38" /></view>
-            <text>口算王</text>
-            <text class="shortcut-desc">20 题限时挑战</text>
+          <button class="learning-shortcut" @tap="child&&navTo('/pages/exam-library/index?student_id='+child.id)">
+            <view class="shortcut-icon"><pp-icon name="book" :size="38" /></view>
+            <text>广州真题大全</text>
+            <text class="shortcut-desc">期中 · 期末 · 月考</text>
           </button>
         </view>
       </view>
@@ -362,6 +389,7 @@ onPullDownRefresh(async () => {
 });
 
 const classes = ref([]);
+const teacherClassesExpanded = ref(false);
 const pendingLeaves = ref(0);
 const pendingPracticeCount = ref(0);
 const pendingPracticeTodos = ref([]);
@@ -380,6 +408,7 @@ const showFbDetail = ref('');
 const profile = ref(null);
 const learningToday = ref(null);
 const learningError = ref('');
+const mentalSummary = ref(null);
 const notifyTpls = ref([]);
 const loginLoading = ref(false);
 const teacherLoading = ref(false);
@@ -449,6 +478,7 @@ function switchChild(k) {
   weekSchedules.value = [];
   learningToday.value = null;
   learningError.value = '';
+  mentalSummary.value = null;
   loadParentData(k.id);
 }
 async function sendFeedback() {
@@ -479,6 +509,7 @@ function taskStatusLabel(task) {
 function openTodayTask(task) {
   if (!child.value) return;
   if (task.route === 'practice') return navTo(`/pages/practice-parent/index?student_id=${child.value.id}`);
+  if (task.route === 'weekly_challenge') return navTo(`/pages/weekly-challenge/index?student_id=${child.value.id}`);
   if (task.route === 'session' && task.session_type) {
     return navTo(`/pages/learning-session/index?student_id=${child.value.id}&type=${task.session_type}`);
   }
@@ -574,17 +605,20 @@ async function loadParentData(childId) {
       latestFeedback.value = null;
       stuFeedback.value = null;
       learningToday.value = null;
+      mentalSummary.value = null;
       return false;
     }
     child.value = target;
 
-    const [schedParent, checkin, lv, fb, learning] = await Promise.all([
+    const [schedParent, checkin, lv, fb, learning, mental] = await Promise.all([
       api.get('/schedules/parent?student_id='+target.id),
       api.get('/checkins/today?student_id='+target.id),
       api.get('/leaves'),
       api.get('/feedbacks/latest?class_id='+target.class_id),
-      api.get('/learning/today?student_id='+target.id).catch(error => ({ __error: error }))
+      api.get('/learning/today?student_id='+target.id).catch(error => ({ __error: error })),
+      api.get('/mental-arena/summary?student_id='+target.id).catch(error => ({ __error: error }))
     ]);
+    mentalSummary.value = mental.__error ? null : mental;
     if (learning.__error) {
       learningToday.value = null;
       learningError.value = learning.__error?.error || '学习任务加载失败';
@@ -618,6 +652,7 @@ async function loadParentData(childId) {
     return true;
   } catch (e) {
     parentError.value = e?.error || '请检查网络后重试';
+    mentalSummary.value = null;
     logError('loadParentData', e);
     return false;
   } finally {
@@ -776,6 +811,7 @@ function scheduleLabel(sc) {
 .fb-thumb { width: 150rpx; height: 150rpx; border-radius: 8rpx; }
 .practice-entry { display:flex; align-items:center; gap:18rpx; overflow:hidden; }
 .practice-entry-teacher { margin-top:20rpx; background:linear-gradient(135deg,#F2F8F5,#FFFFFF); border-color:#CFE2DB; }
+.teacher-tools-entry{margin-top:14rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFF9E8,#FFFFFF)}.tools-entry-icon{background:#F5B83D}.tools-entry-kicker{color:#926300}
 .practice-entry-icon { width:72rpx; height:72rpx; flex:none; border-radius:22rpx; display:flex; align-items:center; justify-content:center; background:var(--accent-soft); color:var(--accent-strong); }
 .practice-entry-copy { flex:1; min-width:0; }
 .practice-entry-kicker { display:block; margin-bottom:2rpx; color:var(--accent-strong); font-size:20rpx; font-weight:700; letter-spacing:1rpx; }
@@ -950,4 +986,6 @@ function scheduleLabel(sc) {
 .modal { padding: 32rpx 30rpx calc(28rpx + env(safe-area-inset-bottom)); }
 .fb-textarea { border-color: #D5E3DE; border-radius: 14rpx; background: #FAFCFB; }
 .footer { color: var(--faint); padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); }
+.class-history-card{padding:0;overflow:hidden}.class-history-head{min-height:104rpx;margin:0;padding:24rpx 28rpx;box-sizing:border-box}.class-history-summary{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx;font-weight:450}.class-history-actions{display:flex;align-items:center;gap:18rpx}.collapse-label{color:var(--accent-strong);font-size:22rpx;font-weight:700}.class-history-card .class-item{margin:0 28rpx}.class-history-card .class-item:last-child{margin-bottom:18rpx}
+.parent-hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 208rpx;align-items:center;gap:20rpx}.parent-hero-copy{min-width:0}.mental-hero-mini{min-height:150rpx;margin:0;padding:18rpx 16rpx;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:1rpx solid #E5C975;border-radius:20rpx;background:linear-gradient(145deg,#FFF8DB,#FFFFFF);box-shadow:0 12rpx 28rpx rgba(142,99,12,.12);text-align:left;animation:mental-enter .5s var(--ease-out) both}.mental-hero-mini::after{border:0}.mental-hero-mini:active{transform:scale(.97)}.mental-mini-kicker{color:#926300;font-size:20rpx;font-weight:850;letter-spacing:2rpx}.mental-mini-rank{display:block;margin-top:5rpx;color:#3F310D;font-size:27rpx;font-weight:820}.mental-mini-goal{display:block;margin-top:5rpx;color:#82631D;font-size:19rpx;line-height:1.35}@keyframes mental-enter{from{opacity:0;transform:translateY(12rpx) scale(.97)}to{opacity:1;transform:none}}@media (max-width:360px){.parent-hero-grid{grid-template-columns:1fr}.mental-hero-mini{min-height:104rpx}.child-greeting{font-size:36rpx}}
 </style>

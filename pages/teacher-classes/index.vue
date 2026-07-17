@@ -55,6 +55,9 @@
       </view>
       <view v-else class="empty-sm">暂无学生</view>
       <button class="btn-add-stu" @tap="openAddStu(c)"><pp-icon name="plus" :size="34" />添加学生</button>
+      <button class="btn-transfer-stu" :disabled="!c._students.length || classes.length<2" @tap="openTransfer(c)">
+        <pp-icon name="users" :size="32" />迁移学生
+      </button>
     </view>
   </view>
 
@@ -117,6 +120,28 @@
       <button class="btn-cancel" @tap="showStu=false">取消</button>
     </view>
   </view>
+
+  <!-- 学生迁移弹窗 -->
+  <view v-if="showTransfer" class="modal-mask" @tap="closeTransfer">
+    <view class="modal" @tap.stop>
+      <view class="modal-title">迁移学生</view>
+      <view class="transfer-note">迁移只改变学生当前学习小组，历史反馈、作业、错题、签到和家长绑定都会保留。</view>
+      <text class="field-label">从 {{ activeClass?.name }} 迁出</text>
+      <picker :range="activeClass?._students || []" range-key="name" :value="transferStudentIndex" @change="selectTransferStudent">
+        <view class="input picker-input">{{ selectedTransferStudent?.name || '选择学生' }}<text>›</text></view>
+      </picker>
+      <text class="field-label">迁入学习小组</text>
+      <picker :range="transferTargets" range-key="name" :value="transferTargetIndex" @change="selectTransferTarget">
+        <view class="input picker-input">{{ selectedTransferTarget?.name || '选择目标学习小组' }}<text>›</text></view>
+      </picker>
+      <text class="field-label">迁移原因（选填）</text>
+      <input v-model="transferForm.reason" class="input" maxlength="120" placeholder="如：暑期转入新班" />
+      <button class="btn-primary" :disabled="savingTransfer || !selectedTransferStudent || !selectedTransferTarget" @tap="transferStudent">
+        {{ savingTransfer ? '迁移中…' : '确认迁移并保留历史' }}
+      </button>
+      <button class="btn-cancel" @tap="closeTransfer">取消</button>
+    </view>
+  </view>
 </view>
 </template>
 
@@ -133,12 +158,13 @@ export default {
     return {
       classes: [], totalStudents: 0, loading: false, error:'',
       grades, subjects,
-      showAddClass: false, showStu: false,
+      showAddClass: false, showStu: false, showTransfer: false,
       activeClass: null,
       cForm: { name:'', grade:'', subject:'' }, editingId: null,
       sForm: { name:'', level:'', traits: new Set() },
       cats: PERSONALITY_CATEGORIES,
-      traitOpen: {}, savingClass:false, savingStudent:false
+      traitOpen: {}, savingClass:false, savingStudent:false, savingTransfer:false,
+      transferForm:{student_id:'',target_class_id:'',reason:''}
     };
   },
   onShow() { this.loadData(); },
@@ -209,6 +235,38 @@ export default {
       catch(e) { toastError(e, '删除失败'); }
     },
     openAddStu(c) { this.activeClass=c; this.sForm={name:'',gender:'boy',level:'',traits:new Set()}; this.traitOpen={}; this.showStu=true; },
+    openTransfer(c) {
+      if (!c._students.length) return uni.showToast({ title:'该小组没有可迁移学生', icon:'none' });
+      const target=this.classes.find(item=>Number(item.id)!==Number(c.id));
+      if (!target) return uni.showToast({ title:'请先创建另一个学习小组', icon:'none' });
+      this.activeClass=c;
+      this.transferForm={student_id:c._students[0].id,target_class_id:target.id,reason:''};
+      this.showTransfer=true;
+    },
+    closeTransfer(){if(this.savingTransfer)return;this.showTransfer=false;this.transferForm={student_id:'',target_class_id:'',reason:''};},
+    selectTransferStudent(event){this.transferForm.student_id=this.activeClass?._students[Number(event.detail.value)]?.id||'';},
+    selectTransferTarget(event){this.transferForm.target_class_id=this.transferTargets[Number(event.detail.value)]?.id||'';},
+    async transferStudent(){
+      if(this.savingTransfer||!this.selectedTransferStudent||!this.selectedTransferTarget)return;
+      const confirmed=await confirmAction({
+        title:'确认迁移学生',
+        content:`将 ${this.selectedTransferStudent.name} 从“${this.activeClass.name}”迁移到“${this.selectedTransferTarget.name}”？历史数据和家长绑定会保留。`,
+        confirmText:'确认迁移'
+      });
+      if(!confirmed)return;
+      this.savingTransfer=true;
+      try{
+        await api.post(`/students/${this.selectedTransferStudent.id}/transfer`,{
+          target_class_id:this.selectedTransferTarget.id,
+          reason:this.transferForm.reason.trim()
+        });
+        this.showTransfer=false;
+        this.transferForm={student_id:'',target_class_id:'',reason:''};
+        await this.loadData();
+        uni.showToast({title:'学生已迁移',icon:'success'});
+      }catch(e){toastError(e,'迁移失败');}
+      finally{this.savingTransfer=false;}
+    },
     toggleCat(name){ this.traitOpen={...this.traitOpen,[name]:!this.traitOpen[name]}; },
     countCat(cat){ return cat.traits.filter(t=>this.sForm.traits.has(t)).length; },
     parentCount(s){return Number(s.parent_count||0);},
@@ -256,6 +314,11 @@ export default {
     }
   },
   computed:{
+    transferTargets(){return this.classes.filter(item=>Number(item.id)!==Number(this.activeClass?.id));},
+    selectedTransferStudent(){return this.activeClass?._students?.find(item=>Number(item.id)===Number(this.transferForm.student_id))||null;},
+    selectedTransferTarget(){return this.transferTargets.find(item=>Number(item.id)===Number(this.transferForm.target_class_id))||null;},
+    transferStudentIndex(){return Math.max(0,(this.activeClass?._students||[]).findIndex(item=>Number(item.id)===Number(this.transferForm.student_id)));},
+    transferTargetIndex(){return Math.max(0,this.transferTargets.findIndex(item=>Number(item.id)===Number(this.transferForm.target_class_id)));},
     displayCats(){
       const used=new Set();
       return this.cats.map(cat=>({
@@ -327,6 +390,7 @@ export default {
 .btn-xs.share{color:#2F6E61}
 .btn-xs.del { color:#C75D54; }
 .btn-add-stu { margin:10rpx 28rpx 26rpx; padding:16rpx; font-size:24rpx; background:#F7FAF8; color:#183A36; border:1rpx solid #DDE8E4; border-radius:12rpx; width:auto; }
+.btn-transfer-stu{margin:-12rpx 28rpx 26rpx;padding:16rpx;font-size:24rpx;background:#FFF9EA;color:#815E18;border:1rpx solid #E8D4A3;border-radius:12rpx;width:auto}.btn-transfer-stu[disabled]{opacity:.42}.btn-add-stu::after,.btn-transfer-stu::after{border:0}.transfer-note{margin-bottom:22rpx;padding:18rpx;border-radius:14rpx;background:#EEF7F3;color:#46645D;font-size:23rpx;line-height:1.6}.picker-input{display:flex;align-items:center;justify-content:space-between}
 .empty-sm { text-align:center; color:#7C8C87; padding:28rpx; font-size:24rpx; }
 
 .create-wrap { padding: 8rpx 24rpx 0; }

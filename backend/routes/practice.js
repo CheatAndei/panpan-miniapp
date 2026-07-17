@@ -3,7 +3,8 @@ const { getDB } = require('../db/init');
 const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsClass, parentBoundStudent } = require('../utils/scope');
 const {
-  MODULES, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
+  MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
+  normalizeTopicKeys, questionTypesForTopics,
   practiceDateAt, dateRange, generateAssignment, preGenerateDate, evaluateProgression, generatePlanPdf,
 } = require('../services/practice');
 const {
@@ -41,13 +42,24 @@ function validatePlan(db, teacherId, body) {
   const difficulty = FIXED_DIFFICULTY;
   const targetMinutes = Number(body.target_minutes || 20);
   if (!Number.isFinite(targetMinutes) || targetMinutes < 18 || targetMinutes > 22) errors.push('目标时长应为 18-22 分钟');
-  const types = [];
+  const hasTopicSelection = Object.prototype.hasOwnProperty.call(body, 'topic_keys');
+  const requestedTopics = hasTopicSelection
+    ? (Array.isArray(body.topic_keys) ? body.topic_keys.map(String) : [])
+    : [...DEFAULT_TOPIC_KEYS];
+  const invalidTopics = requestedTopics.filter((key) => !TOPICS[key]);
+  if (hasTopicSelection && !requestedTopics.length) errors.push('请至少选择一个计算模块');
+  if (invalidTopics.length) errors.push('包含无效的计算模块');
+  const topicKeys = requestedTopics.length && !invalidTopics.length
+    ? [...new Set(requestedTopics)] : [...DEFAULT_TOPIC_KEYS];
+  const types = questionTypesForTopics(topicKeys);
   let count = 0;
   let guangzhouCount = 0;
   if (MODULES[grade]?.includes(module)) {
-    let sql = `SELECT template_key,estimated_seconds,source_region FROM practice_questions
-      WHERE grade_band=? AND subject='数学' AND module=? AND is_active=1`;
-    const params = [grade, module];
+    const placeholders = types.map(() => '?').join(',');
+    let sql = `SELECT template_key,estimated_seconds,source_region,question_type FROM practice_questions
+      WHERE grade_band=? AND subject='数学' AND module=? AND is_active=1
+      AND question_type IN (${placeholders})`;
+    const params = [grade, module, ...types];
     const candidates = db.all(sql, params);
     count = candidates.length;
     guangzhouCount = candidates.filter((item) => item.source_region === '广州').length;
@@ -62,7 +74,7 @@ function validatePlan(db, teacherId, body) {
     }
     if (availableSeconds < targetMinutes * 60 * 0.9) errors.push('初中计算题库不足 18 分钟，请联系管理员补充题库');
   }
-  return { errors, dates, classId, grade, module, difficulty, targetMinutes, types, questionCount: count, guangzhouQuestionCount: guangzhouCount };
+  return { errors, dates, classId, grade, module, difficulty, targetMinutes, types, topicKeys, questionCount: count, guangzhouQuestionCount: guangzhouCount };
 }
 
 router.get('/catalog', auth, teacherOnly, (req, res) => {
@@ -70,7 +82,14 @@ router.get('/catalog', auth, teacherOnly, (req, res) => {
     SUM(CASE WHEN source_region='广州' THEN 1 ELSE 0 END) guangzhou_question_count FROM practice_questions
     WHERE is_active=1 AND grade_band=? AND module=?
     GROUP BY grade_band,module,question_type ORDER BY grade_band,module,question_type`, [FIXED_GRADE, FIXED_MODULE]);
-  res.json({ modules: MODULES, scopes: rows });
+  const topics = Object.entries(TOPICS).map(([key, config]) => ({
+    key,
+    label: config.label,
+    question_types: config.questionTypes,
+    question_count: rows.filter((row) => config.questionTypes.includes(row.question_type))
+      .reduce((sum, row) => sum + Number(row.question_count || 0), 0),
+  }));
+  res.json({ modules: MODULES, topics, scopes: rows });
 });
 
 router.post('/plans/preview', auth, teacherOnly, (req, res) => {
@@ -83,6 +102,8 @@ router.post('/plans/preview', auth, teacherOnly, (req, res) => {
     errors: validated.errors,
     days: validated.dates.length,
     students,
+    topic_keys: validated.topicKeys,
+    topic_labels: validated.topicKeys.map((key) => TOPICS[key].label),
     available_questions: validated.questionCount,
     guangzhou_questions: validated.guangzhouQuestionCount,
     estimated_assignments: validated.dates.length * students,
@@ -102,10 +123,10 @@ router.post('/plans', auth, teacherOnly, (req, res) => {
 
   const plan = db.transaction(() => {
     const created = db.run(`INSERT INTO practice_plans
-      (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,question_types,difficulty,target_seconds,auto_advance,status)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+      (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,question_types,topic_keys,difficulty,target_seconds,auto_advance,status)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
       req.user.id, value.classId, String(body.title || '初中计算每日打卡').trim().slice(0, 60), body.start_date,
-      body.end_date, value.grade, '数学', value.module, JSON.stringify(value.types), value.difficulty,
+      body.end_date, value.grade, '数学', value.module, JSON.stringify(value.types), JSON.stringify(value.topicKeys), value.difficulty,
       Math.round(value.targetMinutes * 60), 0, 'published',
     ]);
     for (const student of students) {
@@ -135,7 +156,11 @@ router.get('/plans', auth, teacherOnly, (req, res) => {
     (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id AND ps.status='submitted') pending_submission_count
     FROM practice_plans p JOIN classes c ON c.id=p.class_id
     WHERE p.teacher_id=? ORDER BY p.created_at DESC LIMIT 50`, [req.user.id]);
-  res.json({ plans: plans.map((plan) => ({ ...plan, question_types: JSON.parse(plan.question_types || '[]') })) });
+  res.json({ plans: plans.map((plan) => ({
+    ...plan,
+    question_types: JSON.parse(plan.question_types || '[]'),
+    topic_keys: normalizeTopicKeys(plan.topic_keys),
+  })) });
 });
 
 router.get('/todos', auth, teacherOnly, (req, res) => {

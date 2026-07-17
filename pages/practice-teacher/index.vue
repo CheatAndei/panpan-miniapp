@@ -38,7 +38,19 @@
 
       <view class="fixed-scope">
         <text class="fixed-scope-title">固定题库 · 初中计算</text>
-        <text class="fixed-scope-copy">有理数、绝对值、整式化简与求值、一元一次方程。统一训练层级，无需选择难度。</text>
+        <text class="fixed-scope-copy">按学生当前进度勾选模块；例如尚未学习方程时，可暂时取消方程。</text>
+        <view class="topic-grid">
+          <button v-for="topic in topics" :key="topic.key"
+            :class="['topic-option',{selected:form.topic_keys.includes(topic.key)}]"
+            @tap="toggleTopic(topic.key)">
+            <text class="topic-check">{{ form.topic_keys.includes(topic.key) ? '✓' : '' }}</text>
+            <view class="topic-copy">
+              <text class="topic-name">{{ topic.label }}</text>
+              <text class="topic-count">题库 {{ topic.question_count }} 题</text>
+            </view>
+          </button>
+        </view>
+        <text class="topic-help">已选 {{ form.topic_keys.length }} / {{ topics.length }} 类，至少保留一类</text>
       </view>
 
       <view class="grid-two">
@@ -58,7 +70,7 @@
 
       <view v-if="preview" class="preview-box">
         <text class="preview-title">{{ preview.students }} 名学生 · {{ preview.days }} 天</text>
-        <text class="preview-copy">固定计算题库 {{ preview.available_questions }} 题；每天按当天题单生成，标准答案仅在教师复核区显示。</text>
+        <text class="preview-copy">{{ (preview.topic_labels||[]).join('、') }} · 可用 {{ preview.available_questions }} 题；标准答案仅在教师复核区显示。</text>
       </view>
       <view class="action-row">
         <button class="secondary-btn" :disabled="busy" @tap="previewPlan">预览范围</button>
@@ -194,6 +206,7 @@ function dateText(offset = 0) {
 }
 
 const classes = ref([]);
+const topics = ref([]);
 const plans = ref([]);
 const todos = ref([]);
 const todoCount = ref(0);
@@ -209,6 +222,7 @@ const requestedSubmissionId = ref('');
 const form = reactive({
   title: '初中计算打卡', class_id: '', grade_band: '初中', module: '综合计算', difficulty: 3,
   start_date: dateText(0), end_date: dateText(4), target_minutes: 20, auto_advance: false, question_types: [],
+  topic_keys: ['rational_numbers', 'absolute_value', 'algebra', 'linear_equation'],
 });
 
 const selectedClass = computed(() => classes.value.find((item) => Number(item.id) === Number(form.class_id)));
@@ -224,10 +238,12 @@ onShow(() => loadBase());
 
 async function loadBase() {
   try {
-    const [classData, planData, todoData] = await Promise.all([
-      api.get('/classes'), api.get('/practice/plans'), api.get('/practice/todos?limit=20'),
+    const [classData, planData, todoData, catalogData] = await Promise.all([
+      api.get('/classes'), api.get('/practice/plans'), api.get('/practice/todos?limit=20'), api.get('/practice/catalog'),
     ]);
     classes.value = classData.classes || [];
+    topics.value = catalogData.topics || [];
+    if (!form.topic_keys.length) form.topic_keys = topics.value.map((item) => item.key);
     if (!form.class_id && classes.value[0]) form.class_id = classes.value[0].id;
     plans.value = planData.plans || [];
     todos.value = todoData.todos || [];
@@ -263,6 +279,14 @@ async function openTodo(item) {
 }
 
 function selectClass(event) { form.class_id = classes.value[Number(event.detail.value)]?.id || ''; preview.value = null; }
+function toggleTopic(key) {
+  const index = form.topic_keys.indexOf(key);
+  if (index >= 0) {
+    if (form.topic_keys.length === 1) return uni.showToast({ title: '至少保留一个计算模块', icon: 'none' });
+    form.topic_keys.splice(index, 1);
+  } else form.topic_keys.push(key);
+  preview.value = null;
+}
 async function previewPlan() {
   busy.value = true;
   preview.value = null;
@@ -432,6 +456,7 @@ async function downloadPdf(item, startDate = item.start_date) {
 .card{margin-bottom:20rpx;padding:28rpx;background:#fff;border:1rpx solid var(--border);border-radius:22rpx;box-shadow:var(--shadow-sm)}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22rpx}.section-title{color:var(--ink);font-size:30rpx;font-weight:730}.step-mark{color:var(--accent);font-size:20rpx;letter-spacing:1rpx}.field-label{display:block;margin:20rpx 0 9rpx;color:var(--ink);font-size:24rpx;font-weight:650}.field{box-sizing:border-box;width:100%;min-height:88rpx;padding:0 22rpx;border:1rpx solid var(--border);border-radius:14rpx;background:var(--surface-muted);color:var(--ink);font-size:27rpx}.picker-field{display:flex;align-items:center;justify-content:space-between}.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:16rpx}.switch-row{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-top:24rpx;padding:20rpx;border-radius:14rpx;background:var(--surface-muted)}.switch-title{display:block;color:var(--ink);font-size:25rpx;font-weight:650}.switch-help{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx;line-height:1.45}.preview-box{margin-top:22rpx;padding:20rpx;border-left:6rpx solid var(--accent);border-radius:12rpx;background:var(--accent-soft)}.preview-title{display:block;color:var(--accent-strong);font-size:26rpx;font-weight:720}.preview-copy{display:block;margin-top:7rpx;color:var(--ink);font-size:22rpx;line-height:1.55}.action-row{display:grid;grid-template-columns:1fr 1.4fr;gap:14rpx;margin-top:24rpx}.primary-btn,.secondary-btn,.save-btn{min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:15rpx;font-size:27rpx;font-weight:700}.primary-btn,.save-btn{background:var(--primary);color:#fff}.secondary-btn{background:#fff;color:var(--primary);border:1rpx solid var(--primary)}button::after{border:0}button[disabled]{opacity:.42}
 .todo-card{border-color:#E8C879;background:linear-gradient(135deg,#FFFBF0,#FFFFFF)}.todo-summary{display:block;margin-top:7rpx;color:var(--text-muted);font-size:22rpx}.todo-count{min-width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;border-radius:20rpx;font-size:27rpx;font-weight:800}.todo-count.pending{background:#F5B83D;color:#493000}.todo-count.done{background:var(--accent-soft);color:var(--accent-strong)}.todo-row{display:flex;align-items:center;gap:16rpx;padding:18rpx 0;border-top:1rpx solid #F0E3C4}.todo-copy{flex:1;min-width:0}.todo-name{display:block;color:var(--ink);font-size:27rpx;font-weight:720}.todo-meta{display:block;margin-top:4rpx;overflow:hidden;color:var(--text-muted);font-size:21rpx;text-overflow:ellipsis;white-space:nowrap}.review-now-btn,.plan-review-btn{flex:none;min-height:72rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 24rpx;border-radius:14rpx;background:#F5B83D;color:#493000;font-size:24rpx;font-weight:800}.plan-actions{display:flex;flex-direction:column;align-items:stretch;gap:10rpx}.plan-review-btn{min-height:64rpx;padding:0 16rpx;font-size:21rpx}
 .fixed-scope{margin-top:22rpx;padding:22rpx;border-radius:16rpx;background:var(--accent-soft);border:1rpx solid #CFE5DE}.fixed-scope-title{display:block;color:var(--accent-strong);font-size:27rpx;font-weight:720}.fixed-scope-copy{display:block;margin-top:8rpx;color:var(--ink);font-size:23rpx;line-height:1.6}
+.topic-grid{display:grid;grid-template-columns:1fr 1fr;gap:12rpx;margin-top:18rpx}.topic-option{min-height:94rpx;margin:0;padding:14rpx;display:flex;align-items:center;gap:12rpx;border:1rpx solid #C9DDD7;border-radius:14rpx;background:rgba(255,255,255,.7);text-align:left}.topic-option.selected{border-color:var(--primary);background:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.08)}.topic-check{width:34rpx;height:34rpx;display:flex;align-items:center;justify-content:center;flex:none;border:2rpx solid #9BB9B0;border-radius:9rpx;color:#fff;font-size:22rpx;font-weight:800}.topic-option.selected .topic-check{border-color:var(--primary);background:var(--primary)}.topic-copy{min-width:0}.topic-name{display:block;color:var(--ink);font-size:23rpx;font-weight:700;line-height:1.35}.topic-count{display:block;margin-top:3rpx;color:var(--text-muted);font-size:19rpx}.topic-help{display:block;margin-top:13rpx;color:var(--accent-strong);font-size:20rpx}
 .type-chips{display:flex;gap:12rpx;flex-wrap:wrap}.type-chip{min-height:88rpx;margin:0;padding:0 22rpx;border:1rpx solid var(--border);border-radius:999rpx;background:#fff;color:var(--text-muted);font-size:23rpx}.type-chip.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);font-weight:680}
 .plan-row{display:flex;align-items:center;gap:16rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.plan-row:last-child{border-bottom:0}.plan-row.active{margin:0 -12rpx;padding:22rpx 12rpx;border-radius:14rpx;background:var(--accent-soft)}.plan-main{flex:1;min-width:0}.plan-name{display:block;color:var(--ink);font-size:27rpx;font-weight:700}.plan-meta{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx;line-height:1.4}.pdf-btn,.photo-btn{flex:none;min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:12rpx;background:#EDF4F2;color:var(--accent-strong);font-size:23rpx;font-weight:650}
 .queue-bar{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-bottom:18rpx;padding:18rpx 20rpx;border-radius:16rpx;background:var(--surface-muted)}.queue-title{display:block;color:var(--ink);font-size:25rpx;font-weight:700}.queue-meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx}.queue-actions{display:flex;gap:12rpx}.queue-btn{min-width:118rpx;min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 16rpx;border-radius:12rpx;background:#fff;color:var(--accent-strong);font-size:22rpx;font-weight:650}.queue-btn[disabled]{opacity:.38}

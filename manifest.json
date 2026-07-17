@@ -2,8 +2,8 @@
     "name" : "番番记录",
     "appid" : "wx77f8ea684b6420ca",
     "description" : "番番记录 · 课堂记录与家校反馈助手",
-    "versionName" : "1.4.0",
-    "versionCode" : "140",
+    "versionName" : "1.5.0",
+    "versionCode" : "150",
     "mp-weixin" : {
         "appid" : "wx77f8ea684b6420ca",
         "setting" : {

@@ -16,14 +16,16 @@ test('每日打卡家长教师页面已注册', () => {
   assert.match(pages, /pages\/practice-teacher\/index/);
 });
 
-test('首页按角色进入每日打卡与打卡计划', () => {
+test('首页按角色进入今日专属练习与打卡计划', () => {
   assert.match(home, /pages\/practice-parent\/index\?student_id=/);
-  assert.match(home, /<text class="practice-entry-title">每日打卡<\/text>/);
+  assert.match(home, /learningToday\.tasks/);
+  assert.match(home, /task\.route === 'practice'/);
+  assert.match(home, /今日学习任务/);
   assert.match(home, /pages\/practice-teacher\/index/);
   assert.match(home, /打卡计划与复核/);
   const parentBranch = home.indexOf('<!-- 家长端 -->');
   assert.ok(home.indexOf("navTo('/pages/practice-teacher/index')") < parentBranch, '教师打卡入口必须位于教师分支');
-  assert.ok(home.indexOf("navTo('/pages/practice-parent/index?student_id='+child.id)") > parentBranch, '家长每日打卡入口必须位于家长分支');
+  assert.ok(home.indexOf("if (task.route === 'practice')") > parentBranch, '家长每日练习入口必须位于家长分支');
   assert.doesNotMatch(home, /parent-homework\/index\?student_id=/);
 });
 
@@ -40,9 +42,13 @@ test('家长页领取结构化题目并上传照片', () => {
   assert.match(parent, /不包含学生作业照片/);
 });
 
-test('教师页使用固定初中计算题库并支持左右对照式极速批改', () => {
+test('教师页使用四类可选初中计算题库并支持左右对照式极速批改', () => {
   assert.match(teacher, /固定题库 · 初中计算/);
-  assert.match(teacher, /统一训练层级，无需选择难度/);
+  assert.match(teacher, /按学生当前进度勾选模块/);
+  for (const topicKey of ['rational_numbers', 'absolute_value', 'algebra', 'linear_equation']) {
+    assert.match(teacher, new RegExp(topicKey));
+  }
+  assert.match(teacher, /至少保留一个计算模块/);
   assert.doesNotMatch(teacher, /<slider[^>]+difficulty/);
   assert.doesNotMatch(teacher, /学生个性化范围/);
   assert.doesNotMatch(teacher, /changeSettingDifficulty/);

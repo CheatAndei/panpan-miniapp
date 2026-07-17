@@ -21,6 +21,8 @@ const mentalArenaRoutes = require('./routes/mental-arena');
 const privateFileRoutes = require('./routes/private-files');
 const learningRoutes = require('./routes/learning');
 const growthRoutes = require('./routes/growth');
+const examRoutes = require('./routes/exams');
+const weeklyChallengeRoutes = require('./routes/weekly-challenge');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -62,10 +64,20 @@ app.use('/api/mental-arena', mentalArenaRoutes);
 app.use('/api/private-files', privateFileRoutes);
 app.use('/api/learning', learningRoutes);
 app.use('/api/growth', growthRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/weekly-challenge', weeklyChallengeRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.4.0' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.5.0' });
+});
+
+// 所有未捕获的路由错误统一返回 JSON，避免小程序收到 HTML 错误页后再次解析失败。
+app.use((err, req, res, next) => {
+  console.error('[route-error]', req.method, req.originalUrl, err);
+  if (res.headersSent) return next(err);
+  const message = process.env.NODE_ENV === 'production' ? '服务暂时不可用' : (err?.message || '服务暂时不可用');
+  return res.status(500).json({ error: message });
 });
 
 // 初始化数据库并启动

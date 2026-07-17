@@ -9,7 +9,10 @@
           <text class="head-kicker">{{ attempt.task_title }}</text>
           <text class="head-count"><text class="num">{{ currentIndex + 1 }}</text> / {{ attempt.total_questions }}</text>
         </view>
-        <text class="head-time num">{{ elapsedLabel }}</text>
+        <view class="head-actions">
+          <text class="head-time num">{{ elapsedLabel }}</text>
+          <button class="exit-btn" @tap="confirmExit">暂存退出</button>
+        </view>
       </view>
       <view class="progress-track"><view class="progress-fill" :style="{width:progressPercent+'%'}"></view></view>
 
@@ -79,7 +82,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app';
+import { onBackPress, onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError, toastError } from '@/utils/ui';
 
@@ -95,6 +98,7 @@ const elapsedSeconds = ref(0);
 const answerFocused = ref(true);
 let startedAt = Date.now();
 let timer = null;
+let allowBack = false;
 
 const currentQuestion = computed(() => attempt.value?.questions?.[currentIndex.value] || null);
 const currentAnswer = computed(() => String(answers.value[currentQuestion.value?.id] || '').trim());
@@ -107,9 +111,45 @@ onLoad((query) => {
   taskType.value = String(query.type || 'warmup');
   loadAttempt();
 });
-onHide(stopTimer);
+onHide(() => { stopTimer(); saveDraft(); });
 onShow(() => { if (attempt.value?.status === 'active') startTimer(); });
-onUnload(stopTimer);
+onUnload(() => { stopTimer(); saveDraft(); });
+onBackPress(() => {
+  if (allowBack || !attempt.value || attempt.value.status === 'completed') return false;
+  confirmExit();
+  return true;
+});
+
+function draftKey() { return attempt.value?.id ? `panpan_learning_draft_${attempt.value.id}` : ''; }
+function saveDraft() {
+  const key = draftKey();
+  if (!key || attempt.value?.status !== 'active') return;
+  uni.setStorageSync(key, { answers: answers.value, currentIndex: currentIndex.value, savedAt: Date.now() });
+}
+function restoreDraft() {
+  const key = draftKey();
+  if (!key) return;
+  const draft = uni.getStorageSync(key);
+  if (!draft || typeof draft !== 'object') return;
+  answers.value = { ...(draft.answers || {}) };
+  currentIndex.value = Math.max(0, Math.min(Number(draft.currentIndex || 0), Math.max(0, Number(attempt.value?.total_questions || 1) - 1)));
+}
+function clearDraft() { const key = draftKey(); if (key) uni.removeStorageSync(key); }
+
+function confirmExit() {
+  saveDraft();
+  uni.showModal({
+    title: '现在退出？',
+    content: '当前作答已自动保存，下次进入可以继续。',
+    cancelText: '继续作答',
+    confirmText: '暂存退出',
+    success: (result) => {
+      if (!result.confirm) return;
+      allowBack = true;
+      uni.navigateBack({ delta: 1, fail: () => uni.redirectTo({ url: `/pages/learning-center/index?student_id=${studentId.value}` }) });
+    },
+  });
+}
 
 function startTimer() {
   stopTimer();
@@ -126,6 +166,7 @@ async function loadAttempt() {
     const data = await api.post('/learning/sessions', { student_id: studentId.value, task_type: taskType.value });
     attempt.value = data.attempt;
     if (attempt.value.status === 'active') {
+      restoreDraft();
       const serverStart = new Date(attempt.value.started_at).getTime();
       elapsedSeconds.value = Number.isFinite(serverStart) ? Math.max(0, Math.floor((Date.now() - serverStart) / 1000)) : 0;
       startTimer();
@@ -169,6 +210,7 @@ async function nextOrSubmit() {
       elapsed_seconds: Math.max(1, elapsedSeconds.value),
     });
     attempt.value = data.attempt;
+    clearDraft();
     uni.vibrateShort?.({ type: 'light' });
   } catch (e) {
     toastError(e, '提交失败，请重试');
@@ -177,10 +219,11 @@ async function nextOrSubmit() {
 }
 
 function finish() {
+  clearDraft();
   uni.redirectTo({ url: `/pages/learning-center/index?student_id=${studentId.value}` });
 }
 </script>
 
 <style scoped>
-.session-page{min-height:100vh;background:linear-gradient(180deg,#F7FAF8 0%,#EEF5F2 100%);box-sizing:border-box}.session-head{display:flex;align-items:flex-end;justify-content:space-between;padding:34rpx 30rpx 18rpx}.head-kicker{display:block;color:var(--accent-strong);font-size:22rpx;font-weight:750;letter-spacing:1rpx}.head-count{display:block;margin-top:4rpx;color:var(--ink);font-size:30rpx;font-weight:700}.head-count .num{font-size:40rpx}.head-time{color:var(--text-muted);font-size:26rpx;font-weight:650}.progress-track{height:8rpx;margin:0 30rpx;border-radius:999rpx;background:#DCE8E4;overflow:hidden}.progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#2F7D6B,#66A997);transition:width .22s ease-out}.question-stage{margin:40rpx 24rpx 0;padding:34rpx 30rpx 38rpx;border:1rpx solid var(--border);border-radius:28rpx;background:#fff;box-shadow:0 18rpx 48rpx rgba(24,58,54,.09)}.question-meta{display:flex;align-items:center;justify-content:space-between}.question-type{padding:7rpx 14rpx;border-radius:9rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:21rpx;font-weight:700}.question-position{color:var(--text-muted);font-size:22rpx}.question-stem{display:block;min-height:190rpx;padding:60rpx 6rpx 34rpx;color:var(--ink);font-size:42rpx;font-weight:720;line-height:1.55;text-align:center;word-break:break-word}.answer-block{padding-top:28rpx;border-top:1rpx solid var(--hairline)}.answer-label{display:block;margin-bottom:10rpx;color:var(--text-secondary);font-size:24rpx;font-weight:700}.answer-input{height:104rpx;padding:0 24rpx;border:2rpx solid #BFD2CC;border-radius:18rpx;background:#FAFCFB;color:var(--ink);font-size:36rpx;font-weight:680;text-align:center;box-sizing:border-box}.answer-input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 6rpx rgba(47,125,107,.08)}.answer-tip{display:block;margin-top:10rpx;color:var(--faint);font-size:21rpx;text-align:center}.session-actions{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:190rpx 1fr;gap:14rpx;padding:20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));background:rgba(247,250,248,.96);border-top:1rpx solid var(--border);backdrop-filter:blur(14px)}.previous-btn,.next-btn{min-height:92rpx;border-radius:16rpx;font-size:28rpx;font-weight:700}.previous-btn{border:1rpx solid #BFD2CC;background:#fff;color:var(--text-secondary)}.next-btn{background:var(--primary);color:#fff;box-shadow:0 10rpx 24rpx rgba(24,58,54,.15)}.result-scroll{height:100vh}.result-hero{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;padding:58rpx 30rpx 48rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.result-kicker{width:100%;margin-bottom:2rpx;color:#B8DDD3;font-size:22rpx;font-weight:750;letter-spacing:3rpx;text-align:center}.result-score{font-size:112rpx;font-weight:820;line-height:1.1}.result-unit{margin-left:8rpx;font-size:28rpx}.result-summary{width:100%;margin-top:8rpx;color:#D7EBE5;font-size:25rpx;text-align:center}.result-card{margin:22rpx 24rpx;padding:28rpx;border:1rpx solid var(--border);border-radius:24rpx;background:#fff;box-shadow:var(--shadow-sm)}.result-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:18rpx;border-bottom:1rpx solid var(--hairline)}.result-title{font-size:30rpx;font-weight:740}.result-correct{color:var(--accent-strong);font-size:23rpx;font-weight:700}.answer-row{display:flex;gap:16rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.answer-row:last-child{border-bottom:0}.answer-mark{width:48rpx;height:48rpx;flex:none;display:flex;align-items:center;justify-content:center;border-radius:14rpx;background:var(--danger-soft);color:var(--danger);font-size:23rpx;font-weight:800}.answer-mark.ok{background:var(--success-soft);color:var(--success)}.answer-copy{flex:1;min-width:0}.answer-stem{display:block;color:var(--ink);font-size:26rpx;font-weight:650;line-height:1.55}.answer-given,.answer-correct{display:block;margin-top:5rpx;color:var(--text-muted);font-size:23rpx}.answer-correct{color:var(--danger);font-weight:650}.result-note{display:flex;gap:14rpx;margin:0 24rpx;padding:22rpx;border-radius:18rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:23rpx;line-height:1.65}.done-btn{min-height:92rpx;margin:22rpx 24rpx calc(38rpx + env(safe-area-inset-bottom));border-radius:16rpx;background:var(--primary);color:#fff;font-size:29rpx;font-weight:720}
+.session-page{min-height:100vh;background:linear-gradient(180deg,#F7FAF8 0%,#EEF5F2 100%);box-sizing:border-box}.session-head{display:flex;align-items:flex-end;justify-content:space-between;padding:34rpx 30rpx 18rpx}.head-kicker{display:block;color:var(--accent-strong);font-size:22rpx;font-weight:750;letter-spacing:1rpx}.head-count{display:block;margin-top:4rpx;color:var(--ink);font-size:30rpx;font-weight:700}.head-count .num{font-size:40rpx}.head-actions{display:flex;align-items:center;gap:12rpx}.head-time{color:var(--text-muted);font-size:26rpx;font-weight:650}.exit-btn{min-height:58rpx;margin:0;padding:0 16rpx;border:1rpx solid var(--border);border-radius:11rpx;background:#fff;color:var(--text-secondary);font-size:21rpx;font-weight:650}.exit-btn::after{border:0}.progress-track{height:8rpx;margin:0 30rpx;border-radius:999rpx;background:#DCE8E4;overflow:hidden}.progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#2F7D6B,#66A997);transition:width .22s ease-out}.question-stage{margin:40rpx 24rpx 0;padding:34rpx 30rpx 38rpx;border:1rpx solid var(--border);border-radius:28rpx;background:#fff;box-shadow:0 18rpx 48rpx rgba(24,58,54,.09)}.question-meta{display:flex;align-items:center;justify-content:space-between}.question-type{padding:7rpx 14rpx;border-radius:9rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:21rpx;font-weight:700}.question-position{color:var(--text-muted);font-size:22rpx}.question-stem{display:block;min-height:190rpx;padding:60rpx 6rpx 34rpx;color:var(--ink);font-size:42rpx;font-weight:720;line-height:1.55;text-align:center;word-break:break-word}.answer-block{padding-top:28rpx;border-top:1rpx solid var(--hairline)}.answer-label{display:block;margin-bottom:10rpx;color:var(--text-secondary);font-size:24rpx;font-weight:700}.answer-input{height:104rpx;padding:0 24rpx;border:2rpx solid #BFD2CC;border-radius:18rpx;background:#FAFCFB;color:var(--ink);font-size:36rpx;font-weight:680;text-align:center;box-sizing:border-box}.answer-input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 6rpx rgba(47,125,107,.08)}.answer-tip{display:block;margin-top:10rpx;color:var(--faint);font-size:21rpx;text-align:center}.session-actions{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:190rpx 1fr;gap:14rpx;padding:20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));background:rgba(247,250,248,.96);border-top:1rpx solid var(--border);backdrop-filter:blur(14px)}.previous-btn,.next-btn{min-height:92rpx;border-radius:16rpx;font-size:28rpx;font-weight:700}.previous-btn{border:1rpx solid #BFD2CC;background:#fff;color:var(--text-secondary)}.next-btn{background:var(--primary);color:#fff;box-shadow:0 10rpx 24rpx rgba(24,58,54,.15)}.result-scroll{height:100vh}.result-hero{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;padding:58rpx 30rpx 48rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.result-kicker{width:100%;margin-bottom:2rpx;color:#B8DDD3;font-size:22rpx;font-weight:750;letter-spacing:3rpx;text-align:center}.result-score{font-size:112rpx;font-weight:820;line-height:1.1}.result-unit{margin-left:8rpx;font-size:28rpx}.result-summary{width:100%;margin-top:8rpx;color:#D7EBE5;font-size:25rpx;text-align:center}.result-card{margin:22rpx 24rpx;padding:28rpx;border:1rpx solid var(--border);border-radius:24rpx;background:#fff;box-shadow:var(--shadow-sm)}.result-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:18rpx;border-bottom:1rpx solid var(--hairline)}.result-title{font-size:30rpx;font-weight:740}.result-correct{color:var(--accent-strong);font-size:23rpx;font-weight:700}.answer-row{display:flex;gap:16rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.answer-row:last-child{border-bottom:0}.answer-mark{width:48rpx;height:48rpx;flex:none;display:flex;align-items:center;justify-content:center;border-radius:14rpx;background:var(--danger-soft);color:var(--danger);font-size:23rpx;font-weight:800}.answer-mark.ok{background:var(--success-soft);color:var(--success)}.answer-copy{flex:1;min-width:0}.answer-stem{display:block;color:var(--ink);font-size:26rpx;font-weight:650;line-height:1.55}.answer-given,.answer-correct{display:block;margin-top:5rpx;color:var(--text-muted);font-size:23rpx}.answer-correct{color:var(--danger);font-weight:650}.result-note{display:flex;gap:14rpx;margin:0 24rpx;padding:22rpx;border-radius:18rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:23rpx;line-height:1.65}.done-btn{min-height:92rpx;margin:22rpx 24rpx calc(38rpx + env(safe-area-inset-bottom));border-radius:16rpx;background:var(--primary);color:#fff;font-size:29rpx;font-weight:720}
 </style>

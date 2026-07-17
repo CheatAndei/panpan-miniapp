@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS classes (
   subject TEXT,
   grade TEXT,
   room TEXT,
+  deleted_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -63,6 +64,17 @@ CREATE TABLE IF NOT EXISTS class_students (
   class_id INTEGER REFERENCES classes(id),
   student_id INTEGER REFERENCES students(id),
   UNIQUE(class_id, student_id)
+);
+
+-- 学生转班只改变当前归属；历史业务数据保留原主键，并记录完整迁移轨迹。
+CREATE TABLE IF NOT EXISTS student_class_transfers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  teacher_id INTEGER NOT NULL REFERENCES users(id),
+  from_class_id INTEGER NOT NULL REFERENCES classes(id),
+  to_class_id INTEGER NOT NULL REFERENCES classes(id),
+  reason TEXT,
+  transferred_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 家长-学生绑定
@@ -168,6 +180,7 @@ CREATE TABLE IF NOT EXISTS student_profiles (
 CREATE TABLE IF NOT EXISTS homework_batches (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   teacher_id INTEGER REFERENCES users(id),
+  class_id INTEGER REFERENCES classes(id),
   title TEXT NOT NULL,
   subject TEXT,
   assigned_date DATE NOT NULL,
@@ -304,6 +317,7 @@ CREATE TABLE IF NOT EXISTS practice_plans (
   subject TEXT NOT NULL DEFAULT '数学',
   module TEXT NOT NULL,
   question_types TEXT NOT NULL DEFAULT '[]',
+  topic_keys TEXT NOT NULL DEFAULT '[]',
   difficulty INTEGER NOT NULL DEFAULT 1,
   target_seconds INTEGER NOT NULL DEFAULT 1200,
   auto_advance INTEGER NOT NULL DEFAULT 1,
@@ -494,6 +508,123 @@ CREATE TABLE IF NOT EXISTS engagement_events (
   UNIQUE(student_id, event_key)
 );
 
+-- 广州真题库。原卷可面向已绑定家长，答案资产始终仅教师可见。
+CREATE TABLE IF NOT EXISTS exam_assets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  asset_kind TEXT NOT NULL CHECK(asset_kind IN ('paper', 'answer', 'preview', 'question', 'answer_image')),
+  storage_key TEXT UNIQUE NOT NULL,
+  original_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  byte_size INTEGER NOT NULL,
+  sha256 TEXT UNIQUE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS exam_papers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  stable_code TEXT UNIQUE NOT NULL,
+  display_title TEXT NOT NULL,
+  school_name TEXT,
+  district TEXT,
+  school_year TEXT,
+  exam_year INTEGER,
+  grade TEXT NOT NULL DEFAULT '七年级',
+  semester TEXT NOT NULL DEFAULT '上学期',
+  exam_type TEXT NOT NULL CHECK(exam_type IN ('midterm', 'final', 'monthly')),
+  paper_asset_id INTEGER NOT NULL REFERENCES exam_assets(id),
+  answer_asset_id INTEGER REFERENCES exam_assets(id),
+  source_relative_path TEXT NOT NULL,
+  license_status TEXT NOT NULL DEFAULT 'pending_review',
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft', 'published', 'hidden')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS exam_download_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  exam_id INTEGER NOT NULL REFERENCES exam_papers(id),
+  actor_id INTEGER NOT NULL REFERENCES users(id),
+  student_id INTEGER REFERENCES students(id),
+  teacher_id INTEGER REFERENCES users(id),
+  asset_kind TEXT NOT NULL CHECK(asset_kind IN ('paper', 'answer')),
+  status TEXT NOT NULL CHECK(status IN ('requested', 'download_succeeded', 'opened', 'failed')),
+  error TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS exam_answer_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  exam_id INTEGER NOT NULL REFERENCES exam_papers(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  teacher_id INTEGER NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'sent', 'dismissed')),
+  note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  handled_at DATETIME,
+  UNIQUE(exam_id, parent_id, student_id)
+);
+
+-- 每周图片挑战使用独立发布与复核模型，不污染自动判题的 learning_attempts。
+CREATE TABLE IF NOT EXISTS weekly_challenge_questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_key TEXT UNIQUE,
+  exam_id INTEGER REFERENCES exam_papers(id),
+  question_type TEXT NOT NULL CHECK(question_type IN ('choice', 'fill', 'subjective')),
+  title TEXT NOT NULL,
+  question_asset_id INTEGER NOT NULL REFERENCES exam_assets(id),
+  answer_asset_id INTEGER REFERENCES exam_assets(id),
+  answer_text TEXT,
+  source_label TEXT,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS weekly_challenge_assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  question_id INTEGER NOT NULL REFERENCES weekly_challenge_questions(id),
+  week_start DATE NOT NULL,
+  question_type TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, week_start)
+);
+
+CREATE TABLE IF NOT EXISTS weekly_challenge_submissions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  assignment_id INTEGER UNIQUE NOT NULL REFERENCES weekly_challenge_assignments(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted', 'reviewed')),
+  teacher_note TEXT,
+  is_correct INTEGER CHECK(is_correct IN (0, 1)),
+  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_at DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS weekly_challenge_attachments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER NOT NULL REFERENCES weekly_challenge_submissions(id),
+  file_id INTEGER UNIQUE NOT NULL REFERENCES private_files(id),
+  sha256 TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id, sha256)
+);
+
+-- 教师可为学生设置真实冲榜目标，但目标不会生成或篡改挑战成绩。
+CREATE TABLE IF NOT EXISTS mental_rank_goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  teacher_id INTEGER NOT NULL REFERENCES users(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  battle TEXT NOT NULL CHECK(battle IN ('primary', 'junior')),
+  target_rank INTEGER NOT NULL,
+  target_score INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed', 'expired')),
+  expires_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME
+);
+
 CREATE INDEX IF NOT EXISTS idx_practice_question_scope
   ON practice_questions(grade_band, subject, module, difficulty, is_active);
 CREATE INDEX IF NOT EXISTS idx_practice_question_region
@@ -512,6 +643,8 @@ CREATE INDEX IF NOT EXISTS idx_private_file_owner
   ON private_files(owner_type, owner_id);
 CREATE INDEX IF NOT EXISTS idx_private_file_student
   ON private_files(student_id, purpose);
+CREATE INDEX IF NOT EXISTS idx_student_class_transfers_student
+  ON student_class_transfers(student_id, transferred_at);
 CREATE INDEX IF NOT EXISTS idx_practice_review_item
   ON practice_reviews(assignment_item_id, is_correct);
 CREATE INDEX IF NOT EXISTS idx_mental_challenge_student
@@ -526,3 +659,11 @@ CREATE INDEX IF NOT EXISTS idx_wrong_progress_student_status
   ON wrong_item_progress(student_id, status, last_attempt_at);
 CREATE INDEX IF NOT EXISTS idx_weekly_report_student_week
   ON weekly_reports(student_id, week_start);
+CREATE INDEX IF NOT EXISTS idx_exam_papers_filters
+  ON exam_papers(status, exam_type, exam_year);
+CREATE INDEX IF NOT EXISTS idx_exam_download_teacher
+  ON exam_download_events(teacher_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_weekly_challenge_teacher_queue
+  ON weekly_challenge_submissions(status, submitted_at);
+CREATE INDEX IF NOT EXISTS idx_mental_rank_goals_student
+  ON mental_rank_goals(student_id, battle, status);

@@ -57,6 +57,7 @@ function semanticBatchPayload(body) {
   delete sourceManifest.server_payload_digest;
   delete sourceManifest.client_payload_digest;
   return {
+    class_id: Number(body.class_id || 0),
     title: String(body.title || ''),
     subject: String(body.subject || ''),
     assigned_date: String(body.assigned_date || ''),
@@ -204,10 +205,13 @@ function validateBatch(db, teacherId, body) {
 function persistBatch(db, teacherId, body, submissions, serverPayloadDigest) {
   return db.transaction(() => {
     const storedManifest = { ...(body.source_manifest || {}), server_payload_digest: serverPayloadDigest };
+    const submittedClassIds = db.all(`SELECT DISTINCT class_id FROM students WHERE id IN (${submissions.map(() => '?').join(',')})`,
+      submissions.map((item) => Number(item.student_id))).map((item) => Number(item.class_id)).filter(Boolean);
+    const classId = Number(body.class_id || 0) || (submittedClassIds.length === 1 ? submittedClassIds[0] : null);
     const batch = db.run(`INSERT INTO homework_batches
-      (teacher_id,title,subject,assigned_date,status,prompt_version,source_manifest,idempotency_key,confirmed_at)
-      VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`, [
-      teacherId, String(body.title).trim(), String(body.subject || ''), body.assigned_date, 'reviewed',
+      (teacher_id,class_id,title,subject,assigned_date,status,prompt_version,source_manifest,idempotency_key,confirmed_at)
+      VALUES(?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`, [
+      teacherId, classId, String(body.title).trim(), String(body.subject || ''), body.assigned_date, 'reviewed',
       String(body.prompt_version || 'manual-chatgpt-v1'), JSON.stringify(storedManifest), String(body.idempotency_key)
     ]);
 
