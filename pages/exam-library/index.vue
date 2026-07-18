@@ -61,6 +61,7 @@ import { reactive, ref } from 'vue';
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { getUser } from '@/utils/auth';
+import { buildQuery } from '@/utils/query';
 
 const isTeacher = ref(getUser()?.role === 'teacher');
 const studentId = ref(0);
@@ -85,12 +86,14 @@ onLoad((query) => {
 onPullDownRefresh(async () => { try { await Promise.all([loadPapers(true), isTeacher.value ? loadActivity() : Promise.resolve()]); } finally { uni.stopPullDownRefresh(); } });
 
 function params(nextPage=1) {
-  const query = new URLSearchParams({ page:String(nextPage), limit:'20' });
-  if (!isTeacher.value) query.set('student_id', String(studentId.value));
-  if (filters.exam_type) query.set('exam_type', filters.exam_type);
-  if (filters.year_bucket) query.set('year_bucket', filters.year_bucket);
-  if (keyword.value.trim()) query.set('keyword', keyword.value.trim());
-  return query.toString();
+  return buildQuery({
+    page: nextPage,
+    limit: 20,
+    student_id: isTeacher.value ? undefined : studentId.value,
+    exam_type: filters.exam_type,
+    year_bucket: filters.year_bucket,
+    keyword: keyword.value.trim(),
+  });
 }
 async function loadPapers(reset=false) {
   if (loading.value) return;
