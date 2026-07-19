@@ -17,12 +17,17 @@ const LEADING_FEEDBACK_EMOJI_PATTERN = new RegExp(`^(?:${FEEDBACK_EMOJIS.map(esc
 const EMOJI_LIKE_PATTERN = /(?:[\u2300-\u23FF]|[\u2600-\u27BF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDFFF])\uFE0F?/g;
 const EMOJI_JOINER_OR_MODIFIER_PATTERN = /[\u200D\uFE0F]|\uD83C[\uDFFB-\uDFFF]/g;
 
+function feedbackScore(value) {
+  const score = Number.parseInt(value, 10);
+  return Number.isInteger(score) ? Math.max(1, Math.min(10, score)) : 5;
+}
+
 function studentFeedbackRules(style, studentLabel = '姓名') {
   if (style === 'warm') {
     return `1. 正文 80-130 个中文字符，最多 4 句。语气温和但克制，是熟悉学生的老师在说课堂情况，不哄、不煽情。
 2. 第一行格式：${studentLabel} + 一个兼容 emoji；第二行开始写正文。只放 1 个 emoji，从这些里面选：${FEEDBACK_EMOJI_PROMPT}。
 3. 先写一个真实课堂细节，再写本节课的进步、卡点或下一步；有问题就直接说明，不绕弯，也不要拔高成性格结论。
-4. 只使用输入中已有的课堂内容、备注和出门测信息，不编造动作、对话、情绪或前后对比。
+4. 只使用输入中已有的课堂内容、课堂表现、备注和出门测信息，不编造动作、对话、情绪或前后对比。
 5. 禁止过度温柔和 AI 套话：“宝贝”“闪闪发光”“令人欣慰”“让人眼前一亮”“潜力无限”“未来可期”“老师相信你”“成长的路上”“继续保持”。
 6. 不要写成 AI 评语、总结、分析报告或鸡汤；不用“首先、此外、同时、总体来说”等连接词。`;
   }
@@ -37,10 +42,11 @@ function studentFeedbackRules(style, studentLabel = '姓名') {
 // AI生成班级反馈
 router.post('/generate-class', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
-  const { grade, subject, lesson, topic, perfScore, homework } = req.body;
+  const { grade, subject, lesson, topic, performanceNote, homework } = req.body;
+  const observation = String(performanceNote || '').trim().slice(0, 160) || '未补充，由老师生成后人工检查';
   const prompt = `你是教培老师，写一段发家长群的课后反馈。无空行，模块用 --- 分隔。
 
-信息：${grade} ${subject} ${lesson||''} 课题《${topic||'未设定'}》课堂表现${perfScore||5}/10。独立作业字段：${homework||'无'}
+信息：${grade} ${subject} ${lesson||''} 课题《${topic||'未设定'}》。课堂表现补充：${observation}。独立作业字段：${homework||'无'}
 
 格式（严格按此）：
 各位家长好📘
@@ -52,14 +58,14 @@ ${grade} ${lesson||''} ${topic||''}
 · 知识点3
 ---
 💪 课堂表现
-[一段话，根据分数写。8-10分肯定为主，5-7分有进步空间，1-4分温和提醒。说具体表现不要说空话]
+[根据课堂表现补充写一段具体观察；没有补充时保持客观克制，不编造课堂细节]
 ---
 [一句鼓励收尾，体现学科价值]
 
-要求：200-300字，不要空行，知识点准确。作业由独立组件展示，不要把作业写进反馈正文。返回纯文本。`;
+要求：200-300字，不要空行，知识点准确。禁止出现“9/10”等分数、评分或打分制度。作业由独立组件展示，不要把作业写进反馈正文。返回纯文本。`;
 
   try {
-    const text = await callAI(prompt, 900);
+    const text = removeTenPointScores(await callAI(prompt, 900));
     res.json({ text });
   } catch(e) { res.status(500).json({ error: '生成失败' }); }
 });
@@ -72,19 +78,21 @@ router.post('/generate-student-batch', auth, async (req, res) => {
   const db = getDB();
   const invalidStudent = students.find((item) => item?.id && !teacherOwnsStudent(db, req.user.id, item.id));
   if (invalidStudent) return res.status(403).json({ error: '学生不属于当前老师' });
+  const hasExitQuiz = classInfo?.hasExitQuiz !== false;
 
   const list = students.map((s, i) =>
-    `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 出门测${s.quizScore||5}/10 | ${s.note||''} | 性格:${s.personality||'无'}`
+    `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 课堂表现${feedbackScore(s.performanceScore)}/10 | ${hasExitQuiz ? `出门测${feedbackScore(s.quizScore)}/10` : '本次没有出门测'} | ${s.note||''} | 性格:${s.personality||'无'}`
   ).join('\n');
 
-  const prompt = `你是教培老师，为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}，整体课堂表现${classInfo?.perfScore||5}/10。
+  const prompt = `你是教培老师，为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}。
 
 学生列表：
 ${list}
 
 要求：
 ${studentFeedbackRules(style)}
-7. 每位学生的切入点和句式要自然区分，不出现具体分数。性格只作语气参考，不直接评价性格。
+7. 每位学生的切入点和句式要自然区分，最终反馈不得出现具体分数，输入数值只用于判断表现程度。性格只作语气参考，不直接评价性格。
+8. ${hasExitQuiz ? '结合输入的出门测情况，但不要写出分数。' : '本次没有出门测，反馈中明确写“本次没有安排出门测”，不要猜测测试表现。'}
 
 返回JSON：{"results":[{"id":0,"feedback":"..."}]}`;
 
@@ -113,15 +121,16 @@ ${studentFeedbackRules(style)}
 // 单个学生反馈（重生成用）
 router.post('/generate-student', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
-  const { name, level, personality, quizScore, note, content, perfScore, style = 'concise' } = req.body;
+  const { name, level, personality, performanceScore, hasExitQuiz = true, quizScore, note, content, style = 'concise' } = req.body;
   const prompt = `你是教培老师，为一位学生写课后反馈。
 
-本课：${content||'无'}，整体课堂表现${perfScore||5}/10
-学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，出门测大致水平${quizScore||5}/10，${note||'无特殊说明'}
+本课：${content||'无'}
+学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，课堂表现${feedbackScore(performanceScore)}/10，${hasExitQuiz === false ? '本次没有出门测' : `出门测大致水平${feedbackScore(quizScore)}/10`}，${note||'无特殊说明'}
 
 要求：
 ${studentFeedbackRules(style, name)}
-7. 不出现具体分数；性格只作语气参考，不直接评价性格。返回纯文本。`;
+7. 最终反馈不得出现具体分数，输入数值只用于判断表现程度；性格只作语气参考，不直接评价性格。
+8. ${hasExitQuiz === false ? '明确写“本次没有安排出门测”，不要猜测测试表现。' : '结合输入的出门测情况，但不要写出分数。'}返回纯文本。`;
 
   try {
     const text = await callAI(prompt, style === 'warm' ? 800 : 400);
@@ -373,10 +382,18 @@ function normalizeFeedbackEmojis(text) {
     .replace(EMOJI_JOINER_OR_MODIFIER_PATTERN, '');
 }
 
+function removeTenPointScores(text) {
+  return String(text || '')
+    .replace(/(?:10|[1-9])\s*\/\s*10\s*(?:分)?/g, '')
+    .replace(/[（(]?\s*(?:1\s*[-–—至到]\s*10|一\s*[-–—至到]\s*十)\s*分制\s*[）)]?/g, '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 function cleanStudentFeedback(text, name = '', style = 'concise') {
-  let value = normalizeFeedbackEmojis(String(text || '')
+  let value = normalizeFeedbackEmojis(removeTenPointScores(String(text || '')
     .replace(/\*/g, '')
-    .replace(/```json\n?|```\n?/g, ''));
+    .replace(/```json\n?|```\n?/g, '')));
   if (style === 'warm') {
     value = value
       .replace(/\r/g, '')

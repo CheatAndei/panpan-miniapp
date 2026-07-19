@@ -277,9 +277,51 @@ export function openPdfDocument(url) {
   });
 }
 
-export function openRemoteDocument(url, fileType = 'docx') {
-  const fileUrl = assetUrl(url);
-  const normalizedType = ['pdf', 'doc', 'docx'].includes(String(fileType).toLowerCase()) ? String(fileType).toLowerCase() : 'docx';
+function downloadAndOpenDocumentByRequest(fileUrl, fileType) {
+  const fs = uni.getFileSystemManager && uni.getFileSystemManager();
+  const userDataPath = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH)
+    || (uni.env && uni.env.USER_DATA_PATH)
+    || '';
+  if (!fs || !userDataPath) return Promise.reject({ error: '当前环境无法保存试卷文件' });
+
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: fileUrl,
+      method: 'GET',
+      timeout: 30000,
+      header: authHeader(),
+      responseType: 'arraybuffer',
+      success: (res) => {
+        if (res.statusCode === 401) {
+          clearExpiredSession();
+          return reject({ error: '登录已过期，请重新登录', statusCode: 401 });
+        }
+        if (res.statusCode !== 200 || !res.data) {
+          const message = res.statusCode === 404 ? '试卷文件不存在或尚未同步' : `试卷下载失败（HTTP ${res.statusCode}）`;
+          return reject({ error: message, statusCode: res.statusCode });
+        }
+        const filePath = `${userDataPath}/panpan-document-${Date.now()}-${Math.random().toString(16).slice(2)}.${fileType}`;
+        fs.writeFile({
+          filePath,
+          data: res.data,
+          success: () => {
+            uni.openDocument({
+              filePath,
+              fileType,
+              showMenu: true,
+              success: resolve,
+              fail: (err) => reject({ error: err?.errMsg || '试卷打开失败' }),
+            });
+          },
+          fail: (err) => reject(friendlyNetworkError(err, '试卷保存失败')),
+        });
+      },
+      fail: (err) => reject(friendlyNetworkError(err, '试卷下载失败')),
+    });
+  });
+}
+
+function downloadAndOpenDocumentByFileApi(fileUrl, fileType) {
   return new Promise((resolve, reject) => {
     uni.downloadFile({
       url: fileUrl,
@@ -287,11 +329,22 @@ export function openRemoteDocument(url, fileType = 'docx') {
       success: (res) => {
         if (res.statusCode === 401) clearExpiredSession();
         if (res.statusCode !== 200 || !res.tempFilePath) return reject({ error: '试卷下载失败' });
-        uni.openDocument({ filePath: res.tempFilePath, fileType: normalizedType, showMenu: true, success: resolve, fail: reject });
+        uni.openDocument({ filePath: res.tempFilePath, fileType, showMenu: true, success: resolve, fail: reject });
       },
       fail: (err) => reject(friendlyNetworkError(err, '试卷下载失败')),
     });
   });
+}
+
+export function openRemoteDocument(url, fileType = 'docx') {
+  const fileUrl = assetUrl(url);
+  const normalizedType = ['pdf', 'doc', 'docx'].includes(String(fileType).toLowerCase()) ? String(fileType).toLowerCase() : 'docx';
+  const fs = uni.getFileSystemManager && uni.getFileSystemManager();
+  const userDataPath = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH)
+    || (uni.env && uni.env.USER_DATA_PATH)
+    || '';
+  if (fs && userDataPath) return downloadAndOpenDocumentByRequest(fileUrl, normalizedType);
+  return downloadAndOpenDocumentByFileApi(fileUrl, normalizedType);
 }
 
 export const api = {

@@ -35,8 +35,8 @@
         <input v-model="se._cf.lesson" class="input big" placeholder="第几讲（如第十一讲）" />
         <text class="field-label">本讲主题</text>
         <input v-model="se._cf.topic" class="input big" placeholder="课题（如一元一次方程）" />
-        <text class="label">学习表现 {{ se._cf.perfScore }}/10</text>
-        <slider :value="se._cf.perfScore" @change="e=>se._cf.perfScore=e.detail.value" min="1" max="10" block-size="24" activeColor="#183A36" />
+        <text class="field-label">课堂表现补充（可选）</text>
+        <textarea v-model="se._cf.performanceNote" class="result-area performance-note" placeholder="例如：大部分学生能主动讲解思路，计算细节还需提醒" :maxlength="120" />
         <text class="field-label">课后作业</text>
         <input v-model="se._cf.homework" class="input big" placeholder="填写作业内容（可选）" />
         <button class="btn-primary big" @tap="genClassFeedback(se)" :disabled="se._cf._genning">
@@ -49,6 +49,14 @@
       <!-- 学生反馈板块 -->
       <view class="block-card" v-if="se._tab==='student'">
         <text class="block-title">学生反馈 ({{ se._students.filter(s=>!s._leave).length }}人)</text>
+        <view class="class-setting-row">
+          <view class="class-setting-copy">
+            <text class="class-setting-title">本次有出门测</text>
+            <text class="class-setting-hint">统一控制本班本次反馈，不按学生单独设置</text>
+          </view>
+          <switch :checked="se._hasExitQuiz" @change="e=>se._hasExitQuiz=e.detail.value" color="#2F7D6B" />
+        </view>
+        <text v-if="!se._hasExitQuiz" class="no-quiz-note">本次没有安排出门测，生成个人反馈时会明确说明。</text>
         <view class="feedback-style-switch" role="tablist" aria-label="反馈风格">
           <text :class="['style-choice',{on:se._feedbackStyle==='concise'}]" @tap="se._feedbackStyle='concise'">简洁</text>
           <text :class="['style-choice',{on:se._feedbackStyle==='warm'}]" @tap="se._feedbackStyle='warm'">温馨</text>
@@ -67,8 +75,12 @@
           </view>
           <view v-if="s._leave" class="leave-note">该学生已请假，不会发布个人反馈。点击右上角可取消标记。</view>
           <template v-else>
-          <text class="label">出门测 {{ s._score }}/10</text>
-          <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#2F7D6B" />
+          <text class="label">课堂表现 {{ s._performanceScore }}</text>
+          <slider :value="s._performanceScore" @change="e=>s._performanceScore=e.detail.value" min="1" max="10" block-size="20" activeColor="#183A36" />
+          <view v-if="se._hasExitQuiz" class="quiz-score-block">
+            <text class="label">出门测 {{ s._score }}</text>
+            <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#2F7D6B" />
+          </view>
           <input v-model="s._note" class="input big" placeholder="大致情况" />
           <textarea v-model="s._text" class="result-area" placeholder="可直接手动输入学生反馈" :maxlength="240" />
           <button v-if="s._text" class="copy-feedback-btn" @tap="copyFeedback(s._text,s.name+'的反馈')">复制反馈</button>
@@ -130,8 +142,8 @@ export default {
       try{
         const ses=await api.get('/schedules/sessions/completed');
         this.completedSessions=(ses.sessions||[]).map(se=>({
-          ...se,_open:false,_tab:'class',_batching:false,_swiped:false,_feedbackStyle:'concise',
-          _cf:{lesson:'',topic:'',perfScore:5,homework:'',_text:'',_genning:false},
+          ...se,_open:false,_tab:'class',_batching:false,_swiped:false,_feedbackStyle:'concise',_hasExitQuiz:true,
+          _cf:{lesson:'',topic:'',performanceNote:'',homework:'',_text:'',_genning:false},
           _students:[],_publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
         }));
       }catch(e){this.error=e?.error||'请检查网络后重试';logError('feedback.loadSessions',e);}
@@ -144,7 +156,7 @@ export default {
           const r=await api.get('/students?class_id='+se.class_id);
           const students=(r.students||[]).map(s=>{
             if(!s._images)s._images=[];
-            return {...s,_score:s._score||5,_note:s._note||'',_text:s._text||'',_leave:false,_genning:false};
+            return {...s,_score:s._score||5,_performanceScore:s._performanceScore||5,_note:s._note||'',_text:s._text||'',_leave:false,_genning:false};
           });
           await Promise.all(students.map(async s=>{
             try{
@@ -171,11 +183,12 @@ export default {
       try{
         const students=se._students.filter(s=>!s._leave).map(s=>({
           id:s.id,name:s.name,level:s.level,personality:s.personality,
-          quizScore:s._score||5,note:s._note||''
+          performanceScore:s._performanceScore,
+          quizScore:se._hasExitQuiz?s._score:null,note:s._note||''
         }));
         if(students.length===0)return uni.showToast({title:'没有需要生成反馈的学生',icon:'none'});
         const r=await api.post('/feedbacks/generate-student-batch',{
-          students,classInfo:{content:se._cf.lesson+' '+se._cf.topic,perfScore:se._cf.perfScore},style:se._feedbackStyle
+          students,classInfo:{content:se._cf.lesson+' '+se._cf.topic,hasExitQuiz:se._hasExitQuiz},style:se._feedbackStyle
         });
         (r.results||[]).forEach((item,i)=>{
           const targetId=item.id??students[i]?.id;
@@ -220,7 +233,8 @@ export default {
       try{
         const r=await api.post('/feedbacks/generate-student',{
           name:s.name,level:s.level,personality:s.personality,
-          quizScore:s._score,note:s._note,content:se._cf.lesson+' '+se._cf.topic,perfScore:se._cf.perfScore,style:se._feedbackStyle
+          performanceScore:s._performanceScore,hasExitQuiz:se._hasExitQuiz,
+          quizScore:se._hasExitQuiz?s._score:null,note:s._note,content:se._cf.lesson+' '+se._cf.topic,style:se._feedbackStyle
         });
         s._text=this.formatStudentFeedback(s,r.text);
       }catch(e){if(!silent)toastError(e,'生成失败');else logError('genStuFeedback',e);}
@@ -412,4 +426,9 @@ export default {
 .style-choice.on{background:#fff;color:var(--accent-strong);box-shadow:0 3rpx 10rpx rgba(24,58,54,.09)}
 .style-hint{display:block;margin:0 0 16rpx;color:var(--text-muted);font-size:23rpx}
 .copy-feedback-btn{min-height:72rpx;margin:12rpx 0 4rpx;border:1rpx solid #BFD2CC;border-radius:12rpx;background:#FFFFFF;color:var(--accent-strong);font-size:26rpx;font-weight:680}
+.performance-note{min-height:132rpx;margin:0 0 16rpx}
+.class-setting-row{display:flex;align-items:center;justify-content:space-between;gap:20rpx;margin:0 0 12rpx;padding:20rpx;border:1rpx solid var(--border);border-radius:14rpx;background:#fff}
+.class-setting-copy{flex:1;min-width:0}.class-setting-title{display:block;color:var(--ink);font-size:27rpx;font-weight:700}.class-setting-hint{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx;line-height:1.45}
+.no-quiz-note{display:block;margin:0 0 16rpx;padding:14rpx 16rpx;border-radius:12rpx;background:var(--warning-soft);color:var(--warning);font-size:22rpx;line-height:1.5}
+.quiz-score-block{margin-top:4rpx}
 </style>
