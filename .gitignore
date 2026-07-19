@@ -22,6 +22,7 @@ private.*.key
 uploads/
 backend/uploads/
 backend/private-uploads/
+backend/exam-library/
 backend/db/teach.db
 *.db
 *.sqlite
@@ -30,7 +31,14 @@ backend/db/teach.db
 # Data import artifacts
 backend/invite-codes.txt
 
+# Private question-bank payloads are encrypted before entering public Git.
+backend/resources/choice-king/
+backend/resources/weekly-challenges/
+backend/private-resources-deploy/
+
 # Logs / OS
 *.log
+__pycache__/
+*.py[cod]
 .DS_Store
 Thumbs.db

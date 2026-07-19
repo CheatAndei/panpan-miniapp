@@ -1,8 +1,9 @@
 <template>
   <view class="page page-bottom-safe">
-    <view class="hero"><text class="eyebrow">REVIEW DESK</text><text class="hero-title">每周挑战批阅</text><text class="hero-sub">题目、标准答案和学生过程同屏核对</text></view>
-    <view class="tabs"><button v-for="item in tabs" :key="item.value" :class="{on:status===item.value}" @tap="status=item.value;load()">{{ item.label }}</button></view>
+    <view class="hero"><text class="eyebrow">REVIEW DESK</text><text class="hero-title">压轴挑战批阅</text><text class="hero-sub">题目、标准答案和学生过程同屏核对</text></view>
+    <view class="tabs"><button v-for="item in tabs" :key="item.value" :class="{on:status===item.value}" @tap="selectStatus(item.value)">{{ item.label }}</button></view>
     <pp-state v-if="loading && !items.length" type="loading" title="正在读取提交" />
+    <pp-state v-else-if="error" type="error" title="提交加载失败" :description="error" action-text="重试" @action="load" />
     <pp-state v-else-if="!items.length" title="当前没有待批阅挑战" description="家长拍照提交后会显示在这里。" />
     <view v-for="item in items" :key="item.submission.id" class="review-card">
       <view class="review-head"><view><text class="student">{{ item.student_name }}</text><text class="meta">{{ item.class_name }} · {{ typeLabel(item.question_type) }} · {{ item.week_start }}</text></view><text :class="['state',item.submission.status]">{{ item.submission.status==='reviewed'?'已批阅':'待批阅' }}</text></view>
@@ -20,10 +21,12 @@ import { ref } from 'vue';
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 const status=ref('submitted'),loading=ref(false),items=ref([]);
+const error=ref('');
 const tabs=[{value:'submitted',label:'待批阅'},{value:'reviewed',label:'已批阅'},{value:'all',label:'全部'}];
 onShow(load);onPullDownRefresh(async()=>{try{await load();}finally{uni.stopPullDownRefresh();}});
-async function load(){if(loading.value)return;loading.value=true;try{const data=await api.get(`/weekly-challenge/teacher/submissions?status=${status.value}`);items.value=await Promise.all((data.submissions||[]).map(async item=>({...item,note:item.submission?.teacher_note||'',localPhotos:await Promise.all((item.submission?.attachments||[]).map(photo=>api.downloadPrivate(photo.url).catch(()=>''))).then(list=>list.filter(Boolean))})));}catch(e){uni.showToast({title:e?.error||'加载失败',icon:'none'});}finally{loading.value=false;}}
-function typeLabel(type){return type==='choice'?'选择题':type==='fill'?'填空题':'解答题';}
+function selectStatus(value){if(status.value===value)return;status.value=value;items.value=[];error.value='';load();}
+async function load(){if(loading.value)return;loading.value=true;error.value='';try{const data=await api.get(`/weekly-challenge/teacher/submissions?status=${status.value}`);items.value=await Promise.all((data.submissions||[]).map(async item=>({...item,note:item.submission?.teacher_note||'',localPhotos:await Promise.all((item.submission?.attachments||[]).map(photo=>api.downloadPrivate(photo.url).catch(()=>''))).then(list=>list.filter(Boolean))})));}catch(e){error.value=e?.error||'加载失败';}finally{loading.value=false;}}
+function typeLabel(type){return type==='fill'?'填空题':type==='subjective'?'解答题':'历史题';}
 async function showAsset(url){try{const local=await api.downloadPrivate(url);uni.previewImage({urls:[local]});}catch(e){uni.showToast({title:e?.error||'图片读取失败',icon:'none'});}}
 async function showAnswer(item){if(item.answer_url)return showAsset(item.answer_url);uni.showModal({title:'标准答案',content:item.answer_text||'该题暂未录入答案，请核对原卷。',showCancel:false});}
 function preview(urls,index){uni.previewImage({urls,current:urls[index]});}

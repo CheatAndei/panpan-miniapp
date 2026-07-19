@@ -33,7 +33,11 @@
         <view class="focus-metrics">
           <button class="focus-metric" aria-label="查看待批改学生打卡" @tap="navTo('/pages/practice-teacher/index')">
             <text class="focus-number num">{{ pendingPracticeCount }}</text>
-            <text class="focus-copy">待批改</text>
+            <text class="focus-copy">打卡批改</text>
+          </button>
+          <button class="focus-metric" aria-label="查看待批阅压轴挑战" @tap="navTo('/pages/weekly-review/index')">
+            <text class="focus-number num">{{ pendingChallengeCount }}</text>
+            <text class="focus-copy">压轴批阅</text>
           </button>
           <button class="focus-metric" aria-label="查看待审批请假" @tap="navTo('/pages/teacher-leaves/index')">
             <text class="focus-number num">{{ pendingLeaves }}</text>
@@ -92,6 +96,43 @@
         <button class="practice-todo-all" @tap="navTo('/pages/practice-teacher/index')">进入批改台</button>
       </view>
 
+      <view v-if="pendingChallengeCount" class="card practice-todo-card challenge-todo-card">
+        <view class="practice-todo-head">
+          <view>
+            <text class="practice-todo-kicker">压轴挑战待办</text>
+            <text class="practice-todo-title">压轴挑战待批阅 {{ pendingChallengeCount }} 份</text>
+          </view>
+          <text class="practice-todo-badge">待批阅</text>
+        </view>
+        <view v-for="item in pendingChallengeTodos" :key="item.submission.id" class="practice-todo-row" @tap="navTo('/pages/weekly-review/index')">
+          <view>
+            <text class="practice-todo-name">{{ item.student_name }} · {{ item.week_start }}</text>
+            <text class="practice-todo-meta">{{ item.class_name }} · {{ item.title }}</text>
+          </view>
+          <text class="practice-todo-action">批阅 ›</text>
+        </view>
+        <button class="practice-todo-all" @tap="navTo('/pages/weekly-review/index')">进入压轴挑战批阅台</button>
+      </view>
+
+      <view v-if="choiceAlerts.length" class="card choice-alert-card">
+        <view class="practice-todo-head">
+          <view>
+            <text class="practice-todo-kicker">选择刷题王提醒</text>
+            <text class="practice-todo-title">有学生完成 800 道不同选择题</text>
+          </view>
+          <text class="practice-todo-badge">里程碑</text>
+        </view>
+        <view v-for="item in choiceAlerts" :key="item.id" class="choice-alert-row">
+          <view class="choice-alert-copy">
+            <text class="practice-todo-name">{{ item.student_name }} · {{ item.class_name || '未分组' }}</text>
+            <text class="practice-todo-meta">{{ item.message }}</text>
+          </view>
+          <button class="choice-alert-dismiss" :disabled="dismissingAlertId===item.id" @tap="dismissChoiceAlert(item)">
+            {{ dismissingAlertId===item.id ? '处理中' : '知道了' }}
+          </button>
+        </view>
+      </view>
+
       <view class="card class-history-card">
         <view class="section-title class-history-head" @tap="teacherClassesExpanded=!teacherClassesExpanded">
           <view>
@@ -130,7 +171,7 @@
         <view class="practice-entry-icon tools-entry-icon"><pp-icon name="book" :size="42" /></view>
         <view class="practice-entry-copy">
           <text class="practice-entry-kicker tools-entry-kicker">新增教学工具</text>
-          <text class="practice-entry-title">真题、周挑战与口算目标</text>
+          <text class="practice-entry-title">真题、压轴挑战与口算目标</text>
           <text class="practice-entry-desc">集中查看原卷下载、答案申请、挑战批阅与真实冲榜目标</text>
         </view>
         <pp-icon name="arrow" :size="34" />
@@ -264,8 +305,8 @@
         <view class="shortcut-grid">
           <button class="learning-shortcut" @tap="child&&navTo('/pages/weekly-challenge/index?student_id='+child.id)">
             <view class="shortcut-icon"><pp-icon name="calendar" :size="38" /></view>
-            <text class="practice-entry-title">每周挑战</text>
-            <text class="shortcut-desc">三种题型 · 拍照提交</text>
+            <text class="practice-entry-title">压轴挑战</text>
+            <text class="shortcut-desc">填空与大题 · 拍照提交</text>
           </button>
           <button class="learning-shortcut" @tap="child&&navTo('/pages/exam-library/index?student_id='+child.id)">
             <view class="shortcut-icon"><pp-icon name="book" :size="38" /></view>
@@ -393,6 +434,10 @@ const teacherClassesExpanded = ref(false);
 const pendingLeaves = ref(0);
 const pendingPracticeCount = ref(0);
 const pendingPracticeTodos = ref([]);
+const pendingChallengeCount = ref(0);
+const pendingChallengeTodos = ref([]);
+const choiceAlerts = ref([]);
+const dismissingAlertId = ref(null);
 const todaySessions = ref([]);
 const child = ref(null);
 const boundKids = ref([]);
@@ -420,7 +465,10 @@ const parentError = ref('');
 const currentTeacherName = computed(() => teacherDisplayName(user.value?.nickname));
 const childTeacherName = computed(() => teacherNameFromChild(child.value));
 const feedbackPlaceholder = computed(() => `有任何问题或建议告诉${childTeacherName.value}`);
-const totalPending = computed(() => Number(pendingLeaves.value || 0) + Number(pendingPracticeCount.value || 0));
+const totalPending = computed(() => Number(pendingLeaves.value || 0)
+  + Number(pendingPracticeCount.value || 0)
+  + Number(pendingChallengeCount.value || 0)
+  + choiceAlerts.value.length);
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
 const today = new Date().toLocaleDateString('zh-CN', { month:'long', day:'numeric', weekday:'long' });
@@ -567,22 +615,45 @@ async function loadTeacherData() {
   teacherLoading.value = true;
   teacherError.value = '';
   try {
-    const [cRes, lRes, sessionRes, practiceTodos] = await Promise.all([
+    const [cRes, lRes, sessionRes, practiceTodos, challengeTodos] = await Promise.all([
       api.get('/classes'),
       api.get('/leaves'),
       api.get('/schedules/sessions'),
-      api.get('/practice/todos?limit=3')
+      api.get('/practice/todos?limit=3'),
+      api.get('/weekly-challenge/teacher/submissions?status=submitted&limit=3')
     ]);
     classes.value = cRes.classes || [];
     pendingLeaves.value = (lRes.leaves||[]).filter(l=>l.status==='pending').length;
     pendingPracticeCount.value = Number(practiceTodos.count || 0);
     pendingPracticeTodos.value = practiceTodos.todos || [];
+    pendingChallengeCount.value = Number(challengeTodos.count || 0);
+    pendingChallengeTodos.value = challengeTodos.todos || [];
     todaySessions.value = (sessionRes.sessions || []).filter(item => item.class_date === localDateKey());
+    try {
+      const alertRes = await api.get('/choice-king/alerts?unread=1&limit=3');
+      choiceAlerts.value = alertRes.alerts || [];
+    } catch (alertError) {
+      choiceAlerts.value = [];
+      logError('loadChoiceKingAlerts', alertError);
+    }
   } catch (e) {
     teacherError.value = e?.error || '请检查网络后重试';
     logError('loadTeacherData', e);
   } finally {
     teacherLoading.value = false;
+  }
+}
+
+async function dismissChoiceAlert(item) {
+  if (dismissingAlertId.value) return;
+  dismissingAlertId.value = item.id;
+  try {
+    await api.put(`/choice-king/alerts/${item.id}/read`, { is_read: true });
+    choiceAlerts.value = choiceAlerts.value.filter(alert => alert.id !== item.id);
+  } catch (e) {
+    toastError(e, '提醒处理失败');
+  } finally {
+    dismissingAlertId.value = null;
   }
 }
 
@@ -819,6 +890,7 @@ function scheduleLabel(sc) {
 .practice-entry-desc { display:block; margin-top:4rpx; color:var(--text-muted); font-size:23rpx; line-height:1.45; }
 .arena-entry{border-color:#E8C879!important;background:linear-gradient(135deg,#FFF9E8,#FFFFFF)!important}.arena-icon{background:#F5B83D!important}.arena-symbol{color:#493000;font-size:34rpx!important;font-weight:950!important}.arena-kicker{color:#9A6A0D}
 .practice-todo-card{border-color:#E8C879!important;background:linear-gradient(135deg,#FFFBF0,#FFFFFF)!important}.practice-todo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx}.practice-todo-kicker{display:block;color:#9A6A0D;font-size:20rpx;font-weight:800;letter-spacing:2rpx}.practice-todo-title{display:block;margin-top:5rpx;color:var(--ink);font-size:29rpx;font-weight:760}.practice-todo-badge{flex:none;padding:9rpx 15rpx;border-radius:999rpx;background:#F5B83D;color:#493000;font-size:21rpx;font-weight:800}.practice-todo-row{display:flex;align-items:center;justify-content:space-between;gap:14rpx;padding:18rpx 0;border-bottom:1rpx solid #F0E3C4}.practice-todo-name{display:block;color:var(--ink);font-size:26rpx;font-weight:700}.practice-todo-meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx}.practice-todo-action{flex:none;color:#9A6A0D;font-size:23rpx;font-weight:800}.practice-todo-all{min-height:84rpx;margin:20rpx 0 0;border-radius:14rpx;background:#183A36;color:#fff;font-size:25rpx;font-weight:720}.practice-todo-all::after{border:0}
+.choice-alert-card{border-color:#B8D8CF!important;background:linear-gradient(135deg,#EEF8F5,#FFFFFF)!important}.choice-alert-row{display:flex;align-items:center;gap:14rpx;padding:18rpx 0;border-bottom:1rpx solid #DCECE7}.choice-alert-row:last-child{border-bottom:0}.choice-alert-copy{flex:1;min-width:0}.choice-alert-dismiss{flex:none;min-height:64rpx;margin:0;padding:0 20rpx;border-radius:12rpx;background:#183A36;color:#fff;font-size:21rpx;font-weight:720}.choice-alert-dismiss::after{border:0}
 
 .profile-preview { display: flex; gap: 12rpx; flex-wrap: wrap; }
 
@@ -892,7 +964,7 @@ function scheduleLabel(sc) {
 .focus-ready { padding: 5rpx 13rpx; border-radius: 9rpx; font-size: 21rpx; font-weight: 650; }
 .focus-pending { color: #FFE7DE; background: rgba(230,115,85,.18); }
 .focus-ready { color: #D5F2EA; background: rgba(119,195,176,.16); }
-.focus-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10rpx; margin-top: 20rpx; }
+.focus-metrics { display: grid; grid-template-columns: repeat(2,1fr); gap: 10rpx; margin-top: 20rpx; }
 .focus-metric { min-width: 0; min-height: 96rpx; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3rpx; margin: 0; padding: 12rpx 16rpx; border-radius: 14rpx; background: rgba(255,255,255,.1); text-align: left; transition: opacity .16s var(--ease-out); }
 .focus-metric::after { border: 0; }
 .focus-metric:active { opacity: .72; }

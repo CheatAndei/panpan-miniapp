@@ -33,8 +33,9 @@ function clearBindFailures(userId) {
 }
 
 function teacherInviteCodes() {
-  const configured = [process.env.TEACHER_INVITE_CODE, process.env.TEACHER_INVITE_CODES]
-    .filter(Boolean).join(',').split(',').map(code => code.trim().toUpperCase()).filter(Boolean);
+  const pluralCodes = String(process.env.TEACHER_INVITE_CODES || '').trim();
+  const configured = (pluralCodes || String(process.env.TEACHER_INVITE_CODE || ''))
+    .split(',').map(code => code.trim().toUpperCase()).filter(Boolean);
   return [...new Set(configured)];
 }
 

@@ -172,8 +172,25 @@ function runMigrations() {
   ensureColumn('practice_questions', 'content_sha256', 'TEXT');
   ensureColumn('practice_questions', 'copy_allowed', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('weekly_challenge_questions', 'source_key', 'TEXT');
+  ensureColumn('choice_king_reports', 'selected_answer', 'TEXT');
   _db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_challenge_source_key ON weekly_challenge_questions(source_key)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_classes_teacher_active ON classes(teacher_id, deleted_at)');
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_question_active
+    ON choice_king_questions(is_active, source_period, id)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_attempt_student_question
+    ON choice_king_attempts(student_id, question_id, is_review, answered_at)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_attempt_first_correct
+    ON choice_king_attempts(question_id, student_id, is_correct, is_review, answered_at)`);
+  _db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_choice_king_one_active_issuance
+    ON choice_king_issuances(student_id) WHERE closed_at IS NULL`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_issuance_question
+    ON choice_king_issuances(question_id, closed_at, expires_at)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_wrong_due
+    ON choice_king_wrong_progress(student_id, status, next_due_at, new_questions_since_review)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_report_status
+    ON choice_king_reports(status, created_at)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_teacher_alert_unread
+    ON teacher_alerts(teacher_id, read_at, created_at)`);
   _db.run(`UPDATE practice_plans SET topic_keys='["rational_numbers","absolute_value","algebra","linear_equation"]'
     WHERE topic_keys IS NULL OR trim(topic_keys)='' OR topic_keys='[]'`);
   _db.run(`UPDATE homework_batches SET class_id=(
@@ -242,7 +259,16 @@ async function initDB() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   _db.run(schema);
   runMigrations();
-  require('../services/weekly-challenge-seed').seedWeeklyChallenges(getDB());
+  // The full generated banks are intentionally exercised by their dedicated
+  // seed tests. Avoid importing 2,420 image-backed resources again for every
+  // unrelated test process; production can never enter this branch by merely
+  // setting the skip flag.
+  const skipStartupResourceSeed = (process.env.NODE_ENV === 'test' || process.env.NODE_TEST_CONTEXT)
+    && process.env.PANPAN_SKIP_STARTUP_RESOURCE_SEED === '1';
+  if (!skipStartupResourceSeed) {
+    require('../services/weekly-challenge-seed').seedWeeklyChallenges(getDB());
+    require('../services/choice-king').seedChoiceKingQuestions(getDB());
+  }
   seedPracticeQuestions();
   seedGuangzhouPracticeQuestions();
   retireLegacyJuniorPracticeQuestions();

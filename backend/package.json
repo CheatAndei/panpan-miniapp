@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "db:init": "node db/init.js",
-    "test": "UPLOAD_DIR=../../../z-rubbish/backend-test-uploads PRIVATE_UPLOAD_DIR=../../../z-rubbish/backend-test-private EXAM_LIBRARY_DIR=../../../z-rubbish/backend-test-exams node --test --test-concurrency=1 test/*.test.js",
+    "test": "NODE_ENV=test PANPAN_SKIP_STARTUP_RESOURCE_SEED=1 UPLOAD_DIR=../../../z-rubbish/backend-test-uploads PRIVATE_UPLOAD_DIR=../../../z-rubbish/backend-test-private EXAM_LIBRARY_DIR=../../../z-rubbish/backend-test-exams node --test --test-concurrency=1 test/*.test.js",
     "practice:import": "node scripts/import-practice-questions.js",
     "exams:import": "node scripts/import-exam-library.js",
     "notify:inspect": "node scripts/inspect-notification-templates.js"

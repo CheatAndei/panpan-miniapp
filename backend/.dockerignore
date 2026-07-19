@@ -7,3 +7,7 @@ uploads
 *.db
 *.sqlite
 .DS_Store
+resources/choice-king
+resources/weekly-challenges
+private-resource-bundle
+private-resources-deploy

@@ -8,7 +8,7 @@ const TASKS = {
   basics: { title: '计算基础', count: 10, description: '按当前学段巩固基础计算' },
   weakness: { title: '薄弱点刷题', count: 4, description: '完成 4 道针对性练习即计入今日任务' },
   wrong: { title: '错题清零', count: 3, description: '同类题连续答对 2 次即掌握' },
-  weekly: { title: '每周挑战', count: 12, description: '一组有梯度的综合计算' },
+  weekly: { title: '压轴挑战', count: 3, description: '最后一道填空与最后两道大题，完成后拍照提交' },
   context: { title: '广州真题大全', count: 8, description: '广州七年级上学期原卷与配套答案' },
   weekend: { title: '周末小测', count: 10, description: '用 10 题检查本周掌握情况' },
 };
@@ -337,7 +337,7 @@ function todayOverview(db, { studentId, now = new Date() }) {
       const completed = Boolean(challenge?.status === 'submitted' || challenge?.status === 'reviewed');
       return {
         key: 'weekly', position: index + 1, title: TASKS.weekly.title,
-        description: completed ? (challenge.status === 'reviewed' ? '老师已完成批阅' : '已提交，等待老师批阅') : '选择题、填空题或解答题，完成后拍照提交',
+        description: completed ? (challenge.status === 'reviewed' ? '老师已完成批阅' : '已提交，等待老师批阅') : '最后一道填空与最后两道大题，完成后拍照提交',
         route: 'weekly_challenge', status: completed ? (challenge.status === 'reviewed' ? 'completed' : 'pending_review') : 'ready',
         completed,
       };
@@ -380,7 +380,7 @@ function catalog(db, { studentId, now = new Date() }) {
       { type: 'warmup', ...TASKS.warmup, accent: 'mint' },
       { type: 'weakness', ...TASKS.weakness, accent: 'blue' },
       { type: 'wrong', ...TASKS.wrong, title: overview.stats.open_wrong_count ? `错题清零 · ${overview.stats.open_wrong_count} 待掌握` : '错题清零 · 今日巩固', accent: 'amber' },
-      { type: 'weekly', ...TASKS.weekly, description: '选择题、填空题或解答题，每周完成一题并拍照提交', route: 'weekly_challenge', accent: 'navy' },
+      { type: 'weekly', ...TASKS.weekly, route: 'weekly_challenge', accent: 'navy' },
       { type: 'exams', title: '广州真题大全', description: '按期中、期末、月考和年份查看原卷', route: 'exams', accent: 'rose' },
       { type: 'weekend', ...TASKS.weekend, accent: 'purple', locked: ![0, 6].includes(weekday), lock_text: '周末开放' },
       { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },

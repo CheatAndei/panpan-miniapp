@@ -14,7 +14,9 @@ process.env.JWT_SECRET = 'multi-role-auth-test-secret-that-is-long-enough';
 process.env.CORS_ORIGIN = 'http://localhost';
 process.env.APP_ID = '';
 process.env.APP_SECRET = '';
-process.env.TEACHER_INVITE_CODE = 'PANPAN';
+const TEST_TEACHER_INVITE_CODES = ['TEST-CODE-01', 'TEST-CODE-02', 'TEST-CODE-03', 'TEST-CODE-04', 'TEST-CODE-05'];
+process.env.TEACHER_INVITE_CODES = TEST_TEACHER_INVITE_CODES.join(',');
+process.env.TEACHER_INVITE_CODE = 'STALE1';
 
 let server;
 let base;
@@ -159,18 +161,33 @@ test('旧 JWT 仍可按其中的合法角色访问，不要求先重签', async 
   assert.equal(result.payload.students.length, 1);
 });
 
-test('教师邀请码只增加 teacher，错误邀请码后可以原码重试', async () => {
-  const login = await request('POST', '/auth/login', '', { code: 'retry-parent' });
-  const invalid = await request('POST', '/bind', login.payload.token, { invite_code: 'BAD001' });
-  assert.equal(invalid.response.status, 404);
+test('复数教师邀请码配置是唯一权威且精确开放五个码', async () => {
+  for (const [index, inviteCode] of TEST_TEACHER_INVITE_CODES.entries()) {
+    const login = await request('POST', '/auth/login', '', { code: `teacher-code-parent-${index}` });
+    const upgraded = await request('POST', '/bind', login.payload.token, { invite_code: inviteCode });
+    assert.equal(upgraded.response.status, 200, inviteCode);
+    assert.equal(upgraded.payload.user.role, 'teacher');
+    assert.deepEqual(upgraded.payload.user.roles, ['parent', 'teacher']);
+  }
 
-  const upgraded = await request('POST', '/bind', login.payload.token, { invite_code: 'PANPAN' });
-  assert.equal(upgraded.response.status, 200);
-  assert.equal(upgraded.payload.user.role, 'teacher');
-  assert.deepEqual(upgraded.payload.user.roles, ['parent', 'teacher']);
+  const staleLogin = await request('POST', '/auth/login', '', { code: 'stale-teacher-code-parent' });
+  const stale = await request('POST', '/bind', staleLogin.payload.token, { invite_code: 'STALE1' });
+  assert.equal(stale.response.status, 404);
+});
 
-  const parentAgain = await request('POST', '/auth/switch-role', upgraded.payload.token, { role: 'parent' });
-  assert.equal(parentAgain.response.status, 200);
+test('未配置复数教师邀请码时兼容旧单数变量', async () => {
+  const configuredCodes = process.env.TEACHER_INVITE_CODES;
+  delete process.env.TEACHER_INVITE_CODES;
+  process.env.TEACHER_INVITE_CODE = 'LEGACY';
+  try {
+    const login = await request('POST', '/auth/login', '', { code: 'legacy-invite-parent' });
+    const upgraded = await request('POST', '/bind', login.payload.token, { invite_code: 'LEGACY' });
+    assert.equal(upgraded.response.status, 200);
+    assert.equal(upgraded.payload.user.role, 'teacher');
+  } finally {
+    process.env.TEACHER_INVITE_CODES = configuredCodes;
+    process.env.TEACHER_INVITE_CODE = 'STALE1';
+  }
 });
 
 test('纯教师不能通过 switch-role 伪造家长身份', async () => {

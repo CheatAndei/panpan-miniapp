@@ -4,12 +4,11 @@ on:
   push:
     branches:
       - main
-      - deploy/prod
   workflow_dispatch:
 
 concurrency:
-  group: backend-docker-image-${{ github.ref }}
-  cancel-in-progress: true
+  group: backend-production
+  cancel-in-progress: false
 
 jobs:
   build-and-push:
@@ -39,7 +38,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=prod,enable=${{ github.ref == 'refs/heads/deploy/prod' }}
+            type=raw,value=git-${{ github.sha }},enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=sha-
 
       - name: Build and push
@@ -54,8 +53,39 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Decrypt private question-bank resources
+        id: private_resources
+        if: github.ref == 'refs/heads/main'
+        env:
+          PANPAN_RESOURCE_BUNDLE_KEY: ${{ secrets.PANPAN_RESOURCE_BUNDLE_KEY }}
+        run: |
+          set -euo pipefail
+          cd backend/private-resource-bundle
+          sha256sum -c SHA256SUMS
+          echo "bundle_id=$(sha256sum SHA256SUMS | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          mkdir -p ../private-resources-deploy
+          cat panpan-private-resources.enc.part-* \
+            | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 \
+                -pass env:PANPAN_RESOURCE_BUNDLE_KEY \
+            | tar -xzf - -C ../private-resources-deploy
+          test -f ../private-resources-deploy/choice-king/manifest.json
+          test -f ../private-resources-deploy/weekly-challenges/manifest.json
+
+      - name: Upload private question-bank resources
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          fingerprint: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+          timeout: 2m
+          command_timeout: 20m
+          source: backend/private-resources-deploy/*
+          target: /opt/panpan-miniapp/private-resource-upload/${{ steps.private_resources.outputs.bundle_id }}
+
       - name: Deploy production backend
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/deploy/prod'
+        if: github.ref == 'refs/heads/main'
         uses: appleboy/ssh-action@v1.2.0
         env:
           PANPAN_APP_ID: ${{ secrets.PANPAN_APP_ID }}
@@ -67,11 +97,16 @@ jobs:
           PANPAN_TPL_HOMEWORK: ${{ secrets.PANPAN_TPL_HOMEWORK }}
           PANPAN_TEACHER_INVITE_CODES: ${{ secrets.PANPAN_TEACHER_INVITE_CODES }}
           PANPAN_EXAM_IMPORT_TOKEN: ${{ secrets.PANPAN_EXAM_IMPORT_TOKEN }}
+          PANPAN_DEPLOY_SHA: ${{ github.sha }}
+          PANPAN_RESOURCE_BUNDLE_ID: ${{ steps.private_resources.outputs.bundle_id }}
         with:
           host: 134.175.69.59
           username: root
           key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
-          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER,PANPAN_TPL_HOMEWORK,PANPAN_TEACHER_INVITE_CODES,PANPAN_EXAM_IMPORT_TOKEN
+          fingerprint: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+          timeout: 2m
+          command_timeout: 20m
+          envs: PANPAN_APP_ID,PANPAN_APP_SECRET,PANPAN_TPL_CHECKIN,PANPAN_TPL_CHECKOUT,PANPAN_TPL_FEEDBACK,PANPAN_TPL_REMINDER,PANPAN_TPL_HOMEWORK,PANPAN_TEACHER_INVITE_CODES,PANPAN_EXAM_IMPORT_TOKEN,PANPAN_DEPLOY_SHA,PANPAN_RESOURCE_BUNDLE_ID
           script: |
             set -euo pipefail
             upsert_env() {
@@ -92,7 +127,18 @@ jobs:
             }
 
             DEPLOY_DIR=/opt/panpan-miniapp
+            DEPLOY_IMAGE="rockchin/panpan-miniapp-backend:git-$PANPAN_DEPLOY_SHA"
             mkdir -p "$DEPLOY_DIR/backend"
+
+            RESOURCE_UPLOAD="$DEPLOY_DIR/private-resource-upload/$PANPAN_RESOURCE_BUNDLE_ID/backend/private-resources-deploy"
+            RESOURCE_DIR="$DEPLOY_DIR/private-resources/$PANPAN_RESOURCE_BUNDLE_ID"
+            test -f "$RESOURCE_UPLOAD/choice-king/manifest.json"
+            test -f "$RESOURCE_UPLOAD/weekly-challenges/manifest.json"
+            mkdir -p "$DEPLOY_DIR/private-resources"
+            if [ ! -d "$RESOURCE_DIR" ]; then
+              mv "$RESOURCE_UPLOAD" "$RESOURCE_DIR"
+            fi
+            rm -rf "$DEPLOY_DIR/private-resource-upload/$PANPAN_RESOURCE_BUNDLE_ID"
 
             ENV_FILES=("$DEPLOY_DIR/.env" "$DEPLOY_DIR/backend/.env")
 
@@ -129,12 +175,41 @@ jobs:
               upsert_env TPL_FIELD_HOMEWORK_STATUS phrase2 "$ENV_FILE"
             done
 
-            docker pull rockchin/panpan-miniapp-backend:main
+            PREVIOUS_IMAGE_ID="$(docker inspect panpan-api --format '{{.Image}}' 2>/dev/null || true)"
+            PREVIOUS_OVERRIDE="$DEPLOY_DIR/docker-compose.override.yml.predeploy-$PANPAN_DEPLOY_SHA"
+            if [ -f "$DEPLOY_DIR/docker-compose.override.yml" ]; then
+              cp -a "$DEPLOY_DIR/docker-compose.override.yml" "$PREVIOUS_OVERRIDE"
+            fi
+
+            docker pull "$DEPLOY_IMAGE"
+            docker run --rm -i \
+              -v "$RESOURCE_DIR/choice-king:/app/resources/choice-king:ro" \
+              -v "$RESOURCE_DIR/weekly-challenges:/app/resources/weekly-challenges:ro" \
+              "$DEPLOY_IMAGE" node - <<'NODE'
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const read = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
+            const choiceRoot = '/app/resources/choice-king';
+            const terminalRoot = '/app/resources/weekly-challenges';
+            const choice = read(path.join(choiceRoot, 'manifest.json')).questions;
+            const terminal = read(path.join(terminalRoot, 'manifest.json')).questions;
+            if (choice.length !== 1000 || terminal.length !== 710) throw new Error('private resource counts are invalid');
+            if (choice.filter((item) => item.recent_bucket === 'recent').length !== 500) throw new Error('recent choice count is invalid');
+            if (choice.filter((item) => item.recent_bucket === 'older').length !== 500) throw new Error('older choice count is invalid');
+            for (const item of choice) {
+              if (!fs.existsSync(path.join(choiceRoot, item.question_image))) throw new Error(`missing choice image: ${item.source_key}`);
+            }
+            for (const item of terminal) {
+              if (!fs.existsSync(path.join(terminalRoot, item.question_image))) throw new Error(`missing terminal question: ${item.source_key}`);
+              if (item.answer_image && !fs.existsSync(path.join(terminalRoot, item.answer_image))) throw new Error(`missing terminal answer: ${item.source_key}`);
+            }
+            console.log(JSON.stringify({ choice: choice.length, terminal: terminal.length, resources: 'ok' }));
+            NODE
             if [ ! -f "$DEPLOY_DIR/docker-compose.yml" ]; then
               cat > "$DEPLOY_DIR/docker-compose.yml" <<'EOF'
             services:
               panpan-api:
-                image: rockchin/panpan-miniapp-backend:main
+                image: $DEPLOY_IMAGE
                 container_name: panpan-api
                 restart: unless-stopped
                 env_file:
@@ -152,7 +227,8 @@ jobs:
               panpan-exams:
             EOF
             fi
-            cat > "$DEPLOY_DIR/docker-compose.override.yml" <<'EOF'
+            NEW_OVERRIDE="$DEPLOY_DIR/docker-compose.override.yml.next-$PANPAN_DEPLOY_SHA"
+            cat > "$NEW_OVERRIDE" <<EOF
             services:
               panpan-api:
                 image: rockchin/panpan-miniapp-backend:main
@@ -162,9 +238,39 @@ jobs:
                   - ./backend/.env
                 volumes:
                   - panpan-exams:/app/exam-library
+                  - $RESOURCE_DIR/choice-king:/app/resources/choice-king:ro
+                  - $RESOURCE_DIR/weekly-challenges:/app/resources/weekly-challenges:ro
             volumes:
               panpan-exams:
             EOF
+
+            rollback_deploy() {
+              set +e
+              echo "Rolling back backend image and compose override"
+              if [ -f "$PREVIOUS_OVERRIDE" ]; then
+                cp -a "$PREVIOUS_OVERRIDE" "$DEPLOY_DIR/docker-compose.override.yml"
+              fi
+              if [ -n "$PREVIOUS_IMAGE_ID" ] && docker image inspect "$PREVIOUS_IMAGE_ID" >/dev/null 2>&1; then
+                docker tag "$PREVIOUS_IMAGE_ID" rockchin/panpan-miniapp-backend:main
+              fi
+              (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate)
+              ROLLBACK_HEALTHY=0
+              ROLLBACK_DEADLINE=$(($(date +%s) + 120))
+              while [ "$(date +%s)" -lt "$ROLLBACK_DEADLINE" ]; do
+                if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health; then
+                  ROLLBACK_HEALTHY=1
+                  break
+                fi
+                sleep 2
+              done
+              set -e
+              if [ "$ROLLBACK_HEALTHY" = "1" ]; then
+                echo "Rollback health check passed"
+                return 0
+              fi
+              echo "Rollback health check failed"
+              return 1
+            }
 
             DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
             UPLOADS_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/uploads"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
@@ -179,6 +285,9 @@ jobs:
               UPLOADS_DIR="$(docker volume inspect panpan-miniapp_panpan-uploads --format '{{.Mountpoint}}')"
             fi
             mkdir -p "$DATA_DIR" "$UPLOADS_DIR"
+            if [ -f "$DATA_DIR/teach.db" ]; then
+              cp -a "$DATA_DIR/teach.db" "$DEPLOY_DIR/backend/teach.predeploy-$PANPAN_DEPLOY_SHA.db"
+            fi
 
             docker cp panpan-api:/app/db/teach.db "$DEPLOY_DIR/backend/teach.container-before-data-fix.db" 2>/dev/null || true
             CURRENT_DB="$DATA_DIR/teach.db"
@@ -211,7 +320,12 @@ jobs:
               fi
             done
 
-            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate)
+            (cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f "$NEW_OVERRIDE" config >/dev/null)
+            mv "$NEW_OVERRIDE" "$DEPLOY_DIR/docker-compose.override.yml"
+            if ! (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate); then
+              rollback_deploy || true
+              exit 1
+            fi
 
             echo "=== compose files ==="
             find "$DEPLOY_DIR" -maxdepth 2 \( -name '*compose*.yml' -o -name '*compose*.yaml' \) -print -exec sed -n '1,220p' {} \; || true
@@ -221,8 +335,9 @@ jobs:
             docker exec panpan-api sh -lc "grep -n 'bug2-notify-fields-v3\|time.*<= 20\|phrase.*<= 20\|thing.*<= 20\|function wxTime' /app/server.js /app/routes/notify.js || true" || true
 
             HEALTHY=0
-            for attempt in $(seq 1 30); do
-              if docker exec panpan-api wget -qO- http://127.0.0.1:3000/api/health; then
+            HEALTH_DEADLINE=$(($(date +%s) + 180))
+            while [ "$(date +%s)" -lt "$HEALTH_DEADLINE" ]; do
+              if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health; then
                 HEALTHY=1
                 break
               fi
@@ -233,5 +348,38 @@ jobs:
               docker ps -a --filter name=panpan-api
               docker inspect panpan-api --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' || true
               docker logs --tail 240 panpan-api 2>&1 || true
+              rollback_deploy || true
+              exit 1
+            fi
+
+            MOUNTS="$(docker inspect panpan-api --format '{{range .Mounts}}{{println .Destination .RW}}{{end}}' || true)"
+            if ! echo "$MOUNTS" | grep -q '^/app/resources/choice-king false$' \
+              || ! echo "$MOUNTS" | grep -q '^/app/resources/weekly-challenges false$'; then
+              echo "Private resource mounts are missing or writable"
+              rollback_deploy || true
+              exit 1
+            fi
+
+            if ! docker exec -i panpan-api node - <<'NODE'
+            const fs = require('node:fs');
+            require('sql.js')().then((SQL) => {
+              const db = new SQL.Database(fs.readFileSync(process.env.DATABASE_PATH));
+              const scalar = (sql) => {
+                const result = db.exec(sql);
+                return Number(result[0]?.values?.[0]?.[0] || 0);
+              };
+              const counts = {
+                choice: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%'"),
+                recent: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%' AND source_period='recent'"),
+                older: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%' AND source_period='older'"),
+                terminal: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND source_key LIKE 'gz7-terminal-%'"),
+              };
+              console.log(JSON.stringify(counts));
+              if (counts.choice !== 1000 || counts.recent !== 500 || counts.older !== 500 || counts.terminal !== 710) process.exit(1);
+            }).catch((error) => { console.error(error); process.exit(1); });
+            NODE
+            then
+              echo "Seeded question-bank counts are invalid"
+              rollback_deploy || true
               exit 1
             fi

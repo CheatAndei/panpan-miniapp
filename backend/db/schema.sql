@@ -625,6 +625,106 @@ CREATE TABLE IF NOT EXISTS mental_rank_goals (
   completed_at DATETIME
 );
 
+-- 选择刷题王。正确选项只保存在服务端，题目领取接口不得返回 correct_option / explanation。
+CREATE TABLE IF NOT EXISTS choice_king_questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  stable_code TEXT UNIQUE NOT NULL,
+  exam_id INTEGER REFERENCES exam_papers(id),
+  question_asset_id INTEGER REFERENCES exam_assets(id),
+  question_image_url TEXT,
+  stem TEXT NOT NULL,
+  options_json TEXT NOT NULL DEFAULT '{}',
+  correct_option TEXT NOT NULL CHECK(correct_option IN ('A', 'B', 'C', 'D')),
+  explanation TEXT,
+  source_label TEXT,
+  source_year INTEGER,
+  source_period TEXT CHECK(source_period IN ('recent', 'older') OR source_period IS NULL),
+  original_question_no TEXT,
+  is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
+  stopped_by INTEGER REFERENCES users(id),
+  stopped_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- client_request_id 在学生范围内唯一；response_json 保存完整判题响应，支持安全重试。
+CREATE TABLE IF NOT EXISTS choice_king_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  question_id INTEGER NOT NULL REFERENCES choice_king_questions(id),
+  selected_option TEXT NOT NULL CHECK(selected_option IN ('A', 'B', 'C', 'D')),
+  is_correct INTEGER NOT NULL CHECK(is_correct IN (0, 1)),
+  is_review INTEGER NOT NULL DEFAULT 0 CHECK(is_review IN (0, 1)),
+  client_request_id TEXT NOT NULL,
+  response_json TEXT,
+  answered_at DATETIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, client_request_id)
+);
+
+-- next 下发的服务端凭证。每名学生同时只有一道活动题，提交成功后与答题记录原子绑定并关闭。
+CREATE TABLE IF NOT EXISTS choice_king_issuances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  question_id INTEGER NOT NULL REFERENCES choice_king_questions(id),
+  issue_type TEXT NOT NULL CHECK(issue_type IN ('normal', 'review')),
+  issued_at DATETIME NOT NULL,
+  expires_at DATETIME NOT NULL,
+  closed_at DATETIME,
+  close_reason TEXT CHECK(close_reason IN ('answered', 'expired', 'question_stopped') OR close_reason IS NULL),
+  attempt_id INTEGER REFERENCES choice_king_attempts(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 错题始终关联原题。首次 1 天后重现，之后按 3/7 天推进；连续两次复习正确后掌握。
+CREATE TABLE IF NOT EXISTS choice_king_wrong_progress (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  question_id INTEGER NOT NULL REFERENCES choice_king_questions(id),
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'mastered')),
+  consecutive_correct INTEGER NOT NULL DEFAULT 0,
+  review_stage INTEGER NOT NULL DEFAULT 0,
+  review_attempts INTEGER NOT NULL DEFAULT 0,
+  new_questions_since_review INTEGER NOT NULL DEFAULT 0,
+  next_due_at DATETIME,
+  last_wrong_at DATETIME,
+  last_review_at DATETIME,
+  mastered_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id, question_id)
+);
+
+CREATE TABLE IF NOT EXISTS choice_king_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_id INTEGER NOT NULL REFERENCES choice_king_questions(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  reason TEXT NOT NULL,
+  detail TEXT,
+  selected_answer TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'resolved', 'dismissed')),
+  teacher_note TEXT,
+  handled_by INTEGER REFERENCES users(id),
+  handled_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS teacher_alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  teacher_id INTEGER NOT NULL REFERENCES users(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  alert_type TEXT NOT NULL,
+  alert_key TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  read_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_practice_question_scope
   ON practice_questions(grade_band, subject, module, difficulty, is_active);
 CREATE INDEX IF NOT EXISTS idx_practice_question_region
@@ -667,3 +767,19 @@ CREATE INDEX IF NOT EXISTS idx_weekly_challenge_teacher_queue
   ON weekly_challenge_submissions(status, submitted_at);
 CREATE INDEX IF NOT EXISTS idx_mental_rank_goals_student
   ON mental_rank_goals(student_id, battle, status);
+CREATE INDEX IF NOT EXISTS idx_choice_king_question_active
+  ON choice_king_questions(is_active, source_period, id);
+CREATE INDEX IF NOT EXISTS idx_choice_king_attempt_student_question
+  ON choice_king_attempts(student_id, question_id, is_review, answered_at);
+CREATE INDEX IF NOT EXISTS idx_choice_king_attempt_first_correct
+  ON choice_king_attempts(question_id, student_id, is_correct, is_review, answered_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_choice_king_one_active_issuance
+  ON choice_king_issuances(student_id) WHERE closed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_choice_king_issuance_question
+  ON choice_king_issuances(question_id, closed_at, expires_at);
+CREATE INDEX IF NOT EXISTS idx_choice_king_wrong_due
+  ON choice_king_wrong_progress(student_id, status, next_due_at, new_questions_since_review);
+CREATE INDEX IF NOT EXISTS idx_choice_king_report_status
+  ON choice_king_reports(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_teacher_alert_unread
+  ON teacher_alerts(teacher_id, read_at, created_at);

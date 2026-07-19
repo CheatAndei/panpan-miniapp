@@ -15,7 +15,8 @@
 const tools=[
   {title:'每日打卡计划',desc:'四类初中计算题自由组合，发布并批改',icon:'clipboard',tone:'green',url:'/pages/practice-teacher/index'},
   {title:'广州真题大全',desc:'查看原卷、答案、家长下载和答案申请',icon:'book',tone:'rose',url:'/pages/exam-library/index'},
-  {title:'每周挑战批阅',desc:'核对题目、标准答案和学生解题照片',icon:'check',tone:'gold',url:'/pages/weekly-review/index'},
+  {title:'压轴挑战批阅',desc:'核对填空、大题、标准答案和学生解题照片',icon:'check',tone:'gold',url:'/pages/weekly-review/index'},
+  {title:'选择题报错处理',desc:'核对学生反馈；确认题目有误时可立即停用',icon:'message',tone:'rose',url:'/pages/choice-reports/index'},
   {title:'口算冲榜目标',desc:'给学生设置真实的周排名和分数目标',icon:'users',tone:'navy',url:'/pages/mental-goals/index'},
   {title:'学习小组历史',desc:'查看现有小组历次发布、反馈与作业',icon:'calendar',tone:'blue',url:'/pages/teacher-classes/index'},
 ];

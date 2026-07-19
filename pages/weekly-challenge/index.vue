@@ -2,15 +2,15 @@
   <view class="page page-bottom-safe">
     <view class="hero">
       <text class="eyebrow">WEEKLY CHALLENGE</text>
-      <text class="hero-title">每周挑战</text>
-      <text class="hero-sub">每周一题 · 从广州真题中精选 · 完成后拍照提交</text>
+      <text class="hero-title">压轴挑战</text>
+      <text class="hero-sub">每周一题 · 聚焦最后一道填空或最后两道大题 · 完成后拍照提交</text>
     </view>
-    <pp-state v-if="loading && !assignment" type="loading" title="正在准备本周挑战" />
+    <pp-state v-if="loading && !assignment" type="loading" title="正在准备本周压轴题" />
     <pp-state v-else-if="error && !assignment" type="error" title="挑战加载失败" :description="error" action-text="重试" @action="loadCurrent" />
 
     <view v-if="!loading && !assignment && !error" class="choose-card">
-      <text class="section-title">这周想挑战哪种题？</text>
-      <text class="section-desc">领取后本周题型固定，方便老师集中批阅。</text>
+      <text class="section-title">这周想挑战哪类压轴题？</text>
+      <text class="section-desc">同一套原卷可以同时提供最后一道填空和最后两道大题；领取后本周题型固定。</text>
       <button v-for="item in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
         <view :class="['type-mark',item.value]">{{ item.short }}</view>
         <view class="type-copy"><text class="type-title">{{ item.label }}</text><text class="type-desc">{{ item.desc }} · 题库 {{ available[item.value] || 0 }} 题</text></view>
@@ -49,9 +49,8 @@ const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(fals
 const error=ref(''),progress=ref(''),assignment=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
 let allowBack=false;
 const types=[
-  {value:'choice',short:'选',label:'选择题',desc:'观察条件，排除干扰项'},
-  {value:'fill',short:'填',label:'填空题',desc:'准确计算，规范写出结论'},
-  {value:'subjective',short:'解',label:'解答题',desc:'完整表达推理和计算过程'},
+  {value:'fill',short:'填',label:'填空题',desc:'原卷最后一道填空，准确计算并规范作答'},
+  {value:'subjective',short:'解',label:'解答题',desc:'原卷最后两道大题，完整表达推理过程'},
 ];
 const photoCount=computed(()=>assignment.value?.submission?.attachments?.length||0);
 onLoad((query)=>{studentId.value=Number(query.student_id||uni.getStorageSync('activeChildId')||0);});
@@ -59,7 +58,7 @@ onShow(()=>{if(studentId.value)loadCurrent();});
 onPullDownRefresh(async()=>{try{await loadCurrent();}finally{uni.stopPullDownRefresh();}});
 onBackPress(()=>{
   if(allowBack || !assignment.value || assignment.value.submission)return false;
-  uni.showModal({title:'暂存并退出挑战？',content:'本周题目会保留，下次进入可继续拍照提交。',confirmText:'暂存退出',cancelText:'继续完成',success:(res)=>{if(res.confirm){allowBack=true;uni.navigateBack();}}});
+  uni.showModal({title:'暂存并退出挑战？',content:'本周压轴题会保留，下次进入可继续拍照提交。',confirmText:'暂存退出',cancelText:'继续完成',success:(res)=>{if(res.confirm){allowBack=true;uni.navigateBack();}}});
   return true;
 });
 async function loadCurrent(){
@@ -82,7 +81,7 @@ async function chooseAndUpload(){
   try{const files=await chooseImages();if(!files.length)return;uploading.value=true;for(let i=0;i<files.length;i++){progress.value=`${i+1}/${files.length}`;await api.upload(`/weekly-challenge/assignments/${assignment.value.id}/upload`,files[i],'image');}uni.showToast({title:'挑战已提交',icon:'success'});await loadCurrent();}
   catch(e){if(!/cancel/i.test(e?.errMsg||''))uni.showToast({title:e?.error||'上传失败',icon:'none'});}finally{uploading.value=false;progress.value='';}
 }
-function typeLabel(type){return types.find(item=>item.value===type)?.label||'挑战题';}
+function typeLabel(type){return types.find(item=>item.value===type)?.label||'压轴题';}
 function preview(src){uni.previewImage({urls:[src],current:src});}
 function previewPhotos(index){uni.previewImage({urls:localPhotos.value,current:localPhotos.value[index]});}
 </script>
