@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "inspect or migrate"
+        description: "inspect, backup, migrate or cleanup"
         required: true
         default: "inspect"
         type: choice
@@ -12,14 +12,19 @@ on:
           - inspect
           - backup
           - migrate
+          - cleanup
       target_teacher_id:
         description: "Teacher user id to receive existing data"
         required: false
         default: ""
       confirm:
-        description: "Type MIGRATE_TEACHER to migrate"
+        description: "Type MIGRATE_TEACHER to migrate or DELETE_OTHER_TEACHERS to cleanup"
         required: false
         default: ""
+      teacher_invite_codes:
+        description: "Exact comma-separated teacher invite codes to keep during cleanup"
+        required: false
+        default: "PANPAN,PANAAA,PANPPP,ZHUZHU,ZHOUXU"
 
 jobs:
   teacher-migration:
@@ -37,6 +42,7 @@ jobs:
             MODE='${{ inputs.mode }}'
             TARGET_TEACHER_ID='${{ inputs.target_teacher_id }}'
             CONFIRM='${{ inputs.confirm }}'
+            TEACHER_CODES='${{ inputs.teacher_invite_codes }}'
             DEPLOY_DIR=/opt/panpan-miniapp
 
             DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
@@ -63,6 +69,7 @@ jobs:
               return rows;
             };
             const scalar = (sql, params = []) => query(sql, params)[0]?.c || 0;
+            const hasTable = (name) => scalar("SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name=?", [name]) > 0;
             const users = query(`
               SELECT id, role, nickname, created_at,
                 substr(openid, 1, 6) || '...' || substr(openid, -4) AS openid_mask
@@ -71,13 +78,22 @@ jobs:
             `);
             console.log('USERS');
             for (const u of users) {
+              const roles = hasTable('user_roles')
+                ? query('SELECT role,created_at FROM user_roles WHERE user_id=? ORDER BY role', [u.id])
+                : [{ role: u.role, created_at: u.created_at }];
               const row = {
                 ...u,
+                roles,
                 classes: scalar('SELECT COUNT(*) AS c FROM classes WHERE teacher_id=?', [u.id]),
                 students: scalar('SELECT COUNT(*) AS c FROM students WHERE teacher_id=?', [u.id]),
                 schedules: scalar('SELECT COUNT(*) AS c FROM schedules WHERE teacher_id=?', [u.id]),
                 sessions: scalar('SELECT COUNT(*) AS c FROM sessions WHERE teacher_id=?', [u.id]),
-                feedbacks: scalar('SELECT COUNT(*) AS c FROM feedbacks WHERE teacher_id=?', [u.id])
+                feedbacks: scalar('SELECT COUNT(*) AS c FROM feedbacks WHERE teacher_id=?', [u.id]),
+                parent_bindings: scalar('SELECT COUNT(*) AS c FROM bindings WHERE parent_id=?', [u.id]),
+                parent_leaves: scalar('SELECT COUNT(*) AS c FROM leaves WHERE parent_id=?', [u.id]),
+                parent_feedbacks: hasTable('parent_feedbacks')
+                  ? scalar('SELECT COUNT(*) AS c FROM parent_feedbacks WHERE parent_id=?', [u.id])
+                  : 0
               };
               console.log(JSON.stringify(row));
             }
@@ -96,6 +112,178 @@ jobs:
               echo "DB_BACKUP_BASE64_BEGIN"
               base64 "$DB_FILE" | sed 's/^/DB_BACKUP_CHUNK=/'
               echo "DB_BACKUP_BASE64_END"
+              exit 0
+            fi
+
+            if [ "$MODE" = "cleanup" ]; then
+              if [ "$CONFIRM" != "DELETE_OTHER_TEACHERS" ]; then
+                echo "Missing confirm DELETE_OTHER_TEACHERS"
+                exit 1
+              fi
+              case "$TARGET_TEACHER_ID" in
+                ''|*[!0-9]*) echo "target_teacher_id must be the numeric teacher id to keep"; exit 1 ;;
+              esac
+              if [ "$TEACHER_CODES" != "PANPAN,PANAAA,PANPPP,ZHUZHU,ZHOUXU" ]; then
+                echo "teacher_invite_codes must match the approved allow-list exactly"
+                exit 1
+              fi
+
+              echo "Inspecting before cleanup"
+              inspect_db
+              (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+              STOPPED_BACKEND=1
+              BACKUP="$DB_FILE.backup.teacher-cleanup.$(date +%Y%m%d%H%M%S)"
+              cp -a "$DB_FILE" "$BACKUP"
+              ENV_ROOT="$DEPLOY_DIR/.env"
+              ENV_BACKEND="$DEPLOY_DIR/backend/.env"
+              cp -a "$ENV_ROOT" "$ENV_ROOT.backup.teacher-cleanup" 2>/dev/null || true
+              cp -a "$ENV_BACKEND" "$ENV_BACKEND.backup.teacher-cleanup" 2>/dev/null || true
+
+              rollback_cleanup() {
+                echo "Cleanup failed; restoring database and environment"
+                (cd "$DEPLOY_DIR" && docker compose stop panpan-api) || true
+                cp -a "$BACKUP" "$DB_FILE" || true
+                [ ! -f "$ENV_ROOT.backup.teacher-cleanup" ] || cp -a "$ENV_ROOT.backup.teacher-cleanup" "$ENV_ROOT"
+                [ ! -f "$ENV_BACKEND.backup.teacher-cleanup" ] || cp -a "$ENV_BACKEND.backup.teacher-cleanup" "$ENV_BACKEND"
+                (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never) || true
+              }
+              trap rollback_cleanup ERR
+
+              docker run --rm -i -e KEEP_TEACHER_ID="$TARGET_TEACHER_ID" -v "$DATA_DIR:/data" rockchin/panpan-miniapp-backend:main node --input-type=module <<'NODE'
+            import fs from 'fs';
+            import initSqlJs from 'sql.js';
+            const file = '/data/teach.db';
+            const keepId = Number(process.env.KEEP_TEACHER_ID);
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync(file));
+            const query = (sql, params = []) => {
+              const stmt = db.prepare(sql);
+              stmt.bind(params);
+              const rows = [];
+              while (stmt.step()) rows.push(stmt.getAsObject());
+              stmt.free();
+              return rows;
+            };
+            const scalar = (sql, params = []) => Number(query(sql, params)[0]?.c || 0);
+            const hasTable = (name) => scalar("SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name=?", [name]) > 0;
+            const tableNames = query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").map((row) => row.name);
+            const quote = (name) => `"${String(name).replaceAll('"', '""')}"`;
+            const foreignKeysTo = (targetTable) => {
+              const refs = [];
+              for (const table of tableNames) {
+                for (const fk of query(`PRAGMA foreign_key_list(${quote(table)})`)) {
+                  if (fk.table === targetTable) refs.push({ table, column: fk.from });
+                }
+              }
+              return refs;
+            };
+            const referenceCounts = (targetTable, ids, ignoredTables = new Set()) => {
+              const result = [];
+              if (!ids.length) return result;
+              const placeholders = ids.map(() => '?').join(',');
+              for (const ref of foreignKeysTo(targetTable)) {
+                if (ignoredTables.has(ref.table)) continue;
+                const count = scalar(`SELECT COUNT(*) AS c FROM ${quote(ref.table)} WHERE ${quote(ref.column)} IN (${placeholders})`, ids);
+                if (count) result.push({ ...ref, count });
+              }
+              return result;
+            };
+
+            const keep = query('SELECT id,nickname,role FROM users WHERE id=?', [keepId])[0];
+            if (!keep) throw new Error('Approved teacher account not found');
+            const hasRoles = hasTable('user_roles');
+            const teachers = query(`SELECT DISTINCT u.id,u.nickname,u.role FROM users u
+              ${hasRoles ? "LEFT JOIN user_roles ur ON ur.user_id=u.id" : ''}
+              WHERE u.id<>? AND (u.role='teacher' ${hasRoles ? "OR ur.role='teacher'" : ''}) ORDER BY u.id`, [keepId]);
+            if (!teachers.length) {
+              console.log('No other teacher accounts to delete');
+              process.exit(0);
+            }
+
+            const candidateIds = teachers.map((row) => Number(row.id));
+            const placeholders = candidateIds.map(() => '?').join(',');
+            const preserveAsParentIds = teachers.filter((row) => {
+              const id = Number(row.id);
+              const hasParentRole = row.role === 'parent' || (hasRoles && scalar("SELECT COUNT(*) AS c FROM user_roles WHERE user_id=? AND role='parent'", [id]) > 0);
+              const hasParentData = scalar('SELECT COUNT(*) AS c FROM bindings WHERE parent_id=?', [id]) > 0
+                || scalar('SELECT COUNT(*) AS c FROM leaves WHERE parent_id=?', [id]) > 0
+                || (hasTable('parent_feedbacks') && scalar('SELECT COUNT(*) AS c FROM parent_feedbacks WHERE parent_id=?', [id]) > 0);
+              return hasParentRole && hasParentData;
+            }).map((row) => Number(row.id));
+            const deleteUserIds = candidateIds.filter((id) => !preserveAsParentIds.includes(id));
+            const ownedClassIds = query(`SELECT id FROM classes WHERE teacher_id IN (${placeholders})`, candidateIds).map((row) => Number(row.id));
+            const classRefs = referenceCounts('classes', ownedClassIds);
+            if (classRefs.length) throw new Error(`Teacher classes still have dependent records: ${JSON.stringify(classRefs)}`);
+
+            const allowedUserRefs = new Set(['user_roles', 'classes']);
+            const userRefs = referenceCounts('users', deleteUserIds, allowedUserRefs);
+            if (userRefs.length) throw new Error(`Teacher accounts still have dependent or parent records: ${JSON.stringify(userRefs)}`);
+
+            db.run('BEGIN TRANSACTION');
+            if (ownedClassIds.length) {
+              const classPlaceholders = ownedClassIds.map(() => '?').join(',');
+              db.run(`DELETE FROM classes WHERE id IN (${classPlaceholders})`, ownedClassIds);
+            }
+            if (hasRoles) db.run(`DELETE FROM user_roles WHERE user_id IN (${placeholders})`, candidateIds);
+            for (const parentId of preserveAsParentIds) {
+              if (hasRoles) db.run("INSERT OR IGNORE INTO user_roles(user_id,role) VALUES(?, 'parent')", [parentId]);
+              db.run("UPDATE users SET role='parent' WHERE id=?", [parentId]);
+            }
+            if (deleteUserIds.length) {
+              const deletePlaceholders = deleteUserIds.map(() => '?').join(',');
+              db.run(`DELETE FROM users WHERE id IN (${deletePlaceholders})`, deleteUserIds);
+            }
+            db.run('COMMIT');
+            const remainingTeacherRoles = hasRoles
+              ? scalar(`SELECT COUNT(*) AS c FROM user_roles WHERE role='teacher' AND user_id IN (${placeholders})`, candidateIds)
+              : scalar(`SELECT COUNT(*) AS c FROM users WHERE role='teacher' AND id IN (${placeholders})`, candidateIds);
+            if (remainingTeacherRoles) throw new Error('Some teacher roles remained after cleanup');
+            if (deleteUserIds.length) {
+              const deletePlaceholders = deleteUserIds.map(() => '?').join(',');
+              const remainingUsers = scalar(`SELECT COUNT(*) AS c FROM users WHERE id IN (${deletePlaceholders})`, deleteUserIds);
+              if (remainingUsers) throw new Error('Some pure teacher accounts remained after cleanup');
+            }
+            const tmp = `${file}.teacher-cleanup.tmp`;
+            fs.writeFileSync(tmp, Buffer.from(db.export()));
+            fs.renameSync(tmp, file);
+            console.log('Revoked teacher role from parent accounts', JSON.stringify(preserveAsParentIds));
+            console.log('Deleted pure teacher accounts', JSON.stringify(deleteUserIds));
+            NODE
+
+              upsert_env() {
+                key="$1"
+                value="$2"
+                file="$3"
+                mkdir -p "$(dirname "$file")"
+                touch "$file"
+                tmp="${file}.tmp"
+                awk -v key="$key" -v value="$value" '
+                  BEGIN { done = 0 }
+                  $0 ~ "^" key "=" { print key "=" value; done = 1; next }
+                  { print }
+                  END { if (!done) print key "=" value }
+                ' "$file" > "$tmp"
+                mv "$tmp" "$file"
+                chmod 600 "$file" || true
+              }
+              for ENV_FILE in "$ENV_ROOT" "$ENV_BACKEND"; do
+                upsert_env TEACHER_INVITE_CODES "$TEACHER_CODES" "$ENV_FILE"
+                upsert_env TEACHER_INVITE_CODE "" "$ENV_FILE"
+              done
+              (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never)
+              STOPPED_BACKEND=0
+              for attempt in $(seq 1 20); do
+                if docker exec panpan-api wget -qO- http://127.0.0.1:3000/api/health; then
+                  break
+                fi
+                if [ "$attempt" = "20" ]; then
+                  false
+                fi
+                sleep 2
+              done
+              trap - ERR
+              echo "Cleanup backup: $BACKUP"
+              inspect_db
               exit 0
             fi
 
