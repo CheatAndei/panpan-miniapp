@@ -71,8 +71,32 @@ jobs:
           test -f ../private-resources-deploy/choice-king/manifest.json
           test -f ../private-resources-deploy/weekly-challenges/manifest.json
 
-      - name: Upload private question-bank resources
+      - name: Check private question-bank resource cache
+        id: resource_cache
         if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PANPAN_RESOURCE_BUNDLE_ID: ${{ steps.private_resources.outputs.bundle_id }}
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          fingerprint: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+          timeout: 2m
+          command_timeout: 2m
+          capture_stdout: true
+          envs: PANPAN_RESOURCE_BUNDLE_ID
+          script: |
+            RESOURCE_DIR="/opt/panpan-miniapp/private-resources/$PANPAN_RESOURCE_BUNDLE_ID"
+            if [ -f "$RESOURCE_DIR/choice-king/manifest.json" ] \
+              && [ -f "$RESOURCE_DIR/weekly-challenges/manifest.json" ]; then
+              echo cache-hit
+            else
+              echo cache-miss
+            fi
+
+      - name: Upload private question-bank resources
+        if: github.ref == 'refs/heads/main' && !contains(steps.resource_cache.outputs.stdout, 'cache-hit')
         uses: appleboy/scp-action@v1.0.0
         with:
           host: 134.175.69.59
@@ -132,10 +156,13 @@ jobs:
 
             RESOURCE_UPLOAD="$DEPLOY_DIR/private-resource-upload/$PANPAN_RESOURCE_BUNDLE_ID/backend/private-resources-deploy"
             RESOURCE_DIR="$DEPLOY_DIR/private-resources/$PANPAN_RESOURCE_BUNDLE_ID"
-            test -f "$RESOURCE_UPLOAD/choice-king/manifest.json"
-            test -f "$RESOURCE_UPLOAD/weekly-challenges/manifest.json"
             mkdir -p "$DEPLOY_DIR/private-resources"
-            if [ ! -d "$RESOURCE_DIR" ]; then
+            if [ -d "$RESOURCE_DIR" ]; then
+              test -f "$RESOURCE_DIR/choice-king/manifest.json"
+              test -f "$RESOURCE_DIR/weekly-challenges/manifest.json"
+            else
+              test -f "$RESOURCE_UPLOAD/choice-king/manifest.json"
+              test -f "$RESOURCE_UPLOAD/weekly-challenges/manifest.json"
               mv "$RESOURCE_UPLOAD" "$RESOURCE_DIR"
             fi
             rm -rf "$DEPLOY_DIR/private-resource-upload/$PANPAN_RESOURCE_BUNDLE_ID"
@@ -209,7 +236,7 @@ jobs:
               cat > "$DEPLOY_DIR/docker-compose.yml" <<'EOF'
             services:
               panpan-api:
-                image: $DEPLOY_IMAGE
+                image: rockchin/panpan-miniapp-backend:main
                 container_name: panpan-api
                 restart: unless-stopped
                 env_file:
@@ -231,7 +258,7 @@ jobs:
             cat > "$NEW_OVERRIDE" <<EOF
             services:
               panpan-api:
-                image: rockchin/panpan-miniapp-backend:main
+                image: $DEPLOY_IMAGE
                 build: null
                 env_file:
                   - ./.env
