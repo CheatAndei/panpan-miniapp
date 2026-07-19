@@ -92,9 +92,6 @@ jobs:
             }
 
             DEPLOY_DIR=/opt/panpan-miniapp
-            SRC_DIR=/opt/panpan-miniapp-source
-            REPO_URL=https://github.com/CheatAndei/panpan-miniapp.git
-
             mkdir -p "$DEPLOY_DIR/backend"
 
             ENV_FILES=("$DEPLOY_DIR/.env" "$DEPLOY_DIR/backend/.env")
@@ -132,26 +129,9 @@ jobs:
               upsert_env TPL_FIELD_HOMEWORK_STATUS phrase2 "$ENV_FILE"
             done
 
-            rm -rf "$SRC_DIR"
-            CLONE_OK=0
-            for attempt in 1; do
-              if git clone --depth 1 --branch "${{ github.ref_name }}" "$REPO_URL" "$SRC_DIR" &&
-                 git -C "$SRC_DIR" fetch --depth 1 origin "${{ github.sha }}" &&
-                 git -C "$SRC_DIR" checkout --detach "${{ github.sha }}"; then
-                CLONE_OK=1
-                break
-              fi
-              rm -rf "$SRC_DIR"
-              sleep 3
-            done
-
-            if [ "$CLONE_OK" = "1" ]; then
-              docker build -t rockchin/panpan-miniapp-backend:main -t rockchin/panpan-miniapp-backend:latest "$SRC_DIR/backend"
-              cp "$SRC_DIR/docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
-            else
-              docker pull rockchin/panpan-miniapp-backend:main
-              if [ ! -f "$DEPLOY_DIR/docker-compose.yml" ]; then
-                cat > "$DEPLOY_DIR/docker-compose.yml" <<'EOF'
+            docker pull rockchin/panpan-miniapp-backend:main
+            if [ ! -f "$DEPLOY_DIR/docker-compose.yml" ]; then
+              cat > "$DEPLOY_DIR/docker-compose.yml" <<'EOF'
             services:
               panpan-api:
                 image: rockchin/panpan-miniapp-backend:main
@@ -171,7 +151,6 @@ jobs:
               panpan-private-uploads:
               panpan-exams:
             EOF
-              fi
             fi
             cat > "$DEPLOY_DIR/docker-compose.override.yml" <<'EOF'
             services:
@@ -234,10 +213,8 @@ jobs:
 
             (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate)
 
-            echo "=== deploy.sh ==="
-            sed -n '1,220p' "$SRC_DIR/deploy.sh" || true
             echo "=== compose files ==="
-            find "$DEPLOY_DIR" "$SRC_DIR" -maxdepth 2 \( -name '*compose*.yml' -o -name '*compose*.yaml' \) -print -exec sed -n '1,220p' {} \; || true
+            find "$DEPLOY_DIR" -maxdepth 2 \( -name '*compose*.yml' -o -name '*compose*.yaml' \) -print -exec sed -n '1,220p' {} \; || true
             echo "=== container image/mounts ==="
             docker inspect panpan-api --format 'image={{.Config.Image}} mounts={{json .Mounts}}' || true
             echo "=== container code markers ==="
