@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Draft release tag containing encrypted exam bundle
+        description: Temporary release tag containing encrypted exam bundle
         required: true
         type: string
       asset_name:
@@ -163,12 +163,4 @@ jobs:
           NODE
           test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"
           rm -rf -- "$ROOT"
-          for STALE_ROOT in \
-            /opt/panpan-miniapp/exam-sync/github-29899823459-1 \
-            /opt/panpan-miniapp/exam-sync/github-29901861881-1 \
-            /opt/panpan-miniapp/exam-sync/github-29902051712-1 \
-            /opt/panpan-miniapp/exam-sync/github-29902423863-1; do
-            case "$STALE_ROOT" in /opt/panpan-miniapp/exam-sync/github-[0-9]*-[0-9]*) ;; *) exit 1 ;; esac
-            [ ! -d "$STALE_ROOT" ] || rm -rf -- "$STALE_ROOT"
-          done
           REMOTE
