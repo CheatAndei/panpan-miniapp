@@ -55,7 +55,9 @@ router.get('/next', auth, parentOnly, (req, res) => {
   const db = getDB();
   const studentId = boundStudent(db, req.user.id, req.query.student_id);
   if (!studentId) return res.status(403).json({ error: '无权为该学生领取题目' });
-  try { return res.json(nextQuestion(db, { studentId })); }
+  try { return res.json(nextQuestion(db, {
+    studentId, gradeCode: req.query.grade, subjectCode: req.query.subject,
+  })); }
   catch (error) { return serviceError(res, error, '题目领取失败'); }
 });
 
@@ -112,6 +114,8 @@ router.get('/leaderboard', auth, parentOnly, (req, res) => {
     return res.json(leaderboard(db, {
       studentId,
       period: String(req.query.period || 'week'),
+      gradeCode: req.query.grade,
+      subjectCode: req.query.subject,
     }));
   } catch (error) {
     return serviceError(res, error, '排行榜加载失败');

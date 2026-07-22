@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const blueprint = require('./junior-calculation-v3-blueprint.json');
+const { normalizeLinearEquationDisplay } = require('../../utils/math-expression');
 
 function gcd(a, b) {
   let x = Math.abs(Number(a));
@@ -285,7 +286,8 @@ function buildQuestions() {
     const right = differentInteger(next, 5, 9, left);
     const constant = q(signedInteger(next, 2, 30), 10);
     const rightConstant = constant.add(q((left - right) * x, 10));
-    return [`解方程：0.${left}x+${decimalText(constant)}=0.${right}x+${decimalText(rightConstant)}。`, `x=${x}`, 130];
+    const legacyStem = `解方程：0.${left}x+${decimalText(constant)}=0.${right}x+${decimalText(rightConstant)}。`;
+    return [normalizeLinearEquationDisplay(legacyStem), `x=${x}`, 130];
   });
 
   if (rows.length !== blueprint.distribution.total) throw new Error(`题库数量错误：${rows.length}`);

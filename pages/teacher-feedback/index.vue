@@ -12,10 +12,10 @@
   <view v-else-if="completedSessions.length===0" class="state-card"><pp-state title="暂无待写反馈" description="完成签到与签退后，课程会进入这里。" action-text="前往签到" @action="goCheckin" /></view>
 
   <view v-for="se in completedSessions" :key="se.id" class="feedback-swipe-wrap">
-    <view class="feedback-swipe-inner" :style="{transform:'translateX('+(se._swiped?-120:0)+'rpx)'}"
+    <view class="feedback-swipe-inner" :style="{transform:'translateX('+(!se._open&&se._swiped?-120:0)+'rpx)'}"
       @touchstart="onTouchStart($event,se)" @touchmove="onTouchMove($event,se)" @touchend="onTouchEnd($event,se)">
   <view class="card se-card">
-    <view class="se-hd" @tap="se._open=false">
+    <view class="se-hd" @tap="closeSession(se)">
       <text class="se-title">{{ se.title }}</text>
       <text class="se-date">{{ se.class_date }}</text>
     </view>
@@ -56,7 +56,7 @@
           </view>
           <switch :checked="se._hasExitQuiz" @change="e=>se._hasExitQuiz=e.detail.value" color="#2F7D6B" />
         </view>
-        <text v-if="!se._hasExitQuiz" class="no-quiz-note">本次没有安排出门测，生成个人反馈时会明确说明。</text>
+        <text v-if="!se._hasExitQuiz" class="no-quiz-note">本次不使用出门测信息，反馈只写课堂表现。</text>
         <view class="feedback-style-switch" role="tablist" aria-label="反馈风格">
           <text :class="['style-choice',{on:se._feedbackStyle==='concise'}]" @tap="se._feedbackStyle='concise'">简洁</text>
           <text :class="['style-choice',{on:se._feedbackStyle==='warm'}]" @tap="se._feedbackStyle='warm'">温馨</text>
@@ -65,6 +65,13 @@
         <button class="btn-accent batch-button" @tap="genAllStu(se)" :disabled="se._batching">
           {{ se._batching?'生成中...':'一键生成全部学生' }}
         </button>
+        <view class="card-save-panel">
+          <button class="save-all-cards" :disabled="se._savingCards" @tap="saveAllFeedbackCards(se)">
+            {{ se._savingCards ? se._saveProgress : '保存全部反馈卡' }}
+          </button>
+          <button v-if="se._failedCardStudentIds.length" class="retry-cards" :disabled="se._savingCards" @tap="retryFailedCards(se)">重试失败项</button>
+          <text class="card-privacy-note">每位学生单独生成一张，仅保存到老师手机后私发家长。</text>
+        </view>
         <view v-for="s in se._students" :key="s.id" :class="['stu-card',{leave:s._leave}]">
           <view class="stu-hd">
             <text class="stu-name">{{ s.name }}</text>
@@ -95,6 +102,14 @@
             <button class="btn-sm" :disabled="s._genning" @tap="genStuFeedback(se,s)">{{ s._genning?'生成中...':(s._text?'重新生成':'一键生成') }}</button>
             <button class="btn-sm" @tap="addStuImg(s)">添加图片</button>
           </view>
+          <view v-if="s._text" class="feedback-card-actions">
+            <button class="preview-one-card" :disabled="s._previewingCard || s._savingCard || se._savingCards" @tap="previewStudentFeedbackCard(se,s)">
+              {{ s._previewingCard ? '生成中…' : '预览反馈卡' }}
+            </button>
+            <button class="save-one-card" :disabled="s._previewingCard || s._savingCard || se._savingCards" @tap="saveStudentFeedbackCard(se,s)">
+              {{ s._savingCard ? '保存中…' : '保存反馈卡' }}
+            </button>
+          </view>
           </template>
         </view>
       </view>
@@ -120,8 +135,9 @@
     </template>
   </view>
     </view>
-    <view :class="['swipe-del',{show:se._swiped}]" @tap="deleteSession(se)">删除</view>
+    <view :class="['swipe-del',{show:!se._open&&se._swiped}]" @tap="deleteSession(se)">删除</view>
   </view>
+  <canvas canvas-id="feedbackCardCanvas" id="feedbackCardCanvas" class="feedback-card-canvas" />
 </view>
 </template>
 
@@ -129,6 +145,7 @@
 import { api } from '@/utils/api';
 import { confirmAction, toastSuccess, toastError, logError } from '@/utils/ui';
 import { formatStudentFeedbackText } from '@/utils/feedback';
+import { renderFeedbackCard, saveFeedbackCardToAlbum, isAlbumPermissionError } from '@/utils/feedback-card';
 export default {
   data(){return{
     completedSessions:[],loading:false,error:''
@@ -143,6 +160,7 @@ export default {
         const ses=await api.get('/schedules/sessions/completed');
         this.completedSessions=(ses.sessions||[]).map(se=>({
           ...se,_open:false,_tab:'class',_batching:false,_swiped:false,_feedbackStyle:'concise',_hasExitQuiz:true,
+          _savingCards:false,_saveProgress:'',_failedCardStudentIds:[],
           _cf:{lesson:'',topic:'',performanceNote:'',homework:'',_text:'',_genning:false},
           _students:[],_publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
         }));
@@ -150,13 +168,15 @@ export default {
       finally{this.loading=false;}
     },
     async openSession(se){
+      se._swiped=false;
+      se._swiping=false;
       se._open=true;
       if(se._students.length===0){
         try{
           const r=await api.get('/students?class_id='+se.class_id);
           const students=(r.students||[]).map(s=>{
             if(!s._images)s._images=[];
-            return {...s,_score:s._score||5,_performanceScore:s._performanceScore||5,_note:s._note||'',_text:s._text||'',_leave:false,_genning:false};
+            return {...s,_score:s._score||5,_performanceScore:s._performanceScore||5,_note:s._note||'',_text:s._text||'',_leave:false,_genning:false,_savingCard:false,_previewingCard:false};
           });
           await Promise.all(students.map(async s=>{
             try{
@@ -167,6 +187,12 @@ export default {
           se._students=students;
         }catch(e){toastError(e,'学生信息加载失败');}
       }
+    },
+    closeSession(se){
+      if(!se._open)return;
+      se._open=false;
+      se._swiped=false;
+      se._swiping=false;
     },
     async genClassFeedback(se){
       se._cf._genning=true;
@@ -240,6 +266,103 @@ export default {
       }catch(e){if(!silent)toastError(e,'生成失败');else logError('genStuFeedback',e);}
       finally{s._genning=false;}
     },
+    feedbackCardPayload(se,s){
+      return {
+        page:this,
+        studentName:s.name,
+        feedbackText:s._text,
+        classDate:se.class_date,
+        lesson:se._cf.lesson,
+        topic:se._cf.topic,
+        images:(s._images||[]).slice(0,3)
+      };
+    },
+    async previewStudentFeedbackCard(se,s){
+      if(s._previewingCard||s._savingCard||se._savingCards)return;
+      if(!String(s._text||'').trim())return uni.showToast({title:'请先填写学生反馈',icon:'none'});
+      s._previewingCard=true;
+      try{
+        await this.$nextTick();
+        const filePath=await renderFeedbackCard(this.feedbackCardPayload(se,s));
+        uni.previewImage({current:filePath,urls:[filePath]});
+      }catch(error){toastError(error,'反馈卡预览失败');}
+      finally{s._previewingCard=false;}
+    },
+    async saveStudentFeedbackCard(se,s,options={}){
+      const silent=options.silent===true;
+      if(s._savingCard)return false;
+      if(!String(s._text||'').trim()){
+        if(!silent)uni.showToast({title:'请先填写学生反馈',icon:'none'});
+        return false;
+      }
+      s._savingCard=true;
+      try{
+        await this.$nextTick();
+        const filePath=await renderFeedbackCard(this.feedbackCardPayload(se,s));
+        await saveFeedbackCardToAlbum(filePath);
+        if(!silent)toastSuccess('反馈卡已保存');
+        return true;
+      }catch(error){
+        let caughtError=error instanceof Error?error:new Error(String(error?.errMsg||error||'反馈卡保存失败'));
+        if(isAlbumPermissionError(caughtError)){
+          if(!silent)this.showAlbumPermissionHelp();
+          caughtError._albumPermission=true;
+        }else if(!silent){
+          toastError(caughtError,'反馈卡保存失败');
+        }
+        if(silent)throw caughtError;
+        return false;
+      }finally{s._savingCard=false;}
+    },
+    async saveAllFeedbackCards(se,studentIds=null){
+      if(se._savingCards)return;
+      const active=se._students.filter(s=>!s._leave);
+      const selected=studentIds
+        ? active.filter(s=>studentIds.some(id=>String(id)===String(s.id)))
+        : active;
+      const missing=selected.filter(s=>!String(s._text||'').trim());
+      if(missing.length){
+        const names=missing.slice(0,4).map(s=>s.name).join('、');
+        return uni.showToast({title:`${names}${missing.length>4?'等':''}尚未生成反馈`,icon:'none',duration:3000});
+      }
+      if(!selected.length)return uni.showToast({title:'没有可保存的学生反馈',icon:'none'});
+      se._savingCards=true;
+      se._failedCardStudentIds=[];
+      let saved=0;
+      for(let index=0;index<selected.length;index+=1){
+        const student=selected[index];
+        se._saveProgress=`正在保存 ${index+1}/${selected.length}`;
+        try{
+          await this.saveStudentFeedbackCard(se,student,{silent:true});
+          saved+=1;
+        }catch(error){
+          se._failedCardStudentIds.push(student.id);
+          logError('feedbackCard.save',error);
+          if(error?._albumPermission){
+            se._failedCardStudentIds.push(...selected.slice(index+1).map(item=>item.id));
+            this.showAlbumPermissionHelp();
+            break;
+          }
+        }
+      }
+      se._failedCardStudentIds=[...new Set(se._failedCardStudentIds)];
+      se._savingCards=false;
+      se._saveProgress='';
+      if(!se._failedCardStudentIds.length)toastSuccess(`已保存 ${saved} 张反馈卡`);
+      else uni.showToast({title:`已保存 ${saved} 张，${se._failedCardStudentIds.length} 张待重试`,icon:'none',duration:3000});
+    },
+    retryFailedCards(se){
+      const ids=[...se._failedCardStudentIds];
+      if(ids.length)this.saveAllFeedbackCards(se,ids);
+    },
+    showAlbumPermissionHelp(){
+      uni.showModal({
+        title:'需要相册权限',
+        content:'请允许保存到相册，再点击“重试失败项”。',
+        confirmText:'去设置',
+        success:result=>{if(result.confirm&&typeof uni.openSetting==='function')uni.openSetting();}
+      });
+    },
     async publishFeedback(se){
       if(se._publishing)return;
       if(!se._cf._text) return uni.showToast({title:'请先生成学习小组总反馈',icon:'none'});
@@ -312,10 +435,22 @@ export default {
       }catch(e){toastError(e,'发送失败');}
       finally{se._publishingNotes=false;}
     },
-    onTouchStart(e,se){se._startX=e.touches[0].clientX;se._swiping=true;},
-    onTouchMove(e,se){if(!se._swiping)return;const dx=e.touches[0].clientX-se._startX;if(dx<-40)se._swiped=true;else if(dx>40)se._swiped=false;},
+    onTouchStart(e,se){
+      if(se._open||se._publishing){se._swiped=false;se._swiping=false;return;}
+      se._startX=e.touches[0].clientX;
+      se._startY=e.touches[0].clientY;
+      se._swiping=true;
+    },
+    onTouchMove(e,se){
+      if(!se._swiping||se._open||se._publishing)return;
+      const dx=e.touches[0].clientX-se._startX;
+      const dy=e.touches[0].clientY-se._startY;
+      if(Math.abs(dy)>Math.abs(dx))return;
+      if(dx<-40)se._swiped=true;else if(dx>40)se._swiped=false;
+    },
     onTouchEnd(e,se){se._swiping=false;},
     async deleteSession(se){
+      if(se._open||se._publishing)return;
       const confirmed=await confirmAction({title:'删除未写反馈',content:'删除后该课程不会再出现在待写反馈中。',confirmText:'删除',danger:true});
       if(!confirmed)return;
       try{
@@ -431,4 +566,5 @@ export default {
 .class-setting-copy{flex:1;min-width:0}.class-setting-title{display:block;color:var(--ink);font-size:27rpx;font-weight:700}.class-setting-hint{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx;line-height:1.45}
 .no-quiz-note{display:block;margin:0 0 16rpx;padding:14rpx 16rpx;border-radius:12rpx;background:var(--warning-soft);color:var(--warning);font-size:22rpx;line-height:1.5}
 .quiz-score-block{margin-top:4rpx}
+.card-save-panel{margin:0 0 20rpx;padding:18rpx;border:1rpx solid #D8E5E1;border-radius:15rpx;background:#fff}.save-all-cards,.retry-cards,.preview-one-card,.save-one-card{min-height:76rpx;margin:0;border-radius:13rpx;font-size:25rpx;font-weight:700}.save-all-cards{background:var(--primary);color:#fff}.retry-cards{margin-top:10rpx;border:1rpx solid #C89446;background:#FFF8E8;color:#7A580F}.card-privacy-note{display:block;margin-top:11rpx;color:var(--text-muted);font-size:21rpx;line-height:1.5}.feedback-card-actions{display:flex;gap:12rpx;margin-top:12rpx}.preview-one-card,.save-one-card{flex:1;border:1rpx solid #BFD2CC}.preview-one-card{background:var(--accent-soft);color:var(--accent-strong)}.save-one-card{background:#fff;color:var(--accent-strong)}.save-all-cards::after,.retry-cards::after,.preview-one-card::after,.save-one-card::after{border:0}.feedback-card-canvas{position:fixed;left:-2000px;top:0;width:750px;height:1000px;pointer-events:none}
 </style>

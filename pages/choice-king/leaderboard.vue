@@ -80,6 +80,7 @@ import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
 
 const studentId = ref('');
+const gradeCode = ref('g7');
 const period = ref('week');
 const board = ref({ entries: [], my_rank: null });
 const loading = ref(false);
@@ -90,6 +91,7 @@ const myRank = computed(() => board.value?.my_rank || board.value?.mine || null)
 
 onLoad((options) => {
   studentId.value = String(options?.student_id || uni.getStorageSync('activeChildId') || '');
+  gradeCode.value = ['g7','g8','g9'].includes(String(options?.grade || '')) ? String(options.grade) : 'g7';
   period.value = options?.period === 'history' ? 'history' : 'week';
   loadBoard();
 });
@@ -111,7 +113,7 @@ async function loadBoard() {
   try {
     const id = await resolveStudentId();
     if (!id) throw { error: '请先绑定孩子后再查看排行榜' };
-    board.value = await api.get(`/choice-king/leaderboard?student_id=${encodeURIComponent(id)}&period=${period.value}`);
+    board.value = await api.get(`/choice-king/leaderboard?student_id=${encodeURIComponent(id)}&period=${period.value}&grade=${gradeCode.value}&subject=math`);
   } catch (err) {
     error.value = err?.error || '请检查网络后重试';
     logError('choiceKing.leaderboard', err);

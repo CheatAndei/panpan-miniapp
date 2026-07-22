@@ -175,6 +175,7 @@ jobs:
               upsert_env EXAM_IMPORT_TOKEN "$PANPAN_EXAM_IMPORT_TOKEN" "$ENV_FILE"
               upsert_env TEACHER_INVITE_CODES "$PANPAN_TEACHER_INVITE_CODES" "$ENV_FILE"
               upsert_env WX_MINIPROGRAM_STATE trial "$ENV_FILE"
+              upsert_env WX_CODE_ENV_VERSION trial "$ENV_FILE"
               upsert_env TPL_CHECKIN "$PANPAN_TPL_CHECKIN" "$ENV_FILE"
               upsert_env TPL_CHECKOUT "$PANPAN_TPL_CHECKOUT" "$ENV_FILE"
               upsert_env TPL_FEEDBACK "$PANPAN_TPL_FEEDBACK" "$ENV_FILE"

@@ -11,6 +11,7 @@ services:
       - panpan-uploads:/app/uploads
       - panpan-private-uploads:/app/private-uploads
       - panpan-exams:/app/exam-library
+      - panpan-backups:/app/backups
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
@@ -23,3 +24,4 @@ volumes:
   panpan-uploads:
   panpan-private-uploads:
   panpan-exams:
+  panpan-backups:

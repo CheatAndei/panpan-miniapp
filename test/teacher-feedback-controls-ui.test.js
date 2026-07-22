@@ -15,8 +15,16 @@ test('exit quiz is controlled once for the whole class', () => {
   assert.match(page, /本次有出门测/);
   assert.match(page, /:checked="se\._hasExitQuiz"/);
   assert.match(page, /v-if="se\._hasExitQuiz"/);
-  assert.match(page, /本次没有安排出门测/);
+  assert.match(page, /本次不使用出门测信息，反馈只写课堂表现/);
+  assert.doesNotMatch(page, /本次没有安排出门测/);
   assert.match(page, /hasExitQuiz:se\._hasExitQuiz/);
+});
+
+test('expanded feedback session cannot trigger swipe-delete', () => {
+  assert.match(page, /!se\._open&&se\._swiped/);
+  assert.match(page, /if\(se\._open\|\|se\._publishing\)/);
+  assert.match(page, /if\(!se\._swiping\|\|se\._open\|\|se\._publishing\)return/);
+  assert.match(page, /if\(se\._open\|\|se\._publishing\)return;/);
 });
 
 test('each student has a 1-10 classroom performance slider', () => {

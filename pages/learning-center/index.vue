@@ -12,6 +12,13 @@
       <button class="nav-item" @tap="goGrowth">成长</button>
     </view>
 
+    <view class="grade-switch" role="tablist" aria-label="学习学段">
+      <button v-for="item in gradeTabs" :key="item.value" :class="['grade-tab',{active:selectedGrade===item.value}]" :disabled="loading" @tap="changeGrade(item.value)">
+        <text>{{ item.label }}</text>
+        <text class="grade-tab-sub">{{ item.sub }}</text>
+      </button>
+    </view>
+
     <pp-state v-if="loading && !catalog" type="loading" title="正在整理学习内容" />
     <pp-state v-else-if="error && !catalog" type="error" title="学习内容加载失败" :description="error" action-text="重新加载" @action="loadCatalog" />
 
@@ -24,7 +31,7 @@
         <view class="wrong-pill"><text class="num">{{ catalog.open_wrong_count }}</text> 道待掌握</view>
       </view>
 
-      <button class="choice-king-card" :disabled="loading" @tap="openChoiceKing">
+      <button v-if="catalog.features?.choice_king" class="choice-king-card" :disabled="loading" @tap="openChoiceKing">
         <view class="choice-king-copy">
           <text class="choice-king-kicker">原卷选择题专项</text>
           <text class="choice-king-title">选择刷题王</text>
@@ -84,12 +91,19 @@ const studentId = ref(0);
 const catalog = ref(null);
 const loading = ref(false);
 const error = ref('');
+const selectedGrade=ref('');
+const gradeTabs=[
+  {value:'g7',label:'七年级',sub:'基础衔接'},
+  {value:'g8',label:'八年级',sub:'知识闯关'},
+  {value:'g9',label:'冲刺中考',sub:'全科一模'},
+];
 const dailyTypes = new Set(['warmup', 'weakness', 'wrong', 'practice']);
 const dailySections = computed(() => (catalog.value?.sections || []).filter((item) => dailyTypes.has(item.type)));
 const challengeSections = computed(() => (catalog.value?.sections || []).filter((item) => !dailyTypes.has(item.type)));
 
 onLoad((query) => {
   studentId.value = Number(query.student_id || uni.getStorageSync('activeChildId') || 0);
+  selectedGrade.value=['g7','g8','g9'].includes(String(query.grade||''))?String(query.grade):'';
 });
 onShow(() => { if (studentId.value) loadCatalog(); });
 onPullDownRefresh(async () => { try { await loadCatalog(); } finally { uni.stopPullDownRefresh(); } });
@@ -98,9 +112,22 @@ async function loadCatalog() {
   if (!studentId.value || loading.value) return;
   loading.value = true;
   error.value = '';
-  try { catalog.value = await api.get(`/learning/catalog?student_id=${studentId.value}`); }
+  try {
+    const gradeQuery=selectedGrade.value?`&grade=${selectedGrade.value}`:'';
+    catalog.value = await api.get(`/learning/catalog?student_id=${studentId.value}${gradeQuery}`);
+    selectedGrade.value=catalog.value.grade_code||selectedGrade.value||'g7';
+  }
   catch (e) { error.value = e?.error || '请检查网络后重试'; logError('learning.catalog', e); }
   finally { loading.value = false; }
+}
+
+async function changeGrade(grade){
+  if(loading.value||selectedGrade.value===grade)return;
+  selectedGrade.value=grade;
+  catalog.value=null;
+  try{await api.put('/learning/preferences',{student_id:studentId.value,grade,subject:'math'});}
+  catch(e){logError('learning.preference',e);}
+  await loadCatalog();
 }
 
 function iconFor(type) {
@@ -114,15 +141,16 @@ function openSection(item) {
   if (item.locked) return uni.showToast({ title: item.lock_text || '暂未开放', icon: 'none' });
   if (item.route === 'practice') return uni.navigateTo({ url: `/pages/practice-parent/index?student_id=${studentId.value}` });
   if (item.route === 'arena') return uni.navigateTo({ url: `/pages/mental-arena/index?student_id=${studentId.value}` });
-  if (item.route === 'weekly_challenge') return uni.navigateTo({ url: `/pages/weekly-challenge/index?student_id=${studentId.value}` });
-  if (item.route === 'exams') return uni.navigateTo({ url: `/pages/exam-library/index?student_id=${studentId.value}` });
+  if (item.route === 'weekly_challenge') return uni.navigateTo({ url: `/pages/weekly-challenge/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
+  if (item.route === 'exams') return uni.navigateTo({ url: `/pages/exam-library/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
+  if (item.route === 'knowledge_challenge') return uni.navigateTo({ url: `/pages/knowledge-challenge/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
   if (!item.type) return;
-  uni.navigateTo({ url: `/pages/learning-session/index?student_id=${studentId.value}&type=${item.type}` });
+  uni.navigateTo({ url: `/pages/learning-session/index?student_id=${studentId.value}&type=${item.type}&grade=${selectedGrade.value}` });
 }
 
 function openChoiceKing() {
   if (!studentId.value || loading.value) return;
-  uni.navigateTo({ url: `/pages/choice-king/index?student_id=${studentId.value}` });
+  uni.navigateTo({ url: `/pages/choice-king/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
 }
 
 function goToday() { uni.switchTab({ url: '/pages/index/index' }); }
@@ -131,4 +159,5 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 
 <style scoped>
 .learning-hero{padding-bottom:44rpx}.hero-title{display:block;margin-top:8rpx;color:var(--ink);font-size:44rpx;font-weight:780;letter-spacing:-1rpx}.hero-sub{display:block;margin-top:8rpx;color:var(--text-secondary);font-size:25rpx}.section-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin:20rpx 24rpx 0;padding:8rpx;border:1rpx solid var(--border);border-radius:18rpx;background:#fff}.nav-item{min-height:78rpx;border-radius:13rpx;background:transparent;color:var(--text-muted);font-size:27rpx;font-weight:650}.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.14)}.overview-card{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin:20rpx 24rpx 0;padding:28rpx;border-radius:24rpx;background:linear-gradient(135deg,#183A36,#2F6E61);color:#fff;box-shadow:0 16rpx 34rpx rgba(24,58,54,.16)}.overview-label{display:block;color:#AED6CA;font-size:21rpx;font-weight:750;letter-spacing:2rpx}.overview-title{display:block;margin-top:4rpx;font-size:29rpx;font-weight:720}.wrong-pill{flex:none;padding:10rpx 16rpx;border-radius:999rpx;background:rgba(255,255,255,.13);font-size:22rpx}.wrong-pill .num{font-size:30rpx;font-weight:800}.choice-king-card{box-sizing:border-box;width:calc(100% - 48rpx);min-height:168rpx;margin:18rpx 24rpx 0;padding:24rpx;display:flex;align-items:center;justify-content:space-between;gap:18rpx;border:1rpx solid #BFD9D1;border-radius:22rpx;background:linear-gradient(135deg,#E8F4F0,#F9FCFB);color:var(--ink);text-align:left;box-shadow:var(--shadow-sm)}.choice-king-card::after{border:0}.choice-king-card:active{transform:scale(.975)}.choice-king-copy{flex:1;min-width:0}.choice-king-kicker,.choice-king-title,.choice-king-desc{display:block}.choice-king-kicker{color:var(--accent-strong);font-size:19rpx;font-weight:750;letter-spacing:1rpx}.choice-king-title{margin-top:3rpx;color:var(--primary);font-size:33rpx;font-weight:790}.choice-king-desc{margin-top:5rpx;color:var(--text-secondary);font-size:21rpx;line-height:1.5}.choice-king-action{min-height:70rpx;display:flex;align-items:center;gap:5rpx;flex:none;padding:0 14rpx;border-radius:13rpx;background:var(--primary);color:#fff;font-size:21rpx;font-weight:700}.section-head{display:flex;align-items:flex-end;justify-content:space-between;margin:34rpx 28rpx 16rpx}.section-head.spaced{margin-top:42rpx}.section-kicker{display:block;color:var(--accent-strong);font-size:20rpx;font-weight:750;letter-spacing:2rpx}.section-title{display:block;margin-top:2rpx;font-size:33rpx;font-weight:760}.section-note{color:var(--text-muted);font-size:22rpx}.learning-grid{display:grid;grid-template-columns:1fr 1fr;gap:16rpx;margin:0 24rpx}.learning-card{min-height:286rpx;padding:24rpx;border:1rpx solid var(--border);border-radius:22rpx;background:#fff;text-align:left;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-start}.learning-card:active,.challenge-card:active{transform:scale(.975);opacity:.9}.card-icon,.challenge-mark{width:70rpx;height:70rpx;display:flex;align-items:center;justify-content:center;border-radius:20rpx;background:var(--accent-soft)}.tone-amber{background:#FBF1E9!important}.tone-blue{background:#EDF4F2!important}.tone-navy{background:#E8EFED!important}.tone-rose{background:#FCEEEB!important}.tone-purple{background:#F1EDF7!important}.tone-gold{background:#F8F0D9!important}.card-title{display:block;margin-top:18rpx;color:var(--ink);font-size:28rpx;font-weight:740;line-height:1.35}.card-desc{display:block;margin-top:6rpx;min-height:68rpx;color:var(--text-muted);font-size:22rpx;line-height:1.55}.card-foot{width:100%;display:flex;align-items:center;justify-content:space-between;margin-top:auto;color:var(--accent-strong);font-size:22rpx;font-weight:700}.challenge-list{margin:0 24rpx;display:flex;flex-direction:column;gap:14rpx}.challenge-card{width:100%;min-height:116rpx;padding:20rpx 22rpx;display:flex;align-items:center;gap:18rpx;border:1rpx solid var(--border);border-radius:20rpx;background:#fff;text-align:left;box-shadow:var(--shadow-sm)}.challenge-card.locked{opacity:.62}.challenge-copy{flex:1;min-width:0}.challenge-title{display:block;color:var(--ink);font-size:28rpx;font-weight:720}.challenge-desc{display:block;margin-top:3rpx;color:var(--text-muted);font-size:22rpx;line-height:1.45}.lock-label{padding:6rpx 12rpx;border-radius:8rpx;background:var(--surface-muted);color:var(--text-muted);font-size:20rpx;font-weight:700}@media(max-width:360px){.choice-king-card{align-items:flex-start}.choice-king-action text{display:none}.choice-king-action{width:66rpx;justify-content:center;padding:0}}
+.grade-switch{display:grid;grid-template-columns:1fr 1fr 1.18fr;gap:10rpx;margin:16rpx 24rpx 0}.grade-tab{min-height:94rpx;margin:0;padding:12rpx 8rpx;border:1rpx solid var(--border);border-radius:16rpx;background:#fff;color:var(--text-secondary);font-size:25rpx;font-weight:700;line-height:1.25}.grade-tab::after{border:0}.grade-tab-sub{display:block;margin-top:5rpx;color:var(--text-muted);font-size:17rpx;font-weight:500}.grade-tab.active{border-color:#183A36;background:#183A36;color:#fff;box-shadow:0 8rpx 20rpx rgba(24,58,54,.15)}.grade-tab.active .grade-tab-sub{color:#BBD9D1}.grade-tab:active{transform:scale(.97)}
 </style>

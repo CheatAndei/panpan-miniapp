@@ -24,6 +24,9 @@ const growthRoutes = require('./routes/growth');
 const examRoutes = require('./routes/exams');
 const weeklyChallengeRoutes = require('./routes/weekly-challenge');
 const choiceKingRoutes = require('./routes/choice-king');
+const knowledgeChallengeRoutes = require('./routes/knowledge-challenge');
+const calculationReportRoutes = require('./routes/calculation-reports');
+const achievementRoutes = require('./routes/achievements');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -68,10 +71,13 @@ app.use('/api/growth', growthRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/weekly-challenge', weeklyChallengeRoutes);
 app.use('/api/choice-king', choiceKingRoutes);
+app.use('/api/knowledge-challenge', knowledgeChallengeRoutes);
+app.use('/api/calculation-reports', calculationReportRoutes);
+app.use('/api/achievements', achievementRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v1.7.0' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v2.0.0' });
 });
 
 // 所有未捕获的路由错误统一返回 JSON，避免小程序收到 HTML 错误页后再次解析失败。

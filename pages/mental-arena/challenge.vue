@@ -33,6 +33,7 @@
           />
         </view>
         <text class="answer-tip">负数直接输入 -3；分数可输入 1/2；方程只填 x 的值</text>
+        <button class="question-report" @tap="openReport(currentQuestion)">题目有问题</button>
       </view>
 
       <view class="number-map">
@@ -46,6 +47,14 @@
       </view>
       <button v-if="currentIndex < questions.length - 1" class="early-submit" :disabled="submitting" @tap="confirmSubmit">提前交卷</button>
     </template>
+    <question-report-sheet
+      :visible="Boolean(reportQuestion)"
+      source-type="mental_challenge"
+      :source-id="challengeId"
+      :student-id="challenge?.student_id || 0"
+      :question-id="reportQuestion?.id || ''"
+      @close="reportQuestion=null"
+    />
   </view>
 </template>
 
@@ -54,6 +63,7 @@ import { computed, nextTick, reactive, ref } from 'vue';
 import { onLoad, onUnload } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
+import QuestionReportSheet from '@/components/question-report-sheet/question-report-sheet.vue';
 
 const challengeId = ref('');
 const challenge = ref(null);
@@ -64,6 +74,7 @@ const loading = ref(false);
 const submitting = ref(false);
 const inputFocus = ref(false);
 const error = ref('');
+const reportQuestion = ref(null);
 let timer = null;
 
 const questions = computed(() => challenge.value?.questions || []);
@@ -120,6 +131,7 @@ function focusInput() {
 function jumpTo(index) { currentIndex.value = index; focusInput(); }
 function previousQuestion() { if (currentIndex.value > 0) jumpTo(currentIndex.value - 1); }
 function nextQuestion() { if (currentIndex.value < questions.value.length - 1) jumpTo(currentIndex.value + 1); }
+function openReport(question) { reportQuestion.value = question || null; }
 
 function confirmSubmit() {
   const missing = questions.value.length - answeredCount.value;
@@ -147,5 +159,5 @@ async function submitChallenge() {
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:24rpx 24rpx calc(48rpx + env(safe-area-inset-bottom));background:#F3F7F5}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16rpx}.battle-label{color:#183A36;font-size:30rpx;font-weight:850}.fish-tag{display:inline-flex;margin-left:12rpx;padding:7rpx 12rpx;border-radius:999rpx;background:#F5B83D;color:#493000;font-size:20rpx;font-weight:900}.timer{padding:12rpx 17rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:28rpx;font-weight:850;letter-spacing:2rpx}.state{margin-top:24rpx;padding:28rpx;border-radius:22rpx;background:#fff}.progress-head{display:flex;justify-content:space-between;margin-top:28rpx;color:#536762;font-size:22rpx}.progress{height:12rpx;margin-top:10rpx;overflow:hidden;border-radius:999rpx;background:#DCE8E4}.progress-fill{height:100%;border-radius:999rpx;background:#F5B83D;transition:width .2s ease}.question-card{margin-top:22rpx;padding:34rpx 28rpx;border:1rpx solid #D5E4DF;border-radius:26rpx;background:#fff;box-shadow:0 12rpx 30rpx rgba(24,58,54,.07)}.question-type{display:block;color:#2F7D6B;font-size:21rpx;font-weight:800;letter-spacing:1rpx}.question-stem{display:block;min-height:180rpx;margin-top:28rpx;color:#172D29;font-size:42rpx;font-weight:820;line-height:1.55;text-align:center;word-break:break-word}.answer-wrap{margin-top:30rpx}.answer-input{box-sizing:border-box;width:100%;height:106rpx;padding:0 24rpx;border:3rpx solid #2F7D6B;border-radius:18rpx;background:#F8FBFA;color:#183A36;font-size:42rpx;font-weight:850;text-align:center}.answer-tip{display:block;margin-top:12rpx;color:#667873;font-size:20rpx;line-height:1.45;text-align:center}.number-map{display:grid;grid-template-columns:repeat(10,1fr);gap:8rpx;margin-top:20rpx}.number-dot{min-width:0;height:54rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0;border-radius:12rpx;background:#E6EFEC;color:#647570;font-size:20rpx}.number-dot.done{background:#CAE5DD;color:#1F6254;font-weight:800}.number-dot.current{outline:3rpx solid #F5B83D;background:#FFF4D4;color:#664600}button::after{border:0}.nav-actions{display:grid;grid-template-columns:1fr 1.6fr;gap:14rpx;margin-top:22rpx}.prev-btn,.next-btn,.submit-btn{min-height:92rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:16rpx;font-size:27rpx;font-weight:800}.prev-btn{border:1rpx solid #B8CAC4;background:#fff;color:#536762}.next-btn{background:#183A36;color:#fff}.submit-btn{background:#F5B83D;color:#493000}.early-submit{min-height:72rpx;margin:12rpx auto 0;background:transparent;color:#758680;font-size:22rpx;text-decoration:underline}.early-submit::after{border:0}@media(max-width:380px){.question-stem{font-size:36rpx}.number-map{grid-template-columns:repeat(5,1fr)}}
+.page{min-height:100vh;padding:24rpx 24rpx calc(48rpx + env(safe-area-inset-bottom));background:#F3F7F5}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16rpx}.battle-label{color:#183A36;font-size:30rpx;font-weight:850}.fish-tag{display:inline-flex;margin-left:12rpx;padding:7rpx 12rpx;border-radius:999rpx;background:#F5B83D;color:#493000;font-size:20rpx;font-weight:900}.timer{padding:12rpx 17rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:28rpx;font-weight:850;letter-spacing:2rpx}.state{margin-top:24rpx;padding:28rpx;border-radius:22rpx;background:#fff}.progress-head{display:flex;justify-content:space-between;margin-top:28rpx;color:#536762;font-size:22rpx}.progress{height:12rpx;margin-top:10rpx;overflow:hidden;border-radius:999rpx;background:#DCE8E4}.progress-fill{height:100%;border-radius:999rpx;background:#F5B83D;transition:width .2s ease}.question-card{margin-top:22rpx;padding:34rpx 28rpx;border:1rpx solid #D5E4DF;border-radius:26rpx;background:#fff;box-shadow:0 12rpx 30rpx rgba(24,58,54,.07)}.question-type{display:block;color:#2F7D6B;font-size:21rpx;font-weight:800;letter-spacing:1rpx}.question-stem{display:block;min-height:180rpx;margin-top:28rpx;color:#172D29;font-size:42rpx;font-weight:820;line-height:1.55;text-align:center;word-break:break-word}.answer-wrap{margin-top:30rpx}.answer-input{box-sizing:border-box;width:100%;height:106rpx;padding:0 24rpx;border:3rpx solid #2F7D6B;border-radius:18rpx;background:#F8FBFA;color:#183A36;font-size:42rpx;font-weight:850;text-align:center}.answer-tip{display:block;margin-top:12rpx;color:#667873;font-size:20rpx;line-height:1.45;text-align:center}.question-report{min-height:58rpx;margin:12rpx auto 0;padding:0 14rpx;background:transparent;color:#667873;font-size:20rpx;text-decoration:underline}.question-report::after{border:0}.number-map{display:grid;grid-template-columns:repeat(10,1fr);gap:8rpx;margin-top:20rpx}.number-dot{min-width:0;height:54rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0;border-radius:12rpx;background:#E6EFEC;color:#647570;font-size:20rpx}.number-dot.done{background:#CAE5DD;color:#1F6254;font-weight:800}.number-dot.current{outline:3rpx solid #F5B83D;background:#FFF4D4;color:#664600}button::after{border:0}.nav-actions{display:grid;grid-template-columns:1fr 1.6fr;gap:14rpx;margin-top:22rpx}.prev-btn,.next-btn,.submit-btn{min-height:92rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:16rpx;font-size:27rpx;font-weight:800}.prev-btn{border:1rpx solid #B8CAC4;background:#fff;color:#536762}.next-btn{background:#183A36;color:#fff}.submit-btn{background:#F5B83D;color:#493000}.early-submit{min-height:72rpx;margin:12rpx auto 0;background:transparent;color:#758680;font-size:22rpx;text-decoration:underline}.early-submit::after{border:0}@media(max-width:380px){.question-stem{font-size:36rpx}.number-map{grid-template-columns:repeat(5,1fr)}}
 </style>

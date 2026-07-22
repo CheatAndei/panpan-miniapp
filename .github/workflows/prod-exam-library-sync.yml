@@ -1,0 +1,104 @@
+name: Production Exam Library Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Draft release tag containing encrypted exam bundle
+        required: true
+        type: string
+      asset_name:
+        description: Encrypted bundle asset filename
+        required: true
+        type: string
+      confirm:
+        description: Type SYNC_EXAMS
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Validate, sync and import exam library
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        run: test '${{ inputs.confirm }}' = 'SYNC_EXAMS'
+
+      - name: Download encrypted draft asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p payload
+          gh release download '${{ inputs.release_tag }}' --repo '${{ github.repository }}' --pattern '${{ inputs.asset_name }}' --dir payload
+          test -s 'payload/${{ inputs.asset_name }}'
+
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload encrypted bundle
+        env:
+          SYNC_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          printf 'SYNC_ID=%s\n' "$SYNC_ID" >> "$GITHUB_ENV"
+          ssh root@134.175.69.59 "install -d -m 700 '/opt/panpan-miniapp/exam-sync/$SYNC_ID'"
+          scp -o BatchMode=yes 'payload/${{ inputs.asset_name }}' "root@134.175.69.59:/opt/panpan-miniapp/exam-sync/$SYNC_ID/bundle.enc"
+
+      - name: Decrypt, validate, sync and import
+        env:
+          PANPAN_EXAM_BUNDLE_KEY: ${{ secrets.PANPAN_EXAM_BUNDLE_KEY }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            "SYNC_ID='$SYNC_ID' PANPAN_EXAM_BUNDLE_KEY='$PANPAN_EXAM_BUNDLE_KEY' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$SYNC_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid sync id'; exit 1 ;; esac
+          ROOT="/opt/panpan-miniapp/exam-sync/$SYNC_ID"
+          test -f "$ROOT/bundle.enc"
+          FREE_BYTES="$(df -B1 --output=avail "$ROOT" | tail -1 | tr -d ' ')"
+          BUNDLE_BYTES="$(stat -c%s "$ROOT/bundle.enc")"
+          REQUIRED_BYTES="$((BUNDLE_BYTES * 3 + 536870912))"
+          test "$FREE_BYTES" -gt "$REQUIRED_BYTES"
+          install -d -m 700 "$ROOT/stage"
+          PANPAN_EXAM_BUNDLE_KEY="$PANPAN_EXAM_BUNDLE_KEY" \
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 -pass env:PANPAN_EXAM_BUNDLE_KEY \
+            -in "$ROOT/bundle.enc" | tar -xzf - -C "$ROOT/stage"
+          test -d "$ROOT/stage/exam-library/paper"
+          test -d "$ROOT/stage/exam-library/answer"
+          EXAM_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/exam-library"}}{{.Source}}{{end}}{{end}}')"
+          test -n "$EXAM_DIR"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          docker run --rm \
+            -e NODE_ENV=test -e DATABASE_PATH=/tmp/validate.db -e EXAM_LIBRARY_DIR=/app/exam-library \
+            -e PANPAN_SKIP_STARTUP_RESOURCE_SEED=1 \
+            -v "$ROOT/stage/exam-library:/app/exam-library:ro" "$IMAGE" npm run exams:mock:import -- --publish
+          cp -an "$ROOT/stage/exam-library/paper/." "$EXAM_DIR/paper/"
+          cp -an "$ROOT/stage/exam-library/answer/." "$EXAM_DIR/answer/"
+          docker exec panpan-api npm run exams:mock:import -- --publish
+          docker exec -i panpan-api node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const SQL=await initSqlJs();const db=new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+          const q=(sql)=>Number(db.exec(sql)[0]?.values[0]?.[0]||0);
+          const counts={papers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published'"),answers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published' AND answer_asset_id IS NOT NULL")};
+          console.log(JSON.stringify(counts));if(counts.papers!==194||counts.answers!==193)process.exit(1);
+          NODE
+          test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"
+          rm -rf -- "$ROOT"
+          REMOTE

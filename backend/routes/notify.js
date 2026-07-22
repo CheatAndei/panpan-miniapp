@@ -2,6 +2,7 @@ const express = require('express');
 const { getDB } = require('../db/init');
 const router = express.Router();
 const { authRequired: auth } = require('../middleware/auth');
+const { getAccessToken } = require('../utils/wechat-access');
 
 // 模板ID（审核通过后替换）
 const TPLS = {
@@ -212,26 +213,6 @@ router.post('/bind-openid', auth, (req, res) => {
 });
 
 // === 消息发送（内部调用）===
-
-let accessToken = null, tokenExpire = 0;
-
-async function getAccessToken() {
-  if (accessToken && Date.now() < tokenExpire) return accessToken;
-  const appId = process.env.APP_ID;
-  const secret = process.env.APP_SECRET;
-  if (!appId || !secret) return null;
-  const axios = require('axios');
-  const { data } = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
-    params: { grant_type: 'client_credential', appid: appId, secret }
-  });
-  if (!data.access_token) {
-    console.warn('[notify] get access token failed', { errcode: data.errcode, errmsg: data.errmsg });
-    return null;
-  }
-  accessToken = data.access_token;
-  tokenExpire = Date.now() + (data.expires_in - 300) * 1000;
-  return accessToken;
-}
 
 async function sendMsg(openid, tplId, data, page) {
   if (!tplId || !openid) {

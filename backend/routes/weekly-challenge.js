@@ -6,6 +6,10 @@ const { parentBoundStudent } = require('../utils/scope');
 const { decodePrivateImage, storePrivateFile, removePrivateFile } = require('../utils/private-files');
 const { resolveExamPath } = require('../utils/exam-files');
 const { weekStartKey } = require('../services/learning');
+const {
+  assignmentRow: assignmentRowV2, currentState: currentStateV2, createAssignment: createAssignmentV2,
+  changeAssignment: changeAssignmentV2, teacherQueue: teacherQueueV2, reviewSubmission: reviewSubmissionV2,
+} = require('../services/challenge-v2');
 
 const router = express.Router();
 const TYPES = new Set(['fill', 'subjective']);
@@ -65,6 +69,95 @@ function assignmentRow(db, assignmentId) {
     FROM weekly_challenge_assignments a JOIN weekly_challenge_questions q ON q.id=a.question_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL WHERE a.id=?`, [assignmentId]);
 }
+
+router.get('/v2/current', auth, parentOnly, (req, res) => {
+  const db=getDB();
+  const studentId=boundStudent(db,req.user.id,req.query.student_id);
+  if(!studentId)return res.status(403).json({error:'无权查看该学生的挑战'});
+  return res.json(currentStateV2(db,{studentId,gradeCode:req.query.grade,subjectCode:req.query.subject}));
+});
+
+router.post('/v2/assignments', auth, parentOnly, (req, res) => {
+  const db=getDB();
+  const studentId=boundStudent(db,req.user.id,req.body?.student_id);
+  if(!studentId)return res.status(403).json({error:'无权为该学生领取挑战'});
+  try{return res.status(201).json({assignment:createAssignmentV2(db,{
+    studentId,gradeCode:req.body?.grade,subjectCode:req.body?.subject,questionType:String(req.body?.question_type||''),
+  })});}catch(error){return res.status(400).json({error:error.message||'领取失败'});}
+});
+
+router.post('/v2/assignments/:id/change', auth, parentOnly, (req, res) => {
+  const db=getDB();
+  const row=assignmentRowV2(db,Number(req.params.id));
+  const studentId=row?boundStudent(db,req.user.id,row.student_id):0;
+  if(!studentId)return res.status(404).json({error:'挑战不存在'});
+  try{return res.json({assignment:changeAssignmentV2(db,{studentId,assignmentId:row.id})});}
+  catch(error){return res.status(400).json({error:error.message||'更换失败'});}
+});
+
+router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => {
+  const db=getDB();
+  const assignment=assignmentRowV2(db,Number(req.params.id));
+  if(!assignment||!boundStudent(db,req.user.id,assignment.student_id))return res.status(404).json({error:'挑战不存在'});
+  if(!['active','submitted','reviewed_wrong'].includes(assignment.status))return res.status(409).json({error:'当前挑战不能继续提交'});
+  let decoded;
+  try{decoded=await decodePrivateImage(req.body?.base64);}catch(error){return res.status(400).json({error:error.message});}
+  let stored;
+  try{
+    const result=db.transaction(()=>{
+      let submission=db.get(`SELECT * FROM challenge_submissions_v2 WHERE assignment_id=? ORDER BY attempt_no DESC LIMIT 1`,[assignment.id]);
+      if(!submission||submission.status==='reviewed'){
+        const attemptNo=Number(submission?.attempt_no||0)+1;
+        const created=db.run(`INSERT INTO challenge_submissions_v2(assignment_id,parent_id,attempt_no,status)
+          VALUES(?,?,?,'submitted')`,[assignment.id,req.user.id,attemptNo]);
+        submission=db.get('SELECT * FROM challenge_submissions_v2 WHERE id=?',[created.lastInsertRowid]);
+      }
+      if(Number(submission.parent_id)!==Number(req.user.id))return {wrongParent:true};
+      const duplicate=db.get(`SELECT a.id,f.token FROM challenge_attachments_v2 a JOIN private_files f ON f.id=a.file_id
+        WHERE a.submission_id=? AND a.sha256=?`,[submission.id,decoded.sha256]);
+      if(duplicate)return {duplicate};
+      const count=Number(db.get('SELECT COUNT(*) count FROM challenge_attachments_v2 WHERE submission_id=?',[submission.id])?.count||0);
+      if(count>=4)return {tooMany:true};
+      stored=storePrivateFile(db,{...decoded,studentId:assignment.student_id,purpose:'challenge_v2_photo',
+        ownerType:'challenge_v2_submission',ownerId:submission.id,createdBy:req.user.id,originalName:req.body?.fileName||'challenge-photo'});
+      const attachment=db.run(`INSERT INTO challenge_attachments_v2(submission_id,file_id,sha256) VALUES(?,?,?)`,[submission.id,stored.id,decoded.sha256]);
+      db.run("UPDATE challenge_assignments_v2 SET status='submitted',updated_at=CURRENT_TIMESTAMP WHERE id=?",[assignment.id]);
+      return {attachmentId:attachment.lastInsertRowid,submissionId:submission.id};
+    });
+    if(result.wrongParent)return res.status(403).json({error:'该挑战已由另一位绑定家长提交'});
+    if(result.tooMany)return res.status(400).json({error:'每次提交最多 4 张图片'});
+    if(result.duplicate)return res.json({ok:true,idempotent:true,attachment:{...result.duplicate,url:fileUrl(result.duplicate.token)}});
+    return res.status(201).json({ok:true,submission_id:result.submissionId,attachment:{id:result.attachmentId,token:stored.token,url:fileUrl(stored.token)}});
+  }catch(error){
+    if(stored)removePrivateFile(db,{id:stored.id,storage_key:stored.storageKey});
+    return res.status(500).json({error:error.message||'图片保存失败'});
+  }
+});
+
+router.get('/v2/teacher/submissions', auth, teacherOnly, (req, res) => {
+  const status=String(req.query.status||'submitted');
+  if(!['submitted','reviewed','all'].includes(status))return res.status(400).json({error:'提交状态无效'});
+  const submissions=teacherQueueV2(getDB(),{teacherId:req.user.id,status,limit:req.query.limit});
+  return res.json({count:submissions.length,todos:submissions,submissions});
+});
+
+router.put('/v2/teacher/submissions/:id/review', auth, teacherOnly, (req, res) => {
+  if(![true,false,0,1].includes(req.body?.is_correct))return res.status(400).json({error:'请选择批改结果'});
+  const result=reviewSubmissionV2(getDB(),{teacherId:req.user.id,submissionId:Number(req.params.id),
+    isCorrect:Boolean(req.body.is_correct),teacherNote:req.body?.teacher_note});
+  if(!result)return res.status(404).json({error:'提交不存在'});
+  return res.json({ok:true,...result});
+});
+
+router.post('/v2/teacher/assignments/:id/skip', auth, teacherOnly, (req, res) => {
+  const db=getDB();const assignment=assignmentRowV2(db,Number(req.params.id));
+  if(!assignment||!ownsStudent(db,req.user.id,assignment.student_id))return res.status(404).json({error:'挑战不存在'});
+  db.transaction(()=>{
+    db.run("UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP WHERE id=?",[assignment.id]);
+    if(req.body?.stop_question!==false)db.run('UPDATE weekly_challenge_questions SET is_active=0 WHERE id=?',[assignment.question_id]);
+  });
+  return res.json({ok:true});
+});
 
 router.get('/current', auth, parentOnly, (req, res) => {
   const db = getDB();
@@ -179,17 +272,24 @@ router.get('/assets/:assetId', auth, (req, res) => {
   const asset = db.get('SELECT * FROM exam_assets WHERE id=?', [Number(req.params.assetId)]);
   if (!asset) return res.status(404).json({ error: '图片不存在' });
   if (req.user.role === 'parent') {
-    const allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a JOIN weekly_challenge_questions q ON q.id=a.question_id
+    let allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a JOIN weekly_challenge_questions q ON q.id=a.question_id
       JOIN bindings b ON b.student_id=a.student_id WHERE b.parent_id=? AND a.week_start=? AND q.question_asset_id=?`, [req.user.id, weekStartKey(), asset.id]);
+    if (!allowed) allowed = db.get(`SELECT a.id FROM challenge_assignments_v2 a JOIN weekly_challenge_questions q ON q.id=a.question_id
+      JOIN bindings b ON b.student_id=a.student_id WHERE b.parent_id=? AND q.question_asset_id=? LIMIT 1`, [req.user.id, asset.id]);
     if (!allowed) return res.status(404).json({ error: '图片不存在' });
   } else if (req.user.role === 'teacher') {
-    const allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a
+    let allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a
       JOIN weekly_challenge_questions q ON q.id=a.question_id
       JOIN students s ON s.id=a.student_id
       LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
       WHERE (q.question_asset_id=? OR q.answer_asset_id=?)
         AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?
       LIMIT 1`, [asset.id, asset.id, req.user.id]);
+    if (!allowed) allowed = db.get(`SELECT a.id FROM challenge_assignments_v2 a
+      JOIN weekly_challenge_questions q ON q.id=a.question_id JOIN students s ON s.id=a.student_id
+      LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+      WHERE (q.question_asset_id=? OR q.answer_asset_id=?)
+        AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=? LIMIT 1`, [asset.id, asset.id, req.user.id]);
     if (!allowed) return res.status(404).json({ error: '图片不存在' });
   } else return res.status(403).json({ error: '无权查看图片' });
   const fullPath = resolveExamPath(asset.storage_key);

@@ -2,8 +2,8 @@
   <view class="page page-bottom-safe">
     <view class="exam-hero">
       <text class="eyebrow">GUANGZHOU PAPERS</text>
-      <text class="hero-title">广州真题大全</text>
-      <text class="hero-sub">七年级上学期原卷 · 按考试类型和年份筛选</text>
+      <text class="hero-title">{{ gradeCode==='g9'?'中考一模卷库':'广州真题大全' }}</text>
+      <text class="hero-sub">{{ gradeCode==='g9'?'九年级七科原卷 · 按年份、学科和地区筛选':'七、八年级原卷 · 按考试类型和年份筛选' }}</text>
     </view>
 
     <view class="filter-card">
@@ -12,6 +12,17 @@
       </view>
       <view class="filter-row">
         <button v-for="item in yearTypes" :key="item.value" :class="['chip',{on:filters.year_bucket===item.value}]" @tap="setFilter('year_bucket',item.value)">{{ item.label }}</button>
+      </view>
+      <view v-if="gradeCode==='g9'" class="filter-row">
+        <button v-for="item in subjectTypes" :key="item.value" :class="['chip',{on:filters.subject===item.value}]" @tap="setFilter('subject',item.value)">{{ item.label }}</button>
+      </view>
+      <view v-if="gradeCode==='g9'&&serverFilters.years.length" class="filter-row">
+        <button :class="['chip',{on:!filters.year}]" @tap="setFilter('year','')">全部年份</button>
+        <button v-for="year in serverFilters.years" :key="year" :class="['chip',{on:String(filters.year)===String(year)}]" @tap="setFilter('year',year)">{{ year }}</button>
+      </view>
+      <view v-if="gradeCode==='g9'&&serverFilters.districts.length" class="filter-row">
+        <button :class="['chip',{on:!filters.district}]" @tap="setFilter('district','')">全部地区</button>
+        <button v-for="district in serverFilters.districts" :key="district" :class="['chip',{on:filters.district===district}]" @tap="setFilter('district',district)">{{ district }}</button>
       </view>
       <view class="search-row">
         <input v-model="keyword" class="search-input" placeholder="搜索学校或试卷名称" confirm-type="search" @confirm="search" />
@@ -44,7 +55,7 @@
     <view v-for="paper in papers" :key="paper.id" class="paper-card">
       <view class="paper-tags"><text>{{ examLabel(paper.exam_type) }}</text><text>{{ paper.exam_year || '往年' }}</text><text v-if="paper.has_answer">含答案</text></view>
       <text class="paper-title">{{ paper.display_title }}</text>
-      <text class="paper-meta">{{ paper.school_name || '广州七年级数学' }} · {{ paper.semester }}</text>
+      <text class="paper-meta">{{ subjectLabel(paper.subject_code) }} · {{ paper.district || paper.school_name || paper.grade }} · {{ paper.semester }}</text>
       <view class="paper-actions">
         <button class="paper-primary" :disabled="busyId===paper.id" @tap="downloadPaper(paper,'paper')">{{ busyId===paper.id?'打开中…':'打开原卷' }}</button>
         <button v-if="isTeacher && paper.has_answer" class="paper-secondary" @tap="downloadPaper(paper,'answer')">教师看答案</button>
@@ -65,6 +76,7 @@ import { buildQuery } from '@/utils/query';
 
 const isTeacher = ref(getUser()?.role === 'teacher');
 const studentId = ref(0);
+const gradeCode = ref('g7');
 const papers = ref([]);
 const loading = ref(false);
 const error = ref('');
@@ -74,12 +86,16 @@ const page = ref(1);
 const pages = ref(1);
 const activityExpanded = ref(false);
 const activity = reactive({ requests: [], downloads: [] });
-const filters = reactive({ exam_type: '', year_bucket: '' });
-const examTypes = [{value:'',label:'全部'},{value:'midterm',label:'期中'},{value:'final',label:'期末'},{value:'monthly',label:'月考'}];
+const filters = reactive({ exam_type: '', year_bucket: '', subject:'', district:'', year:'' });
+const serverFilters=reactive({subjects:[],districts:[],years:[]});
+const examTypes = [{value:'',label:'全部'},{value:'midterm',label:'期中'},{value:'final',label:'期末'},{value:'monthly',label:'月考'},{value:'mock',label:'一模'}];
 const yearTypes = [{value:'',label:'全部年份'},{value:'recent',label:'2024-2025'},{value:'older',label:'2024 以前'}];
+const subjectTypes=[{value:'',label:'全部学科'},{value:'chinese',label:'语文'},{value:'math',label:'数学'},{value:'english',label:'英语'},{value:'physics',label:'物理'},{value:'chemistry',label:'化学'},{value:'history',label:'历史'},{value:'morality',label:'道德与法治'}];
 
 onLoad((query) => {
   studentId.value = Number(query.student_id || uni.getStorageSync('activeChildId') || 0);
+  gradeCode.value=['g7','g8','g9'].includes(String(query.grade||''))?String(query.grade):'g7';
+  if(gradeCode.value==='g9')filters.exam_type='mock';
   loadPapers(true);
   if (isTeacher.value) loadActivity();
 });
@@ -90,8 +106,12 @@ function params(nextPage=1) {
     page: nextPage,
     limit: 20,
     student_id: isTeacher.value ? undefined : studentId.value,
+    grade:gradeCode.value,
     exam_type: filters.exam_type,
     year_bucket: filters.year_bucket,
+    subject:filters.subject,
+    district:filters.district,
+    year:filters.year,
     keyword: keyword.value.trim(),
   });
 }
@@ -103,6 +123,7 @@ async function loadPapers(reset=false) {
     const nextPage = reset ? 1 : page.value;
     const data = await api.get(`/exams?${params(nextPage)}`);
     papers.value = reset ? data.papers : papers.value.concat(data.papers || []);
+    Object.assign(serverFilters,data.filters||{});
     page.value = Number(data.pagination?.page || nextPage);
     pages.value = Number(data.pagination?.pages || 1);
   } catch (e) { error.value=e?.error || '请检查网络后重试'; }
@@ -112,7 +133,8 @@ async function loadActivity() { const data=await api.get('/exams/teacher/activit
 function setFilter(key,value){ filters[key]=value; loadPapers(true); }
 function search(){ loadPapers(true); }
 function loadMore(){ if(page.value<pages.value){ page.value+=1; loadPapers(false); } }
-function examLabel(type){ return type==='midterm'?'期中':type==='final'?'期末':'月考'; }
+function examLabel(type){ return type==='midterm'?'期中':type==='final'?'期末':type==='mock'?'一模':'月考'; }
+function subjectLabel(code){return subjectTypes.find(item=>item.value===code)?.label||'数学';}
 function requestLabel(paper){ return paper.answer_request_status==='sent'?'老师已处理':paper.answer_request_status==='pending'?'已申请答案':'向老师申请答案'; }
 function formatTime(value){ return String(value||'').replace('T',' ').slice(0,16); }
 async function downloadPaper(paper,assetKind){
