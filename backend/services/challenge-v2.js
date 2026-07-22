@@ -11,7 +11,7 @@ function assignmentRow(db, assignmentId) {
     s.name student_name,c.name class_name,CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END teacher_id
     FROM challenge_assignments_v2 a JOIN weekly_challenge_questions q ON q.id=a.question_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE a.id=?`, [assignmentId]);
+    WHERE a.id=? AND s.deleted_at IS NULL`, [assignmentId]);
 }
 
 function submissionsForAssignment(db, assignmentId) {
@@ -141,7 +141,7 @@ function teacherQueue(db,{teacherId,status='submitted',limit=100}){
   const clause=status==='all'?'':` AND sub.status='${status==='reviewed'?'reviewed':'submitted'}'`;
   const ids=db.all(`SELECT sub.id FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}
+    WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}
     ORDER BY CASE sub.status WHEN 'submitted' THEN 0 ELSE 1 END,sub.submitted_at ASC,sub.id ASC LIMIT ?`,[teacherId,Math.max(1,Math.min(100,Number(limit)||100))]);
   return ids.map(({id})=>{
     const submission=db.get('SELECT assignment_id FROM challenge_submissions_v2 WHERE id=?',[id]);
@@ -156,7 +156,8 @@ function reviewSubmission(db,{teacherId,submissionId,isCorrect,teacherNote}){
     FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id WHERE sub.id=?`,[submissionId]);
   if(!submission)return null;
   const owner=db.get(`SELECT s.id FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE s.id=? AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?`,[submission.student_id,teacherId]);
+    WHERE s.id=? AND s.deleted_at IS NULL
+      AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?`,[submission.student_id,teacherId]);
   if(!owner)return null;
   db.transaction(()=>{
     db.run(`UPDATE challenge_submissions_v2 SET status='reviewed',is_correct=?,teacher_note=?,reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?`,

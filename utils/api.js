@@ -32,13 +32,13 @@ function clearExpiredSession() {
 }
 
 function executeRequest(method, path, data, options = {}) {
-  const { handleUnauthorized = true } = options;
+  const { handleUnauthorized = true, timeout = 15000 } = options;
   return new Promise((resolve, reject) => {
     uni.request({
       url: buildUrl(path),
       method,
       data,
-      timeout: 15000,
+      timeout,
       header: authHeader(),
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) {

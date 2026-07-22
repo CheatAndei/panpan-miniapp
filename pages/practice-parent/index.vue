@@ -27,7 +27,7 @@
         <view v-for="item in assignment.items" :key="item.id" class="question-row">
           <text class="question-no">{{ item.position }}</text>
           <view class="question-copy">
-            <text class="question-text">{{ item.stem }}</text>
+            <pp-math-text class="question-text" :value="item.stem" />
             <text class="question-type">{{ item.question_type }}</text>
           </view>
         </view>
@@ -193,4 +193,5 @@ async function chooseAndUpload() {
 .history-status{color:var(--warning)}.history-status.reviewed{color:var(--success)}
 .share-card{display:flex;align-items:center;gap:18rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFFBED,#FFFFFF)}.share-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:20rpx;background:#F5B83D;color:#493000;font-size:35rpx;font-weight:900}.share-copy{flex:1;min-width:0}.share-title{display:block;color:var(--ink);font-size:28rpx;font-weight:760}.share-desc{display:block;margin-top:4rpx;color:#6C572F;font-size:22rpx;line-height:1.45}.share-privacy{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx}.share-btn{flex:none;min-height:84rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:23rpx;font-weight:750}.share-btn::after{border:0}
 @media (max-width:380px){.share-card{align-items:flex-start;flex-wrap:wrap}.share-copy{min-width:calc(100% - 90rpx)}.share-btn{width:100%}}
+.question-text{display:flex}
 </style>

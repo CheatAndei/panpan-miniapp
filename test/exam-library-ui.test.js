@@ -34,3 +34,19 @@ test('exam library builds encoded queries without the browser-only URLSearchPara
     'page=1&limit=20&keyword=%E5%B9%BF%E5%B7%9E%20%E4%B8%AD%E5%AD%A6'
   );
 });
+
+test('exam library resolves both entry paths and exposes grade switching', () => {
+  const page = read('pages/exam-library/index.vue');
+  const home = read('pages/index/index.vue');
+  const teacherTools = read('pages/teacher-tools/index.vue');
+
+  assert.match(page, /七年级/);
+  assert.match(page, /八年级/);
+  assert.match(page, /九年级/);
+  assert.match(page, /setGrade/);
+  assert.match(page, /learning\/catalog\?student_id=/);
+  assert.match(page, /filters\.subject\s*=\s*''/);
+  assert.match(page, /exam_type:value==='g9'\?'mock':''/);
+  assert.match(home, /openExamLibrary/);
+  assert.match(teacherTools, /exam-library\/index\?grade=g9/);
+});

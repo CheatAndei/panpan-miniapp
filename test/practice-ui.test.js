@@ -26,7 +26,7 @@ test('首页按角色进入今日专属练习与打卡计划', () => {
   const parentBranch = home.indexOf('<!-- 家长端 -->');
   assert.ok(home.indexOf("navTo('/pages/practice-teacher/index')") < parentBranch, '教师打卡入口必须位于教师分支');
   assert.ok(home.indexOf("if (task.route === 'practice')") > parentBranch, '家长每日练习入口必须位于家长分支');
-  assert.doesNotMatch(home, /parent-homework\/index\?student_id=/);
+  assert.match(home, /async function openHomeworkNotice/);
 });
 
 test('家长页领取结构化题目并上传照片', () => {

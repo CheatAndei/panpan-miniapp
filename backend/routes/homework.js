@@ -345,9 +345,14 @@ router.get('/batches/:id', auth, teacherOnly, (req, res) => {
 
 async function sendSubmissionNotification(db, submission, batch, parentId = null) {
   const parents = parentId
-    ? db.all('SELECT id FROM users WHERE id=? AND openid IS NOT NULL AND openid!=\'\'', [parentId])
+    ? db.all(`SELECT u.id FROM users u JOIN bindings b ON b.parent_id=u.id
+      JOIN students st ON st.id=b.student_id LEFT JOIN classes c ON c.id=st.class_id
+      WHERE u.id=? AND b.student_id=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL
+        AND u.openid IS NOT NULL AND u.openid!=''`, [parentId, submission.student_id])
     : db.all(`SELECT u.id FROM users u JOIN bindings b ON b.parent_id=u.id
-      WHERE b.student_id=? AND u.openid IS NOT NULL AND u.openid!=''`, [submission.student_id]);
+      JOIN students st ON st.id=b.student_id LEFT JOIN classes c ON c.id=st.class_id
+      WHERE b.student_id=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL
+        AND u.openid IS NOT NULL AND u.openid!=''`, [submission.student_id]);
   const notify = require('./notify');
   const result = { total: parents.length, sent: 0, failed: 0 };
   for (const parent of parents) {
@@ -399,6 +404,11 @@ router.post('/batches/:id/publish', auth, teacherOnly, async (req, res) => {
         ]);
       }
       db.run('UPDATE homework_submissions SET grading_status=? WHERE id=?', ['published', submission.id]);
+      db.run(`INSERT OR IGNORE INTO homework_parent_notices(submission_id,parent_id)
+        SELECT ?,bind.parent_id FROM bindings bind
+        JOIN students st ON st.id=bind.student_id
+        LEFT JOIN classes c ON c.id=st.class_id
+        WHERE bind.student_id=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL`, [submission.id, submission.student_id]);
     }
     db.run('UPDATE homework_batches SET status=?,published_at=CURRENT_TIMESTAMP WHERE id=?', ['published', batch.id]);
     logOperation(db, req.user.id, 'homework_batch_published', 'homework_batch', batch.id, { students: submissions.length, notify: !!req.body?.send_notifications });
@@ -414,6 +424,40 @@ router.post('/batches/:id/publish', auth, teacherOnly, async (req, res) => {
     }
   }
   res.json({ ok: true, batch_id: batch.id, status: 'published', notifications });
+});
+
+router.get('/notices', auth, (req, res) => {
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  const db = getDB();
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit || 10)));
+  const unreadOnly = String(req.query.unread || '1') !== '0';
+  const unreadClause = unreadOnly ? 'AND n.seen_at IS NULL' : '';
+  const scopeSql = `FROM homework_parent_notices n
+    JOIN homework_submissions s ON s.id=n.submission_id
+    JOIN homework_batches batch ON batch.id=s.batch_id
+    JOIN students st ON st.id=s.student_id
+    JOIN bindings bind ON bind.parent_id=n.parent_id AND bind.student_id=s.student_id
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE n.parent_id=? ${unreadClause} AND batch.status='published'
+      AND st.deleted_at IS NULL AND c.deleted_at IS NULL`;
+  const notices = db.all(`SELECT n.id,n.submission_id,n.seen_at,n.created_at,
+      s.batch_id,s.student_id,st.name student_name,batch.title,batch.subject,batch.assigned_date,batch.published_at
+    ${scopeSql} ORDER BY COALESCE(batch.published_at,n.created_at) DESC,n.id DESC LIMIT ?`, [req.user.id, limit]);
+  const total = db.get(`SELECT COUNT(*) total ${scopeSql}`, [req.user.id]);
+  res.json({ notices, total: Number(total?.total || 0) });
+});
+
+router.post('/notices/seen', auth, (req, res) => {
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  const noticeIds = [...new Set((Array.isArray(req.body?.notice_ids) ? req.body.notice_ids : [])
+    .map(Number).filter((id) => Number.isInteger(id) && id > 0))].slice(0, 50);
+  if (noticeIds.length === 0) return res.status(400).json({ error: '缺少提醒编号' });
+  const db = getDB();
+  const placeholders = noticeIds.map(() => '?').join(',');
+  const updated = db.run(`UPDATE homework_parent_notices
+    SET seen_at=COALESCE(seen_at,CURRENT_TIMESTAMP)
+    WHERE parent_id=? AND id IN (${placeholders})`, [req.user.id, ...noticeIds]);
+  res.json({ ok: true, seen: Number(updated.changes || 0) });
 });
 
 router.post('/push/:id/retry', auth, teacherOnly, async (req, res) => {

@@ -39,11 +39,33 @@
         <textarea v-model="se._cf.performanceNote" class="result-area performance-note" placeholder="例如：大部分学生能主动讲解思路，计算细节还需提醒" :maxlength="120" />
         <text class="field-label">课后作业</text>
         <input v-model="se._cf.homework" class="input big" placeholder="填写作业内容（可选）" />
+        <view v-if="String(se._cf.homework||'').trim()" class="share-card-builder homework-share-builder">
+          <view class="share-builder-copy">
+            <text class="share-builder-kicker">HOMEWORK CARD</text>
+            <text class="share-builder-title">课后任务单</text>
+            <text class="share-builder-note">方格纸任务主题，作业与课堂反馈分开保存。</text>
+          </view>
+          <view class="share-builder-actions">
+            <button :disabled="se._cf._homeworkCardBusy" @tap="previewHomeworkCard(se)">{{ se._cf._homeworkCardBusy?'生成中…':'预览' }}</button>
+            <button :disabled="se._cf._homeworkCardBusy" @tap="saveHomeworkCard(se)">保存</button>
+          </view>
+        </view>
         <button class="btn-primary big" @tap="genClassFeedback(se)" :disabled="se._cf._genning">
           {{ se._cf._genning?'生成中...':(se._cf._text?'重新生成':'一键生成学习小组反馈') }}
         </button>
         <textarea v-model="se._cf._text" class="result-area" placeholder="可直接手动输入学习小组总反馈" :maxlength="500" />
         <button v-if="se._cf._text" class="copy-feedback-btn" @tap="copyFeedback(se._cf._text,'学习小组反馈')">复制反馈</button>
+        <view v-if="String(se._cf._text||'').trim()" class="share-card-builder class-share-builder">
+          <view class="share-builder-copy">
+            <text class="share-builder-kicker">CLASS BRIEF</text>
+            <text class="share-builder-title">课堂简报分享卡</text>
+            <text class="share-builder-note">墨绿课堂纪要主题，适合保存后发家长群。</text>
+          </view>
+          <view class="share-builder-actions">
+            <button :disabled="se._cf._classCardBusy" @tap="previewClassFeedbackCard(se)">{{ se._cf._classCardBusy?'生成中…':'预览' }}</button>
+            <button :disabled="se._cf._classCardBusy" @tap="saveClassFeedbackCard(se)">保存</button>
+          </view>
+        </view>
       </view>
 
       <!-- 学生反馈板块 -->
@@ -145,13 +167,33 @@
 import { api } from '@/utils/api';
 import { confirmAction, toastSuccess, toastError, logError } from '@/utils/ui';
 import { formatStudentFeedbackText } from '@/utils/feedback';
-import { renderFeedbackCard, saveFeedbackCardToAlbum, isAlbumPermissionError } from '@/utils/feedback-card';
+import { renderFeedbackCard, renderClassFeedbackCard, renderHomeworkCard, saveFeedbackCardToAlbum, isAlbumPermissionError } from '@/utils/feedback-card';
 export default {
   data(){return{
     completedSessions:[],loading:false,error:''
   };},
-  onLoad(){this.loadSessions();},
+  onLoad(options){
+    if(options?.preview==='1')this.loadShareCardPreview();
+    else this.loadSessions();
+  },
   methods:{
+    loadShareCardPreview(){
+      this.completedSessions=[{
+        id:'share-card-preview',title:'六年级数学精练班',class_date:'2026-07-23',class_id:1,
+        _open:true,_tab:'class',_batching:false,_swiped:false,_feedbackStyle:'concise',_hasExitQuiz:true,
+        _savingCards:false,_saveProgress:'',_failedCardStudentIds:[],
+        _cf:{
+          lesson:'第十二讲',topic:'分数应用题',performanceNote:'',homework:'完成练习册第 36—37 页，整理两道易错题并写出完整步骤。',
+          _text:'各位家长好📘\n📖 本讲重点\n· 找准单位“1”\n· 用线段图梳理数量关系\n· 检查算式与问题是否对应\n💪 课堂表现\n今天大部分同学能主动把题意画成线段图，列式更有依据。计算细节仍要慢下来，尤其注意约分和单位。',
+          _genning:false,_classCardBusy:false,_homeworkCardBusy:false
+        },
+        _students:[{
+          id:1,name:'曾泳捷',level:'稳步进阶',_score:8,_performanceScore:8,_note:'',_leave:false,_genning:false,_savingCard:false,_previewingCard:false,_images:[],
+          _text:'曾泳捷🌱\n　　今天讲例题时低头记了很久笔记，抬头听讲的眼神很专注。出门测里两道题思路是对的，计算时少写了一步；下一步把草稿写完整，别急着省时间。'
+        }],
+        _publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
+      }];
+    },
     async loadSessions(){
       if(this.loading)return;
       this.loading=true;
@@ -161,7 +203,7 @@ export default {
         this.completedSessions=(ses.sessions||[]).map(se=>({
           ...se,_open:false,_tab:'class',_batching:false,_swiped:false,_feedbackStyle:'concise',_hasExitQuiz:true,
           _savingCards:false,_saveProgress:'',_failedCardStudentIds:[],
-          _cf:{lesson:'',topic:'',performanceNote:'',homework:'',_text:'',_genning:false},
+          _cf:{lesson:'',topic:'',performanceNote:'',homework:'',_text:'',_genning:false,_classCardBusy:false,_homeworkCardBusy:false},
           _students:[],_publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
         }));
       }catch(e){this.error=e?.error||'请检查网络后重试';logError('feedback.loadSessions',e);}
@@ -215,7 +257,7 @@ export default {
         if(students.length===0)return uni.showToast({title:'没有需要生成反馈的学生',icon:'none'});
         const r=await api.post('/feedbacks/generate-student-batch',{
           students,classInfo:{content:se._cf.lesson+' '+se._cf.topic,hasExitQuiz:se._hasExitQuiz},style:se._feedbackStyle
-        });
+        },{timeout:45000});
         (r.results||[]).forEach((item,i)=>{
           const targetId=item.id??students[i]?.id;
           const s=se._students.find(student=>String(student.id)===String(targetId));
@@ -276,6 +318,61 @@ export default {
         topic:se._cf.topic,
         images:(s._images||[]).slice(0,3)
       };
+    },
+    learningShareCardPayload(se){
+      return {
+        page:this,
+        classDate:se.class_date,
+        lesson:se._cf.lesson,
+        topic:se._cf.topic,
+        className:se.title
+      };
+    },
+    async previewClassFeedbackCard(se){
+      if(se._cf._classCardBusy)return;
+      se._cf._classCardBusy=true;
+      try{
+        await this.$nextTick();
+        const filePath=await renderClassFeedbackCard({...this.learningShareCardPayload(se),feedbackText:se._cf._text});
+        uni.previewImage({current:filePath,urls:[filePath]});
+      }catch(error){toastError(error,'课堂分享卡生成失败');}
+      finally{se._cf._classCardBusy=false;}
+    },
+    async saveClassFeedbackCard(se){
+      if(se._cf._classCardBusy)return;
+      se._cf._classCardBusy=true;
+      try{
+        await this.$nextTick();
+        const filePath=await renderClassFeedbackCard({...this.learningShareCardPayload(se),feedbackText:se._cf._text});
+        await saveFeedbackCardToAlbum(filePath);
+        toastSuccess('课堂分享卡已保存');
+      }catch(error){
+        if(isAlbumPermissionError(error))this.showAlbumPermissionHelp();
+        else toastError(error,'课堂分享卡保存失败');
+      }finally{se._cf._classCardBusy=false;}
+    },
+    async previewHomeworkCard(se){
+      if(se._cf._homeworkCardBusy)return;
+      se._cf._homeworkCardBusy=true;
+      try{
+        await this.$nextTick();
+        const filePath=await renderHomeworkCard({...this.learningShareCardPayload(se),homework:se._cf.homework});
+        uni.previewImage({current:filePath,urls:[filePath]});
+      }catch(error){toastError(error,'作业分享卡生成失败');}
+      finally{se._cf._homeworkCardBusy=false;}
+    },
+    async saveHomeworkCard(se){
+      if(se._cf._homeworkCardBusy)return;
+      se._cf._homeworkCardBusy=true;
+      try{
+        await this.$nextTick();
+        const filePath=await renderHomeworkCard({...this.learningShareCardPayload(se),homework:se._cf.homework});
+        await saveFeedbackCardToAlbum(filePath);
+        toastSuccess('作业分享卡已保存');
+      }catch(error){
+        if(isAlbumPermissionError(error))this.showAlbumPermissionHelp();
+        else toastError(error,'作业分享卡保存失败');
+      }finally{se._cf._homeworkCardBusy=false;}
     },
     async previewStudentFeedbackCard(se,s){
       if(s._previewingCard||s._savingCard||se._savingCards)return;
@@ -561,6 +658,7 @@ export default {
 .style-choice.on{background:#fff;color:var(--accent-strong);box-shadow:0 3rpx 10rpx rgba(24,58,54,.09)}
 .style-hint{display:block;margin:0 0 16rpx;color:var(--text-muted);font-size:23rpx}
 .copy-feedback-btn{min-height:72rpx;margin:12rpx 0 4rpx;border:1rpx solid #BFD2CC;border-radius:12rpx;background:#FFFFFF;color:var(--accent-strong);font-size:26rpx;font-weight:680}
+.share-card-builder{margin-top:16rpx;padding:22rpx;border-radius:18rpx;overflow:hidden}.share-builder-copy{position:relative}.share-builder-kicker{display:block;font-size:18rpx;font-weight:800;letter-spacing:2rpx}.share-builder-title{display:block;margin-top:5rpx;font-size:29rpx;font-weight:780}.share-builder-note{display:block;margin-top:6rpx;font-size:21rpx;line-height:1.5}.share-builder-actions{display:grid;grid-template-columns:1fr 1fr;gap:10rpx;margin-top:18rpx}.share-builder-actions button{min-height:70rpx;margin:0;border-radius:12rpx;font-size:24rpx;font-weight:740}.share-builder-actions button::after{border:0}.class-share-builder{border:1rpx solid #315E55;background:linear-gradient(145deg,#123B34,#28584E);color:#F5EACF}.class-share-builder .share-builder-kicker{color:#A8D4C6}.class-share-builder .share-builder-note{color:#C7DDD7}.class-share-builder button:first-child{background:#E5C46E;color:#3A2B08}.class-share-builder button:last-child{background:#F8F4E9;color:#173A35}.homework-share-builder{border:1rpx solid #D6C6B8;background-color:#F6F2E7;background-image:linear-gradient(#E2E3DC 1rpx,transparent 1rpx),linear-gradient(90deg,#E2E3DC 1rpx,transparent 1rpx);background-size:30rpx 30rpx;color:#263F59;box-shadow:inset 8rpx 0 #D35F4D}.homework-share-builder .share-builder-kicker{color:#C55343}.homework-share-builder .share-builder-note{color:#6F776F}.homework-share-builder button:first-child{background:#263F59;color:#fff}.homework-share-builder button:last-child{background:#D35F4D;color:#fff}
 .performance-note{min-height:132rpx;margin:0 0 16rpx}
 .class-setting-row{display:flex;align-items:center;justify-content:space-between;gap:20rpx;margin:0 0 12rpx;padding:20rpx;border:1rpx solid var(--border);border-radius:14rpx;background:#fff}
 .class-setting-copy{flex:1;min-width:0}.class-setting-title{display:block;color:var(--ink);font-size:27rpx;font-weight:700}.class-setting-hint{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx;line-height:1.45}

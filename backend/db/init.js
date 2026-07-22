@@ -286,6 +286,8 @@ function runMigrations() {
   ensureColumn('feedbacks', 'notes_pdf_url', 'TEXT');
   ensureColumn('checkins', 'check_out_note', 'TEXT');
   ensureColumn('students', 'external_id', 'TEXT');
+  ensureColumn('students', 'deleted_at', 'DATETIME');
+  ensureColumn('students', 'deleted_by', 'INTEGER REFERENCES users(id)');
   ensureColumn('classes', 'deleted_at', 'DATETIME');
   ensureColumn('homework_batches', 'class_id', 'INTEGER REFERENCES classes(id)');
   ensureColumn('practice_plans', 'topic_keys', "TEXT NOT NULL DEFAULT '[]'");
@@ -314,6 +316,7 @@ function runMigrations() {
   ensureColumn('choice_king_reports', 'selected_answer', 'TEXT');
   _db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_challenge_source_key ON weekly_challenge_questions(source_key)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_classes_teacher_active ON classes(teacher_id, deleted_at)');
+  _db.run('CREATE INDEX IF NOT EXISTS idx_students_class_active ON students(class_id, deleted_at)');
   _db.run('DROP INDEX IF EXISTS idx_choice_king_question_active');
   _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_question_active
     ON choice_king_questions(grade_code, subject_code, is_active, source_period, id)`);

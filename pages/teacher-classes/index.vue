@@ -49,7 +49,7 @@
               @tap.stop
             >分享</button>
             <text class="s-code" @tap.stop="copyInviteCode(s.invite_code)">邀请码: {{ s.invite_code }}</text>
-            <text class="btn-xs del" @tap.stop="delStu(c,s.id)">删除</text>
+            <text class="btn-xs del" @tap.stop="delStu(c,s)">删除</text>
           </view>
         </view>
       </view>
@@ -306,10 +306,20 @@ export default {
       });
     },
     openStudent(s){ uni.navigateTo({ url: '/pages/student-detail/index?id='+s.id }); },
-    async delStu(c, sid) {
-      const confirmed=await confirmAction({title:'删除学生',content:'删除后该学生的绑定与记录可能无法恢复。',confirmText:'删除',danger:true});
+    async delStu(c, student) {
+      const confirmed=await confirmAction({
+        title:`删除${student.name}`,
+        content:`确认删除“${student.name}”？教师端和家长端将停止显示，历史学习记录仍保留在服务器。`,
+        confirmText:'确认删除',
+        danger:true
+      });
       if(!confirmed)return;
-      try { await api.del('/students/'+sid); c._students=c._students.filter(s=>s.id!==sid); this.totalStudents=Math.max(0,this.totalStudents-1); }
+      try {
+        await api.del('/students/'+student.id);
+        c._students=c._students.filter(s=>s.id!==student.id);
+        this.totalStudents=Math.max(0,this.totalStudents-1);
+        uni.showToast({title:'已删除，历史记录仍保留',icon:'none'});
+      }
       catch(e) { toastError(e, '删除失败'); }
     }
   },

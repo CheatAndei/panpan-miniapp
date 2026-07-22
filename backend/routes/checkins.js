@@ -24,9 +24,13 @@ router.get('/today', auth, (req, res) => {
   const today = req.query.date || localDateString();
   const { student_id } = req.query;
   const db = getDB();
-  const leave = db.get('SELECT l.* FROM leaves l JOIN bindings b ON b.student_id=l.student_id WHERE b.parent_id=? AND l.class_date=? AND l.status=? AND (? IS NULL OR l.student_id=?) ORDER BY l.created_at DESC LIMIT 1', [req.user.id, today, 'approved', student_id||null, student_id||null]);
+  const leave = db.get(`SELECT l.* FROM leaves l JOIN bindings b ON b.student_id=l.student_id
+    JOIN students st ON st.id=l.student_id LEFT JOIN classes c ON c.id=st.class_id
+    WHERE b.parent_id=? AND l.class_date=? AND l.status=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL
+      AND (? IS NULL OR l.student_id=?) ORDER BY l.created_at DESC LIMIT 1`, [req.user.id, today, 'approved', student_id||null, student_id||null]);
   const s = db.get(`SELECT ci.* FROM checkins ci JOIN students s ON s.id=ci.student_id JOIN bindings b ON b.student_id=s.id
-    WHERE b.parent_id=? AND ci.class_date=? AND (? IS NULL OR s.id=?)
+    LEFT JOIN classes c ON c.id=s.class_id
+    WHERE b.parent_id=? AND ci.class_date=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL AND (? IS NULL OR s.id=?)
     ORDER BY
       CASE ci.status WHEN 'checked_out' THEN 0 WHEN 'checked_in' THEN 1 ELSE 2 END,
       COALESCE(ci.check_out_time, ci.check_in_time, ci.created_at) DESC,

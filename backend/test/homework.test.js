@@ -22,6 +22,7 @@ let server;
 let base;
 let teacherToken;
 let parentToken;
+let secondParentToken;
 
 async function request(method, url, token, body) {
   const response = await fetch(base + url, {
@@ -40,11 +41,14 @@ test.before(async () => {
   const db = getDB();
   const teacher = db.run("INSERT INTO users(openid,role,nickname) VALUES('teacher-test','teacher','测试老师')");
   const parent = db.run("INSERT INTO users(openid,role,nickname) VALUES('parent-test','parent','测试家长')");
+  const secondParent = db.run("INSERT INTO users(openid,role,nickname) VALUES('parent-test-2','parent','第二位家长')");
   const cls = db.run("INSERT INTO classes(teacher_id,name,subject,grade) VALUES(?,?,?,?)", [teacher.lastInsertRowid, '测试班', '数学', '三年级']);
   const student = db.run("INSERT INTO students(teacher_id,class_id,name,invite_code) VALUES(?,?,?,?)", [teacher.lastInsertRowid, cls.lastInsertRowid, '小明', 'TEST01']);
   db.run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [parent.lastInsertRowid, student.lastInsertRowid]);
+  db.run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [secondParent.lastInsertRowid, student.lastInsertRowid]);
   teacherToken = jwt.sign({ id: teacher.lastInsertRowid, openid: 'teacher-test', role: 'teacher' }, process.env.JWT_SECRET);
   parentToken = jwt.sign({ id: parent.lastInsertRowid, openid: 'parent-test', role: 'parent' }, process.env.JWT_SECRET);
+  secondParentToken = jwt.sign({ id: secondParent.lastInsertRowid, openid: 'parent-test-2', role: 'parent' }, process.env.JWT_SECRET);
 });
 
 test.after(async () => {
@@ -104,6 +108,22 @@ test('人工确认后的单学生作业可以幂等发布并被家长查看', as
   assert.equal(published.response.status, 200);
   assert.equal(published.payload.status, 'published');
   assert.equal((await fetch(fileUrl, { headers: { Authorization: `Bearer ${parentToken}` } })).status, 200);
+
+  const primaryNotices = await request('GET', '/homework/notices?unread=1&limit=10', parentToken);
+  const secondNotices = await request('GET', '/homework/notices?unread=1&limit=10', secondParentToken);
+  assert.equal(primaryNotices.response.status, 200);
+  assert.equal(primaryNotices.payload.total, 1);
+  assert.equal(primaryNotices.payload.notices[0].student_name, '小明');
+  assert.equal(primaryNotices.payload.notices[0].title, '口算练习');
+  assert.equal(secondNotices.payload.total, 1);
+
+  const seen = await request('POST', '/homework/notices/seen', parentToken, {
+    notice_ids: primaryNotices.payload.notices.map(item => item.id),
+  });
+  assert.equal(seen.response.status, 200);
+  assert.equal(seen.payload.seen, 1);
+  assert.equal((await request('GET', '/homework/notices?unread=1', parentToken)).payload.total, 0);
+  assert.equal((await request('GET', '/homework/notices?unread=1', secondParentToken)).payload.total, 1);
 
   const changed = structuredClone(body);
   changed.submissions[0].answers[0].comment = '同一幂等键下被修改的评语';

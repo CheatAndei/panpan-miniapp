@@ -27,6 +27,7 @@ const choiceKingRoutes = require('./routes/choice-king');
 const knowledgeChallengeRoutes = require('./routes/knowledge-challenge');
 const calculationReportRoutes = require('./routes/calculation-reports');
 const achievementRoutes = require('./routes/achievements');
+const promotionRoutes = require('./routes/promotions');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -74,6 +75,7 @@ app.use('/api/choice-king', choiceKingRoutes);
 app.use('/api/knowledge-challenge', knowledgeChallengeRoutes);
 app.use('/api/calculation-reports', calculationReportRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

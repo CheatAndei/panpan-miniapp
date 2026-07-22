@@ -9,8 +9,7 @@ router.post('/', auth, (req, res) => {
   const { student_id, class_date, reason } = req.body;
   if (!student_id || !reason) return res.status(400).json({ error: '请填写完整' });
   const db = getDB();
-  const bound = db.get('SELECT id FROM bindings WHERE parent_id=? AND student_id=?', [req.user.id, student_id]);
-  if (!bound) return res.status(403).json({ error: '无权操作' });
+  if (!parentBoundStudent(db, req.user.id, student_id)) return res.status(403).json({ error: '无权操作' });
   const r = db.run('INSERT INTO leaves (student_id, parent_id, class_date, reason) VALUES (?,?,?,?)', [student_id, req.user.id, class_date, reason]);
   console.log(`[请假] student=${student_id} date=${class_date}`);
   res.json({ ok: true, id: r.lastInsertRowid });

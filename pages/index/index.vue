@@ -176,6 +176,21 @@
         </view>
         <pp-icon name="arrow" :size="34" />
       </view>
+
+      <view class="promotion-launcher" @tap="openPromotionStudio">
+        <view class="promotion-grid" />
+        <view class="promotion-number">{{ promotionUnseen ? String(promotionUnseen).padStart(2,'0') : 'PP' }}</view>
+        <view class="promotion-copy">
+          <text class="promotion-kicker">PUBLICITY DESK</text>
+          <text class="promotion-title">宣传海报工作台</text>
+          <text class="promotion-desc">口算登顶与压轴通关，自动生成真实成绩海报</text>
+        </view>
+        <view class="promotion-action">
+          <text v-if="promotionUnseen" class="promotion-badge">{{ promotionUnseen }} 张新海报</text>
+          <text v-else class="promotion-badge quiet">查看历史</text>
+          <text class="promotion-arrow">↗</text>
+        </view>
+      </view>
     </view>
 
     <!-- 家长端 -->
@@ -322,10 +337,10 @@
             <text class="practice-entry-title">压轴挑战</text>
             <text class="shortcut-desc">填空与大题 · 拍照提交</text>
           </button>
-          <button class="learning-shortcut" @tap="child&&navTo('/pages/exam-library/index?student_id='+child.id)">
+          <button class="learning-shortcut" @tap="openExamLibrary">
             <view class="shortcut-icon"><pp-icon name="book" :size="38" /></view>
             <text>广州真题大全</text>
-            <text class="shortcut-desc">期中 · 期末 · 月考</text>
+            <text class="shortcut-desc">一模 · 期中 · 期末</text>
           </button>
         </view>
       </view>
@@ -386,6 +401,22 @@
       </view>
     </view>
 
+    <view v-if="user.role==='parent' && homeworkNotice" class="homework-notice-mask">
+      <view class="homework-notice-card">
+        <view class="homework-notice-mark">批</view>
+        <text class="homework-notice-kicker">作业批改完成</text>
+        <text class="homework-notice-title">{{ homeworkNotice.student_name }}的《{{ homeworkNotice.title }}》已批改完成</text>
+        <text v-if="homeworkNoticeCount>1" class="homework-notice-more">另有 {{ homeworkNoticeCount - 1 }} 份新作业反馈，可在作业记录中查看</text>
+        <text v-else class="homework-notice-more">老师的批改和评语已经准备好了</text>
+        <view class="homework-notice-actions">
+          <button class="homework-notice-later" :disabled="homeworkNoticeHandling" @tap="dismissHomeworkNotice">知道了</button>
+          <button class="homework-notice-open" :disabled="homeworkNoticeHandling" @tap="openHomeworkNotice">
+            {{ homeworkNoticeHandling ? '处理中…' : '查看作业' }}
+          </button>
+        </view>
+      </view>
+    </view>
+
     <view class="footer">{{ FOOTER_TEXT }}<br/>桂ICP备2026013218号-2</view>
   </view>
 </template>
@@ -413,6 +444,7 @@ if (token && savedUser?.role) {
 
 // 每次页面显示时刷新数据
 let parentRefreshTimer = null;
+let autoOpenedPromotionId = 0;
 function stopParentRefresh() {
   if (parentRefreshTimer) clearInterval(parentRefreshTimer);
   parentRefreshTimer = null;
@@ -451,6 +483,8 @@ const pendingPracticeTodos = ref([]);
 const pendingChallengeCount = ref(0);
 const pendingChallengeTodos = ref([]);
 const choiceAlerts = ref([]);
+const promotionItems = ref([]);
+const promotionUnseen = ref(0);
 const dismissingAlertId = ref(null);
 const todaySessions = ref([]);
 const child = ref(null);
@@ -468,6 +502,10 @@ const profile = ref(null);
 const learningToday = ref(null);
 const learningError = ref('');
 const mentalSummary = ref(null);
+const homeworkNotice = ref(null);
+const homeworkNoticeCount = ref(0);
+const homeworkNoticeIds = ref([]);
+const homeworkNoticeHandling = ref(false);
 const notifyTpls = ref([]);
 const loginLoading = ref(false);
 const teacherLoading = ref(false);
@@ -558,11 +596,59 @@ async function sendFeedback() {
   }
 }
 function navTo(url) { uni.navigateTo({ url }); }
+async function loadHomeworkNotices() {
+  if (homeworkNotice.value || homeworkNoticeHandling.value) return;
+  try {
+    const result = await api.get('/homework/notices?unread=1&limit=50');
+    const notices = result.notices || [];
+    homeworkNoticeIds.value = notices.map(item => Number(item.id)).filter(Boolean);
+    homeworkNoticeCount.value = Number(result.total || notices.length);
+    homeworkNotice.value = notices[0] || null;
+  } catch (error) {
+    logError('loadHomeworkNotices', error);
+  }
+}
+
+async function acknowledgeHomeworkNotices() {
+  if (homeworkNoticeHandling.value || homeworkNoticeIds.value.length === 0) return false;
+  homeworkNoticeHandling.value = true;
+  try {
+    await api.post('/homework/notices/seen', { notice_ids: homeworkNoticeIds.value });
+    homeworkNotice.value = null;
+    homeworkNoticeCount.value = 0;
+    homeworkNoticeIds.value = [];
+    return true;
+  } catch (error) {
+    toastError(error, '提醒处理失败');
+    return false;
+  } finally {
+    homeworkNoticeHandling.value = false;
+  }
+}
+
+async function dismissHomeworkNotice() {
+  await acknowledgeHomeworkNotices();
+}
+
+async function openHomeworkNotice() {
+  const notice = homeworkNotice.value;
+  if (!notice || !(await acknowledgeHomeworkNotices())) return;
+  uni.setStorageSync('activeChildId', notice.student_id);
+  navTo(`/pages/parent-homework/index?student_id=${notice.student_id}&batch_id=${notice.batch_id}`);
+}
+
+function openExamLibrary() {
+  if (!child.value) return;
+  navTo(`/pages/exam-library/index?student_id=${child.value.id}`);
+}
 function copyTeacherWechat() {
   uni.setClipboardData({ data:TEACHER_WECHAT, success:()=>uni.showToast({ title:'微信号已复制', icon:'success' }) });
 }
 function openPracticeTodo(item) {
   navTo(`/pages/practice-teacher/index?plan_id=${item.plan_id}&submission_id=${item.submission_id}`);
+}
+function openPromotionStudio() {
+  navTo('/pages/promotion-posters/index');
 }
 
 function taskStatusLabel(task) {
@@ -632,12 +718,13 @@ async function loadTeacherData() {
   teacherLoading.value = true;
   teacherError.value = '';
   try {
-    const [cRes, lRes, sessionRes, practiceTodos, challengeTodos] = await Promise.all([
+    const [cRes, lRes, sessionRes, practiceTodos, challengeTodos, promotionResult] = await Promise.all([
       api.get('/classes'),
       api.get('/leaves'),
       api.get('/schedules/sessions'),
       api.get('/practice/todos?limit=3'),
-      api.get('/weekly-challenge/teacher/submissions?status=submitted&limit=3')
+      api.get('/weekly-challenge/teacher/submissions?status=submitted&limit=3'),
+      api.get('/promotions?limit=12').catch(error => ({ __error:error, promotions:[], unseen:0 }))
     ]);
     classes.value = cRes.classes || [];
     pendingLeaves.value = (lRes.leaves||[]).filter(l=>l.status==='pending').length;
@@ -645,7 +732,14 @@ async function loadTeacherData() {
     pendingPracticeTodos.value = practiceTodos.todos || [];
     pendingChallengeCount.value = Number(challengeTodos.count || 0);
     pendingChallengeTodos.value = challengeTodos.todos || [];
+    promotionItems.value = promotionResult.promotions || [];
+    promotionUnseen.value = Number(promotionResult.unseen || 0);
     todaySessions.value = (sessionRes.sessions || []).filter(item => item.class_date === localDateKey());
+    const newestPromotion = promotionItems.value.find(item => !item.seen);
+    if (newestPromotion && Number(newestPromotion.id) !== autoOpenedPromotionId) {
+      autoOpenedPromotionId = Number(newestPromotion.id);
+      setTimeout(() => navTo(`/pages/promotion-posters/index?event_id=${newestPromotion.id}&auto=1`), 360);
+    }
     try {
       const alertRes = await api.get('/choice-king/alerts?unread=1&limit=3');
       choiceAlerts.value = alertRes.alerts || [];
@@ -737,6 +831,7 @@ async function loadParentData(childId) {
         if (my) stuFeedback.value = { date: fb.feedback.class_date, text: my.text, images: my.images || [] };
       } catch(e) { logError('parseStudentFeedback', e); }
     }
+    await loadHomeworkNotices();
     return true;
   } catch (e) {
     parentError.value = e?.error || '请检查网络后重试';
@@ -1075,6 +1170,14 @@ function scheduleLabel(sc) {
 .modal { padding: 32rpx 30rpx calc(28rpx + env(safe-area-inset-bottom)); }
 .fb-textarea { border-color: #D5E3DE; border-radius: 14rpx; background: #FAFCFB; }
 .footer { color: var(--faint); padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); }
+.promotion-launcher{position:relative;min-height:214rpx;margin:22rpx 24rpx 0;padding:30rpx;display:grid;grid-template-columns:118rpx minmax(0,1fr) auto;align-items:center;gap:22rpx;overflow:hidden;border-radius:16rpx 34rpx 16rpx 34rpx;background:#0D312B;color:#fff;box-shadow:0 20rpx 44rpx rgba(15,52,45,.22);transition:transform .18s var(--ease-out)}.promotion-launcher:active{transform:scale(.982)}.promotion-grid{position:absolute;inset:0;opacity:.13;background-image:linear-gradient(rgba(196,224,216,.2) 1rpx,transparent 1rpx),linear-gradient(90deg,rgba(196,224,216,.2) 1rpx,transparent 1rpx);background-size:44rpx 44rpx}.promotion-number{position:relative;z-index:1;width:118rpx;height:130rpx;display:flex;align-items:center;justify-content:center;border:1rpx solid rgba(225,186,88,.48);border-radius:10rpx 30rpx 10rpx 30rpx;background:rgba(225,186,88,.08);color:#E1BA58;font-family:"DIN Alternate",monospace;font-size:49rpx;font-weight:900}.promotion-copy,.promotion-action{position:relative;z-index:1}.promotion-kicker,.promotion-title,.promotion-desc{display:block}.promotion-kicker{color:#9CC9BE;font-size:17rpx;font-weight:820;letter-spacing:3rpx}.promotion-title{margin-top:8rpx;color:#F7F1E4;font-size:32rpx;font-weight:880}.promotion-desc{max-width:360rpx;margin-top:7rpx;color:#B6D1CA;font-size:20rpx;line-height:1.5}.promotion-action{align-self:stretch;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}.promotion-badge{padding:7rpx 10rpx;background:#D45E3B;color:#FFF5EE;font-size:17rpx;font-weight:800}.promotion-badge.quiet{background:rgba(255,255,255,.09);color:#B7D4CC}.promotion-arrow{color:#E1BA58;font-size:42rpx;font-weight:400}
+.homework-notice-mask{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-end;justify-content:center;padding:36rpx 24rpx calc(36rpx + env(safe-area-inset-bottom));box-sizing:border-box;background:rgba(11,28,26,.58);backdrop-filter:blur(8rpx)}
+.homework-notice-card{position:relative;width:100%;max-width:680rpx;padding:58rpx 38rpx 34rpx;box-sizing:border-box;overflow:hidden;border:1rpx solid rgba(212,179,91,.56);border-radius:34rpx;background:linear-gradient(155deg,#FFFDF5 0%,#F5EDCF 100%);box-shadow:0 30rpx 90rpx rgba(5,20,18,.32);animation:homework-notice-enter .34s var(--ease-out) both}
+.homework-notice-card::before{content:'';position:absolute;right:-70rpx;top:-90rpx;width:250rpx;height:250rpx;border:34rpx solid rgba(208,170,67,.10);border-radius:50%}
+.homework-notice-mark{position:absolute;top:28rpx;right:32rpx;width:74rpx;height:74rpx;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#183A36;color:#F4D77F;font-size:34rpx;font-weight:850;box-shadow:0 10rpx 24rpx rgba(24,58,54,.22)}
+.homework-notice-kicker,.homework-notice-title,.homework-notice-more{position:relative;display:block}.homework-notice-kicker{color:#967126;font-size:21rpx;font-weight:800;letter-spacing:3rpx}.homework-notice-title{max-width:510rpx;margin-top:16rpx;color:#183A36;font-size:37rpx;font-weight:820;line-height:1.42}.homework-notice-more{margin-top:18rpx;color:#6D7166;font-size:24rpx;line-height:1.55}
+.homework-notice-actions{position:relative;display:grid;grid-template-columns:1fr 1.45fr;gap:16rpx;margin-top:34rpx}.homework-notice-actions button{min-height:88rpx;margin:0;border-radius:16rpx;font-size:27rpx;font-weight:760}.homework-notice-actions button::after{border:0}.homework-notice-later{border:1rpx solid #C9CBBF;background:rgba(255,255,255,.7);color:#68706A}.homework-notice-open{background:#183A36;color:#FFFFFF;box-shadow:0 12rpx 26rpx rgba(24,58,54,.18)}
+@keyframes homework-notice-enter{from{opacity:0;transform:translateY(50rpx) scale(.97)}to{opacity:1;transform:none}}
 .class-history-card{padding:0;overflow:hidden}.class-history-head{min-height:104rpx;margin:0;padding:24rpx 28rpx;box-sizing:border-box}.class-history-summary{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx;font-weight:450}.class-history-actions{display:flex;align-items:center;gap:18rpx}.collapse-label{color:var(--accent-strong);font-size:22rpx;font-weight:700}.class-history-card .class-item{margin:0 28rpx}.class-history-card .class-item:last-child{margin-bottom:18rpx}
 .parent-hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 208rpx;align-items:center;gap:20rpx}.parent-hero-copy{min-width:0}.mental-hero-mini{min-height:150rpx;margin:0;padding:18rpx 16rpx;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:1rpx solid #E5C975;border-radius:20rpx;background:linear-gradient(145deg,#FFF8DB,#FFFFFF);box-shadow:0 12rpx 28rpx rgba(142,99,12,.12);text-align:left;animation:mental-enter .5s var(--ease-out) both}.mental-hero-mini::after{border:0}.mental-hero-mini:active{transform:scale(.97)}.mental-mini-kicker{color:#926300;font-size:20rpx;font-weight:850;letter-spacing:2rpx}.mental-mini-rank{display:block;margin-top:5rpx;color:#3F310D;font-size:27rpx;font-weight:820}.mental-mini-goal{display:block;margin-top:5rpx;color:#82631D;font-size:19rpx;line-height:1.35}@keyframes mental-enter{from{opacity:0;transform:translateY(12rpx) scale(.97)}to{opacity:1;transform:none}}@media (max-width:360px){.parent-hero-grid{grid-template-columns:1fr}.mental-hero-mini{min-height:104rpx}.child-greeting{font-size:36rpx}}
 .guest-home{margin:24rpx;padding:34rpx;border:1rpx solid #D5E4DF;border-radius:26rpx;background:linear-gradient(145deg,#FFFFFF,#F4F9F7);box-shadow:var(--shadow)}.guest-status{display:inline-flex;padding:8rpx 14rpx;border-radius:999rpx;background:#E8F4F0;color:#2E695B;font-size:21rpx;font-weight:730}.guest-title,.guest-copy{display:block}.guest-title{margin-top:20rpx;color:#183A36;font-size:38rpx;font-weight:810}.guest-copy{margin-top:10rpx;color:#63756F;font-size:24rpx;line-height:1.7}.guest-primary,.guest-bind{min-height:88rpx;margin-top:20rpx;border-radius:15rpx;font-size:27rpx;font-weight:760}.guest-primary{background:#183A36;color:#fff}.guest-bind{border:1rpx solid #BFD4CE;background:#fff;color:#285F53}.guest-contact{margin-top:24rpx;padding-top:22rpx;border-top:1rpx solid #E1EBE8;color:#61726D;font-size:22rpx}.guest-contact text{display:block}.guest-contact button{min-height:66rpx;margin:12rpx 0 0;padding:0 22rpx;border-radius:12rpx;background:#FFF0C9;color:#765413;font-size:23rpx;font-weight:760}.guest-contact button::after{border:0}

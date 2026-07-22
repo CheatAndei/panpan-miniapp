@@ -10,6 +10,7 @@ const {
   assignmentRow: assignmentRowV2, currentState: currentStateV2, createAssignment: createAssignmentV2,
   changeAssignment: changeAssignmentV2, teacherQueue: teacherQueueV2, reviewSubmission: reviewSubmissionV2,
 } = require('../services/challenge-v2');
+const { recordChallengePass, serializeEvent } = require('../services/promotions');
 
 const router = express.Router();
 const TYPES = new Set(['fill', 'subjective']);
@@ -32,7 +33,8 @@ function boundStudent(db, parentId, rawStudentId) {
 function ownsStudent(db, teacherId, studentId) {
   return Boolean(db.get(`SELECT s.id FROM students s
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE s.id=? AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?`, [studentId, teacherId]));
+    WHERE s.id=? AND s.deleted_at IS NULL
+      AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?`, [studentId, teacherId]));
 }
 
 function fileUrl(token) {
@@ -143,10 +145,12 @@ router.get('/v2/teacher/submissions', auth, teacherOnly, (req, res) => {
 
 router.put('/v2/teacher/submissions/:id/review', auth, teacherOnly, (req, res) => {
   if(![true,false,0,1].includes(req.body?.is_correct))return res.status(400).json({error:'请选择批改结果'});
-  const result=reviewSubmissionV2(getDB(),{teacherId:req.user.id,submissionId:Number(req.params.id),
+  const db=getDB();
+  const result=reviewSubmissionV2(db,{teacherId:req.user.id,submissionId:Number(req.params.id),
     isCorrect:Boolean(req.body.is_correct),teacherNote:req.body?.teacher_note});
   if(!result)return res.status(404).json({error:'提交不存在'});
-  return res.json({ok:true,...result});
+  const event=result.is_correct?recordChallengePass(db,{assignmentId:result.assignment_id}):null;
+  return res.json({ok:true,...result,promotion:event?serializeEvent(event):null});
 });
 
 router.post('/v2/teacher/assignments/:id/skip', auth, teacherOnly, (req, res) => {
@@ -245,12 +249,14 @@ router.get('/teacher/submissions', auth, teacherOnly, (req, res) => {
     JOIN weekly_challenge_assignments a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}`, params)?.count || 0);
+    WHERE s.deleted_at IS NULL
+      AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}`, params)?.count || 0);
   const rows = db.all(`SELECT a.id FROM weekly_challenge_submissions sub
     JOIN weekly_challenge_assignments a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}
+    WHERE s.deleted_at IS NULL
+      AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}
     ORDER BY CASE sub.status WHEN 'submitted' THEN 0 ELSE 1 END,sub.submitted_at ASC,sub.id ASC LIMIT ?`, [...params, limit]);
   const submissions = rows.map((item) => serializeAssignment(db, assignmentRow(db, item.id), 'teacher'));
   res.json({ count: total, todos: submissions, submissions });
@@ -273,9 +279,11 @@ router.get('/assets/:assetId', auth, (req, res) => {
   if (!asset) return res.status(404).json({ error: '图片不存在' });
   if (req.user.role === 'parent') {
     let allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a JOIN weekly_challenge_questions q ON q.id=a.question_id
-      JOIN bindings b ON b.student_id=a.student_id WHERE b.parent_id=? AND a.week_start=? AND q.question_asset_id=?`, [req.user.id, weekStartKey(), asset.id]);
+      JOIN bindings b ON b.student_id=a.student_id JOIN students s ON s.id=a.student_id
+      WHERE b.parent_id=? AND s.deleted_at IS NULL AND a.week_start=? AND q.question_asset_id=?`, [req.user.id, weekStartKey(), asset.id]);
     if (!allowed) allowed = db.get(`SELECT a.id FROM challenge_assignments_v2 a JOIN weekly_challenge_questions q ON q.id=a.question_id
-      JOIN bindings b ON b.student_id=a.student_id WHERE b.parent_id=? AND q.question_asset_id=? LIMIT 1`, [req.user.id, asset.id]);
+      JOIN bindings b ON b.student_id=a.student_id JOIN students s ON s.id=a.student_id
+      WHERE b.parent_id=? AND s.deleted_at IS NULL AND q.question_asset_id=? LIMIT 1`, [req.user.id, asset.id]);
     if (!allowed) return res.status(404).json({ error: '图片不存在' });
   } else if (req.user.role === 'teacher') {
     let allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a
@@ -283,13 +291,13 @@ router.get('/assets/:assetId', auth, (req, res) => {
       JOIN students s ON s.id=a.student_id
       LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
       WHERE (q.question_asset_id=? OR q.answer_asset_id=?)
-        AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?
+        AND s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?
       LIMIT 1`, [asset.id, asset.id, req.user.id]);
     if (!allowed) allowed = db.get(`SELECT a.id FROM challenge_assignments_v2 a
       JOIN weekly_challenge_questions q ON q.id=a.question_id JOIN students s ON s.id=a.student_id
       LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
       WHERE (q.question_asset_id=? OR q.answer_asset_id=?)
-        AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=? LIMIT 1`, [asset.id, asset.id, req.user.id]);
+        AND s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=? LIMIT 1`, [asset.id, asset.id, req.user.id]);
     if (!allowed) return res.status(404).json({ error: '图片不存在' });
   } else return res.status(403).json({ error: '无权查看图片' });
   const fullPath = resolveExamPath(asset.storage_key);

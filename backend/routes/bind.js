@@ -88,7 +88,7 @@ router.post('/', auth, (req, res) => {
   }
 
   // 学生邀请码
-  const s = studentWithTeacher(db, 'WHERE s.invite_code=?', [code]);
+  const s = studentWithTeacher(db, 'WHERE s.invite_code=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL', [code]);
   if (!s) {
     recordBindFailure(req.user.id);
     return res.status(404).json({ error: '邀请码无效' });
@@ -115,12 +115,14 @@ router.post('/', auth, (req, res) => {
 });
 
 router.get('/students', auth, (req, res) => {
-  const list = studentsWithTeacher(getDB(), 'JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY s.id', [req.user.id]);
+  const list = studentsWithTeacher(getDB(), `JOIN bindings b ON b.student_id=s.id
+    WHERE b.parent_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL ORDER BY s.id`, [req.user.id]);
   res.json({ students: list || [] });
 });
 
 router.get('/student', auth, (req, res) => {
-  const s = studentWithTeacher(getDB(), 'JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY s.id LIMIT 1', [req.user.id]);
+  const s = studentWithTeacher(getDB(), `JOIN bindings b ON b.student_id=s.id
+    WHERE b.parent_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL ORDER BY s.id LIMIT 1`, [req.user.id]);
   res.json({ student: s || null });
 });
 

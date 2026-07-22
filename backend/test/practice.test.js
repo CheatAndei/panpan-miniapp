@@ -263,10 +263,16 @@ test('计划不能跨越其他老师的小组', async () => {
   assert.equal(preview.response.status, 400);
 });
 
-test('已有绑定或练习历史的学生不能被删除成孤儿数据', async () => {
+test('已有绑定或练习历史的学生软删除后仍保留全部关联数据', async () => {
   const removed = await request('DELETE', `/students/${studentId}`, teacherToken);
-  assert.equal(removed.response.status, 409);
-  assert.match(removed.payload.error, /不能删除/);
+  assert.equal(removed.response.status, 200);
+  assert.equal(removed.payload.archived, true);
+  const db = getDB();
+  assert.ok(db.get('SELECT deleted_at FROM students WHERE id=? AND deleted_at IS NOT NULL', [studentId]));
+  assert.ok(db.get('SELECT id FROM bindings WHERE student_id=?', [studentId]));
+  assert.ok(db.get('SELECT id FROM practice_assignments WHERE student_id=?', [studentId]));
+  const blocked = await request('GET', `/practice/today?student_id=${studentId}`, parentToken);
+  assert.equal(blocked.response.status, 403);
 });
 
 test('PDF 源码先输出全部学生练习，最后才统一输出教师答案', () => {

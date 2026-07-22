@@ -27,6 +27,29 @@ test('feedback card is private, full-name, 3:4, and supports up to three photos'
   assert.match(renderer, /slice\(0, 3\)/);
   assert.match(renderer, /仅供学生家长查看/);
   assert.match(renderer, /panpan-feedback-line\.jpg/);
+  assert.match(renderer, /feedbackCardStudentLabel/);
+  assert.match(renderer, /FALLBACK_FEEDBACK_EMOJI = '🌟'/u);
+  assert.match(renderer, /drawContain\(ctx, photos\[0\]/);
+  assert.match(renderer, /drawAvatarFallback/);
+});
+
+test('课堂反馈、学生反馈、作业是三套独立主题分享卡并都可预览保存', () => {
+  assert.match(renderer, /renderFeedbackCard/);
+  assert.match(renderer, /renderClassFeedbackCard/);
+  assert.match(renderer, /renderHomeworkCard/);
+  assert.match(renderer, /今日课堂简报/u);
+  assert.match(renderer, /课后任务单/u);
+  assert.match(renderer, /#123B34/);
+  assert.match(renderer, /#D35F4D/);
+  for (const handler of ['previewClassFeedbackCard', 'saveClassFeedbackCard', 'previewHomeworkCard', 'saveHomeworkCard']) {
+    assert.match(page, new RegExp(`${handler}\\(se\\)`));
+  }
+  assert.match(page, /课堂简报分享卡/u);
+  assert.match(page, /方格纸任务主题/u);
+});
+
+test('批量反馈生成放宽到 45 秒，避免模型正常响应被前端提前中断', () => {
+  assert.match(page, /\{timeout:45000\}/);
 });
 
 test('feedback card assets exist and stay lightweight', () => {

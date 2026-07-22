@@ -78,7 +78,7 @@ function syncMental(db, studentId) {
     insertRecord(db, {
       studentId, key:`mental:challenge:${row.id}`, category:'mental', metricKey:'score', metricValue:row.score,
       achievedAt:row.completed_at, payload:{
-        title:'口算王', headline:`本局得分 ${row.score}`, battle_label:BATTLES[row.battle]?.label || '口算挑战',
+        challenge_id:Number(row.id), title:'口算王', headline:`本局得分 ${row.score}`, battle_label:BATTLES[row.battle]?.label || '口算挑战',
         score:Number(row.score || 0), correct_count:correct, total_questions:total, accuracy,
         elapsed_seconds:Number(row.elapsed_seconds || 0), rank, participant_count:participantCount, percentile,
       },

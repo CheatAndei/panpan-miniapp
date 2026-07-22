@@ -12,6 +12,7 @@
     { "path": "pages/learning-session/index", "style": { "navigationBarTitleText": "专项练习", "disableScroll": true } },
     { "path": "pages/growth/index", "style": { "navigationBarTitleText": "成长记录", "enablePullDownRefresh": true, "enableShareAppMessage": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/achievements/index", "style": { "navigationBarTitleText": "学习成就海报" } },
+    { "path": "pages/promotion-posters/index", "style": { "navigationBarTitleText": "宣传海报工作台", "navigationBarBackgroundColor": "#0C2B26", "navigationBarTextStyle": "white" } },
     { "path": "pages/mental-arena/index", "style": { "navigationBarTitleText": "口算王" } },
     { "path": "pages/mental-arena/challenge", "style": { "navigationBarTitleText": "口算挑战", "disableScroll": true } },
     { "path": "pages/mental-arena/result", "style": { "navigationBarTitleText": "挑战战绩" } },

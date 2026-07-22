@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS students (
   invite_code TEXT UNIQUE,
   avatar_url TEXT,
   notes TEXT,
+  deleted_at DATETIME,
+  deleted_by INTEGER REFERENCES users(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -261,6 +263,19 @@ CREATE TABLE IF NOT EXISTS push_records (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(submission_id, parent_id)
 );
+
+-- 作业发布后的应用内提醒。与可选的微信订阅消息相互独立，每位家长分别确认。
+CREATE TABLE IF NOT EXISTS homework_parent_notices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER NOT NULL REFERENCES homework_submissions(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  seen_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id, parent_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_homework_parent_notice_unread
+  ON homework_parent_notices(parent_id, seen_at, created_at);
 
 -- 每日个性化练习题库。题目必须来自自编、授权或公版内容。
 CREATE TABLE IF NOT EXISTS practice_questions (
@@ -502,6 +517,24 @@ CREATE TABLE IF NOT EXISTS achievement_records (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(student_id, achievement_key)
 );
+
+-- 教师宣传海报事件。由真实口算登顶或压轴挑战通关触发，按事件幂等保留历史。
+CREATE TABLE IF NOT EXISTS teacher_promotion_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  teacher_id INTEGER NOT NULL REFERENCES users(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  event_key TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK(event_type IN ('mental_first','challenge_pass')),
+  source_id INTEGER NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  scene_token TEXT NOT NULL UNIQUE,
+  seen_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(teacher_id, event_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_teacher_promotion_events
+  ON teacher_promotion_events(teacher_id, seen_at, created_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS student_learning_preferences (
   student_id INTEGER PRIMARY KEY REFERENCES students(id),

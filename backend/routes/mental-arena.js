@@ -6,6 +6,7 @@ const { teacherOwnsStudent } = require('../utils/scope');
 const {
   BATTLES, createChallenge, completeChallenge, serializeChallenge, leaderboard, isJuniorStudent,
 } = require('../services/mental-arena');
+const { recordMentalFirst, serializeEvent } = require('../services/promotions');
 
 const router = express.Router();
 
@@ -132,8 +133,23 @@ router.post('/challenges/:id/submit', auth, parentOnly, (req, res) => {
     return res.status(404).json({ error: '挑战不存在' });
   }
   try {
+    const wasActive = challenge.status === 'active';
+    const beforeLeaderId = wasActive
+      ? Number(leaderboard(db, { studentId:Number(challenge.student_id), battle:challenge.battle, period:'week' }).entries[0]?.student_id || 0)
+      : 0;
     const completed = completeChallenge(db, challenge.id, req.body?.answers);
-    res.json({ ok: true, challenge: completed });
+    let promotion = null;
+    if (wasActive) {
+      const board = leaderboard(db, { studentId:Number(challenge.student_id), battle:challenge.battle, period:'week' });
+      const newLeaderId = Number(board.entries[0]?.student_id || 0);
+      if (newLeaderId === Number(challenge.student_id) && newLeaderId !== beforeLeaderId) {
+        const event = recordMentalFirst(db, {
+          studentId:Number(challenge.student_id), challengeId:challenge.id, battle:challenge.battle, periodStart:board.period_start,
+        });
+        promotion = event ? serializeEvent(event) : null;
+      }
+    }
+    res.json({ ok: true, challenge: completed, promotion });
   } catch (error) {
     res.status(400).json({ error: error.message || '提交失败' });
   }

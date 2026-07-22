@@ -96,7 +96,7 @@ router.post('/plans/preview', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const validated = validatePlan(db, req.user.id, req.body || {});
   const students = validated.classId
-    ? Number(db.get('SELECT COUNT(*) count FROM students WHERE class_id=?', [validated.classId])?.count || 0) : 0;
+    ? Number(db.get('SELECT COUNT(*) count FROM students WHERE class_id=? AND deleted_at IS NULL', [validated.classId])?.count || 0) : 0;
   res.status(validated.errors.length ? 400 : 200).json({
     ok: !validated.errors.length,
     errors: validated.errors,
@@ -118,7 +118,7 @@ router.post('/plans', auth, teacherOnly, (req, res) => {
   const overlap = db.get(`SELECT id FROM practice_plans WHERE class_id=? AND status='published'
     AND start_date<=? AND end_date>=? LIMIT 1`, [value.classId, body.end_date, body.start_date]);
   if (overlap) return res.status(409).json({ error: '该学习小组在所选日期已有打卡计划' });
-  const students = db.all('SELECT id FROM students WHERE class_id=?', [value.classId]);
+  const students = db.all('SELECT id FROM students WHERE class_id=? AND deleted_at IS NULL', [value.classId]);
   if (!students.length) return res.status(400).json({ error: '学习小组暂无学生' });
 
   const plan = db.transaction(() => {
@@ -169,7 +169,8 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
   const total = Number(db.get(`SELECT COUNT(*) count FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN practice_plans p ON p.id=a.plan_id
-    WHERE p.teacher_id=? AND ps.status='submitted'`, [req.user.id])?.count || 0);
+    JOIN students st ON st.id=a.student_id
+    WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL`, [req.user.id])?.count || 0);
   const todos = db.all(`SELECT ps.id submission_id,ps.submitted_at,a.plan_id,a.practice_date,a.student_id,
     st.name student_name,p.title plan_title,c.name class_name
     FROM practice_submissions ps
@@ -177,7 +178,7 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
     JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
     JOIN classes c ON c.id=p.class_id
-    WHERE p.teacher_id=? AND ps.status='submitted'
+    WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL
     ORDER BY ps.submitted_at ASC,ps.id ASC LIMIT ?`, [req.user.id, limit]);
   res.json({ count: total, todos });
 });
@@ -187,7 +188,8 @@ router.get('/plans/:id/settings', auth, teacherOnly, (req, res) => {
   const plan = db.get('SELECT * FROM practice_plans WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
   if (!plan) return res.status(404).json({ error: '计划不存在' });
   const settings = db.all(`SELECT ps.*,s.name student_name FROM practice_student_settings ps
-    JOIN students s ON s.id=ps.student_id WHERE ps.plan_id=? ORDER BY s.name`, [plan.id]);
+    JOIN students s ON s.id=ps.student_id
+    WHERE ps.plan_id=? AND s.deleted_at IS NULL ORDER BY s.name`, [plan.id]);
   res.json({
     plan: { id: plan.id, grade_band: plan.grade_band, module: plan.module },
     modules: MODULES[plan.grade_band] || [],
@@ -211,7 +213,7 @@ router.get('/today', auth, parentOnly, (req, res) => {
   if (!parentBoundStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权查看该学生' });
   const practiceDate = practiceDateAt();
   const plan = db.get(`SELECT p.* FROM practice_plans p JOIN students s ON s.class_id=p.class_id
-    WHERE s.id=? AND p.status='published' AND p.start_date<=? AND p.end_date>=?
+    WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
     ORDER BY p.created_at DESC LIMIT 1`, [studentId, practiceDate, practiceDate]);
   if (!plan) return res.json({ practice_date: practiceDate, assignment: null });
   const assignment = generateAssignment(db, plan, studentId, practiceDate);
@@ -300,10 +302,12 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
   const statusSql = status === 'all' ? '' : ' AND ps.status=?';
   const params = status === 'all' ? [plan.id] : [plan.id, status];
   const total = Number(db.get(`SELECT COUNT(*) count FROM practice_submissions ps
-    JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=?${statusSql}`, params)?.count || 0);
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN students st ON st.id=a.student_id
+    WHERE a.plan_id=? AND st.deleted_at IS NULL${statusSql}`, params)?.count || 0);
   const submissions = db.all(`SELECT ps.*,a.student_id,a.practice_date,a.plan_id,st.name student_name
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
-    JOIN students st ON st.id=a.student_id WHERE a.plan_id=?${statusSql}
+    JOIN students st ON st.id=a.student_id WHERE a.plan_id=? AND st.deleted_at IS NULL${statusSql}
     ORDER BY CASE WHEN ps.id=? THEN 0 ELSE 1 END,a.practice_date DESC,st.name LIMIT ? OFFSET ?`, [...params, preferredId, limit, offset]);
   for (const submission of submissions) {
     submission.items = db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
@@ -321,7 +325,8 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,p.teacher_id plan_teacher_id
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
-    JOIN practice_plans p ON p.id=a.plan_id WHERE ps.id=?`, [req.params.id]);
+    JOIN practice_plans p ON p.id=a.plan_id JOIN students st ON st.id=a.student_id
+    WHERE ps.id=? AND st.deleted_at IS NULL`, [req.params.id]);
   if (!submission || Number(submission.plan_teacher_id) !== Number(req.user.id)) return res.status(404).json({ error: '提交不存在' });
   const items = db.all('SELECT id FROM practice_assignment_items WHERE assignment_id=? ORDER BY position', [submission.assignment_id]);
   const results = Array.isArray(req.body.results) ? req.body.results : [];

@@ -124,6 +124,19 @@ test('初中生进入小学战场会进入排行榜并显示炸鱼选手', async
   });
   assert.equal(completed.payload.challenge.correct_count, 20);
   assert.equal(completed.payload.challenge.score, 2099);
+  assert.equal(completed.payload.promotion.event_type, 'mental_first');
+  assert.equal(completed.payload.promotion.student_name, '小同学');
+
+  const promotions = await request('GET', '/promotions?unseen=1', undefined, teacherToken);
+  assert.equal(promotions.response.status, 200);
+  assert.equal(promotions.payload.unseen, 1);
+  assert.equal(promotions.payload.promotions[0].rank, 1);
+
+  const repeated = await request('POST', `/mental-arena/challenges/${started.payload.challenge.id}/submit`, {
+    answers: questions.map((item) => ({ question_id: item.id, answer: item.answer })),
+  });
+  assert.equal(repeated.payload.promotion, null);
+  assert.equal((await request('GET', '/promotions', undefined, teacherToken)).payload.promotions.length, 1);
 
   const other = await request('POST', '/mental-arena/challenges', { student_id: primaryStudentId, battle: 'primary' });
   const otherRow = getDB().get('SELECT questions_json FROM mental_challenges WHERE id=?', [other.payload.challenge.id]);
@@ -138,8 +151,6 @@ test('初中生进入小学战场会进入排行榜并显示炸鱼选手', async
   assert.equal(board.payload.entries[0].student_name, '小初');
   assert.equal(board.payload.entries[0].is_fishing, true);
   assert.equal(board.payload.my_rank.rank, 1);
-  const deletion = await request('DELETE', `/students/${juniorStudentId}`, undefined, teacherToken);
-  assert.equal(deletion.response.status, 409);
 });
 
 test('口算题可报错、去重、教师停题，且家长响应不泄露答案', async () => {

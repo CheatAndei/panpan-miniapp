@@ -11,7 +11,7 @@ function parseJson(value, fallback) {
 function studentTeacherId(db, studentId) {
   return Number(db.get(`SELECT COALESCE(c.teacher_id,s.teacher_id) teacher_id
     FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE s.id=?`, [studentId])?.teacher_id || 0);
+    WHERE s.id=? AND s.deleted_at IS NULL`, [studentId])?.teacher_id || 0);
 }
 
 function sourceSnapshot(db, { sourceType, sourceId, studentId, sourceQuestionId }) {
@@ -168,7 +168,7 @@ function createCalculationReport(db, {
 }
 
 function teacherCalculationReports(db, { teacherId, sourceType = '', status = 'open', limit = 100 }) {
-  const clauses = ['COALESCE(c.teacher_id,s.teacher_id)=?'];
+  const clauses = ['COALESCE(c.teacher_id,s.teacher_id)=?', 's.deleted_at IS NULL'];
   const params = [teacherId];
   if (SOURCE_TYPES.has(sourceType)) { clauses.push('r.source_type=?'); params.push(sourceType); }
   if (REPORT_STATUSES.has(status)) { clauses.push('r.status=?'); params.push(status); }
@@ -211,7 +211,7 @@ function updateCalculationReport(db, {
 }) {
   const report = db.get(`SELECT r.* FROM calculation_question_reports r JOIN students s ON s.id=r.student_id
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE r.id=? AND COALESCE(c.teacher_id,s.teacher_id)=?`, [reportId, teacherId]);
+    WHERE r.id=? AND s.deleted_at IS NULL AND COALESCE(c.teacher_id,s.teacher_id)=?`, [reportId, teacherId]);
   if (!report) return null;
   const nextStatus = REPORT_STATUSES.has(String(status || '')) ? String(status) : report.status;
   db.transaction(() => {

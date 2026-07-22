@@ -22,19 +22,24 @@ router.get('/', auth, (req, res) => {
   if (req.user.role === 'parent') {
     if (class_id) {
       // 家长只能查看自己已绑定孩子所在班级的学生
-      const allowed = db.get('SELECT 1 FROM bindings b JOIN students bs ON bs.id=b.student_id WHERE b.parent_id=? AND bs.class_id=?', [req.user.id, class_id]);
+      const allowed = db.get(`SELECT 1 FROM bindings b JOIN students bs ON bs.id=b.student_id
+        JOIN classes bc ON bc.id=bs.class_id
+        WHERE b.parent_id=? AND bs.class_id=? AND bs.deleted_at IS NULL AND bc.deleted_at IS NULL`, [req.user.id, class_id]);
       if (!allowed) return res.status(403).json({ error: '无权限' });
-      const students = db.all('SELECT s.id, s.name, s.class_id FROM students s WHERE s.class_id=? ORDER BY s.name', [class_id]);
+      const students = db.all('SELECT s.id, s.name, s.class_id FROM students s WHERE s.class_id=? AND s.deleted_at IS NULL ORDER BY s.name', [class_id]);
       return res.json({ students: students.map(withExternalStudentId) });
     }
     // 查自己的绑定
-    const students = db.all('SELECT DISTINCT s.* FROM students s JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY s.name', [req.user.id]);
+    const students = db.all(`SELECT DISTINCT s.* FROM students s JOIN bindings b ON b.student_id=s.id
+      JOIN classes c ON c.id=s.class_id
+      WHERE b.parent_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL ORDER BY s.name`, [req.user.id]);
     return res.json({ students: students.map(withExternalStudentId) });
   }
   let sql = `SELECT s.*,
     (SELECT COUNT(*) FROM bindings b WHERE b.student_id=s.id) AS parent_count,
     (SELECT GROUP_CONCAT(COALESCE(NULLIF(u.nickname,''),'家长'), '、') FROM bindings b JOIN users u ON u.id=b.parent_id WHERE b.student_id=s.id) AS parent_names
-    FROM students s JOIN classes c ON c.id=s.class_id WHERE c.teacher_id=? AND c.deleted_at IS NULL`;
+    FROM students s JOIN classes c ON c.id=s.class_id
+    WHERE c.teacher_id=? AND c.deleted_at IS NULL AND s.deleted_at IS NULL`;
   const params = [req.user.id];
   if (class_id) { sql += ' AND s.class_id=?'; params.push(class_id); }
   sql += ' ORDER BY s.name';
@@ -63,7 +68,8 @@ router.post('/:id/transfer', auth, (req, res) => {
   const reason = String(req.body?.reason || '').trim().slice(0, 120);
   const student = db.get(`SELECT s.*,c.name class_name,c.teacher_id class_teacher_id
     FROM students s JOIN classes c ON c.id=s.class_id
-    WHERE s.id=? AND COALESCE(s.teacher_id,c.teacher_id)=? AND c.deleted_at IS NULL`, [studentId, req.user.id]);
+    WHERE s.id=? AND s.deleted_at IS NULL
+      AND COALESCE(s.teacher_id,c.teacher_id)=? AND c.deleted_at IS NULL`, [studentId, req.user.id]);
   if (!student) return res.status(404).json({ error: '学生不存在' });
   const target = db.get(`SELECT * FROM classes WHERE id=? AND teacher_id=? AND deleted_at IS NULL`, [targetClassId, req.user.id]);
   if (!target) return res.status(404).json({ error: '目标学习小组不存在' });
@@ -112,8 +118,11 @@ router.get('/:id', auth, (req, res) => {
     ? `SELECT s.*, c.name as class_name,
       (SELECT COUNT(*) FROM bindings b WHERE b.student_id=s.id) AS parent_count,
       (SELECT GROUP_CONCAT(COALESCE(NULLIF(u.nickname,''),'家长'), '、') FROM bindings b JOIN users u ON u.id=b.parent_id WHERE b.student_id=s.id) AS parent_names
-      FROM students s LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=? AND c.teacher_id=?`
-    : 'SELECT s.*, c.name as class_name FROM students s JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=? AND b.parent_id=?';
+      FROM students s LEFT JOIN classes c ON c.id=s.class_id
+      WHERE s.id=? AND c.teacher_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL`
+    : `SELECT s.*, c.name as class_name FROM students s
+      JOIN bindings b ON b.student_id=s.id LEFT JOIN classes c ON c.id=s.class_id
+      WHERE s.id=? AND b.parent_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL`;
   const s = db.get(sql, [req.params.id, req.user.id]);
   res.json({ student: withExternalStudentId(s) || null });
 });
@@ -121,7 +130,8 @@ router.get('/:id', auth, (req, res) => {
 router.put('/:id', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { personality, level, name } = req.body;
-  const result = getDB().run('UPDATE students SET personality=COALESCE(?,personality), level=COALESCE(?,level), name=COALESCE(?,name) WHERE id=? AND class_id IN (SELECT id FROM classes WHERE teacher_id=?)', [personality||null, level||null, name||null, req.params.id, req.user.id]);
+  const result = getDB().run(`UPDATE students SET personality=COALESCE(?,personality), level=COALESCE(?,level), name=COALESCE(?,name)
+    WHERE id=? AND deleted_at IS NULL AND class_id IN (SELECT id FROM classes WHERE teacher_id=? AND deleted_at IS NULL)`, [personality||null, level||null, name||null, req.params.id, req.user.id]);
   if (result.changes === 0) return res.status(404).json({ error: '学生不存在' });
   res.json({ ok: true });
 });
@@ -129,25 +139,21 @@ router.put('/:id', auth, (req, res) => {
 router.delete('/:id', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const db = getDB();
-  const owned = db.get('SELECT id FROM students WHERE id=? AND class_id IN (SELECT id FROM classes WHERE teacher_id=?)', [req.params.id, req.user.id]);
-  if (!owned) return res.status(404).json({ error: '学生不存在' });
-  const dependency = db.get(`SELECT
-    EXISTS(SELECT 1 FROM bindings WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM class_students WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM checkins WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM leaves WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM parent_feedbacks WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM student_profiles WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM homework_submissions WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM wrong_questions WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM point_ledger WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM practice_assignments WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM private_files WHERE student_id=?) OR
-    EXISTS(SELECT 1 FROM mental_challenges WHERE student_id=?) AS found`, Array(12).fill(req.params.id));
-  if (Number(dependency?.found)) return res.status(409).json({ error: '该学生已有绑定或学习历史，不能删除；可修改姓名或停止后续计划' });
-  const result = db.run('DELETE FROM students WHERE id=? AND class_id IN (SELECT id FROM classes WHERE teacher_id=?)', [req.params.id, req.user.id]);
-  if (result.changes === 0) return res.status(404).json({ error: '学生不存在' });
-  res.json({ ok: true });
+  const owned = db.get(`SELECT s.id,s.name,s.class_id FROM students s JOIN classes c ON c.id=s.class_id
+    WHERE s.id=? AND c.teacher_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL`, [req.params.id, req.user.id]);
+  if (!owned) return res.status(404).json({ error: '学生不存在或已删除' });
+  db.transaction(() => {
+    db.run('UPDATE students SET deleted_at=CURRENT_TIMESTAMP,deleted_by=? WHERE id=? AND deleted_at IS NULL', [req.user.id, owned.id]);
+    db.run(`INSERT INTO operation_logs(actor_id,action,entity_type,entity_id,detail)
+      VALUES(?,?,?,?,?)`, [req.user.id, 'student_archived', 'student', owned.id, JSON.stringify({
+      soft_delete: true,
+      student_name: owned.name,
+      class_id: owned.class_id,
+      bindings_preserved: true,
+      history_preserved: true,
+    })]);
+  });
+  res.json({ ok: true, archived: true });
 });
 
 module.exports = router;

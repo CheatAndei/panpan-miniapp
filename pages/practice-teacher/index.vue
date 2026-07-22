@@ -165,8 +165,8 @@
                 <text class="answer-no">{{ item.position }}</text>
                 <text class="answer-state">{{ item._correct === false ? '错题' : '默认正确' }}</text>
               </view>
-              <text class="answer-value">{{ item.answer }}</text>
-              <text class="answer-stem">{{ item.stem }}</text>
+              <pp-math-text class="answer-value" :value="item.answer" />
+              <pp-math-text class="answer-stem" :value="item.stem" />
               <text class="answer-action">{{ item._correct === false ? '点击取消标错' : '点击标错' }}</text>
             </button>
           </scroll-view>
@@ -468,4 +468,5 @@ async function downloadPdf(item, startDate = item.start_date) {
 .section-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx}.setting-row{padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.setting-row:last-child{border-bottom:0}.setting-name{display:block;color:var(--ink);font-size:28rpx;font-weight:720}.setting-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin-top:16rpx}.mini-label{display:block;margin-bottom:7rpx;color:var(--text-muted);font-size:21rpx}.mini-field{min-height:88rpx;display:flex;align-items:center;padding:0 16rpx;border-radius:12rpx;background:var(--surface-muted);color:var(--ink);font-size:23rpx}.setting-switches{display:flex;gap:22rpx;margin-top:16rpx;flex-wrap:wrap}.setting-switches label{min-height:88rpx;display:flex;align-items:center;gap:10rpx;color:var(--ink);font-size:22rpx}.setting-save{min-height:88rpx;width:100%;margin:14rpx 0 0;border-radius:12rpx;background:var(--accent);color:#fff;font-size:24rpx;font-weight:680}
 .pager{display:flex;align-items:center;justify-content:space-between;gap:12rpx;margin-top:22rpx}.pager-btn{min-height:88rpx;min-width:150rpx;margin:0;border-radius:12rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:24rpx}.pager-text{color:var(--text-muted);font-size:22rpx}
 @media (max-width: 380px){.compare-workspace{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:10rpx}.photo-pane,.answer-pane{padding:10rpx}.answer-pane{height:790rpx}.photo-stage{height:630rpx}.answer-value{font-size:27rpx}.answer-stem{font-size:19rpx}.review-footer{align-items:stretch;flex-direction:column}.save-next-btn{width:100%}}
+.answer-value,.answer-stem{display:flex}
 </style>

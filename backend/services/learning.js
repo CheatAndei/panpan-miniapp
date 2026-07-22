@@ -332,7 +332,7 @@ function todayOverview(db, { studentId, now = new Date() }) {
     FROM practice_plans p JOIN students s ON s.class_id=p.class_id
     LEFT JOIN practice_assignments a ON a.plan_id=p.id AND a.student_id=s.id AND a.practice_date=?
     LEFT JOIN practice_submissions ps ON ps.assignment_id=a.id
-    WHERE s.id=? AND p.status='published' AND p.start_date<=? AND p.end_date>=?
+    WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
     ORDER BY p.created_at DESC LIMIT 1`, [logicalDate, studentId, logicalDate, logicalDate]);
   const fallbackThird = openWrongs > 0 ? 'wrong' : 'weekly';
   const taskTypes = [practice ? 'practice' : 'warmup', 'weakness', fallbackThird];

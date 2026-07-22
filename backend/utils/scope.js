@@ -8,7 +8,8 @@ function teacherOwnsStudent(db, teacherId, studentId) {
   return !!db.get(`SELECT 1
     FROM students s
     LEFT JOIN classes c ON c.id=s.class_id
-    WHERE s.id=? AND COALESCE(s.teacher_id,c.teacher_id)=?`, [studentId, teacherId]);
+    WHERE s.id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL
+      AND COALESCE(s.teacher_id,c.teacher_id)=?`, [studentId, teacherId]);
 }
 
 function teacherOwnsSchedule(db, teacherId, scheduleId) {
@@ -23,7 +24,10 @@ function teacherOwnsSession(db, teacherId, sessionId) {
 
 function parentBoundStudent(db, parentId, studentId) {
   if (!parentId || !studentId) return false;
-  return !!db.get('SELECT 1 FROM bindings WHERE parent_id=? AND student_id=?', [parentId, studentId]);
+  return !!db.get(`SELECT 1 FROM bindings b
+    JOIN students s ON s.id=b.student_id
+    LEFT JOIN classes c ON c.id=s.class_id
+    WHERE b.parent_id=? AND b.student_id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL`, [parentId, studentId]);
 }
 
 function parentFeedbackBelongsToTeacher(db, teacherId, feedbackId) {

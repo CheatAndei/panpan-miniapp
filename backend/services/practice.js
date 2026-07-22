@@ -226,7 +226,7 @@ function preGenerateDate(db, practiceDate) {
   let generated = 0;
   db.transaction(() => {
     for (const plan of plans) {
-      const students = db.all('SELECT id FROM students WHERE class_id=?', [plan.class_id]);
+      const students = db.all('SELECT id FROM students WHERE class_id=? AND deleted_at IS NULL', [plan.class_id]);
       for (const student of students) {
         const before = db.get('SELECT id FROM practice_assignments WHERE student_id=? AND practice_date=?', [student.id, practiceDate]);
         generateAssignment(db, plan, student.id, practiceDate);
@@ -298,7 +298,7 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
   fifth.setUTCDate(fifth.getUTCDate() + 4);
   const end = fifth.toISOString().slice(0, 10) > plan.end_date ? plan.end_date : fifth.toISOString().slice(0, 10);
   const dates = dateRange(start, end, 5);
-  const students = db.all('SELECT id,name FROM students WHERE class_id=? ORDER BY name', [plan.class_id]);
+  const students = db.all('SELECT id,name FROM students WHERE class_id=? AND deleted_at IS NULL ORDER BY name', [plan.class_id]);
   db.transaction(() => {
     for (const date of dates) for (const student of students) generateAssignment(db, plan, student.id, date);
   });

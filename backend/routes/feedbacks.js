@@ -103,28 +103,38 @@ ${studentFeedbackRules(style, '姓名', hasExitQuiz)}
 
 返回JSON：{"results":[{"id":0,"feedback":"..."}]}`;
 
-  try {
-    const text = await callAI(prompt, batchMaxTokens(students.length, style));
-    const json = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const data = JSON.parse(json);
-    if (!Array.isArray(data.results) || data.results.length < students.length) {
-      throw new Error('AI 返回的学生反馈不完整');
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const retryHint = attempt === 0 ? '' : '\n上一次返回格式不完整。本次只返回完整 JSON，不要代码块、解释或前后缀。';
+      const text = await callAI(prompt + retryHint, batchMaxTokens(students.length, style));
+      const data = parseBatchFeedbackResponse(text);
+      if (!Array.isArray(data.results) || data.results.length < students.length) {
+        throw new Error('AI 返回的学生反馈不完整');
+      }
+      const results = students.map((student, index) => {
+        const generated = data.results.find((item) => Number(item?.id) === index)
+          || data.results.find((item) => String(item?.id) === String(student.id))
+          || data.results.find((item) => cleanLineForMatch(item?.name) === cleanLineForMatch(student.name))
+          || data.results[index];
+        if (!generated?.feedback) throw new Error('AI 返回的学生反馈不完整');
+        const feedback = cleanStudentFeedback(generated.feedback, student.name, style, hasExitQuiz);
+        if (!feedback) throw new Error('AI 返回的学生反馈仅包含测试说明');
+        return {
+          ...generated,
+          // 提示词里的 id 是数组下标；响应给前端时必须恢复成真实学生 id。
+          id: student.id ?? index,
+          name: student.name,
+          feedback
+        };
+      });
+      return res.json({ ...data, results, retried: attempt > 0 });
+    } catch (error) {
+      lastError = error;
     }
-    const results = students.map((student, index) => {
-      const generated = data.results.find((item) => Number(item?.id) === index) || data.results[index];
-      if (!generated?.feedback) throw new Error('AI 返回的学生反馈不完整');
-      const feedback = cleanStudentFeedback(generated.feedback, student.name, style, hasExitQuiz);
-      if (!feedback) throw new Error('AI 返回的学生反馈仅包含测试说明');
-      return {
-        ...generated,
-        // 提示词里的 id 是数组下标；响应给前端时必须恢复成真实学生 id。
-        id: student.id ?? index,
-        name: student.name,
-        feedback
-      };
-    });
-    res.json({ ...data, results });
-  } catch(e) { res.status(500).json({ error: '批量生成失败' }); }
+  }
+  console.error('[feedback] batch generation failed after retry:', lastError?.message || lastError);
+  res.status(500).json({ error: '批量生成失败，请点击重试' });
 });
 
 // 单个学生反馈（重生成用）
@@ -341,10 +351,14 @@ router.get('/latest', auth, (req, res) => {
     if (req.user.role === 'teacher') {
       fb = db.get('SELECT f.* FROM feedbacks f WHERE f.class_id=? AND f.teacher_id=? ORDER BY f.created_at DESC LIMIT 1', [class_id, req.user.id]);
     } else {
-      fb = db.get('SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE f.class_id=? AND b.parent_id=? ORDER BY f.created_at DESC LIMIT 1', [class_id, req.user.id]);
+      fb = db.get(`SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id
+        JOIN bindings b ON b.student_id=s.id WHERE f.class_id=? AND b.parent_id=?
+        AND s.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 1`, [class_id, req.user.id]);
     }
   } else {
-    fb = db.get('SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY f.created_at DESC LIMIT 1', [req.user.id]);
+    fb = db.get(`SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id
+      JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? AND s.deleted_at IS NULL
+      ORDER BY f.created_at DESC LIMIT 1`, [req.user.id]);
   }
   if (req.user.role === 'parent') fb = sanitizeFeedbackForParent(db, fb, req.user.id);
   res.json({ feedback: fb || null });
@@ -359,11 +373,15 @@ router.get('/list', auth, (req, res) => {
       sql = 'SELECT * FROM feedbacks WHERE class_id=? AND teacher_id=? ORDER BY created_at DESC LIMIT 30';
       params = [class_id, req.user.id];
     } else {
-      sql = 'SELECT DISTINCT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE f.class_id=? AND b.parent_id=? ORDER BY f.created_at DESC LIMIT 30';
+      sql = `SELECT DISTINCT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id
+        JOIN bindings b ON b.student_id=s.id WHERE f.class_id=? AND b.parent_id=?
+        AND s.deleted_at IS NULL ORDER BY f.created_at DESC LIMIT 30`;
       params = [class_id, req.user.id];
     }
   } else {
-    sql = 'SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? ORDER BY f.created_at DESC LIMIT 30';
+    sql = `SELECT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id
+      JOIN bindings b ON b.student_id=s.id WHERE b.parent_id=? AND s.deleted_at IS NULL
+      ORDER BY f.created_at DESC LIMIT 30`;
     params = [req.user.id];
   }
   const feedbacks = db.all(sql, params);
@@ -375,7 +393,9 @@ router.get('/:id', auth, (req, res) => {
   const db = getDB();
   const sql = req.user.role === 'teacher'
     ? 'SELECT * FROM feedbacks WHERE id=? AND teacher_id=?'
-    : 'SELECT DISTINCT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id JOIN bindings b ON b.student_id=s.id WHERE f.id=? AND b.parent_id=?';
+    : `SELECT DISTINCT f.* FROM feedbacks f JOIN students s ON s.class_id=f.class_id
+      JOIN bindings b ON b.student_id=s.id
+      WHERE f.id=? AND b.parent_id=? AND s.deleted_at IS NULL`;
   const fb = db.get(sql, [req.params.id, req.user.id]);
   if (!fb) return res.status(404).json({ error: '不存在' });
   res.json({ feedback: req.user.role === 'parent' ? sanitizeFeedbackForParent(db, fb, req.user.id) : fb });
@@ -462,6 +482,21 @@ function cleanStudentFeedback(text, name = '', style = 'concise', hasExitQuiz = 
 function batchMaxTokens(studentCount, style) {
   const perStudent = style === 'warm' ? 280 : 150;
   return Math.min(8192, Math.max(600, 240 + Number(studentCount || 0) * perStudent));
+}
+
+function cleanLineForMatch(value) {
+  return String(value || '').replace(/\s+/g, '').replace(FEEDBACK_EMOJI_PATTERN, '').trim();
+}
+
+function parseBatchFeedbackResponse(text) {
+  const source = String(text || '').replace(/```json\s*/giu, '').replace(/```/g, '').trim();
+  const objectStart = source.indexOf('{');
+  const objectEnd = source.lastIndexOf('}');
+  const arrayStart = source.indexOf('[');
+  const arrayEnd = source.lastIndexOf(']');
+  if (objectStart >= 0 && objectEnd > objectStart) return JSON.parse(source.slice(objectStart, objectEnd + 1));
+  if (arrayStart >= 0 && arrayEnd > arrayStart) return { results: JSON.parse(source.slice(arrayStart, arrayEnd + 1)) };
+  throw new Error('AI 返回的学生反馈不是 JSON');
 }
 
 async function callAI(prompt, maxTokens = 400) {

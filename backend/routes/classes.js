@@ -15,7 +15,7 @@ function parseJson(value, fallback = {}) {
 router.get('/', auth, (req, res) => {
   const db = getDB();
   const classes = db.all(`SELECT c.*,
-    (SELECT COUNT(*) FROM students s WHERE s.class_id=c.id) AS student_count,
+    (SELECT COUNT(*) FROM students s WHERE s.class_id=c.id AND s.deleted_at IS NULL) AS student_count,
     (SELECT COUNT(*) FROM feedbacks f WHERE f.class_id=c.id) AS feedback_count,
     (SELECT COUNT(*) FROM practice_plans p WHERE p.class_id=c.id) AS practice_count
     FROM classes c WHERE c.teacher_id=? AND c.deleted_at IS NULL ORDER BY c.name`, [req.user.id]);
@@ -71,7 +71,8 @@ router.get('/:id/history', auth, teacherOnly, (req, res) => {
     || String(right.created_at || '').localeCompare(String(left.created_at || '')));
   const total = timeline.length;
   const start = (page - 1) * limit;
-  const students = db.all(`SELECT id,name,external_id,level FROM students WHERE class_id=? ORDER BY name`, [cls.id]);
+  const students = db.all(`SELECT id,name,external_id,level FROM students
+    WHERE class_id=? AND deleted_at IS NULL ORDER BY name`, [cls.id]);
   res.json({
     class: cls,
     students,
@@ -90,7 +91,8 @@ router.get('/:id', auth, (req, res) => {
   const db = getDB();
   const sql = req.user.role === 'teacher'
     ? 'SELECT * FROM classes WHERE id=? AND teacher_id=? AND deleted_at IS NULL'
-    : 'SELECT c.* FROM classes c JOIN students s ON s.class_id=c.id JOIN bindings b ON b.student_id=s.id WHERE c.id=? AND b.parent_id=? AND c.deleted_at IS NULL LIMIT 1';
+    : `SELECT c.* FROM classes c JOIN students s ON s.class_id=c.id JOIN bindings b ON b.student_id=s.id
+      WHERE c.id=? AND b.parent_id=? AND c.deleted_at IS NULL AND s.deleted_at IS NULL LIMIT 1`;
   const c = db.get(sql, [req.params.id, req.user.id]);
   res.json({ class: c || null });
 });
@@ -105,7 +107,7 @@ router.delete('/:id', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const cls = db.get('SELECT id FROM classes WHERE id=? AND teacher_id=? AND deleted_at IS NULL', [req.params.id, req.user.id]);
   if (!cls) return res.status(404).json({ error: '学习小组不存在' });
-  const studentCount = Number(db.get('SELECT COUNT(*) count FROM students WHERE class_id=?', [cls.id])?.count || 0);
+  const studentCount = Number(db.get('SELECT COUNT(*) count FROM students WHERE class_id=? AND deleted_at IS NULL', [cls.id])?.count || 0);
   if (studentCount) return res.status(409).json({ error: `请先迁移该小组的 ${studentCount} 名学生，再删除学习小组` });
   db.transaction(() => {
     db.run('UPDATE classes SET deleted_at=CURRENT_TIMESTAMP WHERE id=? AND teacher_id=?', [cls.id, req.user.id]);

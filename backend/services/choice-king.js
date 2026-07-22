@@ -110,7 +110,7 @@ function addDays(now, days) {
 function studentTeacherId(db, studentId) {
   return Number(db.get(`SELECT COALESCE(c.teacher_id,s.teacher_id) teacher_id
     FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE s.id=?`, [studentId])?.teacher_id || 0);
+    WHERE s.id=? AND s.deleted_at IS NULL`, [studentId])?.teacher_id || 0);
 }
 
 function publicQuestion(row, { isReview = false, issuanceId = null, expiresAt = null } = {}) {
@@ -196,7 +196,7 @@ function fallbackQuestion(db, studentId, grade, subject) {
 }
 
 function nextQuestion(db, { studentId, gradeCode = 'g7', subjectCode = 'math', now = new Date() }) {
-  const student = db.get('SELECT id FROM students WHERE id=?', [studentId]);
+  const student = db.get('SELECT id FROM students WHERE id=? AND deleted_at IS NULL', [studentId]);
   if (!student) throw new Error('学生不存在');
   const grade = normalizeGradeCode(gradeCode);
   const subject = normalizeSubjectCode(subjectCode);
@@ -471,7 +471,7 @@ function createReport(db, {
 }
 
 function teacherReports(db, { teacherId, status = 'open', limit = 100 }) {
-  const clauses = ['COALESCE(c.teacher_id,s.teacher_id)=?'];
+  const clauses = ['COALESCE(c.teacher_id,s.teacher_id)=?', 's.deleted_at IS NULL'];
   const params = [teacherId];
   if (REPORT_STATUSES.has(status)) { clauses.push('r.status=?'); params.push(status); }
   return db.all(`SELECT r.*,r.detail note,s.name student_name,c.name class_name,q.stable_code,
@@ -489,7 +489,7 @@ function teacherReports(db, { teacherId, status = 'open', limit = 100 }) {
 function updateReport(db, { teacherId, reportId, status, teacherNote, stopQuestion, now = new Date() }) {
   const report = db.get(`SELECT r.* FROM choice_king_reports r JOIN students s ON s.id=r.student_id
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE r.id=? AND COALESCE(c.teacher_id,s.teacher_id)=?`, [reportId, teacherId]);
+    WHERE r.id=? AND s.deleted_at IS NULL AND COALESCE(c.teacher_id,s.teacher_id)=?`, [reportId, teacherId]);
   if (!report) return null;
   const nextStatus = REPORT_STATUSES.has(String(status || '')) ? String(status) : report.status;
   db.transaction(() => {
@@ -515,7 +515,7 @@ function teacherAlerts(db, { teacherId, unreadOnly = true, limit = 100 }) {
   return db.all(`SELECT a.*,s.name student_name,c.name class_name FROM teacher_alerts a
     JOIN students s ON s.id=a.student_id
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE COALESCE(c.teacher_id,s.teacher_id)=?${unreadSql} ORDER BY a.created_at DESC LIMIT ?`, [
+    WHERE s.deleted_at IS NULL AND COALESCE(c.teacher_id,s.teacher_id)=?${unreadSql} ORDER BY a.created_at DESC LIMIT ?`, [
     teacherId, Math.max(1, Math.min(200, Number(limit) || 100)),
   ]).map((item) => ({ ...item, payload: parseJson(item.payload_json, {}) }));
 }
@@ -523,7 +523,7 @@ function teacherAlerts(db, { teacherId, unreadOnly = true, limit = 100 }) {
 function markAlertRead(db, { teacherId, alertId, isRead = true, now = new Date() }) {
   const result = db.run(`UPDATE teacher_alerts SET read_at=? WHERE id=? AND EXISTS (
       SELECT 1 FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-      WHERE s.id=teacher_alerts.student_id AND COALESCE(c.teacher_id,s.teacher_id)=?
+      WHERE s.id=teacher_alerts.student_id AND s.deleted_at IS NULL AND COALESCE(c.teacher_id,s.teacher_id)=?
     )`, [isRead ? now.toISOString() : null, alertId, teacherId]);
   if (!result.changes) return null;
   return db.get('SELECT * FROM teacher_alerts WHERE id=?', [alertId]);

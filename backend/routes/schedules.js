@@ -27,16 +27,27 @@ router.get('/parent', auth, (req, res) => {
       FROM students s
       JOIN bindings b ON b.student_id=s.id
       LEFT JOIN classes c ON c.id=s.class_id
-      WHERE b.parent_id=? AND s.id=?`, [req.user.id, student_id]);
+      WHERE b.parent_id=? AND s.id=? AND s.deleted_at IS NULL AND c.deleted_at IS NULL`, [req.user.id, student_id]);
   } else {
-    teacher = db.get('SELECT c.teacher_id FROM students st JOIN classes c ON c.id=st.class_id JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=? LIMIT 1', [req.user.id]);
+    teacher = db.get(`SELECT c.teacher_id FROM students st JOIN classes c ON c.id=st.class_id
+      JOIN bindings b ON b.student_id=st.id
+      WHERE b.parent_id=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL LIMIT 1`, [req.user.id]);
   }
   if (!teacher) return res.json({ schedules: [], myClassIds: [] });
   const myClasses = student_id
-    ? db.all('SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=? AND st.id=?', [req.user.id, student_id])
-    : db.all('SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id WHERE b.parent_id=?', [req.user.id]);
-  const schedules = db.all('SELECT s.*, c.name as class_name, c.id as class_id, (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id) as student_count FROM schedules s JOIN classes c ON c.id=s.class_id WHERE s.teacher_id=? AND s.is_active=1 ORDER BY s.day_of_week, s.start_time', [teacher.teacher_id]);
-  const sessions = db.all('SELECT se.*, c.name as class_name, c.id as class_id, (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id) as student_count FROM sessions se JOIN classes c ON c.id=se.class_id WHERE se.teacher_id=? AND se.status IN (?,?) AND se.class_date>=? ORDER BY se.class_date, se.start_time', [teacher.teacher_id, 'published', 'completed', localDateString()]);
+    ? db.all(`SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id
+      JOIN classes c ON c.id=st.class_id WHERE b.parent_id=? AND st.id=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL`, [req.user.id, student_id])
+    : db.all(`SELECT DISTINCT st.class_id FROM students st JOIN bindings b ON b.student_id=st.id
+      JOIN classes c ON c.id=st.class_id WHERE b.parent_id=? AND st.deleted_at IS NULL AND c.deleted_at IS NULL`, [req.user.id]);
+  const schedules = db.all(`SELECT s.*, c.name as class_name, c.id as class_id,
+    (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id AND st.deleted_at IS NULL) as student_count
+    FROM schedules s JOIN classes c ON c.id=s.class_id
+    WHERE s.teacher_id=? AND s.is_active=1 AND c.deleted_at IS NULL ORDER BY s.day_of_week, s.start_time`, [teacher.teacher_id]);
+  const sessions = db.all(`SELECT se.*, c.name as class_name, c.id as class_id,
+    (SELECT COUNT(*) FROM students st WHERE st.class_id=c.id AND st.deleted_at IS NULL) as student_count
+    FROM sessions se JOIN classes c ON c.id=se.class_id
+    WHERE se.teacher_id=? AND se.status IN (?,?) AND se.class_date>=? AND c.deleted_at IS NULL
+    ORDER BY se.class_date, se.start_time`, [teacher.teacher_id, 'published', 'completed', localDateString()]);
   const sessionSchedules = sessions.map((se) => {
     const date = new Date(`${se.class_date}T00:00:00+08:00`);
     return {

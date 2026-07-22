@@ -7,6 +7,15 @@
     </view>
 
     <view class="filter-card">
+      <view class="grade-switch" role="tablist" aria-label="试卷年级">
+        <button
+          v-for="item in gradeTypes"
+          :key="item.value"
+          :class="['grade-tab',{on:gradeCode===item.value}]"
+          :disabled="loading || initializing"
+          @tap="setGrade(item.value)"
+        >{{ item.label }}</button>
+      </view>
       <view class="filter-row">
         <button v-for="item in examTypes" :key="item.value" :class="['chip',{on:filters.exam_type===item.value}]" @tap="setFilter('exam_type',item.value)">{{ item.label }}</button>
       </view>
@@ -48,7 +57,7 @@
       </view>
     </view>
 
-    <pp-state v-if="loading && !papers.length" type="loading" title="正在整理真题" />
+    <pp-state v-if="initializing || (loading && !papers.length)" type="loading" title="正在整理真题" />
     <pp-state v-else-if="error && !papers.length" type="error" title="真题加载失败" :description="error" action-text="重试" @action="loadPapers(true)" />
     <pp-state v-else-if="!papers.length" title="没有符合条件的真题" description="换一个考试类型或年份试试。" />
 
@@ -79,6 +88,7 @@ const studentId = ref(0);
 const gradeCode = ref('g7');
 const papers = ref([]);
 const loading = ref(false);
+const initializing = ref(true);
 const error = ref('');
 const busyId = ref(0);
 const keyword = ref('');
@@ -88,17 +98,28 @@ const activityExpanded = ref(false);
 const activity = reactive({ requests: [], downloads: [] });
 const filters = reactive({ exam_type: '', year_bucket: '', subject:'', district:'', year:'' });
 const serverFilters=reactive({subjects:[],districts:[],years:[]});
+const gradeTypes = [{value:'g7',label:'七年级'},{value:'g8',label:'八年级'},{value:'g9',label:'九年级'}];
 const examTypes = [{value:'',label:'全部'},{value:'midterm',label:'期中'},{value:'final',label:'期末'},{value:'monthly',label:'月考'},{value:'mock',label:'一模'}];
 const yearTypes = [{value:'',label:'全部年份'},{value:'recent',label:'2024-2025'},{value:'older',label:'2024 以前'}];
 const subjectTypes=[{value:'',label:'全部学科'},{value:'chinese',label:'语文'},{value:'math',label:'数学'},{value:'english',label:'英语'},{value:'physics',label:'物理'},{value:'chemistry',label:'化学'},{value:'history',label:'历史'},{value:'morality',label:'道德与法治'}];
 
-onLoad((query) => {
+onLoad((query) => { initialize(query); });
+async function initialize(query) {
   studentId.value = Number(query.student_id || uni.getStorageSync('activeChildId') || 0);
-  gradeCode.value=['g7','g8','g9'].includes(String(query.grade||''))?String(query.grade):'g7';
-  if(gradeCode.value==='g9')filters.exam_type='mock';
-  loadPapers(true);
-  if (isTeacher.value) loadActivity();
-});
+  const requestedGrade = String(query.grade || '');
+  if (gradeTypes.some(item => item.value === requestedGrade)) gradeCode.value = requestedGrade;
+  else if (isTeacher.value) gradeCode.value = 'g9';
+  else if (studentId.value) {
+    try {
+      const catalog = await api.get(`/learning/catalog?student_id=${studentId.value}`);
+      if (gradeTypes.some(item => item.value === catalog.grade_code)) gradeCode.value = catalog.grade_code;
+    } catch (_) {}
+  }
+  filters.exam_type = gradeCode.value === 'g9' ? 'mock' : '';
+  filters.subject = '';
+  try { await Promise.all([loadPapers(true), isTeacher.value ? loadActivity() : Promise.resolve()]); }
+  finally { initializing.value = false; }
+}
 onPullDownRefresh(async () => { try { await Promise.all([loadPapers(true), isTeacher.value ? loadActivity() : Promise.resolve()]); } finally { uni.stopPullDownRefresh(); } });
 
 function params(nextPage=1) {
@@ -131,6 +152,17 @@ async function loadPapers(reset=false) {
 }
 async function loadActivity() { const data=await api.get('/exams/teacher/activity'); activity.requests=data.requests||[]; activity.downloads=data.downloads||[]; }
 function setFilter(key,value){ filters[key]=value; loadPapers(true); }
+async function setGrade(value){
+  if(loading.value || initializing.value || gradeCode.value===value)return;
+  gradeCode.value=value;
+  papers.value=[];
+  page.value=1;
+  pages.value=1;
+  keyword.value='';
+  Object.assign(filters,{exam_type:value==='g9'?'mock':'',year_bucket:'',subject:'',district:'',year:''});
+  Object.assign(serverFilters,{subjects:[],districts:[],years:[]});
+  await loadPapers(true);
+}
 function search(){ loadPapers(true); }
 function loadMore(){ if(page.value<pages.value){ page.value+=1; loadPapers(false); } }
 function examLabel(type){ return type==='midterm'?'期中':type==='final'?'期末':type==='mock'?'一模':'月考'; }
@@ -163,5 +195,5 @@ async function sendAnswer(item){
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 48rpx;background:var(--page-bg)}.exam-hero{margin:0 -24rpx 20rpx;padding:48rpx 34rpx 42rpx;background:linear-gradient(145deg,#173A36,#2F6E61);color:#fff;border-radius:0 0 32rpx 32rpx}.eyebrow{display:block;color:#B8DDD3;font-size:19rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:42rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D6ECE6;font-size:23rpx}.filter-card,.activity-panel{margin-bottom:18rpx;padding:22rpx;background:#fff;border:1rpx solid var(--border);border-radius:20rpx}.filter-row{display:flex;gap:10rpx;overflow-x:auto;margin-bottom:12rpx}.chip{flex:none;min-height:58rpx;margin:0;padding:0 20rpx;border-radius:999rpx;background:var(--surface-muted);color:var(--text-muted);font-size:22rpx}.chip::after,.search-btn::after,.paper-actions button::after,.mini-btn::after,.load-more::after{border:0}.chip.on{background:var(--primary);color:#fff}.search-row{display:flex;gap:12rpx}.search-input{flex:1;height:72rpx;padding:0 18rpx;border:1rpx solid var(--border);border-radius:13rpx;background:#FAFCFB;font-size:24rpx}.search-btn{width:120rpx;min-height:72rpx;margin:0;border-radius:13rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:24rpx}.teacher-summary{display:flex;align-items:center;justify-content:space-between;margin-bottom:16rpx;padding:22rpx 24rpx;border-radius:18rpx;background:#FFF8E7;border:1rpx solid #EACD83}.summary-title,.panel-title{display:block;color:var(--ink);font-size:27rpx;font-weight:750}.summary-desc{display:block;margin-top:4rpx;color:#866719;font-size:21rpx}.summary-toggle{color:#866719;font-size:22rpx;font-weight:700}.panel-title{margin-bottom:10rpx}.downloads-title{margin-top:24rpx}.activity-row{display:flex;gap:12rpx;align-items:center;padding:15rpx 0;border-bottom:1rpx solid var(--hairline)}.activity-copy{flex:1;min-width:0}.activity-name{display:block;color:var(--ink);font-size:23rpx;font-weight:680}.activity-meta{display:block;margin-top:3rpx;color:var(--text-muted);font-size:20rpx}.mini-btn{flex:none;max-width:220rpx;min-height:62rpx;margin:0;padding:8rpx 14rpx;border-radius:11rpx;background:var(--primary);color:#fff;font-size:20rpx}.download-log{display:flex;justify-content:space-between;gap:18rpx;padding:12rpx 0;border-bottom:1rpx solid var(--hairline);color:var(--text-muted);font-size:20rpx}.download-log text:first-child{flex:1;color:var(--ink)}.paper-card{margin-bottom:16rpx;padding:25rpx;border-radius:21rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.paper-tags{display:flex;gap:8rpx}.paper-tags text{padding:5rpx 11rpx;border-radius:7rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:19rpx;font-weight:700}.paper-title{display:block;margin-top:13rpx;color:var(--ink);font-size:28rpx;font-weight:730;line-height:1.5}.paper-meta{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}.paper-actions{display:flex;gap:12rpx;margin-top:20rpx}.paper-actions button{flex:1;min-height:74rpx;margin:0;border-radius:13rpx;font-size:23rpx;font-weight:700}.paper-primary{background:var(--primary);color:#fff}.paper-secondary{background:var(--accent-soft);color:var(--accent-strong)}.paper-secondary.done{color:var(--text-muted);background:var(--surface-muted)}.load-more{min-height:82rpx;margin:22rpx 0;border-radius:15rpx;background:#fff;color:var(--accent-strong);font-size:24rpx}.privacy-note{padding:24rpx 12rpx;color:var(--text-muted);font-size:20rpx;line-height:1.6;text-align:center}
+.page{min-height:100vh;padding:0 24rpx 48rpx;background:var(--page-bg)}.exam-hero{margin:0 -24rpx 20rpx;padding:48rpx 34rpx 42rpx;background:linear-gradient(145deg,#173A36,#2F6E61);color:#fff;border-radius:0 0 32rpx 32rpx}.eyebrow{display:block;color:#B8DDD3;font-size:19rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:42rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D6ECE6;font-size:23rpx}.filter-card,.activity-panel{margin-bottom:18rpx;padding:22rpx;background:#fff;border:1rpx solid var(--border);border-radius:20rpx}.grade-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-bottom:16rpx;padding:7rpx;border-radius:15rpx;background:var(--surface-muted)}.grade-tab{min-height:64rpx;margin:0;padding:0 10rpx;border-radius:11rpx;background:transparent;color:var(--text-muted);font-size:23rpx;font-weight:700}.grade-tab::after{border:0}.grade-tab.on{background:#fff;color:var(--primary);box-shadow:0 5rpx 14rpx rgba(24,58,54,.12)}.grade-tab:active{transform:scale(.97)}.filter-row{display:flex;gap:10rpx;overflow-x:auto;margin-bottom:12rpx}.chip{flex:none;min-height:58rpx;margin:0;padding:0 20rpx;border-radius:999rpx;background:var(--surface-muted);color:var(--text-muted);font-size:22rpx}.chip::after,.search-btn::after,.paper-actions button::after,.mini-btn::after,.load-more::after{border:0}.chip.on{background:var(--primary);color:#fff}.search-row{display:flex;gap:12rpx}.search-input{flex:1;height:72rpx;padding:0 18rpx;border:1rpx solid var(--border);border-radius:13rpx;background:#FAFCFB;font-size:24rpx}.search-btn{width:120rpx;min-height:72rpx;margin:0;border-radius:13rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:24rpx}.teacher-summary{display:flex;align-items:center;justify-content:space-between;margin-bottom:16rpx;padding:22rpx 24rpx;border-radius:18rpx;background:#FFF8E7;border:1rpx solid #EACD83}.summary-title,.panel-title{display:block;color:var(--ink);font-size:27rpx;font-weight:750}.summary-desc{display:block;margin-top:4rpx;color:#866719;font-size:21rpx}.summary-toggle{color:#866719;font-size:22rpx;font-weight:700}.panel-title{margin-bottom:10rpx}.downloads-title{margin-top:24rpx}.activity-row{display:flex;gap:12rpx;align-items:center;padding:15rpx 0;border-bottom:1rpx solid var(--hairline)}.activity-copy{flex:1;min-width:0}.activity-name{display:block;color:var(--ink);font-size:23rpx;font-weight:680}.activity-meta{display:block;margin-top:3rpx;color:var(--text-muted);font-size:20rpx}.mini-btn{flex:none;max-width:220rpx;min-height:62rpx;margin:0;padding:8rpx 14rpx;border-radius:11rpx;background:var(--primary);color:#fff;font-size:20rpx}.download-log{display:flex;justify-content:space-between;gap:18rpx;padding:12rpx 0;border-bottom:1rpx solid var(--hairline);color:var(--text-muted);font-size:20rpx}.download-log text:first-child{flex:1;color:var(--ink)}.paper-card{margin-bottom:16rpx;padding:25rpx;border-radius:21rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.paper-tags{display:flex;gap:8rpx}.paper-tags text{padding:5rpx 11rpx;border-radius:7rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:19rpx;font-weight:700}.paper-title{display:block;margin-top:13rpx;color:var(--ink);font-size:28rpx;font-weight:730;line-height:1.5}.paper-meta{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}.paper-actions{display:flex;gap:12rpx;margin-top:20rpx}.paper-actions button{flex:1;min-height:74rpx;margin:0;border-radius:13rpx;font-size:23rpx;font-weight:700}.paper-primary{background:var(--primary);color:#fff}.paper-secondary{background:var(--accent-soft);color:var(--accent-strong)}.paper-secondary.done{color:var(--text-muted);background:var(--surface-muted)}.load-more{min-height:82rpx;margin:22rpx 0;border-radius:15rpx;background:#fff;color:var(--accent-strong);font-size:24rpx}.privacy-note{padding:24rpx 12rpx;color:var(--text-muted);font-size:20rpx;line-height:1.6;text-align:center}
 </style>
