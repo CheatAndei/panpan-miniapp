@@ -43,6 +43,7 @@ async function request(method, url, authToken, body, headers = {}) {
   const response = await fetch(base + url, {
     method,
     headers: {
+      connection: 'close',
       ...(authToken ? { authorization: `Bearer ${authToken}` } : {}),
       ...(body === undefined ? {} : { 'content-type': 'application/json' }),
       ...headers,
