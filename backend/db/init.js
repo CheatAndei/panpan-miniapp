@@ -156,6 +156,25 @@ function ensureColumn(table, column, definition) {
   }
 }
 
+// schema.sql also creates indexes. Existing production tables must receive
+// indexed columns before the full schema runs; later migrations can then
+// rebuild constrained tables without startup failing halfway through.
+function prepareLegacySchemaColumns() {
+  const bridges = [
+    ['exam_papers', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
+    ['exam_papers', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
+    ['weekly_challenge_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
+    ['weekly_challenge_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
+    ['choice_king_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
+    ['choice_king_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
+  ];
+  for (const [table, column, definition] of bridges) {
+    if (execOne("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name=?", [table])) {
+      ensureColumn(table, column, definition);
+    }
+  }
+}
+
 function migrateExamPapersV2() {
   const row = execOne("SELECT sql FROM sqlite_master WHERE type='table' AND name='exam_papers'");
   const sql = String(row?.sql || '');
@@ -389,6 +408,7 @@ async function initDB() {
   const SQL = await initSqlJs();
   ensureDir(DB_PATH);
   _db = fs.existsSync(DB_PATH) ? new SQL.Database(fs.readFileSync(DB_PATH)) : new SQL.Database();
+  prepareLegacySchemaColumns();
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   _db.run(schema);
   runMigrations();
