@@ -2,6 +2,12 @@ name: Production Inspect
 
 on:
   workflow_dispatch:
+    inputs:
+      cleanup_stale_exam_sync:
+        description: Stop and remove known interrupted exam sync staging
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   inspect:
@@ -16,6 +22,22 @@ jobs:
           key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
           script: |
             set -euo pipefail
+            if [ '${{ inputs.cleanup_stale_exam_sync }}' = 'true' ]; then
+              for pid in $(pgrep -f '/opt/panpan-miniapp/exam-sync/github-29902051712-1/bundle.enc' || true); do
+                cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+                case "$cmd" in
+                  *curl*github-29902051712-1/bundle.enc*) kill "$pid" ;;
+                esac
+              done
+              for stale in \
+                /opt/panpan-miniapp/exam-sync/github-29899823459-1 \
+                /opt/panpan-miniapp/exam-sync/github-29901861881-1 \
+                /opt/panpan-miniapp/exam-sync/github-29902051712-1; do
+                case "$stale" in /opt/panpan-miniapp/exam-sync/github-[0-9]*-[0-9]*) ;; *) exit 1 ;; esac
+                [ ! -d "$stale" ] || rm -rf -- "$stale"
+              done
+              echo "stale exam sync staging cleaned"
+            fi
             echo "=== containers ==="
             docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
 
