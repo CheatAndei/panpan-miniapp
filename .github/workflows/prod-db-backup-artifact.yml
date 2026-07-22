@@ -49,7 +49,7 @@ jobs:
           IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
           docker run --rm \
             -e BACKUP_ID="$BACKUP_ID" -e BACKUP_BYTES="$BYTES" -e BACKUP_SHA256="$SHA256" \
-            -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module > "$BACKUP_DIR/manifest.json" <<'NODE'
+            -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module - > "$BACKUP_DIR/manifest.json" <<'NODE'
           import fs from 'node:fs';
           import initSqlJs from 'sql.js';
           const file='/backup/teach.db';
@@ -93,4 +93,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
-
