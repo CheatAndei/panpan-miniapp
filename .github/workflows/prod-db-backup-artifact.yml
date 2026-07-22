@@ -43,11 +43,11 @@ jobs:
           test ! -e "$BACKUP_DIR"
           install -d -m 700 "$BACKUP_DIR"
           cp -a "$SOURCE" "$BACKUP_DIR/teach.db"
-          test "$(head -c 16 "$BACKUP_DIR/teach.db")" = 'SQLite format 3'
+          test "$(od -An -tx1 -N16 "$BACKUP_DIR/teach.db" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
           BYTES="$(stat -c%s "$BACKUP_DIR/teach.db")"
           SHA256="$(sha256sum "$BACKUP_DIR/teach.db" | awk '{print $1}')"
           IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
-          docker run --rm \
+          docker run --rm -i \
             -e BACKUP_ID="$BACKUP_ID" -e BACKUP_BYTES="$BYTES" -e BACKUP_SHA256="$SHA256" \
             -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module - > "$BACKUP_DIR/manifest.json" <<'NODE'
           import fs from 'node:fs';
@@ -76,7 +76,7 @@ jobs:
       - name: Validate downloaded backup
         run: |
           set -euo pipefail
-          test "$(head -c 16 production-backup/teach.db)" = 'SQLite format 3'
+          test "$(od -An -tx1 -N16 production-backup/teach.db | tr -d ' \n')" = '53514c69746520666f726d6174203300'
           ACTUAL_SHA="$(sha256sum production-backup/teach.db | awk '{print $1}')"
           EXPECTED_SHA="$(node -p "require('./production-backup/manifest.json').sha256")"
           test "$ACTUAL_SHA" = "$EXPECTED_SHA"
