@@ -15,6 +15,11 @@ on:
         description: Type SYNC_EXAMS
         required: true
         type: string
+      existing_sync_id:
+        description: Resume a fully uploaded production staging directory
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -54,6 +59,7 @@ jobs:
           chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Upload encrypted bundle chunks
+        if: inputs.existing_sync_id == ''
         env:
           SYNC_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
@@ -85,6 +91,27 @@ jobs:
             ' _
           ssh -o BatchMode=yes root@134.175.69.59 \
             "SYNC_ID='$SYNC_ID' BUNDLE_SHA256='$BUNDLE_SHA256' BUNDLE_BYTES='$BUNDLE_BYTES' PART_COUNT='$PART_COUNT' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$SYNC_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid sync id'; exit 1 ;; esac
+          ROOT="/opt/panpan-miniapp/exam-sync/$SYNC_ID"
+          test "$(find "$ROOT/chunks" -maxdepth 1 -type f -name 'part-*' | wc -l | tr -d ' ')" = "$PART_COUNT"
+          cat "$ROOT"/chunks/part-* > "$ROOT/bundle.enc"
+          test "$(stat -c%s "$ROOT/bundle.enc")" = "$BUNDLE_BYTES"
+          test "$(sha256sum "$ROOT/bundle.enc" | awk '{print $1}')" = "$BUNDLE_SHA256"
+          rm -rf -- "$ROOT/chunks"
+          REMOTE
+
+      - name: Prepare existing encrypted bundle
+        if: inputs.existing_sync_id != ''
+        env:
+          EXISTING_SYNC_ID: ${{ inputs.existing_sync_id }}
+        run: |
+          set -euo pipefail
+          case "$EXISTING_SYNC_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid existing sync id'; exit 1 ;; esac
+          printf 'SYNC_ID=%s\n' "$EXISTING_SYNC_ID" >> "$GITHUB_ENV"
+          PART_COUNT="$(( (BUNDLE_BYTES + 4194303) / 4194304 ))"
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            "SYNC_ID='$EXISTING_SYNC_ID' BUNDLE_SHA256='$BUNDLE_SHA256' BUNDLE_BYTES='$BUNDLE_BYTES' PART_COUNT='$PART_COUNT' bash -s" <<'REMOTE'
           set -euo pipefail
           case "$SYNC_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid sync id'; exit 1 ;; esac
           ROOT="/opt/panpan-miniapp/exam-sync/$SYNC_ID"
