@@ -1,0 +1,96 @@
+name: Production DB Backup Artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Back up and validate production DB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Create server backup and manifest
+        env:
+          BACKUP_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          printf 'BACKUP_ID=%s\n' "$BACKUP_ID" >> "$GITHUB_ENV"
+          ssh -o BatchMode=yes root@134.175.69.59 "BACKUP_ID='$BACKUP_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$BACKUP_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid backup id'; exit 1 ;; esac
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          test -n "$DATA_DIR"
+          SOURCE="$DATA_DIR/teach.db"
+          test -f "$SOURCE"
+          BACKUP_DIR="/opt/panpan-miniapp/backups/$BACKUP_ID"
+          test ! -e "$BACKUP_DIR"
+          install -d -m 700 "$BACKUP_DIR"
+          cp -a "$SOURCE" "$BACKUP_DIR/teach.db"
+          test "$(head -c 16 "$BACKUP_DIR/teach.db")" = 'SQLite format 3'
+          BYTES="$(stat -c%s "$BACKUP_DIR/teach.db")"
+          SHA256="$(sha256sum "$BACKUP_DIR/teach.db" | awk '{print $1}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          docker run --rm \
+            -e BACKUP_ID="$BACKUP_ID" -e BACKUP_BYTES="$BYTES" -e BACKUP_SHA256="$SHA256" \
+            -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module > "$BACKUP_DIR/manifest.json" <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const file='/backup/teach.db';
+          const SQL=await initSqlJs();
+          const db=new SQL.Database(fs.readFileSync(file));
+          const names=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")[0]?.values.flat()||[];
+          const counts={};
+          for(const name of names){const result=db.exec(`SELECT COUNT(*) FROM "${String(name).replaceAll('"','""')}"`);counts[name]=Number(result[0]?.values[0]?.[0]||0);}
+          console.log(JSON.stringify({backup_id:process.env.BACKUP_ID,bytes:Number(process.env.BACKUP_BYTES),sha256:process.env.BACKUP_SHA256,created_at:new Date().toISOString(),table_counts:counts},null,2));
+          NODE
+          chmod 600 "$BACKUP_DIR/teach.db" "$BACKUP_DIR/manifest.json"
+          df -B1 "$DATA_DIR" | tail -1 | awk '{print "PROD_DISK_BYTES total=" $2 " used=" $3 " free=" $4}'
+          free -b | awk '/^Mem:/{print "PROD_MEMORY_BYTES total=" $2 " used=" $3 " available=" $7}'
+          printf 'BACKUP bytes=%s sha256=%s\n' "$BYTES" "$SHA256"
+          REMOTE
+
+      - name: Download backup from production
+        run: |
+          set -euo pipefail
+          install -d -m 700 production-backup
+          scp -o BatchMode=yes "root@134.175.69.59:/opt/panpan-miniapp/backups/$BACKUP_ID/teach.db" production-backup/teach.db
+          scp -o BatchMode=yes "root@134.175.69.59:/opt/panpan-miniapp/backups/$BACKUP_ID/manifest.json" production-backup/manifest.json
+
+      - name: Validate downloaded backup
+        run: |
+          set -euo pipefail
+          test "$(head -c 16 production-backup/teach.db)" = 'SQLite format 3'
+          ACTUAL_SHA="$(sha256sum production-backup/teach.db | awk '{print $1}')"
+          EXPECTED_SHA="$(node -p "require('./production-backup/manifest.json').sha256")"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          ACTUAL_BYTES="$(stat -c%s production-backup/teach.db)"
+          EXPECTED_BYTES="$(node -p "require('./production-backup/manifest.json').bytes")"
+          test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
+          node -e "const m=require('./production-backup/manifest.json');if(!m.table_counts.users||!m.table_counts.students)process.exit(1);console.log(JSON.stringify({bytes:m.bytes,sha256:m.sha256,tables:Object.keys(m.table_counts).length,users:m.table_counts.users,students:m.table_counts.students,bindings:m.table_counts.bindings}))"
+
+      - name: Upload protected backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: panpan-production-db-${{ env.BACKUP_ID }}
+          path: production-backup/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
