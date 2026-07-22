@@ -36,6 +36,7 @@ jobs:
           gh release download '${{ inputs.release_tag }}' --repo '${{ github.repository }}' --pattern '${{ inputs.asset_name }}' --dir payload
           test -s 'payload/${{ inputs.asset_name }}'
           printf 'BUNDLE_SHA256=%s\n' "$(sha256sum 'payload/${{ inputs.asset_name }}' | awk '{print $1}')" >> "$GITHUB_ENV"
+          printf 'BUNDLE_BYTES=%s\n' "$(stat -c%s 'payload/${{ inputs.asset_name }}')" >> "$GITHUB_ENV"
 
       - name: Configure pinned production SSH
         env:
@@ -60,13 +61,22 @@ jobs:
           printf 'SYNC_ID=%s\n' "$SYNC_ID" >> "$GITHUB_ENV"
           ASSET_URL='https://github.com/${{ github.repository }}/releases/download/${{ inputs.release_tag }}/${{ inputs.asset_name }}'
           ssh -o BatchMode=yes root@134.175.69.59 \
-            "SYNC_ID='$SYNC_ID' ASSET_URL='$ASSET_URL' BUNDLE_SHA256='$BUNDLE_SHA256' bash -s" <<'REMOTE'
+            "SYNC_ID='$SYNC_ID' ASSET_URL='$ASSET_URL' BUNDLE_SHA256='$BUNDLE_SHA256' BUNDLE_BYTES='$BUNDLE_BYTES' bash -s" <<'REMOTE'
           set -euo pipefail
           case "$SYNC_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid sync id'; exit 1 ;; esac
           case "$ASSET_URL" in https://github.com/CheatAndei/panpan-miniapp/releases/download/*) ;; *) echo 'Invalid asset URL'; exit 1 ;; esac
           ROOT="/opt/panpan-miniapp/exam-sync/$SYNC_ID"
           install -d -m 700 "$ROOT"
-          curl -fL --retry 5 --retry-delay 3 --continue-at - --output "$ROOT/bundle.enc" "$ASSET_URL"
+          for attempt in $(seq 1 20); do
+            echo "Download attempt $attempt; existing bytes: $(stat -c%s "$ROOT/bundle.enc" 2>/dev/null || echo 0)"
+            if curl --http1.1 -fL --retry 3 --retry-all-errors --retry-delay 3 \
+              --connect-timeout 30 --speed-limit 1024 --speed-time 60 \
+              --continue-at - --output "$ROOT/bundle.enc" "$ASSET_URL"; then
+              break
+            fi
+            sleep 5
+          done
+          test "$(stat -c%s "$ROOT/bundle.enc")" = "$BUNDLE_BYTES"
           test "$(sha256sum "$ROOT/bundle.enc" | awk '{print $1}')" = "$BUNDLE_SHA256"
           REMOTE
 
@@ -111,9 +121,10 @@ jobs:
           NODE
           test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"
           rm -rf -- "$ROOT"
-          STALE_ROOT="/opt/panpan-miniapp/exam-sync/github-29899823459-1"
-          if [ -d "$STALE_ROOT" ]; then
-            test "$STALE_ROOT" = "/opt/panpan-miniapp/exam-sync/github-29899823459-1"
-            rm -rf -- "$STALE_ROOT"
-          fi
+          for STALE_ROOT in \
+            /opt/panpan-miniapp/exam-sync/github-29899823459-1 \
+            /opt/panpan-miniapp/exam-sync/github-29901861881-1; do
+            case "$STALE_ROOT" in /opt/panpan-miniapp/exam-sync/github-[0-9]*-[0-9]*) ;; *) exit 1 ;; esac
+            [ ! -d "$STALE_ROOT" ] || rm -rf -- "$STALE_ROOT"
+          done
           REMOTE
