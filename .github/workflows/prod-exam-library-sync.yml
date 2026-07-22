@@ -111,4 +111,9 @@ jobs:
           NODE
           test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"
           rm -rf -- "$ROOT"
+          STALE_ROOT="/opt/panpan-miniapp/exam-sync/github-29899823459-1"
+          if [ -d "$STALE_ROOT" ]; then
+            test "$STALE_ROOT" = "/opt/panpan-miniapp/exam-sync/github-29899823459-1"
+            rm -rf -- "$STALE_ROOT"
+          fi
           REMOTE
