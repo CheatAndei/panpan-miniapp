@@ -25,9 +25,10 @@ jobs:
             if [ '${{ inputs.cleanup_stale_exam_sync }}' = 'true' ]; then
               for pid in $(pgrep -f '/opt/panpan-miniapp/exam-sync/github-29902051712-1/bundle.enc' || true); do
                 cmd="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
-                case "$cmd" in
-                  *curl*github-29902051712-1/bundle.enc*) kill "$pid" ;;
-                esac
+                exe="$(basename "$(readlink "/proc/$pid/exe" 2>/dev/null || true)")"
+                if [ "$exe" = 'curl' ]; then
+                  case "$cmd" in *github-29902051712-1/bundle.enc*) kill "$pid" ;; esac
+                fi
               done
               for stale in \
                 /opt/panpan-miniapp/exam-sync/github-29899823459-1 \
