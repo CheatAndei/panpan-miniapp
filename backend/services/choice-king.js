@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { shanghaiWeekStart, maskStudentName } = require('./mental-arena');
+const { normalizeGradeCode, normalizeSubjectCode } = require('../utils/content-dimensions');
 
 const OPTION_RE = /^[A-D]$/;
 const REPORT_REASONS = new Set(['question_error', 'answer_error', 'unclear', 'other']);
@@ -61,30 +62,36 @@ function seedChoiceKingQuestions(db, manifestPath = CHOICE_KING_MANIFEST_PATH) {
       const stableCode = String(item?.source_key || item?.stable_code || '').trim().slice(0, 160);
       const correctOption = normalizeOption(item?.correct_option);
       const options = normalizedOptions(item?.options);
-      if (!stableCode.startsWith('GZ7-') || !correctOption || !options) { skipped += 1; return; }
+      const prefix = stableCode.match(/^(GZ[789])-/)?.[1] || '';
+      if (!prefix || !correctOption || !options) { skipped += 1; return; }
+      const gradeCode = normalizeGradeCode(item?.grade_code || (prefix === 'GZ8' ? 'g8' : prefix === 'GZ9' ? 'g9' : 'g7'));
+      const subjectCode = normalizeSubjectCode(item?.subject_code || 'math');
       generatedKeys.add(stableCode);
       const sourceYear = Number.parseInt(item?.source_year || '', 10) || null;
       db.run(`INSERT INTO choice_king_questions
           (stable_code,stem,options_json,correct_option,explanation,question_image_url,
-           source_label,source_year,source_period,original_question_no)
-        VALUES(?,?,?,?,?,?,?,?,?,?)
+           source_label,source_year,source_period,original_question_no,grade_code,subject_code,topic_key,difficulty)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(stable_code) DO UPDATE SET
           stem=excluded.stem,options_json=excluded.options_json,correct_option=excluded.correct_option,
           explanation=excluded.explanation,question_image_url=excluded.question_image_url,
           source_label=excluded.source_label,source_year=excluded.source_year,
           source_period=excluded.source_period,original_question_no=excluded.original_question_no,
+          grade_code=excluded.grade_code,subject_code=excluded.subject_code,topic_key=excluded.topic_key,difficulty=excluded.difficulty,
           updated_at=CURRENT_TIMESTAMP`, [
         stableCode, String(item?.stem || '').trim().slice(0, 4000), JSON.stringify(options), correctOption,
         String(item?.explanation || '').trim().slice(0, 8000), imagePublicUrl(item?.question_image),
         String(item?.source_label || '').trim().slice(0, 240), sourceYear,
         normalizedSourcePeriod(item?.recent_bucket ?? item?.source_period, sourceYear),
         String(item?.source_question_no || item?.original_question_no || index + 1).trim().slice(0, 40),
+        gradeCode, subjectCode, String(item?.topic_key || '').trim().slice(0, 100) || null,
+        Math.max(1, Math.min(5, Number(item?.difficulty || 2))),
       ]);
       imported += 1;
     });
-    if (!generatedKeys.size) throw new Error('选择刷题王 manifest 缺少有效 GZ7-* generated 题目');
+    if (!generatedKeys.size) throw new Error('选择刷题王 manifest 缺少有效 GZ7/GZ8/GZ9 generated 题目');
     const retired = db.all(`SELECT id,stable_code FROM choice_king_questions
-      WHERE is_active=1 AND substr(stable_code,1,4)='GZ7-'`)
+      WHERE is_active=1 AND substr(stable_code,1,4) IN ('GZ7-','GZ8-','GZ9-')`)
       .filter((item) => !generatedKeys.has(String(item.stable_code || '')));
     for (const item of retired) {
       db.run(`UPDATE choice_king_questions SET is_active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?`, [item.id]);
@@ -118,25 +125,34 @@ function publicQuestion(row, { isReview = false, issuanceId = null, expiresAt = 
     source_label: row.source_label || '',
     source_year: row.source_year ? Number(row.source_year) : null,
     original_question_no: row.original_question_no || '',
+    grade_code: row.grade_code || 'g7',
+    subject_code: row.subject_code || 'math',
+    topic_key: row.topic_key || '',
+    difficulty: Number(row.difficulty || 2),
     is_review: Boolean(isReview),
     issuance_id: issuanceId ? Number(issuanceId) : null,
     lease_expires_at: expiresAt || null,
   };
 }
 
-function answerStats(db, studentId, now = new Date()) {
+function answerStats(db, studentId, now = new Date(), gradeCode = 'g7', subjectCode = 'math') {
+  const grade = normalizeGradeCode(gradeCode);
+  const subject = normalizeSubjectCode(subjectCode);
   const row = db.get(`SELECT
-      COUNT(DISTINCT CASE WHEN is_review=0 THEN question_id END) attempted_count,
-      COUNT(DISTINCT CASE WHEN is_correct=1 THEN question_id END) correct_count,
-      SUM(CASE WHEN is_review=1 THEN 1 ELSE 0 END) review_attempts
-    FROM choice_king_attempts WHERE student_id=?`, [studentId]) || {};
+      COUNT(DISTINCT CASE WHEN a.is_review=0 THEN a.question_id END) attempted_count,
+      COUNT(DISTINCT CASE WHEN a.is_correct=1 THEN a.question_id END) correct_count,
+      SUM(CASE WHEN a.is_review=1 THEN 1 ELSE 0 END) review_attempts
+    FROM choice_king_attempts a JOIN choice_king_questions q ON q.id=a.question_id
+    WHERE a.student_id=? AND q.grade_code=? AND q.subject_code=?`, [studentId, grade, subject]) || {};
   const pending = db.get(`SELECT COUNT(*) count FROM choice_king_wrong_progress
-    WHERE student_id=? AND status='open'`, [studentId]);
+    WHERE student_id=? AND status='open' AND question_id IN
+      (SELECT id FROM choice_king_questions WHERE grade_code=? AND subject_code=?)`, [studentId, grade, subject]);
   const weekStart = shanghaiWeekStart(now).toISOString();
   const weeklyCorrect = db.get(`SELECT COUNT(*) count FROM (
-      SELECT question_id,MIN(answered_at) first_correct_at FROM choice_king_attempts
-      WHERE student_id=? AND is_correct=1 GROUP BY question_id
-    ) WHERE datetime(first_correct_at)>=datetime(?)`, [studentId, weekStart]);
+      SELECT a.question_id,MIN(a.answered_at) first_correct_at FROM choice_king_attempts a
+      JOIN choice_king_questions q ON q.id=a.question_id
+      WHERE a.student_id=? AND a.is_correct=1 AND q.grade_code=? AND q.subject_code=? GROUP BY a.question_id
+    ) WHERE datetime(first_correct_at)>=datetime(?)`, [studentId, grade, subject, weekStart]);
   return {
     attempted_count: Number(row.attempted_count || 0),
     correct_count: Number(row.correct_count || 0),
@@ -146,41 +162,44 @@ function answerStats(db, studentId, now = new Date()) {
   };
 }
 
-function dueWrong(db, studentId, now) {
+function dueWrong(db, studentId, now, grade, subject) {
   return db.get(`SELECT q.*,w.id wrong_progress_id,w.consecutive_correct,w.review_stage,
       w.new_questions_since_review,w.next_due_at
     FROM choice_king_wrong_progress w
     JOIN choice_king_questions q ON q.id=w.question_id
-    WHERE w.student_id=? AND w.status='open' AND q.is_active=1
+    WHERE w.student_id=? AND w.status='open' AND q.is_active=1 AND q.grade_code=? AND q.subject_code=?
       AND (w.new_questions_since_review>=8 OR datetime(w.next_due_at)<=datetime(?))
     ORDER BY CASE WHEN datetime(w.next_due_at)<=datetime(?) THEN 0 ELSE 1 END,
-      datetime(w.next_due_at),w.id LIMIT 1`, [studentId, now.toISOString(), now.toISOString()]);
+      datetime(w.next_due_at),w.id LIMIT 1`, [studentId, grade, subject, now.toISOString(), now.toISOString()]);
 }
 
-function unseenQuestion(db, studentId) {
-  const attempted = Number(db.get(`SELECT COUNT(DISTINCT question_id) count FROM choice_king_attempts
-    WHERE student_id=? AND is_review=0`, [studentId])?.count || 0);
+function unseenQuestion(db, studentId, grade, subject) {
+  const attempted = Number(db.get(`SELECT COUNT(DISTINCT a.question_id) count FROM choice_king_attempts a
+    JOIN choice_king_questions q ON q.id=a.question_id
+    WHERE a.student_id=? AND a.is_review=0 AND q.grade_code=? AND q.subject_code=?`, [studentId, grade, subject])?.count || 0);
   const preferredPeriod = attempted % 2 === 0 ? 'recent' : 'older';
   const select = (withPeriod) => db.get(`SELECT q.* FROM choice_king_questions q
-    WHERE q.is_active=1 ${withPeriod ? 'AND q.source_period=?' : ''}
+    WHERE q.is_active=1 AND q.grade_code=? AND q.subject_code=? ${withPeriod ? 'AND q.source_period=?' : ''}
       AND NOT EXISTS (SELECT 1 FROM choice_king_attempts a
         WHERE a.student_id=? AND a.question_id=q.id AND a.is_review=0)
-    ORDER BY q.id LIMIT 1`, withPeriod ? [preferredPeriod, studentId] : [studentId]);
+    ORDER BY q.id LIMIT 1`, withPeriod ? [grade, subject, preferredPeriod, studentId] : [grade, subject, studentId]);
   return select(true) || select(false);
 }
 
-function fallbackQuestion(db, studentId) {
+function fallbackQuestion(db, studentId, grade, subject) {
   return db.get(`SELECT q.* FROM choice_king_questions q
-    WHERE q.is_active=1
+    WHERE q.is_active=1 AND q.grade_code=? AND q.subject_code=?
       AND NOT EXISTS (SELECT 1 FROM choice_king_wrong_progress w
         WHERE w.student_id=? AND w.question_id=q.id AND w.status='open')
     ORDER BY COALESCE((SELECT MAX(a.answered_at) FROM choice_king_attempts a
-      WHERE a.student_id=? AND a.question_id=q.id AND a.is_review=0),'') ASC,q.id ASC LIMIT 1`, [studentId, studentId]);
+      WHERE a.student_id=? AND a.question_id=q.id AND a.is_review=0),'') ASC,q.id ASC LIMIT 1`, [grade, subject, studentId, studentId]);
 }
 
-function nextQuestion(db, { studentId, now = new Date() }) {
+function nextQuestion(db, { studentId, gradeCode = 'g7', subjectCode = 'math', now = new Date() }) {
   const student = db.get('SELECT id FROM students WHERE id=?', [studentId]);
   if (!student) throw new Error('学生不存在');
+  const grade = normalizeGradeCode(gradeCode);
+  const subject = normalizeSubjectCode(subjectCode);
   let payload;
   db.transaction(() => {
     db.run(`UPDATE choice_king_issuances SET closed_at=?,close_reason='expired'
@@ -191,22 +210,28 @@ function nextQuestion(db, { studentId, now = new Date() }) {
       WHERE student_id=? AND closed_at IS NULL AND EXISTS (
         SELECT 1 FROM choice_king_questions q WHERE q.id=choice_king_issuances.question_id AND q.is_active=0
       )`, [now.toISOString(), studentId]);
+    db.run(`UPDATE choice_king_issuances SET closed_at=?,close_reason='grade_changed'
+      WHERE student_id=? AND closed_at IS NULL AND EXISTS (
+        SELECT 1 FROM choice_king_questions q WHERE q.id=choice_king_issuances.question_id
+          AND (q.grade_code<>? OR q.subject_code<>?)
+      )`, [now.toISOString(), studentId, grade, subject]);
     const active = db.get(`SELECT q.*,i.id issuance_id,i.issue_type,i.expires_at
       FROM choice_king_issuances i JOIN choice_king_questions q ON q.id=i.question_id
-      WHERE i.student_id=? AND i.closed_at IS NULL AND q.is_active=1 LIMIT 1`, [studentId]);
+      WHERE i.student_id=? AND i.closed_at IS NULL AND q.is_active=1
+        AND q.grade_code=? AND q.subject_code=? LIMIT 1`, [studentId, grade, subject]);
     if (active) {
       payload = {
         question: publicQuestion(active, {
           isReview: active.issue_type === 'review', issuanceId: active.issuance_id, expiresAt: active.expires_at,
         }),
-        stats: answerStats(db, studentId, now),
+        stats: answerStats(db, studentId, now, grade, subject),
       };
       return;
     }
-    const wrong = dueWrong(db, studentId, now);
-    const row = wrong || unseenQuestion(db, studentId) || fallbackQuestion(db, studentId);
+    const wrong = dueWrong(db, studentId, now, grade, subject);
+    const row = wrong || unseenQuestion(db, studentId, grade, subject) || fallbackQuestion(db, studentId, grade, subject);
     if (!row) {
-      payload = { question: null, stats: answerStats(db, studentId, now) };
+      payload = { question: null, stats: answerStats(db, studentId, now, grade, subject) };
       return;
     }
     const expiresAt = addDays(now, 0.25);
@@ -218,7 +243,7 @@ function nextQuestion(db, { studentId, now = new Date() }) {
       question: publicQuestion(row, {
         isReview: Boolean(wrong), issuanceId: issued.lastInsertRowid, expiresAt,
       }),
-      stats: answerStats(db, studentId, now),
+      stats: answerStats(db, studentId, now, grade, subject),
     };
   });
   return payload;
@@ -364,7 +389,7 @@ function submitAnswer(db, {
       is_review: isReview,
       wrong_progress: wrongProgress,
       teacher_alert_created: alertCreated,
-      stats: answerStats(db, studentId, now),
+      stats: answerStats(db, studentId, now, question.grade_code, question.subject_code),
       idempotent_replay: false,
     };
     db.run('UPDATE choice_king_attempts SET response_json=? WHERE id=?', [
@@ -374,21 +399,25 @@ function submitAnswer(db, {
   return response;
 }
 
-function leaderboard(db, { studentId, period = 'week', now = new Date() }) {
+function leaderboard(db, { studentId, period = 'week', gradeCode = 'g7', subjectCode = 'math', now = new Date() }) {
   if (!['week', 'history'].includes(period)) throw new Error('排行榜周期无效');
+  const grade = normalizeGradeCode(gradeCode);
+  const subject = normalizeSubjectCode(subjectCode);
   const teacherId = studentTeacherId(db, studentId);
-  if (!teacherId) return { period, period_start: null, entries: [], my_rank: null };
+  if (!teacherId) return { period, grade_code:grade, subject_code:subject, period_start: null, entries: [], my_rank: null };
   const periodStart = period === 'week' ? shanghaiWeekStart(now).toISOString() : null;
   const students = db.all(`SELECT s.id,s.name,c.name class_name FROM students s
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
     WHERE COALESCE(c.teacher_id,s.teacher_id)=?`, [teacherId]);
   const entries = students.map((student) => {
-    const firstCorrect = db.all(`SELECT question_id,MIN(answered_at) first_correct_at
-      FROM choice_king_attempts WHERE student_id=? AND is_correct=1
-      GROUP BY question_id`, [student.id]);
+    const firstCorrect = db.all(`SELECT a.question_id,MIN(a.answered_at) first_correct_at
+      FROM choice_king_attempts a JOIN choice_king_questions q ON q.id=a.question_id
+      WHERE a.student_id=? AND a.is_correct=1 AND q.grade_code=? AND q.subject_code=?
+      GROUP BY a.question_id`, [student.id, grade, subject]);
     const score = firstCorrect.filter((item) => !periodStart || new Date(item.first_correct_at) >= new Date(periodStart)).length;
-    const attempted = Number(db.get(`SELECT COUNT(DISTINCT question_id) count FROM choice_king_attempts
-      WHERE student_id=? AND is_review=0`, [student.id])?.count || 0);
+    const attempted = Number(db.get(`SELECT COUNT(DISTINCT a.question_id) count FROM choice_king_attempts a
+      JOIN choice_king_questions q ON q.id=a.question_id
+      WHERE a.student_id=? AND a.is_review=0 AND q.grade_code=? AND q.subject_code=?`, [student.id, grade, subject])?.count || 0);
     return {
       student_id: Number(student.id),
       student_name: Number(student.id) === Number(studentId) ? student.name : maskStudentName(student.name),
@@ -403,6 +432,8 @@ function leaderboard(db, { studentId, period = 'week', now = new Date() }) {
     .slice(0, 100).map((item, index) => ({ ...item, rank: index + 1 }));
   return {
     period,
+    grade_code:grade,
+    subject_code:subject,
     period_start: periodStart,
     entries,
     my_rank: entries.find((item) => item.is_self) || null,
@@ -417,8 +448,12 @@ function createReport(db, {
   const duplicate = db.get(`SELECT * FROM choice_king_reports
     WHERE student_id=? AND question_id=? AND status='open' ORDER BY id DESC LIMIT 1`, [studentId, questionId]);
   if (duplicate) return { report: duplicate, duplicate: true };
-  const recentCount = Number(db.get(`SELECT COUNT(*) count FROM choice_king_reports
-    WHERE parent_id=? AND datetime(created_at)>=datetime(?)`, [parentId, addDays(now, -1 / 24)])?.count || 0);
+  const since = addDays(now, -1 / 24);
+  const choiceRecentCount = Number(db.get(`SELECT COUNT(*) count FROM choice_king_reports
+    WHERE parent_id=? AND datetime(created_at)>=datetime(?)`, [parentId, since])?.count || 0);
+  const calculationRecentCount = Number(db.get(`SELECT COUNT(*) count FROM calculation_question_reports
+    WHERE parent_id=? AND datetime(created_at)>=datetime(?)`, [parentId, since])?.count || 0);
+  const recentCount = choiceRecentCount + calculationRecentCount;
   if (recentCount >= 5) {
     const error = new Error('报错提交过于频繁，请稍后再试');
     error.code = 'RATE_LIMITED';

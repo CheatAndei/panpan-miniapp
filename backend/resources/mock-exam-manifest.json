@@ -1,0 +1,4472 @@
+{
+  "version": "mock-exams-v1",
+  "generated_at": "2026-07-22T06:33:00.032Z",
+  "source_root": "/mnt/e/teach/近三年全区全科一模真题",
+  "papers": [
+    {
+      "stable_code": "GZ9-MOCK-BDFB3D2B140A",
+      "display_title": "2026年广州市化学一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模化学试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模化学试卷-题目版.docx",
+        "byte_size": 6118731,
+        "sha256": "5978b29d8d0c318933fcc1bcce817ba7a240143a805db7feb4085ecd1af572c1"
+      },
+      "answer": {
+        "name": "2026年广东省广州市中考一模化学试卷-解析版.docx",
+        "byte_size": 6210538,
+        "sha256": "2fb66334aedf0a1f6209d9eb7fdae5f9e468684b209e595fcff9739f6a952324"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-991BEF337B69",
+      "display_title": "2026年广州市语文一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模语文试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模语文试卷-题目版.docx",
+        "byte_size": 219309,
+        "sha256": "8189a938a40107692c470c57ad8c51bc8627a0decfa05282531126aeed8bcfc2"
+      },
+      "answer": null
+    },
+    {
+      "stable_code": "GZ9-MOCK-426055A99A78",
+      "display_title": "2026年广州市英语一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模英语试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模英语试卷-题目版.docx",
+        "byte_size": 183259,
+        "sha256": "d0c97696435c3a0218432862e7c3360a95aacb19bb1fdbce3b0e41cad083cb82"
+      },
+      "answer": {
+        "name": "2026年广东省广州市中考一模英语试卷-解析版.docx",
+        "byte_size": 197885,
+        "sha256": "b95a690de0c38efdd9edd333b0b971966e1be71b17e75eb548891015929755d1"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E0ECAA6F666C",
+      "display_title": "2026年广州市历史一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模历史试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模历史试卷-题目版.docx",
+        "byte_size": 1723421,
+        "sha256": "b054afe63cd49f4653c2554ba5cc4f2f884912ad208fc246feff9f505976fcc1"
+      },
+      "answer": {
+        "name": "2026年广东省广州市中考一模历史试卷-解析版.docx",
+        "byte_size": 1735915,
+        "sha256": "f20d8256c32772d14c51d94ad50f81819d98056bbb8ed5a09418ca074a84bd0b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-84F879742ADE",
+      "display_title": "2026年广州市数学一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模数学试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模数学试卷-题目版.docx",
+        "byte_size": 1128857,
+        "sha256": "fb2b4f8fa1949490f4077f0476a8243da59e738c1890bf613631ed6e9b1630a0"
+      },
+      "answer": {
+        "name": "2026年广东省广州市中考一模数学试卷-解析版.docx",
+        "byte_size": 2757499,
+        "sha256": "7374f73b496e3dd70828178679a34e9e89db01c21eb7fea054f836f6edd3f47f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-BC7904C0A3F6",
+      "display_title": "2026年广州市道德与法治一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模政治试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模政治试卷-题目版.docx",
+        "byte_size": 95625,
+        "sha256": "85e3a56e839ed9f01b43dfffeeab5cc0aa8827b55449aa2688ecaf40647679ff"
+      },
+      "answer": {
+        "name": "2026年广东省广州市中考一模政治试卷-解析版.docx",
+        "byte_size": 106512,
+        "sha256": "4d7288b7338d37e755540e85b0da6395b2dfef32a50e1e0b635ca9b716b60df5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7ED1F9EE9791",
+      "display_title": "2026年广州市物理一模",
+      "district": "广州市",
+      "exam_year": 2026,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2026广州中考一模word版/2026年广东省广州市中考一模物理试卷-题目版.docx",
+      "paper": {
+        "name": "2026年广东省广州市中考一模物理试卷-题目版.docx",
+        "byte_size": 4099979,
+        "sha256": "5f4d618639381bd2b67136b28b02272592d820d4d6af11622a95349f7288fbd8"
+      },
+      "answer": {
+        "name": "2026年广东省广州市中考一模物理试卷-解析版.docx",
+        "byte_size": 4340932,
+        "sha256": "e3df05e8998b88355b4987d9c8f36925228474b83c7c6887521a2c5f328754af"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-A75ABEE81498",
+      "display_title": "2025年从化区化学一模",
+      "district": "从化区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市从化区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市从化区中考一模化学试卷-题目版.pdf",
+        "byte_size": 1175202,
+        "sha256": "c851d9163a0f4abc495d629053467a80372685e52a54cb6130dce1e416b8c52a"
+      },
+      "answer": {
+        "name": "2025年广东省广州市从化区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1395948,
+        "sha256": "c950aaaecc14ac131c966d9c0b272601857cc25dee0ff4021029e8540b9c8a2c"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-DCDFA710D9DC",
+      "display_title": "2025年南沙区化学一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市南沙区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模化学试卷-题目版.pdf",
+        "byte_size": 824941,
+        "sha256": "5a4b46abcb4a5868a36267b98eb241e10afec9300207d60ee069d8b89c6dce6a"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1349893,
+        "sha256": "94fcbfd8097c848d868a9fa5e9eddc20f7cd06885e3cf941803a64f98d35c3c5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-109F49F9F8A2",
+      "display_title": "2025年增城区化学一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市增城区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模化学试卷-题目版.pdf",
+        "byte_size": 778844,
+        "sha256": "a8c6f1b108f8664f8bcfdeca7b044cce2d6ddaeb2a0732bc7c80a5e0950067af"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1301771,
+        "sha256": "4d48adcda727f4ddc5b2d8e12dd0c404a5d2326f3b69d75f74ce34d0cc9bd3ef"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-FD475B5D7B9B",
+      "display_title": "2025年天河区化学一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市天河区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模化学试卷-题目版.pdf",
+        "byte_size": 689856,
+        "sha256": "d79f515857b2f52b39136d6b4c676dd1af799b0b842a3ad2c51dd5b2e9e5bb03"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1210882,
+        "sha256": "3c83b9277048b634dd854c77980f2b4e54fdeec6323e86e9528a37a1a6b66c5d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E1B2F9AF5C8E",
+      "display_title": "2025年海珠区化学一模",
+      "district": "海珠区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市海珠区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市海珠区中考一模化学试卷-题目版.pdf",
+        "byte_size": 1205437,
+        "sha256": "7ee5c8bf6413aef0819411c81149d123625d2b7e7b4ec17be200b4d06a13856a"
+      },
+      "answer": {
+        "name": "2025年广东省广州市海珠区中考一模化学试卷-解析版.pdf",
+        "byte_size": 2169145,
+        "sha256": "70c2ba013e11c16f6b5c60c734e0a3e4a2a3ad24b5f157bad5560f11e2ae4e71"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-85B1156A7303",
+      "display_title": "2025年番禺区化学一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市番禺区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模化学试卷-题目版.pdf",
+        "byte_size": 988213,
+        "sha256": "94952b0aca410dcd7f51c6d35aa05bdea2090c36a63e1452950ff57f8014f9bc"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1218624,
+        "sha256": "cff534303752d04dbff83d776a3305e3e89df0cd390c4d2f47fd489e14ffe096"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-89A2DF09CA00",
+      "display_title": "2025年白云区化学一模",
+      "district": "白云区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市白云区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市白云区中考一模化学试卷-题目版.pdf",
+        "byte_size": 745139,
+        "sha256": "d8bad58b46713973f865cbe4e71a9d406e5295d1fa394bf2e8d036e8cb0706e9"
+      },
+      "answer": {
+        "name": "2025年广东省广州市白云区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1245651,
+        "sha256": "9ce9c3e3701b9941a6e91750370ab51639e1f66641947ecab257d11e4ed03788"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-529A3AE528FD",
+      "display_title": "2025年花都区化学一模",
+      "district": "花都区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市花都区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市花都区中考一模化学试卷-题目版.pdf",
+        "byte_size": 848633,
+        "sha256": "eb9815d57603c406c1c273b3ad6730d295be3d69b69174927e7e983bf5872ce1"
+      },
+      "answer": {
+        "name": "2025年广东省广州市花都区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1427330,
+        "sha256": "73fa11685403aec55275606206ede4b12e349a638adf69669b6a5ba4e21e6b03"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-ABFC5E5499B7",
+      "display_title": "2025年荔湾区化学一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市荔湾区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模化学试卷-题目版.pdf",
+        "byte_size": 880206,
+        "sha256": "b5f2da03d2df5f874692aba57289b4c8c7119e1509fa5bca55746e944de0963d"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1525375,
+        "sha256": "caae5cb7a6cb0feabc09551911c8e2ff1dbd0969c61fef6c4ed6b5df0b8a7bea"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-4AA9E0941E43",
+      "display_title": "2025年越秀区化学一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市越秀区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模化学试卷-题目版.pdf",
+        "byte_size": 824757,
+        "sha256": "2163c003a43baac66e9f41e6f070ecc110729960d8e973b8cd796408e738b7ce"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1483579,
+        "sha256": "d32383b29b7835d7394514a8f3c535a781965cf8f80a53bb2b371e45a0240e97"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-41D7B1AAF247",
+      "display_title": "2025年黄埔区化学一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【化学】2025年广州中考一模/2025年广东省广州市黄埔区中考一模化学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模化学试卷-题目版.pdf",
+        "byte_size": 732848,
+        "sha256": "e9bc0b207bb888c2665f9666046ad3d6f3aea0bbaba1b54a124f5c49044a1067"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模化学试卷-解析版.pdf",
+        "byte_size": 1243896,
+        "sha256": "4b2b0e95244ff2f4aee9b79c6685e1f71884ec45f066ebf572091b62828b3202"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B1AA96325C63",
+      "display_title": "2025年从化区语文一模",
+      "district": "从化区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市从化区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市从化区中考一模语文试卷-题目版.pdf",
+        "byte_size": 835380,
+        "sha256": "6c876916311885a8a5ec62f0dac4b846e73178efc2e63d691cd17fb6dbf153f8"
+      },
+      "answer": {
+        "name": "2025年广东省广州市从化区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1232648,
+        "sha256": "9888d2d7e4ae9632f9e60697e274ef1811c3567a8ce2a947c084fe0043d452c0"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0A7CEE56D79D",
+      "display_title": "2025年南沙区语文一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市南沙区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模语文试卷-题目版.pdf",
+        "byte_size": 1060531,
+        "sha256": "a3baa0117047768cc56ae7d74bdf3c292f3896f2399f251d31c4ef7a300c07a4"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1375832,
+        "sha256": "9ba3683e68b56eb1d0feadfe6bad13e2cdf3b71931209c873ea01e4acf28c2e4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-C51A7C12DE06",
+      "display_title": "2025年增城区语文一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市增城区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模语文试卷-题目版.pdf",
+        "byte_size": 1065824,
+        "sha256": "58ec17274e58b0b0afc6f6bc43190207030210985bf5a277c41db9c48072e344"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1413485,
+        "sha256": "41b3f98bf6f71a23a71927804228ea3f5350aa2219626028640aa535ede78826"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5C83C9794CD5",
+      "display_title": "2025年天河区语文一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市天河区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模语文试卷-题目版.pdf",
+        "byte_size": 1010946,
+        "sha256": "2320a0c54f7acf3dcfacba27f8fcb62854a39bf4f8468c8f3a66596f0b37e10d"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1417147,
+        "sha256": "83cb8cdd738c09a9a2cf1aaf531228281cefbe4cd0d454bdd5175e36b8c1ec34"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-CBE1C94B226E",
+      "display_title": "2025年海珠区语文一模",
+      "district": "海珠区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市海珠区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市海珠区中考一模语文试卷-题目版.pdf",
+        "byte_size": 1013250,
+        "sha256": "b7e3fb8a22df48fd57c6342e7c51d87bca9257d60baf366a310b980dbf3fc024"
+      },
+      "answer": {
+        "name": "2025年广东省广州市海珠区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1374927,
+        "sha256": "3b66b93d1f02a6cfe18c28c753d66123df438b14b3cc6627d923a0ed07c2c419"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-33B832889EFD",
+      "display_title": "2025年番禺区语文一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市番禺区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模语文试卷-题目版.pdf",
+        "byte_size": 833346,
+        "sha256": "2113f7a5129e19bf45956c5cd8d29eaa0bbb2358cd24764b6800f8464d49bdee"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1197601,
+        "sha256": "e3b757cc3ed0b0f5cc03f459933969928dc6d1e648820b0a500ce1ca2c4faa0f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-60B43F5857E8",
+      "display_title": "2025年白云区语文一模",
+      "district": "白云区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市白云区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市白云区中考一模语文试卷-题目版.pdf",
+        "byte_size": 892713,
+        "sha256": "f59e790333e772c33d5688f64a34ef0aa27c17edbfea838bbb23145b88001190"
+      },
+      "answer": {
+        "name": "2025年广东省广州市白云区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1345076,
+        "sha256": "662863ffe829f71f1bf5ce73c7062e261bbfd0113d284affb39186284a1ebbb7"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-867A7BF76CBA",
+      "display_title": "2025年花都区语文一模",
+      "district": "花都区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市花都区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市花都区中考一模语文试卷-题目版.pdf",
+        "byte_size": 986038,
+        "sha256": "9494002dea8f9f3bc8c32fc3dd5694c82ae8981b8ee953d584b5e03f67148c9f"
+      },
+      "answer": {
+        "name": "2025年广东省广州市花都区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1433344,
+        "sha256": "30d6cc78f9a6fab28eb425f1de5cef015b36beb04dacbca32ef1914bb40bfdbe"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-25896E8396BB",
+      "display_title": "2025年荔湾区语文一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市荔湾区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模语文试卷-题目版.pdf",
+        "byte_size": 880224,
+        "sha256": "81ab5e5bbe4da2cc779faa97f21288ba96893dff7eb36bfdde1adbfb3743cba0"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1272055,
+        "sha256": "4f533412ca49a1a115c2f0c0a79f7d65274773fceed2399ca4646f5da7215de5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3ADD953737DB",
+      "display_title": "2025年越秀区语文一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市越秀区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模语文试卷-题目版.pdf",
+        "byte_size": 1168810,
+        "sha256": "5bd135fd0af3ff686bc883994f8a0a1d0c57cf74a66ff428ad925561163dc970"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1550665,
+        "sha256": "231407d870dc234e0546aec71d96502e320e05f0d68427fae755bf1c4d0dcd1d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-825B28EAB382",
+      "display_title": "2025年黄埔区语文一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【语文】2025年广州中考一模/2025年广东省广州市黄埔区中考一模语文试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模语文试卷-题目版.pdf",
+        "byte_size": 1504849,
+        "sha256": "f510b4df91857f6a205f438021af93613b5961b300c50fc27f1a6886fcab9280"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模语文试卷-解析版.pdf",
+        "byte_size": 1824692,
+        "sha256": "f8dd3752803b9cdb819a87d7c6a6abc2f6ca452b6586517ad52975e29cb8f3c2"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8FA95563D08D",
+      "display_title": "2025年从化区英语一模",
+      "district": "从化区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市从化区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市从化区中考一模英语试卷-题目版.pdf",
+        "byte_size": 1292984,
+        "sha256": "b163c77cd30e4e83f9e63b38eb3764c859c3c9bc5c7019a6c1864307153b9e09"
+      },
+      "answer": {
+        "name": "2025年广东省广州市从化区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1680514,
+        "sha256": "0a84d369bbb59d1b2839414240aee33f1285ce2c4019a8a6fec2c171c504266d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-C9248265113D",
+      "display_title": "2025年南沙区英语一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市南沙区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模英语试卷-题目版.pdf",
+        "byte_size": 812044,
+        "sha256": "9d779cb1ac2ec984bc5edfc878e4056cea1728c230e9af0270092f1f35204371"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1135168,
+        "sha256": "4a37a7710d5633b3e48bcc0f5f277cee95565cc99470ae091dc8b3a77e3fad9e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-DF3F38E93522",
+      "display_title": "2025年增城区英语一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市增城区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模英语试卷-题目版.pdf",
+        "byte_size": 3581131,
+        "sha256": "d39032b98502a2ba889d55c7360cc111fde92255d2e3c5d866b1884778f382e4"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模英语试卷-解析版.pdf",
+        "byte_size": 3872588,
+        "sha256": "7d962d56fdb8e2d9117cb909caf5bd0fd5f7b383a860e0b2286027ed85ef1800"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-79DF4876EEC4",
+      "display_title": "2025年天河区英语一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市天河区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模英语试卷-题目版.pdf",
+        "byte_size": 1530444,
+        "sha256": "d00912cd8e968a4f56cc20449d4a7ca11bc0dcb12a45a5075094fe1ed3eef4ee"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1841482,
+        "sha256": "ff42b661feaa81337ba3d1cf573da200437b07bd841978bd902c2eddc8bd588a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-57DA32319B96",
+      "display_title": "2025年海珠区英语一模",
+      "district": "海珠区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市海珠区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市海珠区中考一模英语试卷-题目版.pdf",
+        "byte_size": 1070442,
+        "sha256": "89c859abcafbd146f535597e04ccd7b77a1cf62cde4a1ba90ca1996ddfd38359"
+      },
+      "answer": {
+        "name": "2025年广东省广州市海珠区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1362921,
+        "sha256": "ecb39d85e294ed679597d57e54a61e95acc48d1e507472865139d9b1ca86811e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0C9F01C3A4A1",
+      "display_title": "2025年番禺区英语一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市番禺区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模英语试卷-题目版.pdf",
+        "byte_size": 1012745,
+        "sha256": "180f488a96a3440f421d35fd8ff3cb894da69450d4f3724ae31dc5d19015455f"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1300108,
+        "sha256": "1d345b9411305b6bacd26be91d4958f79463f03c4873064c16b821eb1c640e80"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2708E017330B",
+      "display_title": "2025年白云区英语一模",
+      "district": "白云区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市白云区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市白云区中考一模英语试卷-题目版.pdf",
+        "byte_size": 347681,
+        "sha256": "4eb1815341840252546c381563eb152900cca760f07ab590385ee3732bb2568d"
+      },
+      "answer": {
+        "name": "2025年广东省广州市白云区中考一模英语试卷-解析版.pdf",
+        "byte_size": 699561,
+        "sha256": "f737adb00aa0ca529e47c955ab1885055754c084fff45a46ef8cdc47b435a3f1"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-106A2BBBC7DA",
+      "display_title": "2025年花都区英语一模",
+      "district": "花都区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市花都区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市花都区中考一模英语试卷-题目版.pdf",
+        "byte_size": 4263969,
+        "sha256": "13c21b7e66874b60a1da9c5527e21f7574793336aa7ce9387051fb729999e43e"
+      },
+      "answer": {
+        "name": "2025年广东省广州市花都区中考一模英语试卷-解析版.pdf",
+        "byte_size": 4563050,
+        "sha256": "7eeae6dd827e5f7bac9f37804494ebaba099115784171eebe48e8d8449e6ff72"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-1EFE5F982E79",
+      "display_title": "2025年荔湾区英语一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市荔湾区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模英语试卷-题目版.pdf",
+        "byte_size": 973895,
+        "sha256": "cbcc2b196f76bb3bff25154c0923d5d2a68e8babf2796329a2d4533d1d07f6b9"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1272394,
+        "sha256": "c0956c7d7bc2d756934e41ca0071f2b274b9dd85f9c8c744a250c3f6d2912bb4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8962FFA12D28",
+      "display_title": "2025年越秀区英语一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市越秀区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模英语试卷-题目版.pdf",
+        "byte_size": 989500,
+        "sha256": "d8ee70ba2135afd945585e5940369be61c3231a708d88a5cc2e1c3446d849cc7"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1267132,
+        "sha256": "a699437f7021bcf5143ba618f5b1a03b0b974431b2d58052e456720574120c6f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-243AAFBF7889",
+      "display_title": "2025年黄埔区英语一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【英语】2025年广州中考一模/2025年广东省广州市黄埔区中考一模英语试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模英语试卷-题目版.pdf",
+        "byte_size": 1086708,
+        "sha256": "1926c327a0920e78b0035cd88b619ef2d671636ccc95411b15e9feaaf799cb64"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模英语试卷-解析版.pdf",
+        "byte_size": 1412676,
+        "sha256": "9714577213f2290dafb0cb904f77c087297961f47a92a2d6ac26a5271d5b0cb1"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-520AC04147F9",
+      "display_title": "2025年南沙区历史一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市南沙区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模历史试卷-题目版.pdf",
+        "byte_size": 4591653,
+        "sha256": "76aff92a28713cf47a4619a48ea6f0a5384ac49ad13e338e2d95749dc95b1847"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模历史试卷-解析版.pdf",
+        "byte_size": 4986492,
+        "sha256": "1a72459da8a48f406100a4bac0d97cb2a206c65b6de74027124081fec8c3fc08"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-03AB67415DF8",
+      "display_title": "2025年增城区历史一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市增城区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模历史试卷-题目版.pdf",
+        "byte_size": 3103980,
+        "sha256": "5cc9cabb9aa83f3d7b456ef7a08c8713fa524234219b41e37c0cc2028af43932"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模历史试卷-解析版.pdf",
+        "byte_size": 3453584,
+        "sha256": "c20e89670ba03e6fded24795bf3e9dcd9cefca4f6019c9be42b2a4072c84a155"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B751832C493F",
+      "display_title": "2025年天河区历史一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市天河区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模历史试卷-题目版.pdf",
+        "byte_size": 1771066,
+        "sha256": "7effeb5b08805c15ec28348e20338847721d69e2b9eb45133e6a2e69c834cece"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模历史试卷-解析版.pdf",
+        "byte_size": 2125113,
+        "sha256": "336d8e22c4599f6617619841aab8c37b0f6b93724aa32edaa4bc3fb099c9f46b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-29BB275B066C",
+      "display_title": "2025年海珠区历史一模",
+      "district": "海珠区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市海珠区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市海珠区中考一模历史试卷-题目版.pdf",
+        "byte_size": 2368045,
+        "sha256": "004c64354d6adc9e74022809f187fb191fc0518ddcd8f63297b345f413b1a4d2"
+      },
+      "answer": {
+        "name": "2025年广东省广州市海珠区中考一模历史试卷-解析版.pdf",
+        "byte_size": 2689495,
+        "sha256": "9afe8afa4ec51b64f7e34132514151664473f17ba166bf54d01fee428babdbef"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E961A25B38C7",
+      "display_title": "2025年番禺区历史一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市番禺区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模历史试卷-题目版.pdf",
+        "byte_size": 2014126,
+        "sha256": "c2c5a5b8d528ff07a00c35f7c4586819a9c27c716978eb4c3b0defe79927edd4"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模历史试卷-解析版.pdf",
+        "byte_size": 2325601,
+        "sha256": "7bbc2671b50f7494738bf7eda08ecd77c882da925060c258a5be81eb99ff4e90"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-54FAC4FCA320",
+      "display_title": "2025年荔湾区历史一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市荔湾区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模历史试卷-题目版.pdf",
+        "byte_size": 1476916,
+        "sha256": "10afd6fc8d6b31e92a3150a515bdbdfce72d882cb7e97cbdbb691ad06125315b"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模历史试卷-解析版.pdf",
+        "byte_size": 1786838,
+        "sha256": "08699bd6c571feff4ddcc1f973b4b07ff80661d33def319e73909a96a311af20"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-327C61BFAE5D",
+      "display_title": "2025年越秀区历史一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市越秀区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模历史试卷-题目版.pdf",
+        "byte_size": 1413078,
+        "sha256": "d6e23cd1e6c6382ce075b432b918b80e04fc52328cc35e807bbb2b8b9e98d6eb"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模历史试卷-解析版.pdf",
+        "byte_size": 1750242,
+        "sha256": "93cd8de5b02e6932715972894e31ecba01769516d5947deadfce45726e048346"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-139A7E2B8053",
+      "display_title": "2025年黄埔区历史一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【历史】2025年广州中考一模/2025年广东省广州市黄埔区中考一模历史试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模历史试卷-题目版.pdf",
+        "byte_size": 1502897,
+        "sha256": "d309ee423b86866259e61db0772f325cd4c4bcc0f25adaa7cd756c52ff4dd212"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模历史试卷-解析版.pdf",
+        "byte_size": 1829895,
+        "sha256": "69af334658c6267eee936cbf0de3ef3b0a0e8b37febdd8126f7001a99d72408e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-567AB93BC90D",
+      "display_title": "2025年从化区数学一模",
+      "district": "从化区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市从化区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市从化区中考一模数学试卷-题目版.pdf",
+        "byte_size": 1243737,
+        "sha256": "7120d1af18038edda034f89a6061ee14b9a3fe1be7bf19459e152bc0fbcf6df8"
+      },
+      "answer": {
+        "name": "2025年广东省广州市从化区中考一模数学试卷-解析版.pdf",
+        "byte_size": 2495879,
+        "sha256": "9cb45ce16af48cfcff4c18a4cf6ba89b908a425b63b6a3a4f03f1db838224910"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B94A9A04E807",
+      "display_title": "2025年南沙区数学一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市南沙区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模数学试卷-题目版.pdf",
+        "byte_size": 3966296,
+        "sha256": "19e9248a2c31403309af96ae97944e8b140b84f773b7479c9d14dbc3ad567bf5"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模数学试卷-解析版.pdf",
+        "byte_size": 4951949,
+        "sha256": "51b7fe59c0a609ff48220466406caf97bd7d40a73212ca0e22389b169ef9c78d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B4A770CA10E0",
+      "display_title": "2025年增城区数学一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市增城区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模数学试卷-题目版.pdf",
+        "byte_size": 2071730,
+        "sha256": "65d59e843708227620a08ce4a66cc5d011dc4fde7e10e0b6a5b4f49476ca55da"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模数学试卷-解析版.pdf",
+        "byte_size": 3289075,
+        "sha256": "9fa29cf795bab3d38fbb44715826b78c01762b13d02920239a6b11cbb701d55e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-544F4FC3F1DB",
+      "display_title": "2025年天河区数学一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市天河区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模数学试卷-题目版.pdf",
+        "byte_size": 1565442,
+        "sha256": "091775b7f24c74d29946fc78d0afa64c58a9bf72c6e40bf9c6dfc447724f7870"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模数学试卷-解析版.pdf",
+        "byte_size": 2381360,
+        "sha256": "14194e29790493446966790f4e9e76f4ee1680e95a3adb63789c135492cd3d1e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-1E6A8E7F9DA6",
+      "display_title": "2025年海珠区数学一模",
+      "district": "海珠区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市海珠区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市海珠区中考一模数学试卷-题目版.pdf",
+        "byte_size": 1288931,
+        "sha256": "5e68d12cfc8b08f682ef16045ab4cfc120fb4d51912c0201df4bc998e0aa1642"
+      },
+      "answer": {
+        "name": "2025年广东省广州市海珠区中考一模数学试卷-解析版.pdf",
+        "byte_size": 2081862,
+        "sha256": "8249418f4966e16818cd31b248b83085e30b52e8628b39d33d4d71dc68e10677"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-A744DB7EE616",
+      "display_title": "2025年番禺区数学一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市番禺区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模数学试卷-题目版.pdf",
+        "byte_size": 1814430,
+        "sha256": "99c15e96c0fb9680c5a25a44f97bb600d65e2fdaa4f103a97a93f87e085ab949"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模数学试卷-解析版.pdf",
+        "byte_size": 2975539,
+        "sha256": "aa5182ba3ecb72164dcda049df6237fd4f1afff1c5d33c7b62577ef3f3a36290"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-22FF2D190629",
+      "display_title": "2025年白云区数学一模",
+      "district": "白云区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市白云区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市白云区中考一模数学试卷-题目版.pdf",
+        "byte_size": 1950744,
+        "sha256": "6017c3b7c5d2354f243d056b00d957db2ff373330cfec5f5d3c0b6521a8cbf1f"
+      },
+      "answer": {
+        "name": "2025年广东省广州市白云区中考一模数学试卷-解析版.pdf",
+        "byte_size": 3645479,
+        "sha256": "4fc86681871e13e4eb765e7a5f8521c27cf90aa68e8710fe624123308bb781d3"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7DCEB9DD9B42",
+      "display_title": "2025年花都区数学一模",
+      "district": "花都区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市花都区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市花都区中考一模数学试卷-题目版.pdf",
+        "byte_size": 2022418,
+        "sha256": "655291de934e7a26bbf22ff1e1754de7b88bc798c1611d8ef9758e1db4b8e38f"
+      },
+      "answer": {
+        "name": "2025年广东省广州市花都区中考一模数学试卷-解析版.pdf",
+        "byte_size": 3335183,
+        "sha256": "44f2fcbed36b6a6a2001b4fd9d2bef87ee2a5002417a4f41e116a369700d9b83"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8574CDD18DC7",
+      "display_title": "2025年荔湾区数学一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市荔湾区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模数学试卷-题目版.pdf",
+        "byte_size": 573391,
+        "sha256": "526be44ad51f784e44ba5c6bae5e254af11f14d478f3d327460fa535fc327f6d"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模数学试卷-解析版.pdf",
+        "byte_size": 1260338,
+        "sha256": "5f7e7c1951646291b2f872f0b1de840be68fe3439e92309ed9e4ac3e2ccd13f0"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8715243DF3BB",
+      "display_title": "2025年越秀区数学一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市越秀区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模数学试卷-题目版.pdf",
+        "byte_size": 3159696,
+        "sha256": "96193e35dec3b48b088546b5238c542b48b026148d44d5edd4f09ee76080d633"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模数学试卷-解析版.pdf",
+        "byte_size": 4440761,
+        "sha256": "d02ad1464f5952097bb3b7346df123f0e8461275239bbfd7745f819cef4cac1f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3BAD74F327E0",
+      "display_title": "2025年黄埔区数学一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【数学】2025年广州中考一模/2025年广东省广州市黄埔区中考一模数学试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模数学试卷-题目版.pdf",
+        "byte_size": 1297533,
+        "sha256": "2bf1230c10aa97cc78ff347808363d2b81caa088dc6bad22fcf87f72084bdb21"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模数学试卷-解析版.pdf",
+        "byte_size": 2726185,
+        "sha256": "66f9f885bdeccebdb4228eed4baf4f1fb268d8f6ca92ad149924580752370807"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E18F904AD31C",
+      "display_title": "2025年从化区道德与法治一模",
+      "district": "从化区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市从化区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市从化区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1077185,
+        "sha256": "d405f73623ed487712ced4055756704a669678d83e7c2fd494af4d6d6048a981"
+      },
+      "answer": {
+        "name": "2025年广东省广州市从化区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1319851,
+        "sha256": "314e9d4eaf6e8ae394b09adfd1fd3251fb170cf469612767b201c41d1e6b3e14"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5F5B35E0D1FE",
+      "display_title": "2025年南沙区道德与法治一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市南沙区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 987158,
+        "sha256": "60adf7c4fba5664d377691d929779343ee35876d7561bd579364096fbc7a509e"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1224440,
+        "sha256": "fa25845e4042fd62d9a0474265fe8a36421cfcf854aa11b0a3854b7881d6e6c8"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-FAA33F80AD95",
+      "display_title": "2025年增城区道德与法治一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市增城区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1249359,
+        "sha256": "255a7d89d0f0475b8dfb71344dd5e698b0ba0cf8ddc80f212eb6eebaf6d3462d"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1488803,
+        "sha256": "1b422d33c3e7151fb90fcae5a25b0a15e77139ddd09b6887ca3746ae162f2dbe"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-467534EDB2B3",
+      "display_title": "2025年天河区道德与法治一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市天河区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1247917,
+        "sha256": "489b66c482ee4a007f1934cf3fd3d2c7964542de340c39f16c75d9c994571aae"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1495560,
+        "sha256": "861986119a7d96b18c1463fe03b85bb8f9a9303a6dcbbfe2fd578498776f9cee"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0EFD56354C1A",
+      "display_title": "2025年番禺区道德与法治一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市番禺区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1584215,
+        "sha256": "1e1d3b313a20337800fa7421cc37ec58cd357a121b7ed61023e1f1d2142cb12e"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1844062,
+        "sha256": "218c8bd0b7186863c2d05b0b7b475544179803032a3a4eada61107138ac1ae56"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3E2C39A99CCA",
+      "display_title": "2025年白云区道德与法治一模",
+      "district": "白云区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市白云区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市白云区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1826088,
+        "sha256": "1fa32b58386a71fff55ebb939b62f411055646d442982be2a1967b9014d18535"
+      },
+      "answer": {
+        "name": "2025年广东省广州市白云区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 2068876,
+        "sha256": "d71f57c397f001216caa337de869b0df7b63fff89de1c87231831215f506a414"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-09C72D243DA1",
+      "display_title": "2025年花都区道德与法治一模",
+      "district": "花都区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市花都区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市花都区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1182548,
+        "sha256": "24a5443c9071340747c51c59206c07f4d50354bed6254347cf9d6a065f1a1126"
+      },
+      "answer": {
+        "name": "2025年广东省广州市花都区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1414044,
+        "sha256": "1e739731f115fa1a8e0a5b44b68c9aad22a0426b839b13608151bd77b42abd3a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-257939A063DB",
+      "display_title": "2025年荔湾区道德与法治一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市荔湾区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 663171,
+        "sha256": "5f8486e4b0c6be24c7e97ba3217a928960e0bc4e41e94902163bff313de672dc"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 877404,
+        "sha256": "f1f0f9501391528d5170e924000a808d9ab22ad87d15b322c61dff88cca1b3dd"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-45CA87309186",
+      "display_title": "2025年越秀区道德与法治一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市越秀区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 712349,
+        "sha256": "0fce94a3d1253a5be195e9d6032b1ec88c3699ddd5c47e6457c6bb234f156233"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 966489,
+        "sha256": "323ccf0e906a323d66d6a726c927f698f50843baa4f7524663d699f445d25b6b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-39516EC3DD47",
+      "display_title": "2025年黄埔区道德与法治一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【政治】2025年广州中考一模/2025年广东省广州市黄埔区中考一模道德与法治试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模道德与法治试卷-题目版.pdf",
+        "byte_size": 1373559,
+        "sha256": "bfa5e573cf310e2093e000cc00814ef6258f67eef486dc65776e7d483b273325"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模道德与法治试卷-解析版.pdf",
+        "byte_size": 1598943,
+        "sha256": "9ed6c0fecf47033b2e26cf431af3f762a96bbdd143f259b47d254a90f0417af1"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-95F0244BC2B2",
+      "display_title": "2025年从化区物理一模",
+      "district": "从化区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市从化区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市从化区中考一模物理试卷-题目版.pdf",
+        "byte_size": 578037,
+        "sha256": "761699f658fb6096d0751a9dc3e8431c58b984b7d9aabc809299ed7edf806b0b"
+      },
+      "answer": {
+        "name": "2025年广东省广州市从化区中考一模物理试卷-解析版.pdf",
+        "byte_size": 876854,
+        "sha256": "a5f28ba99859fd0d9c09856a069014519193dcca506790a572c35385a6c1cda6"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8ACC0694D472",
+      "display_title": "2025年南沙区物理一模",
+      "district": "南沙区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市南沙区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市南沙区中考一模物理试卷-题目版.pdf",
+        "byte_size": 871162,
+        "sha256": "17062233e5a0971ecae7c669b216456a51251d384d7e5cd4b7ab6b11772de56f"
+      },
+      "answer": {
+        "name": "2025年广东省广州市南沙区中考一模物理试卷-解析版.pdf",
+        "byte_size": 1244116,
+        "sha256": "6269df44c7d16175329e2c7a8a4540da49ec472be11bf05220f91e09bdc28bd6"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-4086CD86D889",
+      "display_title": "2025年增城区物理一模",
+      "district": "增城区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市增城区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市增城区中考一模物理试卷-题目版.pdf",
+        "byte_size": 4638367,
+        "sha256": "d08f08fd7df7c63bb3d6897cd9edaaf4044c87f423b952f60aaa019dfedbbdcd"
+      },
+      "answer": {
+        "name": "2025年广东省广州市增城区中考一模物理试卷-解析版.pdf",
+        "byte_size": 4984074,
+        "sha256": "362f707953ae56d49675b62917f52a65555487b8587aa0bb790389b291f133f0"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B02A4DC0ED16",
+      "display_title": "2025年天河区物理一模",
+      "district": "天河区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市天河区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市天河区中考一模物理试卷-题目版.pdf",
+        "byte_size": 6637916,
+        "sha256": "3378b5f2c14f30a45db808a5ecb0218abff7832ed20e2058b4a3267a39370190"
+      },
+      "answer": {
+        "name": "2025年广东省广州市天河区中考一模物理试卷-解析版.pdf",
+        "byte_size": 7757701,
+        "sha256": "d91d9301131e74ae0c8d625cae6a0af2c17dc14486515de7246be4e9e735f78a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-A6684499B756",
+      "display_title": "2025年海珠区物理一模",
+      "district": "海珠区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市海珠区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市海珠区中考一模物理试卷-题目版.pdf",
+        "byte_size": 4770905,
+        "sha256": "bf07aa70fdb237b8e49c014aaccf01fd8643b5af53f44133de531ddf241db3e5"
+      },
+      "answer": {
+        "name": "2025年广东省广州市海珠区中考一模物理试卷-解析版.pdf",
+        "byte_size": 5337399,
+        "sha256": "bce1b15a43b080e32f613048ec947a901c0e80cd0fc4fba8a6ef79a7a338cfea"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-53458818CE09",
+      "display_title": "2025年番禺区物理一模",
+      "district": "番禺区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市番禺区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市番禺区中考一模物理试卷-题目版.pdf",
+        "byte_size": 8358447,
+        "sha256": "9c5c60905df64ac352c818dec2635d5e48aafa5c2da0ab27bb6ec594428aab82"
+      },
+      "answer": {
+        "name": "2025年广东省广州市番禺区中考一模物理试卷-解析版.pdf",
+        "byte_size": 9837194,
+        "sha256": "d7800cbdfad4560e0c97a1c6f03980a7f16105bf0be9c2b90e81e9a881fc1995"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-C7E8F3363F0B",
+      "display_title": "2025年白云区物理一模",
+      "district": "白云区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市白云区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市白云区中考一模物理试卷-题目版.pdf",
+        "byte_size": 7044217,
+        "sha256": "db7ae17db5daaa4608859029cf7a82e3fea60323b39a53ee1a8c4bce2444ad2e"
+      },
+      "answer": {
+        "name": "2025年广东省广州市白云区中考一模物理试卷-解析版.pdf",
+        "byte_size": 7825147,
+        "sha256": "e362cfec57e9d13cd6c73de23543da1a0b4e3fdebad21cca348950a9ad28ae79"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E76A1CB86A87",
+      "display_title": "2025年花都区物理一模",
+      "district": "花都区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市花都区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市花都区中考一模物理试卷-题目版.pdf",
+        "byte_size": 7473134,
+        "sha256": "5cc57c3e354a66f59326d944257ca48746d35f1b61eb21d10654f515e0d90b7a"
+      },
+      "answer": {
+        "name": "2025年广东省广州市花都区中考一模物理试卷-解析版.pdf",
+        "byte_size": 7927678,
+        "sha256": "bfaff22f4ea78eb2cab70a0ced983e8e1adc8023334efa7b393e4d711368e2a5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8D04CD3D504B",
+      "display_title": "2025年荔湾区物理一模",
+      "district": "荔湾区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市荔湾区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市荔湾区中考一模物理试卷-题目版.pdf",
+        "byte_size": 1044099,
+        "sha256": "3c5b2a247f1bafadb01492326bb0e97bc7c8dec4d83f05dacc230f08d16c8714"
+      },
+      "answer": {
+        "name": "2025年广东省广州市荔湾区中考一模物理试卷-解析版.pdf",
+        "byte_size": 1403479,
+        "sha256": "b50e12c6040a7af344d262adee7173d80b49c37d874fdd6c9e77dd52c67306b7"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-04E97858B8F5",
+      "display_title": "2025年越秀区物理一模",
+      "district": "越秀区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市越秀区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市越秀区中考一模物理试卷-题目版.pdf",
+        "byte_size": 768317,
+        "sha256": "2660ce4361afe70f5f8d8e2c40f52eafb35998beb64461f7e9675e76dad37b7b"
+      },
+      "answer": {
+        "name": "2025年广东省广州市越秀区中考一模物理试卷-解析版.pdf",
+        "byte_size": 1019469,
+        "sha256": "fdf7a35e409f3aa76c190484b769544113f5ebf42d965f7e106e394b41e51360"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8637A20F7F75",
+      "display_title": "2025年黄埔区物理一模",
+      "district": "黄埔区",
+      "exam_year": 2025,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2025年广州初三一模各区全科真题卷（73份）/【物理】2025年广州中考一模/2025年广东省广州市黄埔区中考一模物理试卷-题目版.pdf",
+      "paper": {
+        "name": "2025年广东省广州市黄埔区中考一模物理试卷-题目版.pdf",
+        "byte_size": 1183960,
+        "sha256": "4d6524c63423c9dd7704a277ef71ccf2634b9647ff9935c14cbb09ed967814e8"
+      },
+      "answer": {
+        "name": "2025年广东省广州市黄埔区中考一模物理试卷-解析版.pdf",
+        "byte_size": 1468597,
+        "sha256": "fbaebb336fb4a8a04eed3f3e0c3b5c1585962220a4d59cf703f46d9b316e984d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-1562E29DD26A",
+      "display_title": "2024年从化区化学一模",
+      "district": "从化区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市从化区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市从化区中考化学一模试卷-题目版.pdf",
+        "byte_size": 974588,
+        "sha256": "9d3b383a961b3ad76cfd793d0febb84a7f36b875591e6a28df215035b7345cae"
+      },
+      "answer": {
+        "name": "2024年广东省广州市从化区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1159941,
+        "sha256": "98b731f0615bcdfe9e75a3f01a5c9306457bf8b5f2872859956001267e90a0c5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8B122CE7C1C1",
+      "display_title": "2024年增城区化学一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市增城区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考化学一模试卷-题目版.pdf",
+        "byte_size": 903963,
+        "sha256": "490543136f3b029a06fa795e004da1cf4328629188b6de1816ccaf387a4534b2"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1087397,
+        "sha256": "cb9becbc2625e8d74fb8f5664d1cd976504fbc05db6811e11ecfa7e00ea89648"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8CA9FDF8C882",
+      "display_title": "2024年天河区化学一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市天河区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考化学一模试卷-题目版.pdf",
+        "byte_size": 1017036,
+        "sha256": "6157306ed8ff4a3569098ef7a0a3cb26d2bde651cfe2ff20d41529b5690c4539"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1235416,
+        "sha256": "ac7391ddb89880ad3b6a8009a7db8b0905d794b1a1e3194147f8534fd7b3f7d5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B02DBBA0CAC0",
+      "display_title": "2024年海珠区化学一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市海珠区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考化学一模试卷-题目版.pdf",
+        "byte_size": 1053474,
+        "sha256": "dedc491adb314c2ee4c9710377f762bc41217e52e271c608fcbb43684997ff99"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1195614,
+        "sha256": "90ce33c5c80084dec5cb3e4812ea77bbcea1f55c2107f839dbe0a75c31ec2d81"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3497835D2988",
+      "display_title": "2024年番禺区化学一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市番禺区中考化学一模试题-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考化学一模试题-题目版.pdf",
+        "byte_size": 2864466,
+        "sha256": "955e6b0ab6bb27f66da4026c298f8e0da3ca41bfcd27f0c34e8d070491ba3f7c"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考化学一模试题-解析版.pdf",
+        "byte_size": 3101379,
+        "sha256": "4bec9c7de93aa8bd9ff88ac61f1774030f3d2d1c4302edea0682d1df1a6ca28f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-D8E3F5792984",
+      "display_title": "2024年白云区化学一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市白云区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考化学一模试卷-题目版.pdf",
+        "byte_size": 934721,
+        "sha256": "816b2af16ecef5cd6338dcd0af4daf3683b4fcabcc1a61fb273b9bba79f8cced"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1276043,
+        "sha256": "c76a33bb5878367b5d0db6d5dd7daceb080ef8b2e4ba0be391450da28686f335"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-930EE6C72D63",
+      "display_title": "2024年花都区化学一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市花都区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考化学一模试卷-题目版.pdf",
+        "byte_size": 1050677,
+        "sha256": "d04818551f2a3ddd82e56fde23239b93eee55094f562796d48b15d0c5cc5e352"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1291243,
+        "sha256": "152533825ea68f60b091d5e981c88017124c02b434e72fb0cbc9ba5eb09c8c98"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E6BF46584043",
+      "display_title": "2024年荔湾区化学一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市荔湾区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考化学一模试卷-题目版.pdf",
+        "byte_size": 951559,
+        "sha256": "c9175c4225b40cbc925719c43e5df4e6475fa6f074087e83a410354b42ea4b52"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1207670,
+        "sha256": "6b94e3cf3cb5d4661322aa48879361c0f5768c47112c9218b59185c2f5dc7eba"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5FD3638D51BC",
+      "display_title": "2024年越秀区化学一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市越秀区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考化学一模试卷-题目版.pdf",
+        "byte_size": 762371,
+        "sha256": "c6ab6183cfe5178e4cc6b42e890bdbde4072e63cf0e62187fe4e2955e1346a43"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1026834,
+        "sha256": "8868eb80e50932039bc9a60d5df705cf40e623f34bacdb5b83a96cf7854c2885"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0C7CA0D7E301",
+      "display_title": "2024年黄埔区化学一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【化学】2024年广州中考一模/2024年广东省广州市黄埔区中考化学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考化学一模试卷-题目版.pdf",
+        "byte_size": 1025704,
+        "sha256": "ebc3601af826faebce88bb189ca6f5b710ee162189bc3125cacb263d038fc6eb"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考化学一模试卷-解析版.pdf",
+        "byte_size": 1168452,
+        "sha256": "5a9b96d983d4eea138c19783a45f9716a3764167df5d06176f9be1fb5100995e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8B8F1173EFB2",
+      "display_title": "2024年南沙区语文一模",
+      "district": "南沙区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市南沙区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市南沙区中考语文一模试卷-题目版.pdf",
+        "byte_size": 836425,
+        "sha256": "b99ee6e20e6a0c779d978e4c2de25e272bad1d6340b10b281a314085f5fb49ac"
+      },
+      "answer": {
+        "name": "2024年广东省广州市南沙区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1132015,
+        "sha256": "836adf56107701005ed1c7b46d97e3554707f3ba5ace0fc3983a0af851ff591d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6E02E3A7E8E3",
+      "display_title": "2024年增城区语文一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市增城区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考语文一模试卷-题目版.pdf",
+        "byte_size": 856512,
+        "sha256": "6ec834f1fc3fbac5978b33621ee206ce60e7bd17db2cd9e33e98a0851a661ea6"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1231737,
+        "sha256": "b4e11b57fe3430c5992e627103490b385ee44b36eea21d927bf16fd9ea21dcfd"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6BE95AB987C0",
+      "display_title": "2024年天河区语文一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市天河区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考语文一模试卷-题目版.pdf",
+        "byte_size": 863462,
+        "sha256": "821d7f1af43edf65971762ccec340925df54f7a9ff400bd995678dfa2f2e8d82"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1181908,
+        "sha256": "d204ebabd8be4c98c1c0434263e8da03d5326d1ae28901e5ca959fe4f5349b37"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-91F0CB933613",
+      "display_title": "2024年海珠区语文一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市海珠区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考语文一模试卷-题目版.pdf",
+        "byte_size": 938308,
+        "sha256": "f5c4fd2a4d752097e87b3f78d6af3209953bf5347668aab895cd60476f2fa5ff"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考语文一模试卷-答案版.pdf",
+        "byte_size": 1083725,
+        "sha256": "0e351dd2557835199af9feb324ae5615dc8daa58834e45ed201fc982ce62d6d4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-1A4D7D4FEC1F",
+      "display_title": "2024年番禺区语文一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市番禺区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考语文一模试卷-题目版.pdf",
+        "byte_size": 826641,
+        "sha256": "7bcb9698dd6f0709fb9da5b7ec06b489f6b7e40864382e09ec77a6561bd6756b"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1177943,
+        "sha256": "2f943b6300191370efa7f23f7f7f2c4820a82b9989cddec13cd9bb03cd9271fe"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2CEB7D1FA31B",
+      "display_title": "2024年白云区语文一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市白云区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考语文一模试卷-题目版.pdf",
+        "byte_size": 891464,
+        "sha256": "1ed2ce3572953d30f822c678ba39fdabad23b46a490f047153eebece3c60f54b"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1132481,
+        "sha256": "ca618103fcf1d002be5937e5307274498ca1007c5b342e0f6b57f88bce024a8b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6E7BD2506DEA",
+      "display_title": "2024年花都区语文一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市花都区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考语文一模试卷-题目版.pdf",
+        "byte_size": 840913,
+        "sha256": "d04d06f18ffc9bdc1d8be3bf642189137b764840d886f9e77988d7184dd8c62a"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1115669,
+        "sha256": "dc45fd014e3eebc247da1846311095708d7c5c844c248705a3f784834483a730"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3BD5F4474251",
+      "display_title": "2024年荔湾区语文一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市荔湾区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考语文一模试卷-题目版.pdf",
+        "byte_size": 842898,
+        "sha256": "434cd5db5af90c1f505d092922f9122c800fea09bc6e84846c9389a2c4bc83e2"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1049937,
+        "sha256": "4bbe41d81e5a4fc039a76724e8555559a3e6f3d23f8e4f274dc2c674c735dfe2"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-C104C1B17700",
+      "display_title": "2024年越秀区语文一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市越秀区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考语文一模试卷-题目版.pdf",
+        "byte_size": 850441,
+        "sha256": "22ffd3f3e3598d37a829c5c3c38cf7c9fc354ed824106eaf7ace8defe41dc346"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1130171,
+        "sha256": "79dd562e68945a6c2a26c2b1f813344f94172056c714e6f6423279804bcfa4f8"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E39EE20041DB",
+      "display_title": "2024年黄埔区语文一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【语文】2024年广州中考一模/2024年广东省广州市黄埔区中考语文一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考语文一模试卷-题目版.pdf",
+        "byte_size": 887084,
+        "sha256": "a4e0764b969a37187759cb60f4709b8fc0774692787e8f286e4562ee22f1b066"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考语文一模试卷-解析版.pdf",
+        "byte_size": 1149021,
+        "sha256": "ec66a5c7a3ccd66dcbba8768b78df3dc8c219802ee6dcdbb861427f91f4bd865"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-660E98EE7221",
+      "display_title": "2024年南沙区英语一模",
+      "district": "南沙区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市南沙区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市南沙区中考英语一模试卷-题目版.pdf",
+        "byte_size": 472489,
+        "sha256": "0c4d110dfa16639565352e2017389fe12f0255939211f6cfac2ac007eaba1683"
+      },
+      "answer": {
+        "name": "2024年广东省广州市南沙区中考英语一模试卷-解析版.pdf",
+        "byte_size": 754931,
+        "sha256": "76d63481402983eace31698401b6991a2fcb5482c8f6097004d594cff40f9e45"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-F4F85592A163",
+      "display_title": "2024年增城区英语一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市增城区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考英语一模试卷-题目版.pdf",
+        "byte_size": 398649,
+        "sha256": "42f5f8af9678224323d23f8c09d585dbd7a65cfa95f8b42b3a5e5091d48ad48e"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考英语一模试卷-解析版.pdf",
+        "byte_size": 707103,
+        "sha256": "31ece98e3cdd2380f39486461ca696011842b5197cf1bdae8510cbc1a0bf06e4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-92CE36285E03",
+      "display_title": "2024年天河区英语一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市天河区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考英语一模试卷-题目版.pdf",
+        "byte_size": 500290,
+        "sha256": "448c1e24becce9c00bcf3a94e881f0a2224649c5a637b3642d93db3807f05960"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考英语一模试卷-解析版.pdf",
+        "byte_size": 949923,
+        "sha256": "1c3f2856bd6ae060562228606ecd810c908f2723161fd546442eaf4c4e0ba804"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6320B94D59F4",
+      "display_title": "2024年海珠区英语一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市海珠区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考英语一模试卷-题目版.pdf",
+        "byte_size": 392249,
+        "sha256": "5bc411e42687f14099d807a1dd89a0378fbf8bc4c080d84d858fe51ab536b6b1"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考英语一模试卷-解析版.pdf",
+        "byte_size": 685577,
+        "sha256": "81bc1c746298632eac99f54696a1178c63046b8d4f814f2680a5e003f2825023"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-D8B66A192C8C",
+      "display_title": "2024年番禺区英语一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市番禺区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考英语一模试卷-题目版.pdf",
+        "byte_size": 418202,
+        "sha256": "2dbe81200f07b99999583d1a5ef792913b54c3035c9d89dc125c0f242c7ee993"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考英语一模试卷-解析版.pdf",
+        "byte_size": 745995,
+        "sha256": "6c067f4bc3aa22bb3750fb2add1faf1e4ec4ff27e4e6ea84b4b86f823e5b21a3"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-A3DD055BE43D",
+      "display_title": "2024年白云区英语一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市白云区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考英语一模试卷-题目版.pdf",
+        "byte_size": 337158,
+        "sha256": "7aecacfec064db067549408667ae4a53fb58582d9087614af57a2d6e3139fd87"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考英语一模试卷-解析版.pdf",
+        "byte_size": 634628,
+        "sha256": "76dcdf1539cd064ee4de47ceeee850ef105481e3bbd9a26ff8744e224c5cddc3"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0E63B7DB5C1E",
+      "display_title": "2024年花都区英语一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市花都区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考英语一模试卷-题目版.pdf",
+        "byte_size": 617930,
+        "sha256": "57c67101593d130fb3667632fe8c0639a64be208666eaa685e50df08aca3d626"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考英语一模试卷-解析版.pdf",
+        "byte_size": 911995,
+        "sha256": "8728cbe3c65efd9613097a69f5ff770f896051d7d6c265cc1690d02496cc6d6e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-16116D9F86C4",
+      "display_title": "2024年荔湾区英语一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市荔湾区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考英语一模试卷-题目版.pdf",
+        "byte_size": 514798,
+        "sha256": "5531043e6acc0d9ac7d2baf568bd32b73ab4e6fd2a467bfea12e0ac3f78e402b"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考英语一模试卷-解析版.pdf",
+        "byte_size": 789007,
+        "sha256": "d99155eb98139ecffe7ff6b4dd86aa83067a2cb7c0a439970b31e46f83cc8611"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-97DA4EE1C388",
+      "display_title": "2024年越秀区英语一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市越秀区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考英语一模试卷-题目版.pdf",
+        "byte_size": 426910,
+        "sha256": "e41f6b85a4aeb8147aabce7f24d199aea7eb635b4cbae48490776c0d97112e6f"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考英语一模试卷-解析版.pdf",
+        "byte_size": 827549,
+        "sha256": "b9fd511b215ea18f0686b9a6162771d3e2c61d34392f8a0b751fe5f8596cde0e"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6FE5C6710D9B",
+      "display_title": "2024年黄埔区英语一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【英语】2024年广州中考一模/2024年广东省广州市黄埔区中考英语一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考英语一模试卷-题目版.pdf",
+        "byte_size": 501375,
+        "sha256": "eb456b61474e4030a90708309880316a6e51b78790f3fef6fda27a9446537de5"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考英语一模试卷-解析版.pdf",
+        "byte_size": 840362,
+        "sha256": "1e378d09ce122bcb593f009387c97b0367b8d0e8f7697f008b4fc9ee6aa83981"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5815B948DB33",
+      "display_title": "2024年南沙区历史一模",
+      "district": "南沙区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市南沙区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市南沙区中考历史一模试卷-题目版.pdf",
+        "byte_size": 1141359,
+        "sha256": "8f31abf6322cb13e3fdd6fcb17e0b3981850fcc657f1ed348d3b6245b3af4aeb"
+      },
+      "answer": {
+        "name": "2024年广东省广州市南沙区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1420397,
+        "sha256": "61e4d68945932985eebe3b675cdeb4b3911f0602845cf3ef3567e6d80a38b246"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-4E577CAC2C75",
+      "display_title": "2024年增城区历史一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市增城区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考历史一模试卷-题目版.pdf",
+        "byte_size": 1148234,
+        "sha256": "894a6467d691d09334760f5eccfe47036c3ad53a0819ae3b0e267eb1c0061dc8"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1358682,
+        "sha256": "343c78a22848e749a07aa2fac161712f0ca6a3f93e4d2c5cfdd388bf25bba382"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2BEF875AF59E",
+      "display_title": "2024年天河区历史一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市天河区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考历史一模试卷-题目版.pdf",
+        "byte_size": 884860,
+        "sha256": "f310901f442059d12f8067372222bed189954fa58b9222bf928d5866dcd3bec2"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1054159,
+        "sha256": "cd9ff1727197697bfbcaf3f0e35bb1e9b0a92529c5d984184b2689829727baa4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0D0632B640BE",
+      "display_title": "2024年海珠区历史一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市海珠区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考历史一模试卷-题目版.pdf",
+        "byte_size": 743489,
+        "sha256": "a98a00b2482f9b09371e71afefaa6bab19f35b577e574c761d1119dc3c5c4da4"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1026572,
+        "sha256": "6f21e62e0eb3f5d07d02a7bcdc20ccbe53586254714863dd9101220bb4f6a051"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-469ADF43729B",
+      "display_title": "2024年番禺区历史一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市番禺区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考历史一模试卷-题目版.pdf",
+        "byte_size": 799055,
+        "sha256": "5d437caed0a8fd5238278223efc559abc36e79591efbf0cb41b808b9bddd3e62"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1189869,
+        "sha256": "1a5707cdfb99768c18f4c19eda14a2bc2256131db95d4d228cb03ca3efc23878"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-9260951C5406",
+      "display_title": "2024年白云区历史一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市白云区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考历史一模试卷-题目版.pdf",
+        "byte_size": 1103008,
+        "sha256": "1e9735513be0597f199e728db2304f16f841af8b76c336f9292acc421e73f137"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1284629,
+        "sha256": "8a93f34a8272e0cf45bcbc54a95228abed77af1cced15c228e1568c32ed81b99"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E366A5EE5DB0",
+      "display_title": "2024年花都区历史一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市花都区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考历史一模试卷-题目版.pdf",
+        "byte_size": 1081249,
+        "sha256": "127153b126864c3419f5b9b0955a1d720a80adb4d63c19699923eceef9d4b884"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1238856,
+        "sha256": "c63dab93829263b082f2ee706f80499fb13a8b1ceb59eae30919e31ad80d1345"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-F624B4995A9F",
+      "display_title": "2024年荔湾区历史一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市荔湾区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考历史一模试卷-题目版.pdf",
+        "byte_size": 976493,
+        "sha256": "f74dbc38c6ccba76655e442568f79273a6be4ba3abd05961598009837241b6ba"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1141560,
+        "sha256": "fd173093e32106de850eb0ba8000fca2afcfee6b6ccfe9933d8bacc7cb569f3b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-120CBA26FBC0",
+      "display_title": "2024年越秀区历史一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市越秀区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考历史一模试卷-题目版.pdf",
+        "byte_size": 853325,
+        "sha256": "5179a8d408caab2955ac32dd952dfb410996c46fec0ebd219ad9cf086f27591e"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1069428,
+        "sha256": "c162d244d0d8fd6fbe2ec02a98cbbc0c506f506b959c042ba6ecbd5617446c2d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-231C87F5C5EB",
+      "display_title": "2024年黄埔区历史一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【历史】2024年广州中考一模/2024年广东省广州市黄埔区中考历史一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考历史一模试卷-题目版.pdf",
+        "byte_size": 1016799,
+        "sha256": "4bb8fafb3118f643f011c47c7c48acef5a2850cb0ad6063ee75b0eecb65528a6"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考历史一模试卷-解析版.pdf",
+        "byte_size": 1205021,
+        "sha256": "eab847e5fec5142f3fd8b6b57a6db1d4aa979aab1ccc6a185f32bf538880b8fa"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5F7029C3A57C",
+      "display_title": "2024年南沙区数学一模",
+      "district": "南沙区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市南沙区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市南沙区中考数学一模试卷-题目版.pdf",
+        "byte_size": 605984,
+        "sha256": "b9423246bf845afe1b19dbdb9345c61656bcd929583e70a7f75814af2e55d18f"
+      },
+      "answer": {
+        "name": "2024年广东省广州市南沙区中考数学一模试卷-解析版.pdf",
+        "byte_size": 605985,
+        "sha256": "63de56c62ef674d004572b2e204b5fd659d5c1a6fba2e1404efdb9944dd61b6b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B55949D32427",
+      "display_title": "2024年增城区数学一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市增城区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考数学一模试卷-题目版.pdf",
+        "byte_size": 442546,
+        "sha256": "f475b4eccadd0e7e2895dc85b60146c82711449bc1faa266f95e2295fbdda925"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1059134,
+        "sha256": "9b3859f0561bb94a69d6cc2ba6c1d2110371b5c3decf7e92b1b9a03e54b7f130"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5A8F83CE53B9",
+      "display_title": "2024年天河区数学一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市天河区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考数学一模试卷-题目版.pdf",
+        "byte_size": 660735,
+        "sha256": "b97b7b6ea32e3949b386e9b5f3549ae0a1eaa90593f72f81d29306f258c1c5ea"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1053932,
+        "sha256": "cae9b366419b5aa58173f435ff84557403889c12ed642c607c1061b01f9d7b07"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-686BF6E6D5C1",
+      "display_title": "2024年海珠区数学一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市海珠区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考数学一模试卷-题目版.pdf",
+        "byte_size": 551575,
+        "sha256": "c8cc01a090c51d0531d93c8d739ece02e020b98660673daa5ddd9e341e7c0102"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1037406,
+        "sha256": "413f9f293a9b29af129e530a0aa780296ff5c5b2559217709174d93304f90d84"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7D16D84C90B0",
+      "display_title": "2024年番禺区数学一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市番禺区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考数学一模试卷-题目版.pdf",
+        "byte_size": 561132,
+        "sha256": "594e0ddd4eee8927612e2f290263321d8dc21c3b0a76dfc87ab04255f1d3b2ab"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1013619,
+        "sha256": "5f93fb7b565d004e3eefed3198a85475e040c4bac455832c640e9f89ee4c2df7"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-A545C497E66C",
+      "display_title": "2024年白云区数学一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市白云区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考数学一模试卷-题目版.pdf",
+        "byte_size": 636159,
+        "sha256": "0d61a3d639e42e505ed782585c2ec35becb183f5f17d8b798f06d0683f902f53"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1150294,
+        "sha256": "7a36fd7b745403c67a6d7c268fca942d9b0341468b909a0d4ce6375b636a9bcb"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0A58E15A4198",
+      "display_title": "2024年花都区数学一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市花都区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考数学一模试卷-题目版.pdf",
+        "byte_size": 571100,
+        "sha256": "795ccce5b0a738bed240dd56a4170f95aca3f0acc774a86608768306b4c5795b"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考数学一模试卷-解析版.pdf",
+        "byte_size": 971688,
+        "sha256": "e608c434baaaa13f0d27aaf14e935fb8b51588081c58d04c65e83eef0a2a5cb9"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-765F337D391D",
+      "display_title": "2024年荔湾区数学一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市荔湾区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考数学一模试卷-题目版.pdf",
+        "byte_size": 606084,
+        "sha256": "0a2f68de2587e0c910442ff28d0d8053f8113a5e5fd93ae37c7276719f38d922"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1219861,
+        "sha256": "6cb100498aa623fd30dc2090796c01df3d9e60cafed927725975c4e02af683e4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-CD0F57ABFC02",
+      "display_title": "2024年越秀区数学一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市越秀区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考数学一模试卷-题目版.pdf",
+        "byte_size": 543228,
+        "sha256": "d0afbe48c30fc9eaf76f36a1f547848882cc42dca4b5aface6844460ed8a0462"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1054320,
+        "sha256": "3ea317a64f02478cf1e802eb5422d7769d868220a511d045613f2986b77329b8"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-978F48A31C3E",
+      "display_title": "2024年黄埔区数学一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【数学】2024年广州中考一模/2024年广东省广州市黄埔区中考数学一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考数学一模试卷-题目版.pdf",
+        "byte_size": 502810,
+        "sha256": "9e0a1c2dabfdb7ef8c594d81859f0107f38ac5cb63042bfa1e1ad460059f0acd"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考数学一模试卷-解析版.pdf",
+        "byte_size": 1200793,
+        "sha256": "203b21c2a6a8fd26185cbe93b6dc3519b911ccaa5d1277d4e00b80cb76588033"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7BD4641957B1",
+      "display_title": "2024年南沙区道德与法治一模",
+      "district": "南沙区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市南沙区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市南沙区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 828639,
+        "sha256": "6551e3b816214eaf3b8891fd615053ce87ea6d4636bde5d8b61e0f6a4a3f58e3"
+      },
+      "answer": {
+        "name": "2024年广东省广州市南沙区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 973498,
+        "sha256": "8b381b2d2789a3e170de0007977a78577f09e200b20810145924e2e9acaf511b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B65A197D76A7",
+      "display_title": "2024年增城区道德与法治一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市增城区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 722442,
+        "sha256": "54e1afa8399489cee3eac24689a64f04731b9bfc628bbd0fb9874fa8fc3f0cdc"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 1123460,
+        "sha256": "4ec7e76feeb86f9a1d86c84d2d4ea204abab14388c2278b7bfeb992886fe8180"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E19805054806",
+      "display_title": "2024年天河区道德与法治一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市天河区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 916629,
+        "sha256": "d9429a7428c14978c573cdc172f1c78b916e6bbaef9f94e1ae0e37874df8e691"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 1240415,
+        "sha256": "47cc26cc123b998b8d22deaae0d2289c3f6bde770fcb93155533a979c3d5ecbf"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E806C4407DE3",
+      "display_title": "2024年海珠区道德与法治一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市海珠区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 1153295,
+        "sha256": "782de943a6d5f6eb2c76539fa1c90f268eb7ab36b0bae49de8be6ebd93f2ab8c"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 1252769,
+        "sha256": "21235e306b969349848a9b99fe6c54e1c3f479acd7f9381701425547a2ce288b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3B9A996BD54E",
+      "display_title": "2024年番禺区道德与法治一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市番禺区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 805841,
+        "sha256": "6edcd4e73df4670036501440fcc0243170290da33f34f572268e3b60a3b80650"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 946218,
+        "sha256": "63c180ac6f84c263a08e231226866a22828d2bfbb225bff7561a497d25b9b7d5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3D1DFE0DA4F0",
+      "display_title": "2024年白云区道德与法治一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市白云区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 1168248,
+        "sha256": "5d8fe1ecf8556db9780bc78d3c52d12e2878cf24b35ad693e789895c8c763e6e"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 1265033,
+        "sha256": "bc1488400a2e941db430aeae9d37dfaa7a3c3c2c4f92412964296f35069c2ab6"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-539C766A82D2",
+      "display_title": "2024年花都区道德与法治一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市花都区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 1110835,
+        "sha256": "b315db2e4baefe9b6a522ea2c901b1553c622c6edebe98a4a1b6d133167a7d5c"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 1261305,
+        "sha256": "641a6c386dd569356317c5a064f1ca3e4da85860c3ceba7290d1265cb891f5b8"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8F7B8268152A",
+      "display_title": "2024年荔湾区道德与法治一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市荔湾区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 1050121,
+        "sha256": "3ba5fd9a29281db4e17c7cccff3e44b81836b13dde545567c3df78840a96a0db"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 1132993,
+        "sha256": "ec1ee51cd848656350ad180d1c44798b905036352566bc14183a68e88610fb40"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-BB25F059CDD5",
+      "display_title": "2024年越秀区道德与法治一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市越秀区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 684636,
+        "sha256": "ab3f627d8c5d49ef7d5bcb2d79d444d2c4d49e6a85fd74d4970a6e0663583302"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 846683,
+        "sha256": "aa038c102327da139c7a189cfac267d8aa7fe53b5da3346dff711a04faa578f1"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-9905EE616500",
+      "display_title": "2024年黄埔区道德与法治一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【政治】2024年广州中考一模/2024年广东省广州市黄埔区中考道德与法治一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考道德与法治一模试卷-题目版.pdf",
+        "byte_size": 575156,
+        "sha256": "03d526a09b8e19b9352fc8dff2b30ea5def070b79b07612beb14c4bb7f8f0d93"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考道德与法治一模试卷-解析版.pdf",
+        "byte_size": 675562,
+        "sha256": "825a0a24c5eb4421640c381ad1a89fdb6b6eac05f2f283e7f6a7f66db45179c7"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6E4DD0E4467C",
+      "display_title": "2024年南沙区物理一模",
+      "district": "南沙区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市南沙区中考物理一模试题-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市南沙区中考物理一模试题-题目版.pdf",
+        "byte_size": 922539,
+        "sha256": "82abffde4599811eb55e43037b8cc2fb5bdf4b88c8e014df73c1f2cd5ebc32de"
+      },
+      "answer": {
+        "name": "2024年广东省广州市南沙区中考物理一模试题-解析版.pdf",
+        "byte_size": 1160740,
+        "sha256": "1617b2d9ac9342542d2851160a7cf2c8f9f8bd4c821d89452cd1530997a49b1a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-24A612ABAE8B",
+      "display_title": "2024年增城区物理一模",
+      "district": "增城区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市增城区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市增城区中考物理一模试卷-题目版.pdf",
+        "byte_size": 945132,
+        "sha256": "b7982da8fa7c529833cd11c9ed34dfb9ea0854245c6c80e2ef0086b41f5775ab"
+      },
+      "answer": {
+        "name": "2024年广东省广州市增城区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1189290,
+        "sha256": "40035a114ec5b1a84fd006f5489059b78263da4f4eadc72b4a79a193be068638"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B6061CBEA3CF",
+      "display_title": "2024年天河区物理一模",
+      "district": "天河区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市天河区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市天河区中考物理一模试卷-题目版.pdf",
+        "byte_size": 1062686,
+        "sha256": "d7c7060f8efa8ab04dcceabfe665ccfb6dfbb4dfa98ed483cfd9d63dfd32db48"
+      },
+      "answer": {
+        "name": "2024年广东省广州市天河区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1344090,
+        "sha256": "7a2abccfbdcce0aad8462f91259d11d3fdb8589eeeb6d87459f04a9886f22618"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-02BD7F282A8E",
+      "display_title": "2024年海珠区物理一模",
+      "district": "海珠区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市海珠区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市海珠区中考物理一模试卷-题目版.pdf",
+        "byte_size": 843327,
+        "sha256": "cf5b140f5085c5bb517a786b74f44dea83387ae5627d87f78cde3d757254f2a9"
+      },
+      "answer": {
+        "name": "2024年广东省广州市海珠区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1137904,
+        "sha256": "45661e290311c0b2d22c328d74dd18e6adc36c986e7d0c0c6c46a6183b1cab93"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2E3E66F4265F",
+      "display_title": "2024年番禺区物理一模",
+      "district": "番禺区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市番禺区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市番禺区中考物理一模试卷-题目版.pdf",
+        "byte_size": 750557,
+        "sha256": "906afcfbf1f2f2b5b5dfc4fa59ddf3276f21d9ab0c4702dffc4994f8c4f0ec1f"
+      },
+      "answer": {
+        "name": "2024年广东省广州市番禺区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1001102,
+        "sha256": "fc5ff536a7d9ab4ae28dc32ad8375f8d476ef929ae0663e48969a11e549e761a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-214FD996B07E",
+      "display_title": "2024年白云区物理一模",
+      "district": "白云区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市白云区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市白云区中考物理一模试卷-题目版.pdf",
+        "byte_size": 1123779,
+        "sha256": "1bbb8103ae8ae05efa6ec0e378dea96c2eb19db062bde900d61826714e94dc94"
+      },
+      "answer": {
+        "name": "2024年广东省广州市白云区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1305813,
+        "sha256": "75d2dcd0c24c908c507026f85961596fa06028ed7fb83479c433e83a665ac9de"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-CAA361976DE9",
+      "display_title": "2024年花都区物理一模",
+      "district": "花都区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市花都区中考物理一模试题-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市花都区中考物理一模试题-题目版.pdf",
+        "byte_size": 1051191,
+        "sha256": "ec0375f0ff159016cb1c9fa89995236d465a3e9048f435715e957bccebdee5a5"
+      },
+      "answer": {
+        "name": "2024年广东省广州市花都区中考物理一模试题-解析版.pdf",
+        "byte_size": 1292859,
+        "sha256": "63490e2a50a8bfb87c47b2755e85ae6e36485205c4e35318e98f3761d917d806"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-F729FB9302CC",
+      "display_title": "2024年荔湾区物理一模",
+      "district": "荔湾区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市荔湾区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市荔湾区中考物理一模试卷-题目版.pdf",
+        "byte_size": 827317,
+        "sha256": "477c7a0e0fa5d633813d5f857bc7133ffc69022093354cd5588382d2401830b0"
+      },
+      "answer": {
+        "name": "2024年广东省广州市荔湾区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1073391,
+        "sha256": "81aa94d1aba9441605afa7507ea17aa2e9cca94610ed2f9097f84638aaa82b77"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-FEB3E8354C2A",
+      "display_title": "2024年越秀区物理一模",
+      "district": "越秀区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市越秀区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市越秀区中考物理一模试卷-题目版.pdf",
+        "byte_size": 592340,
+        "sha256": "0338845950cf09c24521f590680bd13f4da1b2d88f012770c60787b04b2dd304"
+      },
+      "answer": {
+        "name": "2024年广东省广州市越秀区中考物理一模试卷-解析版.pdf",
+        "byte_size": 810841,
+        "sha256": "241ca58bf687f2ca49e1ddbd4acd0084babfbed874c498af69fa84a7441bea81"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-691D462F4C96",
+      "display_title": "2024年黄埔区物理一模",
+      "district": "黄埔区",
+      "exam_year": 2024,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2024年广州初三一模各区全科真题卷（70份）/【物理】2024年广州中考一模/2024年广东省广州市黄埔区中考物理一模试卷-题目版.pdf",
+      "paper": {
+        "name": "2024年广东省广州市黄埔区中考物理一模试卷-题目版.pdf",
+        "byte_size": 1154613,
+        "sha256": "a1e3dd57b037d8eafb7f29b332b73f8c9152225b234f35af53f85d7f7ef77b1d"
+      },
+      "answer": {
+        "name": "2024年广东省广州市黄埔区中考物理一模试卷-解析版.pdf",
+        "byte_size": 1431591,
+        "sha256": "259830886631de9fe6570911d119a4e609a15641bd0364c5fb5e25e045ec36a7"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-47C6FC993FC7",
+      "display_title": "2023年天河区化学一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【化学】2023年广州中考一模/2023年广东省广州市天河区中考一模化学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模化学试题-题目版.pdf",
+        "byte_size": 637207,
+        "sha256": "2dbf2685871bd54f7959a271e7e59fc581c8119771a9c7bb454f8839cea291f4"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模化学试题-解析版.pdf",
+        "byte_size": 866495,
+        "sha256": "916539ce3c12ece0e915b3f8553db8269b6d41a45169ac663a2c862551f23e13"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5256AA7C1A05",
+      "display_title": "2023年海珠区化学一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【化学】2023年广州中考一模/2023年广东省广州市海珠区中考一模化学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模化学试题-题目版.pdf",
+        "byte_size": 477724,
+        "sha256": "f9f20f6591b72c3909d7cb4b453c48c82161116b72ff96ed781e7ae55a0ca48f"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模化学试题-解析版.pdf",
+        "byte_size": 696410,
+        "sha256": "ad43834607ea2a2ac420e33202978ffdb21c9cecbf4aa9e9d1ee38a9b1783f6b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2063A37B3304",
+      "display_title": "2023年番禺区化学一模",
+      "district": "番禺区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【化学】2023年广州中考一模/2023年广东省广州市番禺区中考一模化学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市番禺区中考一模化学试题-题目版.pdf",
+        "byte_size": 464177,
+        "sha256": "9bd877001f1eb51f40eabce933a8ecb811e6243666245b69347c4a7eb419d2e1"
+      },
+      "answer": {
+        "name": "2023年广东省广州市番禺区中考一模化学试题-解析版.pdf",
+        "byte_size": 693402,
+        "sha256": "e561a95feb56696a9c18262679bdcd26988d423c665b980497dd6d94ce4514c4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-05EFC1935861",
+      "display_title": "2023年白云区化学一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【化学】2023年广州中考一模/2023年广东省广州市白云区中考一模化学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模化学试题-题目版.pdf",
+        "byte_size": 616898,
+        "sha256": "e860e517c4987c49c8949471c461a4af5c4a78d70e9e3ff05d10f5f0541848c3"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模化学试题-解析版.pdf",
+        "byte_size": 841470,
+        "sha256": "24152ee2bc9801efbb10b442cac34aafe62a836d001716562fe0a0b0d043456a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-9494B05E9677",
+      "display_title": "2023年荔湾区化学一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【化学】2023年广州中考一模/2023年广东省广州市荔湾区中考一模化学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模化学试题-题目版.pdf",
+        "byte_size": 582754,
+        "sha256": "c6204fe0705df435a8c97fc95fd7b6c888bff9fa27b56318e9111abe1ac82439"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模化学试题-解析版.pdf",
+        "byte_size": 811140,
+        "sha256": "15e57ec869257c4791fe337c1df7db809e4611f1e54cd10a8744030c67cb8e36"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-FBF3CE827E09",
+      "display_title": "2023年越秀区化学一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chemistry",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【化学】2023年广州中考一模/2023年广东省广州市越秀区中考一模化学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模化学试题-题目版.pdf",
+        "byte_size": 794148,
+        "sha256": "de1e57de69b4c960cc0cc1d37517d568f586e2cc8affc914b7e4243981a18574"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模化学试题-解析版.pdf",
+        "byte_size": 1005829,
+        "sha256": "4ec78a4df3c164fe8a52a0edd8486500c5f25991cccb4cd824f69156f00cebb0"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-17EE6BB1DD77",
+      "display_title": "2023年天河区语文一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【语文】2023年广州中考一模/2023年广东省广州市天河区中考一模语文试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模语文试题-题目版.pdf",
+        "byte_size": 1082945,
+        "sha256": "5ae3aaa713532f4c80f0f14e48f8e39ddb7ccd4975585b86963dcb17433de728"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模语文试题-解析版.pdf",
+        "byte_size": 1292295,
+        "sha256": "1430887f730849791b5875e2228fbad476889d925edc59c5f357a82d7a6316a6"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-14478B2BF7AE",
+      "display_title": "2023年广州市语文一模",
+      "district": "广州市",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【语文】2023年广州中考一模/2023年广东省广州市中考一模语文试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市中考一模语文试题-题目版.pdf",
+        "byte_size": 492220,
+        "sha256": "d1d1398339c14ccdc8229471bfdff741fce4c4823514c4966f219eead5723a72"
+      },
+      "answer": {
+        "name": "2023年广东省广州市中考一模语文试题-解析版.pdf",
+        "byte_size": 715502,
+        "sha256": "f2cfd64ba3f1b15d0dfe22e4d5f5f41fe4de169cf9cb25b8902ee61e1a5961a9"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-14514F629EDF",
+      "display_title": "2023年海珠区语文一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【语文】2023年广州中考一模/2023年广东省广州市海珠区中考一模语文试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模语文试题-题目版.pdf",
+        "byte_size": 576840,
+        "sha256": "960d6007c1b93dcd9723ee8a1e87c0760202c08ce846d6243a6795b8f295caea"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模语文试题-解析版.pdf",
+        "byte_size": 781189,
+        "sha256": "43dbc7dd1042ac4c40cb90d25baabb707c656daddb1eb74ee9c4ed56440653b7"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-468A974F52FD",
+      "display_title": "2023年白云区语文一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【语文】2023年广州中考一模/2023年广东省广州市白云区中考一模语文试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模语文试题-题目版.pdf",
+        "byte_size": 967976,
+        "sha256": "553cd85a282ae914df65f34a32df5c45a3abb8b1204b518448124904a751f99f"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模语文试题-解析版.pdf",
+        "byte_size": 1188411,
+        "sha256": "b52f09543e7165b8e062e81eb9822288c2ce7ee0b184548b09d376ecf694a4b3"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-5391A0736D60",
+      "display_title": "2023年荔湾区语文一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【语文】2023年广州中考一模/2023年广东省广州市荔湾区中考一模语文试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模语文试题-题目版.pdf",
+        "byte_size": 471445,
+        "sha256": "79372856303f060f6b2a0f580b63de87853fe0a91cf61204f1b32c40bcdf6209"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模语文试题-解析版.pdf",
+        "byte_size": 689030,
+        "sha256": "005ef95f632d784de6ea87766574efb65aac82687c5ed8c877afa52eaf7f98dc"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-A28617FBC806",
+      "display_title": "2023年越秀区语文一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "chinese",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【语文】2023年广州中考一模/2023年广东省广州市越秀区中考一模语文试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模语文试题-题目版.pdf",
+        "byte_size": 551387,
+        "sha256": "bb9157d9b416394dc0173a30c82b31c61bc2ecc5f5041ba8b200c4a73ce6f6c7"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模语文试题-解析版.pdf",
+        "byte_size": 762590,
+        "sha256": "2e4fd101c3a8e90445af6c8372beaea754e896ef6a9d8f09f2aff4422479083c"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E481A15F72EE",
+      "display_title": "2023年天河区英语一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市天河区中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模英语试题-题目版.pdf",
+        "byte_size": 591465,
+        "sha256": "09feb1e86fa11eca46f3cc5e297cef5674cf83e0c3310cd45e0a8d802513d5e8"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模英语试题-解析版.pdf",
+        "byte_size": 842200,
+        "sha256": "156cc344571371ab7868e4b8913c6907e62c00e06fc9ce9e51bd8fb13186bde5"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2E42BD552A7D",
+      "display_title": "2023年广州市英语一模",
+      "district": "广州市",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市中考一模英语试题-题目版.pdf",
+        "byte_size": 544690,
+        "sha256": "8271688faf5bb4826130781c26bc8936e3275c3b10b8991e6fafcf97943efa76"
+      },
+      "answer": {
+        "name": "2023年广东省广州市中考一模英语试题-解析版.pdf",
+        "byte_size": 807003,
+        "sha256": "65406b4fe745d7c992fe7f2243f0ea0097eb64b304d3b758015a7947673b521d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-ECE1C6D26DDA",
+      "display_title": "2023年海珠区英语一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市海珠区中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模英语试题-题目版.pdf",
+        "byte_size": 2104709,
+        "sha256": "6f585508415d2d50e67c11797fde1c13eec749be161c6b12c58d17eca5b62f0b"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模英语试题-解析版.pdf",
+        "byte_size": 2327027,
+        "sha256": "57cbd068944f19097677320b5803fa8f5056c52ad1f4f33dcbfb3f04c7b94b5c"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-11A8F1D3D243",
+      "display_title": "2023年番禺区英语一模",
+      "district": "番禺区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市番禺区中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市番禺区中考一模英语试题-题目版.pdf",
+        "byte_size": 419347,
+        "sha256": "07940b11a2891fbac9ca545b58fca36a53ef8390b4da00418adf4b4f78b31be6"
+      },
+      "answer": {
+        "name": "2023年广东省广州市番禺区中考一模英语试题-解析版.pdf",
+        "byte_size": 660353,
+        "sha256": "91f0384598ed15a4cf7e9a7b063d9ba76f9c982b0be7e950dc49c2366d83598b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-05FA09760209",
+      "display_title": "2023年白云区英语一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市白云区中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模英语试题-题目版.pdf",
+        "byte_size": 361025,
+        "sha256": "18d27fc2a495ed06c015e92d76724610e4db139490a8c961439cb7b875f4753d"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模英语试题-解析版.pdf",
+        "byte_size": 595077,
+        "sha256": "9a232a927562303cc9a48183f3650fce9c2b8fcf6fbf8b24c7a4fa1ca8be1245"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7FE10E64CC2B",
+      "display_title": "2023年荔湾区英语一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市荔湾区中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模英语试题-题目版.pdf",
+        "byte_size": 745425,
+        "sha256": "1e3ba3fe57f531dfe50564aea9477f5767ad0de9970c1f8b11a8ee894a328b8d"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模英语试题-解析版.pdf",
+        "byte_size": 980864,
+        "sha256": "6b31daa541ea0b55218702b30966eec6f140df973127cb47df88a8525418172f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-BBA476BA6EA7",
+      "display_title": "2023年越秀区英语一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "english",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【英语】2023年广州中考一模/2023年广东省广州市越秀区中考一模英语试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模英语试题-题目版.pdf",
+        "byte_size": 2514734,
+        "sha256": "b47235d7cba9753ffbdfb1831f87275ea399c7652eda3ba84063f691412c3c26"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模英语试题-解析版.pdf",
+        "byte_size": 2752864,
+        "sha256": "72a81f08479b256464fc48d5b7c411c2afa5976ab95ed01a3fe18c6725a44c39"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-91CE68022CB0",
+      "display_title": "2023年天河区历史一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【历史】2023年广州中考一模/2023年广东省广州市天河区中考一模历史试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模历史试题-题目版.pdf",
+        "byte_size": 681209,
+        "sha256": "2f0722dd5b2895735d0064a31893a19dcae57405cf0e75d48962c63814c537ff"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模历史试题-解析版.pdf",
+        "byte_size": 974192,
+        "sha256": "718c57a5ff1262303a0b2bea142266dae9418cf6d369536c140ee5fc751bd841"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-608976695AD0",
+      "display_title": "2023年海珠区历史一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【历史】2023年广州中考一模/2023年广东省广州市海珠区中考一模历史试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模历史试题-题目版.pdf",
+        "byte_size": 629806,
+        "sha256": "f37e5c16be794713a9925dac78030af6c2a16efa8f4fb2f8e3102e9a8c94d790"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模历史试题-解析版.pdf",
+        "byte_size": 915352,
+        "sha256": "fd1f1c15c030639762e026265513b6befa19961cdd602298c95e03232b451dde"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-0CAF01D4241A",
+      "display_title": "2023年番禺区历史一模",
+      "district": "番禺区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【历史】2023年广州中考一模/2023年广东省广州市番禺区中考一模历史试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市番禺区中考一模历史试题-题目版.pdf",
+        "byte_size": 632505,
+        "sha256": "da0b86b84a917f250b68a6faf009fc2c179e270ba1e4094c80d8db8943ffbe7b"
+      },
+      "answer": {
+        "name": "2023年广东省广州市番禺区中考一模历史试题-解析版.pdf",
+        "byte_size": 920493,
+        "sha256": "e5ee197c3f45bec011597379f5204dcac5c44f99140130846e61ab1dc8f68e0b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-78A41FF9E6E0",
+      "display_title": "2023年白云区历史一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【历史】2023年广州中考一模/2023年广东省广州市白云区中考一模历史试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模历史试题-题目版.pdf",
+        "byte_size": 862791,
+        "sha256": "18cc61f93ba16da385f99d36694ba782ede547af549f8ddb60f23428e94e9d9a"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模历史试题-解析版.pdf",
+        "byte_size": 1164420,
+        "sha256": "479f4780f6f28b1877f9e5ab909138f812f79935939dfcca0a57d15c97185f3d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3004E66C42AB",
+      "display_title": "2023年荔湾区历史一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【历史】2023年广州中考一模/2023年广东省广州市荔湾区中考一模历史试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模历史试题-题目版.pdf",
+        "byte_size": 1704990,
+        "sha256": "61154787b412ce8ca6b8040e2426711b83c39407705a90b55569946aa32717fe"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模历史试题-解析版.pdf",
+        "byte_size": 1979105,
+        "sha256": "51919abd8b30c5f75b4995d64d5b07537041a74c39b315b03f441f091f4d8272"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-81C0D41B6642",
+      "display_title": "2023年越秀区历史一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "history",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【历史】2023年广州中考一模/2023年广东省广州市越秀区中考一模历史试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模历史试题-题目版.pdf",
+        "byte_size": 1010847,
+        "sha256": "ba4adf474f0d4460b6b6e08e9c81dff7aeaae7089d11df572445a05e299441d2"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模历史试题-解析版.pdf",
+        "byte_size": 1305722,
+        "sha256": "68f84f362fcb9c9613c4552df81dc08df319b649b1f3fe58e81bfe7bc1e8da8d"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-9C9600CDFA6C",
+      "display_title": "2023年天河区数学一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市天河区中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模数学试题-题目版.pdf",
+        "byte_size": 456665,
+        "sha256": "824ec23d3dc17479b6729f83161b423cba76a2193352c7963a5330ec7022440f"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模数学试题-解析版.pdf",
+        "byte_size": 820543,
+        "sha256": "c04a3a4935184c7bbf7c99dc48f49fb9573987dc5eb4aac71a4413490a8c5c24"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-2388764CAE83",
+      "display_title": "2023年广州市数学一模",
+      "district": "广州市",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市中考一模数学试题-题目版.pdf",
+        "byte_size": 863831,
+        "sha256": "5b9d027cd4ef6c62a2102120b433fd663f66941da16346ddec7a29844a8b87e3"
+      },
+      "answer": {
+        "name": "2023年广东省广州市中考一模数学试题-解析版.pdf",
+        "byte_size": 1699678,
+        "sha256": "04b1aec633972ff5006548a838c395ead4d6948a68eba938742e1f38386e67c8"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-AF038198D502",
+      "display_title": "2023年海珠区数学一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市海珠区中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模数学试题-题目版.pdf",
+        "byte_size": 600146,
+        "sha256": "91f30285e4f6f72120c5e296f07747a053ec23be89d37f0c543c8ff48eee2a54"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模数学试题-解析版.pdf",
+        "byte_size": 1422710,
+        "sha256": "1472850e55d8c1afd06e22eca8e84ceb816c3acca5382987c1d454a7d7dccd4b"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-992C8DB83EAD",
+      "display_title": "2023年番禺区数学一模",
+      "district": "番禺区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市番禺区中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市番禺区中考一模数学试题-题目版.pdf",
+        "byte_size": 462092,
+        "sha256": "03f359725a96dc9315e48b286abd39912141299bd5c25c921043af944d197de9"
+      },
+      "answer": {
+        "name": "2023年广东省广州市番禺区中考一模数学试题-解析版.pdf",
+        "byte_size": 815927,
+        "sha256": "d9f9174c7756c46d6a7fa3514e937ac110ec47b4202a5047c059b3a7957347f3"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-8841AFC92CEE",
+      "display_title": "2023年白云区数学一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市白云区中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模数学试题-题目版.pdf",
+        "byte_size": 622504,
+        "sha256": "09bedb7994f34f8762144802d2e646291cc16cd84bd004d49dbad273af214c11"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模数学试题-解析版.pdf",
+        "byte_size": 2058884,
+        "sha256": "9c2e3457df3f3f71733567eaec88c7a768e135a0f1614a42b2952958f054c0d2"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-855562C54F59",
+      "display_title": "2023年荔湾区数学一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市荔湾区中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模数学试题-题目版.pdf",
+        "byte_size": 448555,
+        "sha256": "0743ea6ae3191310d9a16a965620d5aba6d198818bef993669c72273de2b71b5"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模数学试题-解析版.pdf",
+        "byte_size": 822872,
+        "sha256": "44e5d4b2e60ccfdc515a5b9c5ff74a250f1375c290435155d0de9e3be212db63"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-B239A32632C8",
+      "display_title": "2023年越秀区数学一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "math",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【数学】2023年广州中考一模/2023年广东省广州市越秀区中考一模数学试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模数学试题-题目版.pdf",
+        "byte_size": 659549,
+        "sha256": "d5c6d84057d9b83e8ac53a155eb100bb46d989b20180cf8a3e90420931444133"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模数学试题-解析版.pdf",
+        "byte_size": 1456214,
+        "sha256": "e06ba5d674700ba7a5f8c9ab03aa67d1cbda6b3dd72d263aeb53a4f16e95b631"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-38776A12ADEE",
+      "display_title": "2023年天河区道德与法治一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【政治】2023年广州中考一模/2023年广东省广州市天河区中考一模政治试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模政治试题-题目版.pdf",
+        "byte_size": 484567,
+        "sha256": "dd070b67ae5776d11a4ab0873046036d468e0b821a5aadb917b13a090cda40df"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模政治试题-解析版.pdf",
+        "byte_size": 708195,
+        "sha256": "2c811ee7ae3cb41b4e3552ed8d694e532e836aa6826140c1cba07050e0f432ba"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-E64D9232E3A3",
+      "display_title": "2023年海珠区道德与法治一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【政治】2023年广州中考一模/2023年广东省广州市海珠区中考一模政治试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模政治试题-题目版.pdf",
+        "byte_size": 871040,
+        "sha256": "d0759160e13c584b9cc0b3d8de8fbf71f0bd1143f396308540fbb9e45b4280a7"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模政治试题-解析版.pdf",
+        "byte_size": 1077641,
+        "sha256": "993f2df8a739de7166d9f5317675121eb13c9488303ed4a0feea1ce93ce5b98f"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-3D7DA00618ED",
+      "display_title": "2023年番禺区道德与法治一模",
+      "district": "番禺区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【政治】2023年广州中考一模/2023年广东省广州市番禺区中考一模政治试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市番禺区中考一模政治试题-题目版.pdf",
+        "byte_size": 870403,
+        "sha256": "3eaff4acb5687d73dd5d4ada37b5c9c95063a4150bb573a5143399ba7f71dbfa"
+      },
+      "answer": {
+        "name": "2023年广东省广州市番禺区中考一模政治试题-解析版.pdf",
+        "byte_size": 1090757,
+        "sha256": "1cccc2722edd31706467a9cc45e37f28c0a8ec8840b4bce7d0356c1ce50c5120"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-42DE3F3CD283",
+      "display_title": "2023年白云区道德与法治一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【政治】2023年广州中考一模/2023年广东省广州市白云区中考一模政治试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模政治试题-题目版.pdf",
+        "byte_size": 565913,
+        "sha256": "c0e49f042739da1cc5d7d315a519b36a12d172c897c564c5427e6755111f3d2f"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模政治试题-解析版.pdf",
+        "byte_size": 798356,
+        "sha256": "f54f1822a887fee2ba36ce53bcc27f2d25f57f4e70668b1b74bfec4417535d95"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7E4C38464C14",
+      "display_title": "2023年荔湾区道德与法治一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【政治】2023年广州中考一模/2023年广东省广州市荔湾区中考一模政治试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模政治试题-题目版.pdf",
+        "byte_size": 542082,
+        "sha256": "f4e6898bba874e56fe065cbd77a9202de9d5e705933e3ce2bc2e90110aeb83f2"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模政治试题-解析版.pdf",
+        "byte_size": 739836,
+        "sha256": "981b788f80126741d876c79892d75ded23a2dff2d8f271f239f46c771c8a3e4a"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-811DF1DCE82B",
+      "display_title": "2023年越秀区道德与法治一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "morality",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【政治】2023年广州中考一模/2023年广东省广州市越秀区中考一模政治试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模政治试题-题目版.pdf",
+        "byte_size": 885978,
+        "sha256": "4a0fdf0f0e24e4b1b712cda63f0dc9d081cc64e775517bd55fee10b32d947286"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模政治试题-解析版.pdf",
+        "byte_size": 969783,
+        "sha256": "51a14247628ea554b48473e4d502ec279f6ea6d97291b5f8f349934839fce331"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-BF21739B166A",
+      "display_title": "2023年天河区物理一模",
+      "district": "天河区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【物理】2023年广州中考一模/2023年广东省广州市天河区中考一模物理试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市天河区中考一模物理试题-题目版.pdf",
+        "byte_size": 677757,
+        "sha256": "bb1414cbfd489adc32f0b343d8fcdb7b788269e1841cfc911338b0c7f36ed999"
+      },
+      "answer": {
+        "name": "2023年广东省广州市天河区中考一模物理试题-解析版.pdf",
+        "byte_size": 962660,
+        "sha256": "eae4bc9c502d62bf1d7ff82c324b6acbcf37329e57f5ab90189c5f35136c6cf0"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-81B0C5B7331E",
+      "display_title": "2023年海珠区物理一模",
+      "district": "海珠区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【物理】2023年广州中考一模/2023年广东省广州市海珠区中考一模物理试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市海珠区中考一模物理试题-题目版.pdf",
+        "byte_size": 3539303,
+        "sha256": "ce5a4341c91340814e9c660c8e43d4c948f8905a71feed8d79422078a6d01158"
+      },
+      "answer": {
+        "name": "2023年广东省广州市海珠区中考一模物理试题-解析版.pdf",
+        "byte_size": 4393703,
+        "sha256": "b97be5d984a68634820f605c0c685cf986d6765a5eb5bf75026c12d8959446e2"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-6A84BCFAAE5A",
+      "display_title": "2023年番禺区物理一模",
+      "district": "番禺区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【物理】2023年广州中考一模/2023年广东省广州市番禺区中考一模物理试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市番禺区中考一模物理试题-题目版.pdf",
+        "byte_size": 597208,
+        "sha256": "88d5a52d782e2f63be116e6aa4fede80dcbb40d3790e7c2ee0b9b7edec922405"
+      },
+      "answer": {
+        "name": "2023年广东省广州市番禺区中考一模物理试题-解析版.pdf",
+        "byte_size": 832158,
+        "sha256": "d7214e3bef7637140e9775639b55f580ea4e4ff430cf519dcce166a34c9420b4"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-35D1CCE6B739",
+      "display_title": "2023年白云区物理一模",
+      "district": "白云区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【物理】2023年广州中考一模/2023年广东省广州市白云区中考一模物理试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市白云区中考一模物理试题-题目版.pdf",
+        "byte_size": 655436,
+        "sha256": "da5a9e73baa7870f0ba728ed710a139be0f31adf836bf72eecb773860b3bc4fb"
+      },
+      "answer": {
+        "name": "2023年广东省广州市白云区中考一模物理试题-解析版.pdf",
+        "byte_size": 927458,
+        "sha256": "f5263a2c8eec51dfd56c5f76cbe1dee37581a7e77220b4d4b696b08e3803e3ce"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-C8B74ABA3E35",
+      "display_title": "2023年荔湾区物理一模",
+      "district": "荔湾区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【物理】2023年广州中考一模/2023年广东省广州市荔湾区中考一模物理试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市荔湾区中考一模物理试题-题目版.pdf",
+        "byte_size": 980889,
+        "sha256": "029d85b16722ce4ee73a9349ba3ed56339d14edab41af013e3d1f24407fdd384"
+      },
+      "answer": {
+        "name": "2023年广东省广州市荔湾区中考一模物理试题-解析版.pdf",
+        "byte_size": 1292117,
+        "sha256": "460f8e107acc06db22d102c8b99120263223d77f4e0f91b7cc4735906f3ffdbc"
+      }
+    },
+    {
+      "stable_code": "GZ9-MOCK-7D7BD4FB16FE",
+      "display_title": "2023年越秀区物理一模",
+      "district": "越秀区",
+      "exam_year": 2023,
+      "grade": "九年级",
+      "grade_code": "g9",
+      "subject_code": "physics",
+      "semester": "下学期",
+      "semester_code": "s2",
+      "exam_type": "mock",
+      "source_relative_path": "2023年广州初三一模各区各科真题卷（44份）/【物理】2023年广州中考一模/2023年广东省广州市越秀区中考一模物理试题-题目版.pdf",
+      "paper": {
+        "name": "2023年广东省广州市越秀区中考一模物理试题-题目版.pdf",
+        "byte_size": 6196451,
+        "sha256": "fb4a395cb4d573b1f686b967cb28ccc3fb4d4c38810562ace4485683c50af634"
+      },
+      "answer": {
+        "name": "2023年广东省广州市越秀区中考一模物理试题-解析版.pdf",
+        "byte_size": 6675770,
+        "sha256": "42ff33ef083c8efcbee170a90bee9437cff86acd87bfeb0078359be28f069a0c"
+      }
+    }
+  ],
+  "exceptions": [],
+  "summary": {
+    "papers": 194,
+    "with_answer": 193,
+    "missing_answer": 1,
+    "bytes": 565130483
+  }
+}

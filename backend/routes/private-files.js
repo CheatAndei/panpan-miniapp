@@ -38,6 +38,18 @@ function canAccessPrivateFile(db, user, file) {
       && parentBoundStudent(db, user.id, Number(owner.student_id));
     return false;
   }
+  if (file.owner_type === 'challenge_v2_submission') {
+    const owner = db.get(`SELECT sub.parent_id,a.student_id,
+      CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END teacher_id
+      FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id
+      JOIN students s ON s.id=a.student_id
+      LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL WHERE sub.id=?`, [file.owner_id]);
+    if (!owner) return false;
+    if (user.role === 'teacher') return Number(owner.teacher_id) === Number(user.id);
+    if (user.role === 'parent') return Number(owner.parent_id) === Number(user.id)
+      && parentBoundStudent(db, user.id, Number(owner.student_id));
+    return false;
+  }
   if (!file.student_id) return false;
   if (file.owner_type === 'homework_submission') {
     const owner = db.get(`SELECT b.teacher_id,b.status FROM homework_submissions s

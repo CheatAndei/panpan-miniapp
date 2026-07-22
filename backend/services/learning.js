@@ -2,6 +2,10 @@ const crypto = require('node:crypto');
 const { QUESTION_BANK } = require('../resources/mental-arena/questions');
 const { answersEqual, isJuniorStudent, shanghaiWeekStart } = require('./mental-arena');
 const { practiceDateAt } = require('./practice');
+const { normalizeMathDisplay } = require('../utils/math-expression');
+const {
+  normalizeGradeCode, normalizeSubjectCode, studentGradeCode, gradeLabel,
+} = require('../utils/content-dimensions');
 
 const TASKS = {
   warmup: { title: '每日 5 题热身', count: 5, description: '短时启动，保持计算手感' },
@@ -41,7 +45,9 @@ function deterministicPick(items, count, seed) {
 }
 
 function publicQuestions(questions) {
-  return questions.map(({ id, type, stem }, index) => ({ id, position: index + 1, type, stem }));
+  return questions.map(({ id, type, stem }, index) => ({
+    id, position: index + 1, type, stem: normalizeMathDisplay(stem),
+  }));
 }
 
 function serializeAttempt(attempt) {
@@ -62,7 +68,9 @@ function serializeAttempt(attempt) {
     total_questions: Number(attempt.total_questions),
     score: attempt.score === null ? null : Number(attempt.score),
     questions: publicQuestions(questions),
-    answers: attempt.status === 'completed' ? parseJson(attempt.answer_detail, []) : undefined,
+    answers: attempt.status === 'completed'
+      ? parseJson(attempt.answer_detail, []).map((item) => ({ ...item, stem: normalizeMathDisplay(item.stem) }))
+      : undefined,
   };
 }
 
@@ -120,8 +128,14 @@ function syncWrongSources(db, studentId) {
     CASE status WHEN 'open' THEN 0 ELSE 1 END,last_attempt_at ASC,id ASC`, [studentId]);
 }
 
-function mentalQuestions(battle, count, seed, preferredTypes = []) {
-  const bank = QUESTION_BANK[battle] || [];
+function activeMentalBank(db, battle) {
+  const stopped = new Set(db.all(`SELECT question_id FROM mental_question_controls
+    WHERE battle=? AND is_active=0`, [battle]).map((item) => String(item.question_id)));
+  return (QUESTION_BANK[battle] || []).filter((item) => !stopped.has(String(item.id)));
+}
+
+function mentalQuestions(db, battle, count, seed, preferredTypes = []) {
+  const bank = activeMentalBank(db, battle);
   const preferred = preferredTypes.length
     ? bank.filter((item) => preferredTypes.includes(item.type))
     : bank;
@@ -136,7 +150,7 @@ function practiceBankQuestions(db, battle, count, seed, regionOnly = false) {
   const regionSql = regionOnly ? " AND source_region='广州'" : '';
   const rows = db.all(`SELECT id,question_type,stem,answer FROM practice_questions
     WHERE grade_band=? AND is_active=1${regionSql}`, [grade]);
-  if (rows.length < count) return mentalQuestions(battle, count, seed);
+  if (rows.length < count) return mentalQuestions(db, battle, count, seed);
   return deterministicPick(rows, count, seed).map((item) => ({
     id: `practice:${item.id}`, type: item.question_type, stem: item.stem, answer: item.answer,
   }));
@@ -144,9 +158,9 @@ function practiceBankQuestions(db, battle, count, seed, regionOnly = false) {
 
 function retryQuestions(db, studentId, battle, count, seed) {
   const wrongs = syncWrongSources(db, studentId).filter((item) => item.status === 'open');
-  if (!wrongs.length) return mentalQuestions(battle, count, seed);
+  if (!wrongs.length) return mentalQuestions(db, battle, count, seed);
   const pickedWrongs = deterministicPick(wrongs, count, `${seed}|wrongs`);
-  const bank = QUESTION_BANK[battle] || [];
+  const bank = activeMentalBank(db, battle);
   return pickedWrongs.map((wrong, index) => {
     const sameType = bank.filter((item) => item.type === wrong.question_type);
     const pool = sameType.length ? sameType : bank;
@@ -180,7 +194,7 @@ function weaknessQuestions(db, studentId, battle, count, seed) {
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
     .slice(0, 2)
     .flatMap(([type]) => mentalTypesForWeakness(type));
-  return mentalQuestions(battle, count, seed, [...new Set(preferred)]);
+  return mentalQuestions(db, battle, count, seed, [...new Set(preferred)]);
 }
 
 function questionsForTask(db, { studentId, battle, taskType, logicalDate }) {
@@ -190,29 +204,31 @@ function questionsForTask(db, { studentId, battle, taskType, logicalDate }) {
   if (taskType === 'weakness') return weaknessQuestions(db, studentId, battle, config.count, seed);
   if (taskType === 'basics') return practiceBankQuestions(db, battle, config.count, seed);
   if (taskType === 'context') return practiceBankQuestions(db, battle, config.count, seed, true);
-  return mentalQuestions(battle, config.count, seed);
+  return mentalQuestions(db, battle, config.count, seed);
 }
 
-function createOrGetAttempt(db, { studentId, parentId, taskType, now = new Date() }) {
+function createOrGetAttempt(db, { studentId, parentId, taskType, gradeCode = 'g7', subjectCode = 'math', now = new Date() }) {
   const config = TASKS[taskType];
   if (!config) throw new Error('学习任务不存在');
   const student = studentProfile(db, studentId);
   if (!student) throw new Error('学生不存在');
   const logicalDate = practiceDateAt(now);
+  const grade = normalizeGradeCode(gradeCode, studentGradeCode(student));
+  const subject = normalizeSubjectCode(subjectCode);
   let attempt = db.get(`SELECT * FROM learning_attempts
-    WHERE student_id=? AND task_type=? AND logical_date=?`, [studentId, taskType, logicalDate]);
+    WHERE student_id=? AND task_type=? AND logical_date=? AND grade_code=? AND subject_code=?`, [studentId, taskType, logicalDate, grade, subject]);
   if (!attempt) {
     const battle = battleForStudent(student);
     const questions = questionsForTask(db, { studentId, battle, taskType, logicalDate });
     const created = db.run(`INSERT OR IGNORE INTO learning_attempts
-      (student_id,parent_id,task_type,task_title,logical_date,status,battle,questions_json,total_questions,started_at)
-      VALUES(?,?,?,?,?,'active',?,?,?,?)`, [
-      studentId, parentId, taskType, config.title, logicalDate, battle,
+      (student_id,parent_id,task_type,task_title,logical_date,status,battle,grade_code,subject_code,questions_json,total_questions,started_at)
+      VALUES(?,?,?,?,?,'active',?,?,?,?,?,?)`, [
+      studentId, parentId, taskType, config.title, logicalDate, battle, grade, subject,
       JSON.stringify(questions), questions.length, now.toISOString(),
     ]);
     attempt = created.lastInsertRowid
       ? db.get('SELECT * FROM learning_attempts WHERE id=?', [created.lastInsertRowid])
-      : db.get(`SELECT * FROM learning_attempts WHERE student_id=? AND task_type=? AND logical_date=?`, [studentId, taskType, logicalDate]);
+      : db.get(`SELECT * FROM learning_attempts WHERE student_id=? AND task_type=? AND logical_date=? AND grade_code=? AND subject_code=?`, [studentId, taskType, logicalDate, grade, subject]);
     db.run(`INSERT OR IGNORE INTO engagement_events(student_id,parent_id,event_name,event_key,detail_json)
       VALUES(?,?,?,?,?)`, [studentId, parentId, 'learning_started', `learning_started:${attempt.id}`, JSON.stringify({ task_type: taskType })]);
   }
@@ -370,22 +386,60 @@ function todayOverview(db, { studentId, now = new Date() }) {
   };
 }
 
-function catalog(db, { studentId, now = new Date() }) {
+function learningPreference(db, { studentId, requestedGrade, requestedSubject }) {
+  const student = studentProfile(db, studentId);
+  if (!student) throw new Error('学生不存在');
+  const stored = db.get('SELECT grade_code,subject_code FROM student_learning_preferences WHERE student_id=?', [studentId]);
+  return {
+    grade_code: requestedGrade ? normalizeGradeCode(requestedGrade) : normalizeGradeCode(stored?.grade_code, studentGradeCode(student)),
+    subject_code: requestedSubject ? normalizeSubjectCode(requestedSubject) : normalizeSubjectCode(stored?.subject_code),
+    detected_grade_code: studentGradeCode(student),
+  };
+}
+
+function saveLearningPreference(db, { studentId, gradeCode, subjectCode = 'math' }) {
+  const student = studentProfile(db, studentId);
+  if (!student) throw new Error('学生不存在');
+  const grade = normalizeGradeCode(gradeCode, studentGradeCode(student));
+  const subject = normalizeSubjectCode(subjectCode);
+  db.run(`INSERT INTO student_learning_preferences(student_id,grade_code,subject_code,updated_at)
+    VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(student_id) DO UPDATE SET
+    grade_code=excluded.grade_code,subject_code=excluded.subject_code,updated_at=CURRENT_TIMESTAMP`, [studentId, grade, subject]);
+  return { grade_code: grade, subject_code: subject };
+}
+
+function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Date() }) {
   const overview = todayOverview(db, { studentId, now });
+  const grade = normalizeGradeCode(gradeCode, studentGradeCode(studentProfile(db, studentId)));
+  const subject = normalizeSubjectCode(subjectCode);
   const weekday = new Date(`${overview.logical_date}T00:00:00+08:00`).getDay();
+  const choiceCount = Number(db.get(`SELECT COUNT(*) count FROM choice_king_questions
+    WHERE grade_code=? AND subject_code=? AND is_active=1`, [grade, subject])?.count || 0);
+  const challengeCount = Number(db.get(`SELECT COUNT(*) count FROM weekly_challenge_questions
+    WHERE grade_code=? AND subject_code=? AND is_active=1`, [grade, subject])?.count || 0);
+  const examCount = Number(db.get(`SELECT COUNT(*) count FROM exam_papers
+    WHERE grade_code=? AND status='published'`, [grade])?.count || 0);
+  const sections = [];
+  if (grade === 'g7') sections.push(
+    { type: 'warmup', ...TASKS.warmup, accent: 'mint' },
+    { type: 'weakness', ...TASKS.weakness, accent: 'blue' },
+    { type: 'wrong', ...TASKS.wrong, title: overview.stats.open_wrong_count ? `错题清零 · ${overview.stats.open_wrong_count} 待掌握` : '错题清零 · 今日巩固', accent: 'amber' },
+    { type: 'weekend', ...TASKS.weekend, accent: 'purple', locked: ![0, 6].includes(weekday), lock_text: '周末开放' },
+    { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },
+    { type: 'arena', title: '口算王', description: '20 题限时挑战与本周排行', route: 'arena', accent: 'gold' },
+  );
+  if (grade === 'g8') sections.push({ type: 'knowledge', title: '八上知识点闯关', description: '知识卡、8 题闯关与错题复练', route: 'knowledge_challenge', accent: 'blue' });
+  if (challengeCount) sections.push({ type: 'weekly', ...TASKS.weekly, route: 'weekly_challenge', accent: 'navy' });
+  if (examCount) sections.push({ type: 'exams', title: grade === 'g9' ? '中考一模卷库' : '广州真题大全', description: grade === 'g9' ? '按年份、学科和地区查看一模原卷' : '按考试类型和年份查看原卷', route: 'exams', accent: 'rose' });
   return {
     logical_date: overview.logical_date,
     open_wrong_count: overview.stats.open_wrong_count,
-    sections: [
-      { type: 'warmup', ...TASKS.warmup, accent: 'mint' },
-      { type: 'weakness', ...TASKS.weakness, accent: 'blue' },
-      { type: 'wrong', ...TASKS.wrong, title: overview.stats.open_wrong_count ? `错题清零 · ${overview.stats.open_wrong_count} 待掌握` : '错题清零 · 今日巩固', accent: 'amber' },
-      { type: 'weekly', ...TASKS.weekly, route: 'weekly_challenge', accent: 'navy' },
-      { type: 'exams', title: '广州真题大全', description: '按期中、期末、月考和年份查看原卷', route: 'exams', accent: 'rose' },
-      { type: 'weekend', ...TASKS.weekend, accent: 'purple', locked: ![0, 6].includes(weekday), lock_text: '周末开放' },
-      { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },
-      { type: 'arena', title: '口算王', description: '20 题限时挑战与本周排行', route: 'arena', accent: 'gold' },
-    ],
+    grade_code: grade,
+    grade_label: gradeLabel(grade),
+    subject_code: subject,
+    available_grades: ['g7','g8','g9'],
+    features: { knowledge_challenge: grade === 'g8', choice_king: choiceCount > 0, weekly_challenge: challengeCount > 0, exams: examCount > 0 },
+    sections,
   };
 }
 
@@ -494,6 +548,8 @@ module.exports = {
   completeAttempt,
   todayOverview,
   catalog,
+  learningPreference,
+  saveLearningPreference,
   learningStreak,
   weekStartKey,
   growthSummary,

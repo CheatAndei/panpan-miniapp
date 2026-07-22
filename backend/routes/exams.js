@@ -6,6 +6,7 @@ const { getDB } = require('../db/init');
 const { authRequired: auth } = require('../middleware/auth');
 const { parentBoundStudent } = require('../utils/scope');
 const { EXAM_LIBRARY_DIR, ensureExamLibraryDir, resolveExamPath } = require('../utils/exam-files');
+const { normalizeGradeCode, normalizeSubjectCode } = require('../utils/content-dimensions');
 
 const router = express.Router();
 
@@ -55,21 +56,27 @@ router.get('/admin/status', importOnly, (req, res) => {
 router.post('/admin/import-batch', importOnly, (req, res) => {
   const db = getDB();
   const metadata = req.body?.metadata || {};
-  if (!/^GZ7-[A-Z0-9-]{8,40}$/.test(String(metadata.stable_code || ''))) return res.status(400).json({ error: '试卷编号无效' });
-  if (!['midterm', 'final', 'monthly'].includes(metadata.exam_type)) return res.status(400).json({ error: '考试类型无效' });
+  if (!/^GZ[789]-[A-Z0-9-]{8,60}$/.test(String(metadata.stable_code || ''))) return res.status(400).json({ error: '试卷编号无效' });
+  if (!['midterm', 'final', 'monthly', 'mock'].includes(metadata.exam_type)) return res.status(400).json({ error: '考试类型无效' });
   try {
     const paperAssetId = importedAsset(db, req.body.paper, 'paper');
     const answerAssetId = req.body.answer ? importedAsset(db, req.body.answer, 'answer') : null;
-    db.run(`INSERT INTO exam_papers(stable_code,display_title,school_name,district,school_year,exam_year,grade,semester,exam_type,
+    const gradeCode = normalizeGradeCode(metadata.grade_code || metadata.grade || 'g7');
+    const subjectCode = normalizeSubjectCode(metadata.subject_code || metadata.subject || 'math');
+    const semesterCode = String(metadata.semester_code || 's1') === 's2' ? 's2' : 's1';
+    db.run(`INSERT INTO exam_papers(stable_code,display_title,school_name,district,school_year,exam_year,grade,grade_code,subject_code,semester,semester_code,exam_type,
       paper_asset_id,answer_asset_id,source_relative_path,license_status,status)
-      VALUES(?,?,?,?,?,?,?,'上学期',?,?,?,?,?,'published') ON CONFLICT(stable_code) DO UPDATE SET
+      VALUES(?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?, 'published') ON CONFLICT(stable_code) DO UPDATE SET
       display_title=excluded.display_title,school_name=excluded.school_name,district=excluded.district,
       school_year=excluded.school_year,exam_year=excluded.exam_year,exam_type=excluded.exam_type,
+      grade=excluded.grade,grade_code=excluded.grade_code,subject_code=excluded.subject_code,
+      semester=excluded.semester,semester_code=excluded.semester_code,
       paper_asset_id=excluded.paper_asset_id,answer_asset_id=excluded.answer_asset_id,
       source_relative_path=excluded.source_relative_path,license_status='teacher_provided',status='published',updated_at=CURRENT_TIMESTAMP`, [
       metadata.stable_code, String(metadata.display_title || '').slice(0, 180), String(metadata.school_name || '').slice(0, 100),
       String(metadata.district || '').slice(0, 40), String(metadata.school_year || '').slice(0, 20), metadata.exam_year || null,
-      String(metadata.grade || '七年级').slice(0, 20), metadata.exam_type, paperAssetId, answerAssetId,
+      String(metadata.grade || (gradeCode==='g9'?'九年级':gradeCode==='g8'?'八年级':'七年级')).slice(0, 20), gradeCode, subjectCode,
+      semesterCode==='s2'?'下学期':'上学期', semesterCode, metadata.exam_type, paperAssetId, answerAssetId,
       String(metadata.source_relative_path || '').slice(0, 600), 'teacher_provided',
     ]);
     res.json({ ok: true, stable_code: metadata.stable_code, has_answer: Boolean(answerAssetId) });
@@ -103,6 +110,8 @@ function publicPaper(row, teacher = false) {
     school_year: row.school_year || '',
     exam_year: row.exam_year ? Number(row.exam_year) : null,
     grade: row.grade,
+    grade_code: row.grade_code || 'g7',
+    subject_code: row.subject_code || 'math',
     semester: row.semester,
     exam_type: row.exam_type,
     has_answer: !!row.answer_asset_id,
@@ -119,8 +128,16 @@ router.get('/', auth, (req, res) => {
   }
   const clauses = [req.user.role === 'teacher' ? "p.status!='hidden'" : "p.status='published'"];
   const params = [];
+  const grade = normalizeGradeCode(req.query.grade || 'g7');
+  clauses.push('p.grade_code=?'); params.push(grade);
+  const subject = String(req.query.subject || '');
+  if (subject) { clauses.push('p.subject_code=?'); params.push(normalizeSubjectCode(subject)); }
   const type = String(req.query.exam_type || '');
-  if (['midterm', 'final', 'monthly'].includes(type)) { clauses.push('p.exam_type=?'); params.push(type); }
+  if (['midterm', 'final', 'monthly', 'mock'].includes(type)) { clauses.push('p.exam_type=?'); params.push(type); }
+  const district = String(req.query.district || '').trim().slice(0, 40);
+  if (district) { clauses.push('p.district=?'); params.push(district); }
+  const year = Number.parseInt(req.query.year || '', 10);
+  if (year >= 2000 && year <= 2100) { clauses.push('p.exam_year=?'); params.push(year); }
   const yearBucket = String(req.query.year_bucket || '');
   if (yearBucket === 'recent') clauses.push('p.exam_year>=2024');
   if (yearBucket === 'older') clauses.push('(p.exam_year<2024 OR p.exam_year IS NULL)');
@@ -142,7 +159,12 @@ router.get('/', auth, (req, res) => {
   });
   res.json({
     papers,
-    filters: { exam_types: ['midterm', 'final', 'monthly'], year_buckets: ['recent', 'older'] },
+    filters: {
+      exam_types: ['midterm', 'final', 'monthly', 'mock'], year_buckets: ['recent', 'older'],
+      subjects: db.all(`SELECT DISTINCT subject_code value FROM exam_papers WHERE grade_code=? AND status='published' ORDER BY subject_code`, [grade]).map(item=>item.value),
+      districts: db.all(`SELECT DISTINCT district value FROM exam_papers WHERE grade_code=? AND status='published' AND district IS NOT NULL AND district<>'' ORDER BY district`, [grade]).map(item=>item.value),
+      years: db.all(`SELECT DISTINCT exam_year value FROM exam_papers WHERE grade_code=? AND status='published' AND exam_year IS NOT NULL ORDER BY exam_year DESC`, [grade]).map(item=>Number(item.value)),
+    },
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   });
 });

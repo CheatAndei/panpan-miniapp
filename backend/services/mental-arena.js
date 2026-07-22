@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const { BATTLES, QUESTION_BANK } = require('../resources/mental-arena/questions');
+const { normalizeMathDisplay } = require('../utils/math-expression');
 
 function parseJson(value, fallback) {
   try { return JSON.parse(value || ''); } catch { return fallback; }
@@ -48,7 +49,9 @@ function recentQuestionIds(db, studentId, battle) {
 }
 
 function publicQuestions(questions) {
-  return questions.map(({ id, type, stem }, index) => ({ id, position: index + 1, type, stem }));
+  return questions.map(({ id, type, stem }, index) => ({
+    id, position: index + 1, type, stem: normalizeMathDisplay(stem),
+  }));
 }
 
 function serializeChallenge(challenge) {
@@ -69,7 +72,9 @@ function serializeChallenge(challenge) {
     score: challenge.score,
     is_fishing: !!challenge.is_fishing,
     questions: publicQuestions(questions),
-    answers: challenge.status === 'completed' ? parseJson(challenge.answer_detail, []) : undefined,
+    answers: challenge.status === 'completed'
+      ? parseJson(challenge.answer_detail, []).map((item) => ({ ...item, stem: normalizeMathDisplay(item.stem) }))
+      : undefined,
   };
 }
 
@@ -84,6 +89,8 @@ function createChallenge(db, { studentId, parentId, battle, now = new Date() }) 
     FROM students s LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=?`, [studentId]);
   if (!student) throw new Error('学生不存在');
   const excluded = recentQuestionIds(db, studentId, battle);
+  for (const item of db.all(`SELECT question_id FROM mental_question_controls
+    WHERE battle=? AND is_active=0`, [battle])) excluded.add(String(item.question_id));
   const seed = `${studentId}|${battle}|${now.toISOString()}|${crypto.randomBytes(8).toString('hex')}`;
   const questions = selectQuestions(battle, seed, excluded);
   const created = db.run(`INSERT INTO mental_challenges
@@ -111,7 +118,17 @@ function numericValue(raw) {
 function answersEqual(expected, actual) {
   const left = numericValue(expected);
   const right = numericValue(actual);
-  return left !== null && right !== null && Math.abs(left - right) < 1e-9;
+  if (left !== null && right !== null) return Math.abs(left - right) < 1e-9;
+  const canonical = (value) => String(value ?? '').trim().toLowerCase()
+    .replace(/[−—]/gu, '-')
+    .replace(/[（）]/gu, (char) => char === '（' ? '(' : ')')
+    .replace(/\^2/gu, '²')
+    .replace(/\^3/gu, '³')
+    .replace(/[×*·]/gu, '')
+    .replace(/\s+/gu, '')
+    .replace(/[。.]$/gu, '');
+  const expectedText = canonical(expected);
+  return Boolean(expectedText) && expectedText === canonical(actual);
 }
 
 function speedBonus(battle, elapsedSeconds) {

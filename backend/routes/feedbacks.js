@@ -22,18 +22,24 @@ function feedbackScore(value) {
   return Number.isInteger(score) ? Math.max(1, Math.min(10, score)) : 5;
 }
 
-function studentFeedbackRules(style, studentLabel = '姓名') {
+function studentFeedbackRules(style, studentLabel = '姓名', hasExitQuiz = true) {
+  const evidence = hasExitQuiz
+    ? '课堂内容、课堂表现、备注和出门测信息'
+    : '课堂内容、课堂表现和备注';
+  const conciseOpening = hasExitQuiz
+    ? '课堂动作、答题步骤、出门测情况或老师备注'
+    : '课堂动作、答题步骤或老师备注';
   if (style === 'warm') {
     return `1. 正文 80-130 个中文字符，最多 4 句。语气温和但克制，是熟悉学生的老师在说课堂情况，不哄、不煽情。
 2. 第一行格式：${studentLabel} + 一个兼容 emoji；第二行开始写正文。只放 1 个 emoji，从这些里面选：${FEEDBACK_EMOJI_PROMPT}。
 3. 先写一个真实课堂细节，再写本节课的进步、卡点或下一步；有问题就直接说明，不绕弯，也不要拔高成性格结论。
-4. 只使用输入中已有的课堂内容、课堂表现、备注和出门测信息，不编造动作、对话、情绪或前后对比。
+4. 只使用输入中已有的${evidence}，不编造动作、对话、情绪或前后对比。
 5. 禁止过度温柔和 AI 套话：“宝贝”“闪闪发光”“令人欣慰”“让人眼前一亮”“潜力无限”“未来可期”“老师相信你”“成长的路上”“继续保持”。
 6. 不要写成 AI 评语、总结、分析报告或鸡汤；不用“首先、此外、同时、总体来说”等连接词。`;
   }
   return `1. 正文 45-90 个中文字符，2-3 个短句，像老师课后随手发给家长的记录，短、准、直接。
 2. 第一行格式：${studentLabel} + 一个兼容 emoji；第二行开始写正文。只放 1 个 emoji，从这些里面选：${FEEDBACK_EMOJI_PROMPT}。
-3. 开头直接写一个具体观察：课堂动作、答题步骤、出门测情况或老师备注；接着给一句肯定或提醒。没有问题就不要硬找问题。
+3. 开头直接写一个具体观察：${conciseOpening}；接着给一句肯定或提醒。没有问题就不要硬找问题。
 4. 只使用输入中已有的信息，不编造学生的动作、对话、情绪或“比上次更好”等前后对比。
 5. 不要写成总结、评语、分析报告，不讲大道理，不夸张，不鸡汤。
 6. 禁止 AI 套话：“表现不错”“继续努力”“态度端正”“总体来说”“首先”“此外”“同时”“相信在未来”“值得肯定”“未来可期”。`;
@@ -80,9 +86,10 @@ router.post('/generate-student-batch', auth, async (req, res) => {
   if (invalidStudent) return res.status(403).json({ error: '学生不属于当前老师' });
   const hasExitQuiz = classInfo?.hasExitQuiz !== false;
 
-  const list = students.map((s, i) =>
-    `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 课堂表现${feedbackScore(s.performanceScore)}/10 | ${hasExitQuiz ? `出门测${feedbackScore(s.quizScore)}/10` : '本次没有出门测'} | ${s.note||''} | 性格:${s.personality||'无'}`
-  ).join('\n');
+  const list = students.map((s, i) => {
+    const quiz = hasExitQuiz ? ` | 出门测${feedbackScore(s.quizScore)}/10` : '';
+    return `[${i}] ${s.name} | 成绩${s.level||'未设定'} | 课堂表现${feedbackScore(s.performanceScore)}/10${quiz} | ${s.note||''} | 性格:${s.personality||'无'}`;
+  }).join('\n');
 
   const prompt = `你是教培老师，为以下${students.length}位学生各写一段课后反馈。本课：${classInfo?.content||''}。
 
@@ -90,9 +97,9 @@ router.post('/generate-student-batch', auth, async (req, res) => {
 ${list}
 
 要求：
-${studentFeedbackRules(style)}
+${studentFeedbackRules(style, '姓名', hasExitQuiz)}
 7. 每位学生的切入点和句式要自然区分，最终反馈不得出现具体分数，输入数值只用于判断表现程度。性格只作语气参考，不直接评价性格。
-8. ${hasExitQuiz ? '结合输入的出门测情况，但不要写出分数。' : '本次没有出门测，反馈中明确写“本次没有安排出门测”，不要猜测测试表现。'}
+8. ${hasExitQuiz ? '结合输入的出门测情况，但不要写出分数。' : '只写课堂观察与建议。最终反馈不得出现“出门测”“测试”“测验”“未安排”“未进行”等是否测试的说明。'}
 
 返回JSON：{"results":[{"id":0,"feedback":"..."}]}`;
 
@@ -106,12 +113,14 @@ ${studentFeedbackRules(style)}
     const results = students.map((student, index) => {
       const generated = data.results.find((item) => Number(item?.id) === index) || data.results[index];
       if (!generated?.feedback) throw new Error('AI 返回的学生反馈不完整');
+      const feedback = cleanStudentFeedback(generated.feedback, student.name, style, hasExitQuiz);
+      if (!feedback) throw new Error('AI 返回的学生反馈仅包含测试说明');
       return {
         ...generated,
         // 提示词里的 id 是数组下标；响应给前端时必须恢复成真实学生 id。
         id: student.id ?? index,
         name: student.name,
-        feedback: cleanStudentFeedback(generated.feedback, student.name, style)
+        feedback
       };
     });
     res.json({ ...data, results });
@@ -122,19 +131,22 @@ ${studentFeedbackRules(style)}
 router.post('/generate-student', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { name, level, personality, performanceScore, hasExitQuiz = true, quizScore, note, content, style = 'concise' } = req.body;
+  const quizContext = hasExitQuiz === false ? '' : `，出门测大致水平${feedbackScore(quizScore)}/10`;
   const prompt = `你是教培老师，为一位学生写课后反馈。
 
 本课：${content||'无'}
-学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，课堂表现${feedbackScore(performanceScore)}/10，${hasExitQuiz === false ? '本次没有出门测' : `出门测大致水平${feedbackScore(quizScore)}/10`}，${note||'无特殊说明'}
+学生：${name}，成绩${level||'未设定'}，性格${personality||'无'}，课堂表现${feedbackScore(performanceScore)}/10${quizContext}，${note||'无特殊说明'}
 
 要求：
-${studentFeedbackRules(style, name)}
+${studentFeedbackRules(style, name, hasExitQuiz !== false)}
 7. 最终反馈不得出现具体分数，输入数值只用于判断表现程度；性格只作语气参考，不直接评价性格。
-8. ${hasExitQuiz === false ? '明确写“本次没有安排出门测”，不要猜测测试表现。' : '结合输入的出门测情况，但不要写出分数。'}返回纯文本。`;
+8. ${hasExitQuiz === false ? '只写课堂观察与建议。最终反馈不得出现“出门测”“测试”“测验”“未安排”“未进行”等是否测试的说明。' : '结合输入的出门测情况，但不要写出分数。'}返回纯文本。`;
 
   try {
     const text = await callAI(prompt, style === 'warm' ? 800 : 400);
-    res.json({ text: cleanStudentFeedback(text, name, style) });
+    const cleaned = cleanStudentFeedback(text, name, style, hasExitQuiz !== false);
+    if (!cleaned) throw new Error('AI 返回的学生反馈仅包含测试说明');
+    res.json({ text: cleaned });
   } catch(e) { res.status(500).json({ error: '生成失败' }); }
 });
 
@@ -390,8 +402,27 @@ function removeTenPointScores(text) {
     .trim();
 }
 
-function cleanStudentFeedback(text, name = '', style = 'concise') {
-  let value = normalizeFeedbackEmojis(removeTenPointScores(String(text || '')
+function removeExitQuizDisclosure(text) {
+  return String(text || '')
+    .replace(/\r/g, '')
+    .split(/\n+/u)
+    .flatMap((paragraph) => paragraph.match(/[^。！？!?]+[。！？!?]?/gu) || [])
+    .map((sentence) => {
+      const ending = sentence.match(/[。！？!?]$/u)?.[0] || '';
+      const body = ending ? sentence.slice(0, -1) : sentence;
+      const clauses = body.split(/[，,；;]/u)
+        .map((clause) => clause.trim())
+        .filter((clause) => clause && !/(?:出门测|测试|测验)/u.test(clause));
+      return clauses.length ? `${clauses.join('，')}${ending || '。'}` : '';
+    })
+    .filter(Boolean)
+    .join('')
+    .trim();
+}
+
+function cleanStudentFeedback(text, name = '', style = 'concise', hasExitQuiz = true) {
+  const source = hasExitQuiz ? String(text || '') : removeExitQuizDisclosure(text);
+  let value = normalizeFeedbackEmojis(removeTenPointScores(source
     .replace(/\*/g, '')
     .replace(/```json\n?|```\n?/g, '')));
   if (style === 'warm') {
@@ -416,6 +447,7 @@ function cleanStudentFeedback(text, name = '', style = 'concise') {
   value = style === 'warm'
     ? value.replace(/[^\S\n]+/g, ' ').trim()
     : value.replace(/\s+/g, ' ').trim();
+  if (!value.replace(LEADING_FEEDBACK_EMOJI_PATTERN, '').trim()) return '';
   const valueWithoutLeadingEmoji = value.replace(LEADING_FEEDBACK_EMOJI_PATTERN, '');
   if (name && !value.startsWith(name) && !valueWithoutLeadingEmoji.startsWith(name)) {
     value = `${name}：${value.replace(/^：|:/, '')}`;

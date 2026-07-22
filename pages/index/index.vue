@@ -212,6 +212,20 @@
       <pp-state v-if="parentLoading && !child" type="loading" title="正在读取孩子的学习动态" />
       <pp-state v-else-if="parentError && !child" type="error" title="暂时无法加载" :description="parentError" action-text="重新加载" @action="loadParentData()" />
 
+      <view v-else-if="!child" class="guest-home">
+        <view class="guest-status">已微信登录 · 尚未绑定学生</view>
+        <text class="guest-title">可以先免费体验</text>
+        <text class="guest-copy">选择题、口算不限次数；体验成绩不进排行榜和学生记录。试卷与真实压轴批改需绑定后开放。</text>
+        <button class="guest-primary" @tap="navTo('/pages/guest-experience/index')">进入免费体验</button>
+        <button class="guest-bind" @tap="navTo('/pages/bind/bind')">已有邀请码，绑定学生</button>
+        <view class="guest-contact">
+          <text v-if="CONTACT_MODE==='wechat_copy'">联系潘潘老师加入 · 微信 {{ TEACHER_WECHAT }}</text>
+          <text v-else>联系潘潘老师加入</text>
+          <button v-if="CONTACT_MODE==='wechat_copy'" @tap="copyTeacherWechat">复制微信号</button>
+          <button v-else open-type="contact">联系微信客服</button>
+        </view>
+      </view>
+
       <view v-if="child && learningToday" class="today-learning-card">
         <view class="today-learning-head">
           <view>
@@ -261,7 +275,7 @@
         </view>
       </view>
 
-      <view class="card notify-strip" @tap="requestSubscribe">
+      <view v-if="child" class="card notify-strip" @tap="requestSubscribe">
         <view class="notify-icon"><pp-icon name="bell" :size="42" /></view>
         <view class="notify-copy">
           <text class="notify-title">开启学习提醒</text>
@@ -271,7 +285,7 @@
       </view>
 
       <!-- 本周课表 -->
-      <view class="card" @tap="navTo('/pages/parent-schedule/index')">
+      <view v-if="child" class="card" @tap="navTo('/pages/parent-schedule/index')">
         <view class="section-title">本周课表<text class="card-hint">点击进入学习小组详情</text></view>
         <view v-if="weekSchedules.length === 0" class="hint">本周暂无学习安排</view>
         <view v-for="sc in weekSchedules" :key="sc.id" class="sc-line">
@@ -285,7 +299,7 @@
       </view>
 
       <!-- 最新反馈 -->
-      <view class="card">
+      <view v-if="child" class="card">
         <view class="section-title" @tap="navTo('/pages/parent-feedback/index')">最新反馈</view>
         <view class="fb-box" v-if="latestFeedback" @tap="showFbDetail='class'">
           <text class="fb-label">学习小组总反馈</text>
@@ -337,7 +351,7 @@
       </view>
 
 
-      <view class="card parent-tools">
+      <view v-if="child" class="card parent-tools">
         <view class="section-title">常用服务</view>
         <view class="tool-grid">
           <view class="tool-item" @tap="child?navTo('/pages/parent-leave/index?child_id='+child.id):navTo('/pages/parent-leave/index')">
@@ -360,7 +374,7 @@
       </view>
 
       <!-- 反馈弹窗 -->
-      <view v-if="showFb" class="modal-mask" @tap="showFb=false">
+      <view v-if="child && showFb" class="modal-mask" @tap="showFb=false">
         <view class="modal" @tap.stop>
           <text class="modal-title">反馈与建议</text>
           <textarea v-model="fbText" class="fb-textarea" :placeholder="feedbackPlaceholder" :maxlength="200" />
@@ -382,7 +396,7 @@ import { onHide, onShow, onPullDownRefresh } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { clearLocalSession, doLogin, getUser } from '@/utils/auth';
 import { feedbackHomework, feedbackSummaryWithoutHomework } from '@/utils/feedback';
-import { BRAND, FOOTER_TEXT, teacherDisplayName, teacherNameFromChild } from '@/utils/brand';
+import { BRAND, CONTACT_MODE, FOOTER_TEXT, TEACHER_WECHAT, teacherDisplayName, teacherNameFromChild } from '@/utils/brand';
 import { toastError, logError } from '@/utils/ui';
 import { requestSubscribeBatches, subscribeResultTitle } from '@/utils/subscribe';
 
@@ -544,6 +558,9 @@ async function sendFeedback() {
   }
 }
 function navTo(url) { uni.navigateTo({ url }); }
+function copyTeacherWechat() {
+  uni.setClipboardData({ data:TEACHER_WECHAT, success:()=>uni.showToast({ title:'微信号已复制', icon:'success' }) });
+}
 function openPracticeTodo(item) {
   navTo(`/pages/practice-teacher/index?plan_id=${item.plan_id}&submission_id=${item.submission_id}`);
 }
@@ -573,7 +590,7 @@ async function handleLogin() {
     else {
       await loadNotifyTemplates();
       const hasChild = await loadParentData();
-      if (!hasChild) uni.navigateTo({ url: '/pages/bind/bind' });
+      if (!hasChild) resetHomeScroll();
     }
   } catch(e) {
     const message = e?.error || e?.message || '登录失败，请稍后重试';
@@ -600,7 +617,7 @@ async function handleLoginRepair() {
     } else {
       await loadNotifyTemplates();
       const hasChild = await loadParentData();
-      if (!hasChild) uni.navigateTo({ url: '/pages/bind/bind' });
+      if (!hasChild) resetHomeScroll();
     }
   } catch (e) {
     toastError(e, '修复登录失败，请稍后重试');
@@ -1060,4 +1077,5 @@ function scheduleLabel(sc) {
 .footer { color: var(--faint); padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); }
 .class-history-card{padding:0;overflow:hidden}.class-history-head{min-height:104rpx;margin:0;padding:24rpx 28rpx;box-sizing:border-box}.class-history-summary{display:block;margin-top:4rpx;color:var(--text-muted);font-size:21rpx;font-weight:450}.class-history-actions{display:flex;align-items:center;gap:18rpx}.collapse-label{color:var(--accent-strong);font-size:22rpx;font-weight:700}.class-history-card .class-item{margin:0 28rpx}.class-history-card .class-item:last-child{margin-bottom:18rpx}
 .parent-hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 208rpx;align-items:center;gap:20rpx}.parent-hero-copy{min-width:0}.mental-hero-mini{min-height:150rpx;margin:0;padding:18rpx 16rpx;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:1rpx solid #E5C975;border-radius:20rpx;background:linear-gradient(145deg,#FFF8DB,#FFFFFF);box-shadow:0 12rpx 28rpx rgba(142,99,12,.12);text-align:left;animation:mental-enter .5s var(--ease-out) both}.mental-hero-mini::after{border:0}.mental-hero-mini:active{transform:scale(.97)}.mental-mini-kicker{color:#926300;font-size:20rpx;font-weight:850;letter-spacing:2rpx}.mental-mini-rank{display:block;margin-top:5rpx;color:#3F310D;font-size:27rpx;font-weight:820}.mental-mini-goal{display:block;margin-top:5rpx;color:#82631D;font-size:19rpx;line-height:1.35}@keyframes mental-enter{from{opacity:0;transform:translateY(12rpx) scale(.97)}to{opacity:1;transform:none}}@media (max-width:360px){.parent-hero-grid{grid-template-columns:1fr}.mental-hero-mini{min-height:104rpx}.child-greeting{font-size:36rpx}}
+.guest-home{margin:24rpx;padding:34rpx;border:1rpx solid #D5E4DF;border-radius:26rpx;background:linear-gradient(145deg,#FFFFFF,#F4F9F7);box-shadow:var(--shadow)}.guest-status{display:inline-flex;padding:8rpx 14rpx;border-radius:999rpx;background:#E8F4F0;color:#2E695B;font-size:21rpx;font-weight:730}.guest-title,.guest-copy{display:block}.guest-title{margin-top:20rpx;color:#183A36;font-size:38rpx;font-weight:810}.guest-copy{margin-top:10rpx;color:#63756F;font-size:24rpx;line-height:1.7}.guest-primary,.guest-bind{min-height:88rpx;margin-top:20rpx;border-radius:15rpx;font-size:27rpx;font-weight:760}.guest-primary{background:#183A36;color:#fff}.guest-bind{border:1rpx solid #BFD4CE;background:#fff;color:#285F53}.guest-contact{margin-top:24rpx;padding-top:22rpx;border-top:1rpx solid #E1EBE8;color:#61726D;font-size:22rpx}.guest-contact text{display:block}.guest-contact button{min-height:66rpx;margin:12rpx 0 0;padding:0 22rpx;border-radius:12rpx;background:#FFF0C9;color:#765413;font-size:23rpx;font-weight:760}.guest-contact button::after{border:0}
 </style>

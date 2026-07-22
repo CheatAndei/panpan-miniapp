@@ -8,8 +8,12 @@ process.env.DATABASE_PATH = dbPath;
 
 const { initDB, getDB } = require('../db/init');
 const dataset = require('../resources/practice/junior-calculation-v3');
+const { auditCalculationQuestionBanks } = require('../services/question-bank-audit');
+const { normalizeLinearEquationDisplay } = require('../utils/math-expression');
 const {
   importQuestionDataset,
+  migrateQuestionDatasetStems,
+  questionContentDigest,
   validateQuestionDataset,
 } = require('../services/practice-question-import');
 
@@ -60,6 +64,28 @@ test('固定初中计算题库有 960 道、题干唯一且答案可审计', () 
   const active = db.get(`SELECT COUNT(*) count FROM practice_questions
     WHERE grade_band='初中' AND is_active=1 AND source_batch=?`, [dataset.metadata.batch_key]);
   assert.equal(Number(active.count), 960);
+});
+
+test('全部 2720 道生成题不存在正负号连写', () => {
+  const audit = auditCalculationQuestionBanks();
+  assert.equal(audit.total, 2720);
+  assert.deepEqual(audit.failures, []);
+});
+
+test('题干格式迁移保留原数据库题目 ID 和签名', () => {
+  const db = getDB();
+  const next = dataset.questions.find((item) => item.signature === 'junior-calc-v3-0804');
+  const legacyStem = next.stem.replace(/ − /gu, '+-').replace(/ \+ /gu, '+').replace(/ = /gu, '=').replace(/−/gu, '-');
+  const original = db.get('SELECT * FROM practice_questions WHERE signature=?', [next.signature]);
+  db.run('UPDATE practice_questions SET stem=?,content_sha256=? WHERE id=?', [
+    legacyStem, questionContentDigest({ ...next, stem: legacyStem }), original.id,
+  ]);
+  const migrated = migrateQuestionDatasetStems(db, dataset, normalizeLinearEquationDisplay);
+  const updated = db.get('SELECT * FROM practice_questions WHERE signature=?', [next.signature]);
+  assert.equal(migrated.updated, 1);
+  assert.equal(updated.id, original.id);
+  assert.equal(updated.signature, original.signature);
+  assert.equal(updated.stem, next.stem);
 });
 
 test('题库导入默认可预检且重复提交幂等', () => {

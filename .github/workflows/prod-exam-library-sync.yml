@@ -102,4 +102,3 @@ jobs:
           test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"
           rm -rf -- "$ROOT"
           REMOTE
-

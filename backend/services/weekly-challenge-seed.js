@@ -9,6 +9,9 @@ const MANIFEST_PATH = path.join(RESOURCE_DIR, 'manifest.json');
 // authored questions deliberately use other keys and must never be retired by
 // an application startup sync.
 const MANAGED_SOURCE_PREFIXES = ['gz7-weekly-', 'gz7-terminal-'];
+// 同一进程内可能因后台任务、测试或人工重载重复同步清单。图片资源较大，
+// 用路径 + 文件元数据缓存已确认的 asset，避免重复读取和计算 1,500+ 个文件哈希。
+const assetCache = new Map();
 
 function hash(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -17,10 +20,19 @@ function hash(buffer) {
 function storeImage(db, relativePath, kind) {
   const source = path.resolve(RESOURCE_DIR, relativePath);
   if (!source.startsWith(path.resolve(RESOURCE_DIR) + path.sep) || !fs.existsSync(source)) return null;
+  const stat = fs.statSync(source);
+  const cacheKey = `${kind}:${path.normalize(relativePath)}`;
+  const cached = assetCache.get(cacheKey);
+  if (cached && cached.size === stat.size && cached.mtimeMs === stat.mtimeMs
+    && db.get('SELECT id FROM exam_assets WHERE id=?', [cached.assetId])) return cached.assetId;
   const buffer = fs.readFileSync(source);
   const sha256 = hash(buffer);
   const existing = db.get('SELECT id,storage_key FROM exam_assets WHERE sha256=?', [sha256]);
-  if (existing) return Number(existing.id);
+  if (existing) {
+    const assetId = Number(existing.id);
+    assetCache.set(cacheKey, { assetId, size: stat.size, mtimeMs: stat.mtimeMs });
+    return assetId;
+  }
   const ext = path.extname(source).toLowerCase() || '.png';
   const mimeType = ({ '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' })[ext];
   if (!mimeType) return null;
@@ -30,7 +42,9 @@ function storeImage(db, relativePath, kind) {
   if (!fs.existsSync(target)) fs.copyFileSync(source, target);
   const created = db.run(`INSERT INTO exam_assets(asset_kind,storage_key,original_name,mime_type,byte_size,sha256)
     VALUES(?,?,?,?,?,?)`, [kind, storageKey, path.basename(source), mimeType, buffer.length, sha256]);
-  return Number(created.lastInsertRowid);
+  const assetId = Number(created.lastInsertRowid);
+  assetCache.set(cacheKey, { assetId, size: stat.size, mtimeMs: stat.mtimeMs });
+  return assetId;
 }
 
 function seedWeeklyChallenges(db) {

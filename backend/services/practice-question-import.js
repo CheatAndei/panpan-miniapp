@@ -82,6 +82,45 @@ function sameExistingQuestion(existing, item) {
     && existing.module === item.module && existing.template_key === item.template_key;
 }
 
+function sameQuestionExceptStem(existing, item) {
+  const expectedSourceType = item.provenance === 'self_authored' ? 'self_authored' : 'licensed';
+  return String(existing.grade_band) === String(item.grade_band)
+    && String(existing.subject) === String(item.subject)
+    && String(existing.module) === String(item.module)
+    && String(existing.question_type) === String(item.question_type)
+    && Number(existing.difficulty) === Number(item.difficulty)
+    && String(existing.template_key) === String(item.template_key)
+    && String(existing.answer) === String(item.answer)
+    && Number(existing.estimated_seconds) === Number(item.estimated_seconds)
+    && String(existing.signature) === String(item.signature)
+    && String(existing.source_type) === expectedSourceType;
+}
+
+function migrateQuestionDatasetStems(db, dataset, normalizeLegacyStem) {
+  const validated = validateQuestionDataset(dataset);
+  if (validated.errors.length) {
+    throw new Error(`题库迁移校验失败：${validated.errors.join('；')}`);
+  }
+  if (typeof normalizeLegacyStem !== 'function') throw new Error('题库迁移缺少旧题干格式化器');
+  let updated = 0;
+  db.transaction(() => {
+    for (const raw of validated.questions) {
+      const item = coreQuestion(raw);
+      const existing = db.get('SELECT * FROM practice_questions WHERE signature=?', [item.signature]);
+      if (!existing || sameExistingQuestion(existing, item)) continue;
+      const safeStemChange = existing.source_batch === validated.metadata.batch_key
+        && sameQuestionExceptStem(existing, item)
+        && normalizeLegacyStem(existing.stem) === item.stem;
+      if (!safeStemChange) throw new Error(`题库迁移拒绝覆盖非预期内容：${item.signature}`);
+      db.run('UPDATE practice_questions SET stem=?,content_sha256=? WHERE id=?', [
+        item.stem, questionContentDigest(item), existing.id,
+      ]);
+      updated += 1;
+    }
+  });
+  return { updated, total: validated.questions.length };
+}
+
 function inspectQuestionDataset(db, dataset) {
   const validated = validateQuestionDataset(dataset);
   if (validated.errors.length) return { ok: false, errors: validated.errors, insertable: 0, existing: 0 };
@@ -149,4 +188,5 @@ module.exports = {
   validateQuestionDataset,
   inspectQuestionDataset,
   importQuestionDataset,
+  migrateQuestionDatasetStems,
 };

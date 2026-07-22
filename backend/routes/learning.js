@@ -4,6 +4,7 @@ const { authRequired: auth, requireRole } = require('../middleware/auth');
 const { parentBoundStudent } = require('../utils/scope');
 const {
   TASKS, createOrGetAttempt, completeAttempt, serializeAttempt, todayOverview, catalog,
+  learningPreference, saveLearningPreference,
 } = require('../services/learning');
 
 const router = express.Router();
@@ -28,8 +29,24 @@ router.get('/catalog', auth, parentOnly, (req, res) => {
   const db = getDB();
   const studentId = boundStudent(db, req.user.id, req.query.student_id);
   if (!studentId) return res.status(403).json({ error: '无权查看该学生的学习内容' });
-  try { return res.json(catalog(db, { studentId })); }
+  try {
+    const preference = learningPreference(db, {
+      studentId, requestedGrade: req.query.grade, requestedSubject: req.query.subject,
+    });
+    return res.json({ ...catalog(db, { studentId, gradeCode: preference.grade_code, subjectCode: preference.subject_code }), ...preference });
+  }
   catch (error) { return res.status(400).json({ error: error.message || '学习内容加载失败' }); }
+});
+
+router.put('/preferences', auth, parentOnly, (req, res) => {
+  const db = getDB();
+  const studentId = boundStudent(db, req.user.id, req.body?.student_id);
+  if (!studentId) return res.status(403).json({ error: '无权修改该学生的学习入口' });
+  try {
+    return res.json({ ok: true, preference: saveLearningPreference(db, {
+      studentId, gradeCode: req.body?.grade, subjectCode: req.body?.subject,
+    }) });
+  } catch (error) { return res.status(400).json({ error: error.message || '学习入口保存失败' }); }
 });
 
 router.post('/sessions', auth, parentOnly, (req, res) => {
@@ -39,7 +56,10 @@ router.post('/sessions', auth, parentOnly, (req, res) => {
   if (!studentId) return res.status(403).json({ error: '无权为该学生开始学习' });
   if (!TASKS[taskType]) return res.status(400).json({ error: '学习任务不存在' });
   try {
-    const attempt = createOrGetAttempt(db, { studentId, parentId: req.user.id, taskType });
+    const attempt = createOrGetAttempt(db, {
+      studentId, parentId: req.user.id, taskType,
+      gradeCode: req.body?.grade, subjectCode: req.body?.subject,
+    });
     return res.status(attempt.status === 'active' ? 201 : 200).json({ attempt });
   } catch (error) {
     return res.status(400).json({ error: error.message || '学习任务创建失败' });

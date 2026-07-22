@@ -58,11 +58,11 @@ test.after(async () => {
   try { fs.unlinkSync(dbPath); } catch {}
 });
 
-test('学习闭环迁移可重复执行且五张表完整存在', () => {
+test('学习闭环迁移可重复执行且相关数据表完整存在', () => {
   runMigrations();
   runMigrations();
   const db = getDB();
-  for (const table of ['learning_attempts', 'wrong_item_progress', 'achievement_awards', 'weekly_reports', 'engagement_events']) {
+  for (const table of ['learning_attempts', 'wrong_item_progress', 'achievement_awards', 'weekly_reports', 'engagement_events', 'calculation_question_reports', 'mental_question_controls', 'calculation_score_reviews']) {
     assert.ok(db.get("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [table]));
   }
 });
@@ -129,4 +129,86 @@ test('成长页生成周报、六枚徽章和匿名分享信息', () => {
   assert.equal(summary.share.anonymous, true);
   assert.ok(summary.report.summary.length > 10);
   assert.ok(getDB().get('SELECT id FROM weekly_reports WHERE student_id=?', [studentId]));
+});
+
+test('学习计算题报错支持权限、去重、限频、教师停题与历史快照', async () => {
+  const session = await request('POST', '/learning/sessions', { student_id: studentId, task_type: 'basics' });
+  assert.equal(session.response.status, 201);
+  const questions = session.payload.attempt.questions;
+  assert.ok(questions.length >= 6);
+  assert.ok(questions.every((item) => String(item.id).startsWith('practice:')));
+  const stored = getDB().get('SELECT questions_json FROM learning_attempts WHERE id=?', [session.payload.attempt.id]);
+  const storedQuestions = JSON.parse(stored.questions_json);
+  const completed = await request('POST', `/learning/sessions/${session.payload.attempt.id}/submit`, {
+    answers: storedQuestions.map((item) => ({ question_id: item.id, answer: item.answer })), elapsed_seconds: 60,
+  });
+  const scoreBeforeReview = Number(completed.payload.attempt.score);
+  const reportBody = (question) => ({
+    source_type: 'learning_attempt', source_id: session.payload.attempt.id,
+    student_id: studentId, question_id: question.id, reason: 'answer_error', detail: '请老师核对',
+  });
+  const forbidden = await request('POST', '/calculation-reports', reportBody(questions[0]), otherParentToken);
+  assert.equal(forbidden.response.status, 403);
+  const first = await request('POST', '/calculation-reports', reportBody(questions[0]));
+  assert.equal(first.response.status, 201);
+  assert.equal(first.payload.report.snapshot_answer, undefined);
+  const duplicate = await request('POST', '/calculation-reports', reportBody(questions[0]));
+  assert.equal(duplicate.response.status, 200);
+  for (const question of questions.slice(1, 5)) {
+    const created = await request('POST', '/calculation-reports', reportBody(question));
+    assert.equal(created.response.status, 201);
+  }
+  const limited = await request('POST', '/calculation-reports', reportBody(questions[5]));
+  assert.equal(limited.response.status, 429);
+
+  const queue = await request('GET', '/calculation-reports?source_type=learning_attempt&status=pending', undefined, teacherToken);
+  const report = queue.payload.reports.find((item) => Number(item.id) === Number(first.payload.report.id));
+  assert.ok(report);
+  const practiceQuestionId = Number(String(questions[0].id).split(':')[1]);
+  const handled = await request('PUT', `/calculation-reports/${report.id}`, {
+    status: 'resolved', stop_question: true, teacher_note: '答案需要修正',
+  }, teacherToken);
+  assert.equal(handled.response.status, 200);
+  assert.equal(Number(getDB().get('SELECT is_active FROM practice_questions WHERE id=?', [practiceQuestionId]).is_active), 0);
+  assert.ok(Number(handled.payload.report.affected_review_count) >= 1);
+  assert.ok(getDB().get(`SELECT id FROM calculation_score_reviews
+    WHERE source_type='learning_attempt' AND source_id=? AND bank_question_id=?`, [session.payload.attempt.id, String(practiceQuestionId)]));
+  assert.equal(Number(getDB().get('SELECT score FROM learning_attempts WHERE id=?', [session.payload.attempt.id]).score), scoreBeforeReview);
+  const historical = await request('GET', `/learning/sessions/${session.payload.attempt.id}`);
+  assert.ok(historical.payload.attempt.questions.some((item) => item.id === questions[0].id));
+});
+
+test('同题 3 名学生报错生成高优先级提醒，迁班后仅新教师可处理', async () => {
+  const db = getDB();
+  const klass = db.get("SELECT * FROM classes WHERE name='初一数学'");
+  const teacher = db.get("SELECT id FROM users WHERE openid='learning-teacher'");
+  const sharedQuestion = { id: 'mental:junior-priority-test', type: '有理数加减', stem: '1 + (−2) = ?', answer: '-1' };
+  const { createCalculationReport } = require('../services/calculation-reports');
+  let lastReport;
+  for (let index = 0; index < 3; index += 1) {
+    const parent = db.run('INSERT INTO users(openid,role,nickname) VALUES(?,?,?)', [`priority-parent-${index}`, 'parent', `家长${index}`]);
+    const student = db.run('INSERT INTO students(teacher_id,class_id,name,grade,invite_code) VALUES(?,?,?,?,?)', [teacher.id, klass.id, `学生${index}`, '初一', `PRIORITY${index}`]);
+    db.run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [parent.lastInsertRowid, student.lastInsertRowid]);
+    const attempt = db.run(`INSERT INTO learning_attempts
+      (student_id,parent_id,task_type,task_title,logical_date,status,battle,questions_json,total_questions,started_at)
+      VALUES(?,?,'warmup','优先级测试',?,'active','junior',?,1,?)`, [
+      student.lastInsertRowid, parent.lastInsertRowid, `2026-08-0${index + 1}`, JSON.stringify([sharedQuestion]), new Date().toISOString(),
+    ]);
+    lastReport = createCalculationReport(db, {
+      sourceType: 'learning_attempt', sourceId: attempt.lastInsertRowid, sourceQuestionId: sharedQuestion.id,
+      studentId: student.lastInsertRowid, parentId: parent.lastInsertRowid, reason: 'sign_bracket',
+    }).report;
+  }
+  assert.ok(db.get("SELECT id FROM teacher_alerts WHERE alert_type='calculation_report_3'"));
+  const priority = await request('GET', '/calculation-reports?source_type=learning_attempt&status=pending', undefined, teacherToken);
+  assert.ok(priority.payload.reports.some((item) => Number(item.id) === Number(lastReport.id) && item.high_priority));
+
+  const nextTeacher = db.run("INSERT INTO users(openid,role,nickname) VALUES('learning-next-teacher','teacher','新老师')");
+  db.run('INSERT INTO user_roles(user_id,role) VALUES(?,?)', [nextTeacher.lastInsertRowid, 'teacher']);
+  const nextToken = jwt.sign({ id: nextTeacher.lastInsertRowid, openid: 'learning-next-teacher', role: 'teacher' }, process.env.JWT_SECRET);
+  db.run('UPDATE classes SET teacher_id=? WHERE id=?', [nextTeacher.lastInsertRowid, klass.id]);
+  const oldQueue = await request('GET', '/calculation-reports?source_type=learning_attempt&status=all', undefined, teacherToken);
+  const newQueue = await request('GET', '/calculation-reports?source_type=learning_attempt&status=all', undefined, nextToken);
+  assert.ok(!oldQueue.payload.reports.some((item) => Number(item.id) === Number(lastReport.id)));
+  assert.ok(newQueue.payload.reports.some((item) => Number(item.id) === Number(lastReport.id)));
 });

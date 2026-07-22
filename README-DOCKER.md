@@ -19,6 +19,8 @@ APP_ID=微信小程序 AppID
 APP_SECRET=微信小程序 AppSecret
 DEEPSEEK_API_KEY=DeepSeek Key
 WX_MINIPROGRAM_STATE=formal
+# 体验版海报码用 trial；正式发布后改为 release
+WX_CODE_ENV_VERSION=trial
 TPL_CHECKIN=签到订阅消息模板ID
 TPL_CHECKOUT=签退订阅消息模板ID
 TPL_FEEDBACK=课后反馈订阅消息模板ID
@@ -104,6 +106,17 @@ Docker volume：
 
 - `panpan-data` -> SQLite DB `/app/data/teach.db`
 - `panpan-uploads` -> 上传文件 `/app/uploads`
+- `panpan-private-uploads` -> 私有作业与学习图片 `/app/private-uploads`
+- `panpan-exams` -> 试卷资料 `/app/exam-library`
+- `panpan-backups` -> 数据库备份 `/app/backups`
+
+每次发布数据库迁移前，先执行并保存输出中的文件大小与 SHA-256：
+
+```bash
+docker compose run --rm panpan-api npm run db:backup
+```
+
+备份成功后再重建服务。`panpan-backups` 与数据库分卷，但仍在同一台服务器；重要版本应再复制到服务器外保存。
 
 ## 5. 小程序 API 地址
 

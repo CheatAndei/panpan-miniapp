@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { normalizeMathDisplay, signedOperand } = require('../../utils/math-expression');
 
 const BATTLES = {
   primary: {
@@ -65,7 +66,7 @@ function uniqueBatch({ battle, type, count, builder }) {
     if (!built || stems.has(built.stem)) continue;
     stems.add(built.stem);
     rows.push({
-      id: `${battle}-${String(rows.length + 1).padStart(3, '0')}-${seedNumber(built.stem).toString(16)}`,
+      id: `${battle}-${String(rows.length + 1).padStart(3, '0')}-${seedNumber(built.idStem || built.stem).toString(16)}`,
       battle,
       type,
       stem: built.stem,
@@ -156,14 +157,25 @@ function buildJuniorQuestions() {
       const denominator = integer(next, 2, 12);
       const a = signed(next, 1, denominator * 2);
       const b = signed(next, 1, denominator * 2);
-      return { stem: `${fraction(a, denominator)} + ${fraction(b, denominator)} = ?`, answer: fraction(a + b, denominator) };
+      const left = fraction(a, denominator);
+      const right = fraction(b, denominator);
+      const idStem = `${left} + ${right} = ?`;
+      return { idStem, stem: `${normalizeMathDisplay(left)} + ${signedOperand(right)} = ?`, answer: fraction(a + b, denominator) };
     }],
     ['小数口算', (next) => {
       const a = signed(next, 12, 180);
       const b = signed(next, 12, 180);
       const c = signed(next, 5, 90);
       const value = a - b + c;
-      return { stem: `${(a / 10).toFixed(1)} - (${(b / 10).toFixed(1)}) + ${(c / 10).toFixed(1)} = ?`, answer: (value / 10).toFixed(1) };
+      const left = (a / 10).toFixed(1);
+      const middle = (b / 10).toFixed(1);
+      const right = (c / 10).toFixed(1);
+      const idStem = `${left} - (${middle}) + ${right} = ?`;
+      return {
+        idStem,
+        stem: `${normalizeMathDisplay(left)} − (${normalizeMathDisplay(middle)}) + ${signedOperand(right)} = ?`,
+        answer: (value / 10).toFixed(1),
+      };
     }],
     ['整式求值', (next) => {
       const x = signed(next, 1, 9);
