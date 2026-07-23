@@ -151,6 +151,15 @@ function teacherQueue(db,{teacherId,status='submitted',limit=100}){
   });
 }
 
+function teacherQueueCount(db,{teacherId,status='submitted'}){
+  const clause=status==='all'?'':` AND sub.status='${status==='reviewed'?'reviewed':'submitted'}'`;
+  return Number(db.get(`SELECT COUNT(*) count FROM challenge_submissions_v2 sub
+    JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id
+    JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+    WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}`,
+  [teacherId])?.count||0);
+}
+
 function reviewSubmission(db,{teacherId,submissionId,isCorrect,teacherNote}){
   const submission=db.get(`SELECT sub.*,a.student_id,a.grade_code,a.subject_code,a.question_type,a.id assignment_id
     FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id WHERE sub.id=?`,[submissionId]);
@@ -170,5 +179,5 @@ function reviewSubmission(db,{teacherId,submissionId,isCorrect,teacherNote}){
 
 module.exports={
   TYPES,ACTIVE_STATUSES,assignmentRow,serializeAssignment,submissionsForAssignment,currentState,
-  createAssignment,changeAssignment,teacherQueue,reviewSubmission,refreshProgress,
+  createAssignment,changeAssignment,teacherQueue,teacherQueueCount,reviewSubmission,refreshProgress,
 };

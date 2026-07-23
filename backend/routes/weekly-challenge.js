@@ -8,7 +8,8 @@ const { resolveExamPath } = require('../utils/exam-files');
 const { weekStartKey } = require('../services/learning');
 const {
   assignmentRow: assignmentRowV2, currentState: currentStateV2, createAssignment: createAssignmentV2,
-  changeAssignment: changeAssignmentV2, teacherQueue: teacherQueueV2, reviewSubmission: reviewSubmissionV2,
+  changeAssignment: changeAssignmentV2, teacherQueue: teacherQueueV2, teacherQueueCount: teacherQueueCountV2,
+  reviewSubmission: reviewSubmissionV2,
 } = require('../services/challenge-v2');
 const { recordChallengePass, serializeEvent } = require('../services/promotions');
 
@@ -139,8 +140,10 @@ router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => 
 router.get('/v2/teacher/submissions', auth, teacherOnly, (req, res) => {
   const status=String(req.query.status||'submitted');
   if(!['submitted','reviewed','all'].includes(status))return res.status(400).json({error:'提交状态无效'});
-  const submissions=teacherQueueV2(getDB(),{teacherId:req.user.id,status,limit:req.query.limit});
-  return res.json({count:submissions.length,todos:submissions,submissions});
+  const db=getDB();
+  const submissions=teacherQueueV2(db,{teacherId:req.user.id,status,limit:req.query.limit});
+  const count=teacherQueueCountV2(db,{teacherId:req.user.id,status});
+  return res.json({count,todos:submissions,submissions});
 });
 
 router.put('/v2/teacher/submissions/:id/review', auth, teacherOnly, (req, res) => {

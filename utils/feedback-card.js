@@ -68,6 +68,30 @@ async function resilientImageInfo(src) {
   throw lastError || new Error('图片读取失败');
 }
 
+async function resolvePackagedImage(src) {
+  const source = String(src || '').trim();
+  if (!source.startsWith('/static/') && !source.startsWith('static/')) return resilientImageInfo(source);
+  const uniApi = typeof uni !== 'undefined' ? uni : null;
+  const userDataPath = typeof wx !== 'undefined' && wx?.env?.USER_DATA_PATH
+    ? wx.env.USER_DATA_PATH
+    : uniApi?.env?.USER_DATA_PATH;
+  const fileSystem = typeof uniApi?.getFileSystemManager === 'function'
+    ? uniApi.getFileSystemManager()
+    : (typeof wx !== 'undefined' && typeof wx.getFileSystemManager === 'function' ? wx.getFileSystemManager() : null);
+  if (!userDataPath || !fileSystem) return resilientImageInfo(source);
+  const packagePath = source.replace(/^\/+/, '');
+  const suffix = packagePath.includes('.') ? packagePath.slice(packagePath.lastIndexOf('.')) : '.jpg';
+  const targetPath = `${userDataPath}/panpan-feedback-avatar${suffix}`;
+  try {
+    try { return await imageInfo(targetPath); } catch {}
+    const data = fileSystem.readFileSync(packagePath);
+    fileSystem.writeFileSync(targetPath, data);
+    return await imageInfo(targetPath);
+  } catch {
+    return resilientImageInfo(source);
+  }
+}
+
 function roundedPath(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
@@ -172,11 +196,45 @@ function drawWrappedText(ctx, value, { x, y, maxWidth, fontSize, lineHeight, max
   return visible.length;
 }
 
-function drawStudentPhotos(ctx, photos) {
-  const x = 48;
-  const y = 650;
-  const width = 462;
-  const height = 246;
+function drawFittedText(ctx, value, {
+  x, y, maxWidth, maxHeight, fontSizes = [28, 26, 24, 22, 20, 18],
+  color, weight = 'normal', lineHeightRatio = 1.42,
+}) {
+  let chosen = { fontSize:fontSizes[fontSizes.length - 1], lineHeight:Math.round(fontSizes[fontSizes.length - 1] * lineHeightRatio), lines:[] };
+  for (const fontSize of fontSizes) {
+    ctx.setFontSize(fontSize);
+    if (typeof ctx.font === 'string') ctx.font = `${weight} ${fontSize}px sans-serif`;
+    const lines = wrapText(ctx, value, maxWidth, fontSize);
+    const lineHeight = Math.round(fontSize * lineHeightRatio);
+    chosen = { fontSize, lineHeight, lines };
+    if (lines.length * lineHeight <= maxHeight) break;
+  }
+  ctx.setFillStyle(color);
+  ctx.setFontSize(chosen.fontSize);
+  if (typeof ctx.font === 'string') ctx.font = `${weight} ${chosen.fontSize}px sans-serif`;
+  chosen.lines.forEach((line, index) => ctx.fillText(line, x, y + index * chosen.lineHeight));
+  return chosen;
+}
+
+function studentCardLayout(lineCount) {
+  const bodyHeight = Math.max(220, Math.min(398, 118 + Math.max(1, lineCount) * 40));
+  const mediaY = 210 + bodyHeight + 22;
+  return {
+    bodyHeight,
+    mediaY,
+    mediaHeight:Math.max(250, 902 - mediaY),
+    photoX:48,
+    photoWidth:480,
+    avatarX:544,
+    avatarWidth:158,
+  };
+}
+
+function drawStudentPhotos(ctx, photos, layout) {
+  const x = layout.photoX;
+  const y = layout.mediaY;
+  const width = layout.photoWidth;
+  const height = layout.mediaHeight;
   const gap = 12;
   if (!photos.length) {
     fillRoundedRect(ctx, x, y, width, height, 22, '#EDE6D9');
@@ -191,8 +249,7 @@ function drawStudentPhotos(ctx, photos) {
     return;
   }
   if (photos.length === 1) {
-    // 单张照片完整展示，不再强制裁掉上下或左右内容。
-    drawContain(ctx, photos[0], x, y, width, height, 20, '#E9E2D7');
+    drawCover(ctx, photos[0], x, y, width, height, 20);
     return;
   }
   if (photos.length === 2) {
@@ -263,9 +320,12 @@ export async function renderFeedbackCard({
     catch { throw new Error(`第 ${index + 1} 张学生照片读取失败，请重新选择`); }
   }
   let avatar = null;
-  try { avatar = await resilientImageInfo(avatarPath); } catch {}
+  try { avatar = await resolvePackagedImage(avatarPath); } catch {}
 
   const ctx = uni.createCanvasContext(canvasId, page);
+  ctx.setFontSize(28);
+  const bodyLineCount = wrapText(ctx, body, 590, 28).length;
+  const layout = studentCardLayout(bodyLineCount);
   ctx.setFillStyle('#F5EFE4');
   ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, FEEDBACK_CARD_HEIGHT);
   ctx.setFillStyle('#C89446');
@@ -285,20 +345,28 @@ export async function renderFeedbackCard({
   ctx.fillText(ellipsis(ctx, [lesson, topic].map(cleanLine).filter(Boolean).join(' · ') || '数学课堂', 330, 19), 700, 108);
   ctx.setTextAlign('left');
 
-  fillRoundedRect(ctx, 48, 210, 654, 400, 24, '#FFFCF7');
+  fillRoundedRect(ctx, 48, 210, 654, layout.bodyHeight, 24, '#FFFCF7');
   ctx.setFillStyle('#C89446');
   ctx.setFontSize(58);
   ctx.fillText('“', 69, 270);
-  drawWrappedText(ctx, body, { x: 80, y: 307, maxWidth: 590, fontSize: 28, lineHeight: 40, maxLines: 7, color: '#263B36' });
+  drawFittedText(ctx, body, {
+    x:80,
+    y:307,
+    maxWidth:590,
+    maxHeight:layout.bodyHeight - 118,
+    fontSizes:[28, 26, 24, 22],
+    color:'#263B36',
+  });
 
-  drawStudentPhotos(ctx, photos);
-  fillRoundedRect(ctx, 526, 650, 176, 246, 20, '#FFFFFF');
-  if (avatar) drawContain(ctx, avatar, 534, 658, 160, 190, 15, '#F3F0E9');
-  else drawAvatarFallback(ctx, 534, 658, 160, 190);
+  drawStudentPhotos(ctx, photos, layout);
+  const avatarY = layout.mediaY + Math.max(0, (layout.mediaHeight - 246) / 2);
+  fillRoundedRect(ctx, layout.avatarX, avatarY, layout.avatarWidth, 246, 20, '#FFFFFF');
+  if (avatar) drawContain(ctx, avatar, layout.avatarX + 8, avatarY + 8, layout.avatarWidth - 16, 190, 15, '#F3F0E9');
+  else drawAvatarFallback(ctx, layout.avatarX + 8, avatarY + 8, layout.avatarWidth - 16, 190);
   ctx.setFillStyle('#173A35');
   ctx.setTextAlign('center');
   ctx.setFontSize(19);
-  ctx.fillText('潘潘老师', 614, 879);
+  ctx.fillText('潘潘老师', layout.avatarX + layout.avatarWidth / 2, avatarY + 229);
   ctx.setTextAlign('left');
 
   ctx.setFillStyle('#D7CCBB');
@@ -328,61 +396,59 @@ export async function renderClassFeedbackCard({
   if (!body) throw new Error('请先填写学习小组总反馈');
 
   const ctx = uni.createCanvasContext(canvasId, page);
-  ctx.setFillStyle('#123B34');
+  ctx.setFillStyle('#F7F2E8');
   ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, FEEDBACK_CARD_HEIGHT);
-  ctx.setStrokeStyle('rgba(185,220,209,.12)');
-  ctx.setLineWidth(1);
-  for (let x = 0; x <= 750; x += 62) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1000); ctx.stroke(); }
-  for (let y = 0; y <= 1000; y += 62) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(750, y); ctx.stroke(); }
-
-  ctx.setFillStyle('#A7D3C5');
-  ctx.setFontSize(18);
-  ctx.fillText('PANPAN / CLASS BRIEF  •  课堂纪要', 48, 59);
-  ctx.setFillStyle('#F5EACF');
-  ctx.setFontSize(53);
-  ctx.fillText('今日课堂简报', 48, 130);
-  ctx.setFillStyle('#DEB963');
-  ctx.fillRect(50, 157, 86, 5);
-  ctx.setTextAlign('right');
-  fillRoundedRect(ctx, 540, 96, 162, 60, 30, '#E6C674');
   ctx.setFillStyle('#173A35');
+  ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, 226);
+  ctx.setFillStyle('#E1BC62');
+  ctx.fillRect(48, 52, 78, 5);
+  ctx.setFillStyle('#A9D0C5');
   ctx.setFontSize(18);
-  ctx.fillText(cleanLine(classDate) || '课堂记录', 676, 134);
+  ctx.fillText('PANPAN · CLASS BRIEF', 48, 86);
+  ctx.setFillStyle('#F5EACF');
+  ctx.setFontSize(44);
+  ctx.fillText('今日课堂简报', 48, 146);
+  ctx.setTextAlign('right');
+  ctx.setFillStyle('#B9D5CE');
+  ctx.setFontSize(17);
+  ctx.fillText(cleanLine(classDate) || '课堂记录', 702, 84);
   ctx.setTextAlign('left');
 
-  ctx.setFillStyle('#9BC7BA');
-  ctx.setFontSize(18);
-  ctx.fillText('THIS LESSON', 50, 220);
+  ctx.setFillStyle('#D9EEE8');
+  ctx.setFontSize(17);
+  ctx.fillText('本次课程', 48, 183);
   ctx.setFillStyle('#FFFFFF');
-  ctx.setFontSize(35);
-  ctx.fillText(ellipsis(ctx, [lesson, topic].map(cleanLine).filter(Boolean).join(' · ') || cleanLine(className), 650, 35), 50, 267);
+  ctx.setFontSize(27);
+  ctx.fillText(ellipsis(ctx, [lesson, topic].map(cleanLine).filter(Boolean).join(' · ') || cleanLine(className), 636, 27), 48, 215);
 
-  fillRoundedRect(ctx, 48, 308, 654, 530, 28, '#F4F0E4');
-  ctx.setFillStyle('#C39A43');
-  ctx.setFontSize(72);
-  ctx.fillText('01', 76, 389);
-  ctx.setFillStyle('#6B7D77');
+  fillRoundedRect(ctx, 48, 258, 654, 602, 24, '#FFFCF7');
+  ctx.setFillStyle('#AD8232');
   ctx.setFontSize(17);
-  ctx.fillText('CLASS OBSERVATION', 164, 364);
+  ctx.fillText('课堂记录', 76, 306);
   ctx.setFillStyle('#173A35');
-  ctx.setFontSize(26);
-  ctx.fillText('今天学了什么 · 课堂发生了什么', 164, 398);
-  ctx.setFillStyle('#D8D3C6');
-  ctx.fillRect(76, 430, 598, 1);
-  drawWrappedText(ctx, body, { x: 76, y: 477, maxWidth: 598, fontSize: 27, lineHeight: 39, maxLines: 8, color: '#2D423D' });
+  ctx.setFontSize(27);
+  ctx.fillText('重点 · 表现 · 下一步', 76, 346);
+  ctx.setFillStyle('#E4DDD0');
+  ctx.fillRect(76, 370, 598, 1);
+  drawFittedText(ctx, body, {
+    x:76,
+    y:414,
+    maxWidth:598,
+    maxHeight:400,
+    fontSizes:[27, 25, 23, 21, 19, 18],
+    color:'#2D423D',
+    lineHeightRatio:1.48,
+  });
 
-  ctx.setFillStyle('#E5C46E');
-  ctx.fillRect(48, 884, 5, 61);
-  ctx.setFillStyle('#F4EEDC');
-  ctx.setFontSize(21);
-  ctx.fillText(cleanLine(className) || '数学课堂', 71, 907);
-  ctx.setFillStyle('#A7C7BE');
-  ctx.setFontSize(17);
-  ctx.fillText('清楚记录每一次真实进步', 71, 938);
+  ctx.setFillStyle('#D6C7AC');
+  ctx.fillRect(48, 902, 654, 1);
+  ctx.setFillStyle('#173A35');
+  ctx.setFontSize(20);
+  ctx.fillText(cleanLine(className) || '数学课堂', 48, 945);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#E8C96F');
-  ctx.setFontSize(21);
-  ctx.fillText('潘潘老师', 702, 927);
+  ctx.setFillStyle('#8A7654');
+  ctx.setFontSize(20);
+  ctx.fillText('潘潘老师', 702, 945);
   ctx.setTextAlign('left');
 
   return finishCanvas(ctx, canvasId, page);

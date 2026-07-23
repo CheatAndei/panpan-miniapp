@@ -54,7 +54,7 @@ function recordMentalFirst(db, { studentId, challengeId, battle, periodStart }) 
 }
 
 function recordChallengePass(db, { assignmentId }) {
-  const row = db.get(`SELECT a.id,a.student_id,a.updated_at,q.title question_title,q.source_label,q.question_type,
+  const row = db.get(`SELECT a.id,a.student_id,a.updated_at,q.title question_title,q.source_label,q.question_type,q.question_asset_id,
       s.name student_name,CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END teacher_id,
       (SELECT COUNT(*) FROM challenge_assignments_v2 p
         WHERE p.student_id=a.student_id AND p.status='passed') passed_count
@@ -76,13 +76,20 @@ function recordChallengePass(db, { assignmentId }) {
       source_label:row.source_label || '潘潘老师精选',
       question_type:row.question_type,
       question_type_label:row.question_type === 'subjective' ? '解答题' : '填空题',
+      question_url:row.question_asset_id ? `/api/weekly-challenge/assets/${row.question_asset_id}` : null,
       passed_count:Number(row.passed_count || 1),
       achieved_at:row.updated_at,
     },
   });
 }
 
-function serializeEvent(row) {
+function serializeEvent(row, db = null) {
+  const payload = safeJson(row.payload_json, {});
+  if (db && row.event_type === 'challenge_pass' && !payload.question_url) {
+    const source = db.get(`SELECT q.question_asset_id FROM challenge_assignments_v2 a
+      JOIN weekly_challenge_questions q ON q.id=a.question_id WHERE a.id=?`, [row.source_id]);
+    if (source?.question_asset_id) payload.question_url = `/api/weekly-challenge/assets/${source.question_asset_id}`;
+  }
   return {
     id:Number(row.id),
     event_type:row.event_type,
@@ -90,7 +97,7 @@ function serializeEvent(row) {
     student_id:Number(row.student_id),
     seen:Boolean(row.seen_at),
     created_at:row.created_at,
-    ...safeJson(row.payload_json, {}),
+    ...payload,
   };
 }
 
@@ -99,7 +106,7 @@ function teacherPromotions(db, { teacherId, unseenOnly = false, limit = 30 }) {
     WHERE teacher_id=?${unseenOnly ? ' AND seen_at IS NULL' : ''}
     ORDER BY datetime(created_at) DESC,id DESC LIMIT ?`, [teacherId, Math.max(1, Math.min(100, Number(limit) || 30))]);
   const unseen = db.get('SELECT COUNT(*) count FROM teacher_promotion_events WHERE teacher_id=? AND seen_at IS NULL', [teacherId]);
-  return { promotions:rows.map(serializeEvent), unseen:Number(unseen?.count || 0) };
+  return { promotions:rows.map((row) => serializeEvent(row, db)), unseen:Number(unseen?.count || 0) };
 }
 
 module.exports = { recordMentalFirst, recordChallengePass, serializeEvent, teacherPromotions };

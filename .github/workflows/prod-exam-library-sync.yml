@@ -144,7 +144,10 @@ jobs:
           test -d "$ROOT/stage/exam-library/paper"
           test -d "$ROOT/stage/exam-library/answer"
           EXAM_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/exam-library"}}{{.Source}}{{end}}{{end}}')"
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
           test -n "$EXAM_DIR"
+          test -n "$DATA_DIR"
+          test -f "$DATA_DIR/teach.db"
           IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
           docker run --rm \
             -e NODE_ENV=test -e DATABASE_PATH=/tmp/validate.db -e EXAM_LIBRARY_DIR=/app/exam-library \
@@ -152,7 +155,31 @@ jobs:
             -v "$ROOT/stage/exam-library:/app/exam-library:ro" "$IMAGE" npm run exams:mock:import -- --publish
           cp -an "$ROOT/stage/exam-library/paper/." "$EXAM_DIR/paper/"
           cp -an "$ROOT/stage/exam-library/answer/." "$EXAM_DIR/answer/"
-          docker exec panpan-api npm run exams:mock:import -- --publish
+          BACKUP="/opt/panpan-miniapp/backend/teach.pre-exam-sync-$SYNC_ID.db"
+          restore_and_restart() {
+            set +e
+            (cd /opt/panpan-miniapp && docker compose stop panpan-api)
+            if [ -f "$BACKUP" ]; then
+              cp -a "$BACKUP" "$DATA_DIR/teach.db"
+            fi
+            (cd /opt/panpan-miniapp && docker compose up -d --no-build --pull never panpan-api)
+          }
+          trap restore_and_restart ERR
+          (cd /opt/panpan-miniapp && docker compose stop panpan-api)
+          cp -a "$DATA_DIR/teach.db" "$BACKUP"
+          docker run --rm \
+            -e NODE_ENV=production -e DATABASE_PATH=/app/data/teach.db -e EXAM_LIBRARY_DIR=/app/exam-library \
+            -e PANPAN_SKIP_STARTUP_RESOURCE_SEED=1 \
+            -v "$DATA_DIR:/app/data" -v "$EXAM_DIR:/app/exam-library" \
+            "$IMAGE" npm run exams:mock:import -- --publish
+          (cd /opt/panpan-miniapp && docker compose up -d --no-build --pull never panpan-api)
+          for attempt in $(seq 1 60); do
+            if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = "60" ]; then false; fi
+            sleep 2
+          done
           docker exec -i panpan-api node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import initSqlJs from 'sql.js';
@@ -161,6 +188,7 @@ jobs:
           const counts={papers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published'"),answers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published' AND answer_asset_id IS NOT NULL")};
           console.log(JSON.stringify(counts));if(counts.papers!==194||counts.answers!==193)process.exit(1);
           NODE
+          trap - ERR
           test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"
           rm -rf -- "$ROOT"
           REMOTE

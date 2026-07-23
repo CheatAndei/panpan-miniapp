@@ -45,6 +45,48 @@ function drawCode(ctx, code, x, y, size) {
   ctx.drawImage(code, x, y, size, size);
 }
 
+function drawCover(ctx, image, x, y, width, height) {
+  if (!image?.path || !image.width || !image.height) return;
+  const sourceRatio = image.width / image.height;
+  const targetRatio = width / height;
+  let sx = 0;
+  let sy = 0;
+  let sw = image.width;
+  let sh = image.height;
+  if (sourceRatio > targetRatio) {
+    sw = image.height * targetRatio;
+    sx = (image.width - sw) / 2;
+  } else {
+    sh = image.width / targetRatio;
+    sy = Math.max(0, (image.height - sh) * 0.38);
+  }
+  ctx.drawImage(image.path, sx, sy, sw, sh, x, y, width, height);
+}
+
+function drawChallengeQuestion(ctx, question) {
+  roundRect(ctx, 48, 478, 654, 230, 18, '#FFFFFF');
+  if (question) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(58, 488, 634, 210);
+    ctx.clip();
+    drawCover(ctx, question, 58, 488, 634, 210);
+    ctx.restore();
+  } else {
+    ctx.setFillStyle('#E8DED0');
+    ctx.fillRect(58, 488, 634, 210);
+    ctx.setFillStyle('#806E5E');
+    ctx.setTextAlign('center');
+    ctx.setFontSize(22);
+    ctx.fillText('原题图片', 375, 604);
+    ctx.setTextAlign('left');
+  }
+  roundRect(ctx, 62, 498, 154, 34, 8, 'rgba(23,58,52,.88)');
+  ctx.setFillStyle('#FFFFFF');
+  ctx.setFontSize(16);
+  ctx.fillText('原题节选 · 放大', 78, 522);
+}
+
 function drawMentalPoster(ctx, item, code) {
   const bg = ctx.createLinearGradient(0, 0, 750, 1000);
   bg.addColorStop(0, '#0E332D');
@@ -135,7 +177,7 @@ function drawMentalPoster(ctx, item, code) {
   ctx.fillText('公开海报不展示全名、学校和班级', 52, 972);
 }
 
-function drawChallengePoster(ctx, item, code) {
+function drawChallengePoster(ctx, item, code, question) {
   ctx.setFillStyle('#F3EADC');
   ctx.fillRect(0, 0, 750, 1000);
   ctx.setStrokeStyle('rgba(47,66,59,.09)');
@@ -175,40 +217,41 @@ function drawChallengePoster(ctx, item, code) {
   ctx.fillText('独立思考，完整作答，成功通关', 52, 350);
 
   ctx.setFillStyle('#173A34');
-  ctx.setFontSize(45);
-  wrap(ctx, item.headline || '成功攻下一道压轴题', 620, 2).forEach((line, index) => ctx.fillText(line, 52, 438 + index * 58));
+  ctx.setFontSize(42);
+  wrap(ctx, item.headline || '成功攻下一道压轴题', 620, 1).forEach((line) => ctx.fillText(line, 52, 425));
   ctx.setFillStyle('#725F4E');
-  ctx.setFontSize(21);
-  wrap(ctx, item.question_title || '压轴挑战', 620, 2).forEach((line, index) => ctx.fillText(line, 52, 548 + index * 34));
+  ctx.setFontSize(18);
+  wrap(ctx, item.question_title || '压轴挑战', 620, 1).forEach((line) => ctx.fillText(line, 52, 461));
 
+  drawChallengeQuestion(ctx, question);
   ctx.setFillStyle('#C85F3B');
-  ctx.fillRect(52, 632, 104, 6);
+  ctx.fillRect(52, 735, 104, 6);
   ctx.setFillStyle('#7D6A59');
   ctx.setFontSize(18);
-  ctx.fillText('累计通关', 52, 682);
+  ctx.fillText('累计通关', 52, 774);
   ctx.setFillStyle('#173A34');
-  ctx.setFontSize(64);
-  ctx.fillText(String(Number(item.passed_count || 1)), 52, 750);
-  ctx.setFontSize(23);
-  ctx.fillText('道压轴题', 112, 746);
+  ctx.setFontSize(48);
+  ctx.fillText(String(Number(item.passed_count || 1)), 52, 824);
+  ctx.setFontSize(21);
+  ctx.fillText('道压轴题', 103, 820);
   ctx.setFillStyle('#7D6A59');
   ctx.setFontSize(18);
-  ctx.fillText('题目来源', 285, 682);
+  ctx.fillText('题目来源', 285, 774);
   ctx.setFillStyle('#173A34');
-  ctx.setFontSize(24);
-  wrap(ctx, item.source_label || '潘潘老师精选', 220, 2).forEach((line, index) => ctx.fillText(line, 285, 724 + index * 31));
+  ctx.setFontSize(22);
+  wrap(ctx, item.source_label || '潘潘老师精选', 340, 1).forEach((line) => ctx.fillText(line, 285, 816));
 
-  roundRect(ctx, 42, 798, 666, 154, 23, '#173A34');
-  drawCode(ctx, code, 67, 828, 96);
+  roundRect(ctx, 42, 850, 666, 112, 20, '#173A34');
+  drawCode(ctx, code, 66, 870, 72);
   ctx.setFillStyle('#FFFFFF');
-  ctx.setFontSize(27);
-  ctx.fillText('扫码体验真实数学挑战', 208, 846);
+  ctx.setFontSize(25);
+  ctx.fillText('扫码体验真实数学挑战', 178, 893);
   ctx.setFillStyle('#B9D8D0');
-  ctx.setFontSize(19);
-  ctx.fillText('潘潘老师数学课堂 · 思路比答案更重要', 208, 889);
-  ctx.setFillStyle('#806E5E');
   ctx.setFontSize(17);
-  ctx.fillText('公开海报不展示全名、学校和班级', 52, 980);
+  ctx.fillText('潘潘老师数学课堂 · 思路比答案更重要', 178, 927);
+  ctx.setFillStyle('#806E5E');
+  ctx.setFontSize(15);
+  ctx.fillText('公开海报不展示全名、学校和班级', 52, 988);
 }
 
 function exportCanvas(canvasId, page) {
@@ -227,13 +270,27 @@ function exportCanvas(canvasId, page) {
   }, page));
 }
 
-export async function renderPromotionPoster({ page, promotion, codePath, canvasId = 'promotionPosterCanvas' }) {
+export async function renderPromotionPoster({ page, promotion, codePath, questionImagePath = '', canvasId = 'promotionPosterCanvas' }) {
   if (!promotion) throw new Error('请选择宣传事件');
   if (!codePath) throw new Error('小程序码尚未生成');
   const code = await getImage(codePath);
+  let question = null;
+  if (promotion.event_type === 'challenge_pass' && questionImagePath) {
+    try {
+      question = await new Promise((resolve, reject) => uni.getImageInfo({
+        src:questionImagePath,
+        success:(result) => resolve({
+          path:result.path || result.tempFilePath || questionImagePath,
+          width:result.width,
+          height:result.height,
+        }),
+        fail:reject,
+      }));
+    } catch {}
+  }
   const ctx = uni.createCanvasContext(canvasId, page);
   if (promotion.event_type === 'mental_first') drawMentalPoster(ctx, promotion, code);
-  else drawChallengePoster(ctx, promotion, code);
+  else drawChallengePoster(ctx, promotion, code, question);
   await new Promise((resolve) => ctx.draw(false, () => setTimeout(resolve, 100)));
   return exportCanvas(canvasId, page);
 }

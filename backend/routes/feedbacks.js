@@ -50,7 +50,7 @@ router.post('/generate-class', auth, async (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const { grade, subject, lesson, topic, performanceNote, homework } = req.body;
   const observation = String(performanceNote || '').trim().slice(0, 160) || '未补充，由老师生成后人工检查';
-  const prompt = `你是教培老师，写一段发家长群的课后反馈。无空行，模块用 --- 分隔。
+  const prompt = `你是教培老师，写一份能完整放进分享卡、发给家长群的课堂简报。无空行，模块用 --- 分隔。
 
 信息：${grade} ${subject} ${lesson||''} 课题《${topic||'未设定'}》。课堂表现补充：${observation}。独立作业字段：${homework||'无'}
 
@@ -64,11 +64,11 @@ ${grade} ${lesson||''} ${topic||''}
 · 知识点3
 ---
 💪 课堂表现
-[根据课堂表现补充写一段具体观察；没有补充时保持客观克制，不编造课堂细节]
+[用1-2句概括具体观察；没有补充时保持客观克制，不编造课堂细节]
 ---
-[一句鼓励收尾，体现学科价值]
+[一句明确的课后提醒]
 
-要求：200-300字，不要空行，知识点准确。禁止出现“9/10”等分数、评分或打分制度。作业由独立组件展示，不要把作业写进反馈正文。返回纯文本。`;
+要求：120-160字，课堂表现不超过45字，重点和提醒都要保留，全文必须放得进课堂简报。不要空行，知识点准确。禁止出现“9/10”等分数、评分或打分制度。作业由独立组件展示，不要把作业写进反馈正文。返回纯文本。`;
 
   try {
     const text = removeTenPointScores(await callAI(prompt, 900));

@@ -723,7 +723,7 @@ async function loadTeacherData() {
       api.get('/leaves'),
       api.get('/schedules/sessions'),
       api.get('/practice/todos?limit=3'),
-      api.get('/weekly-challenge/teacher/submissions?status=submitted&limit=3'),
+      api.get('/weekly-challenge/v2/teacher/submissions?status=submitted&limit=3'),
       api.get('/promotions?limit=12').catch(error => ({ __error:error, promotions:[], unseen:0 }))
     ]);
     classes.value = cRes.classes || [];

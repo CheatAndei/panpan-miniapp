@@ -1,0 +1,104 @@
+name: Production Exam Library Reimport
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type REIMPORT_EXAMS
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-production
+  cancel-in-progress: false
+
+jobs:
+  reimport:
+    name: Rebuild production exam index from existing assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        run: test '${{ inputs.confirm }}' = 'REIMPORT_EXAMS'
+
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Back up, stop, reimport and verify
+        env:
+          REIMPORT_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            "REIMPORT_ID='$REIMPORT_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$REIMPORT_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid reimport id'; exit 1 ;; esac
+          ROOT="/opt/panpan-miniapp/exam-reimport/$REIMPORT_ID"
+          install -d -m 700 "$ROOT"
+          EXAM_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/exam-library"}}{{.Source}}{{end}}{{end}}')"
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          test -n "$EXAM_DIR"
+          test -n "$DATA_DIR"
+          test -n "$IMAGE"
+          test -f "$DATA_DIR/teach.db"
+          test "$(find "$EXAM_DIR/paper" -type f | wc -l | tr -d ' ')" -ge 194
+          test "$(find "$EXAM_DIR/answer" -type f | wc -l | tr -d ' ')" -ge 193
+          BACKUP="/opt/panpan-miniapp/backend/teach.pre-exam-reimport-$REIMPORT_ID.db"
+
+          restore_and_restart() {
+            set +e
+            (cd /opt/panpan-miniapp && docker compose stop panpan-api)
+            if [ -f "$BACKUP" ]; then
+              cp -a "$BACKUP" "$DATA_DIR/teach.db"
+            fi
+            (cd /opt/panpan-miniapp && docker compose up -d --no-build --pull never panpan-api)
+          }
+          trap restore_and_restart ERR
+
+          (cd /opt/panpan-miniapp && docker compose stop panpan-api)
+          cp -a "$DATA_DIR/teach.db" "$BACKUP"
+          docker run --rm \
+            -e NODE_ENV=production -e DATABASE_PATH=/app/data/teach.db -e EXAM_LIBRARY_DIR=/app/exam-library \
+            -e PANPAN_SKIP_STARTUP_RESOURCE_SEED=1 \
+            -v "$DATA_DIR:/app/data" -v "$EXAM_DIR:/app/exam-library" \
+            "$IMAGE" npm run exams:mock:import -- --publish
+          (cd /opt/panpan-miniapp && docker compose up -d --no-build --pull never panpan-api)
+
+          for attempt in $(seq 1 60); do
+            if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = "60" ]; then false; fi
+            sleep 2
+          done
+          docker exec -i panpan-api node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+          const q = (sql) => Number(db.exec(sql)[0]?.values[0]?.[0] || 0);
+          const counts = {
+            papers: q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published'"),
+            answers: q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published' AND answer_asset_id IS NOT NULL"),
+          };
+          console.log(JSON.stringify(counts));
+          if (counts.papers !== 194 || counts.answers !== 193) process.exit(1);
+          NODE
+          trap - ERR
+          rm -rf -- "$ROOT"
+          REMOTE

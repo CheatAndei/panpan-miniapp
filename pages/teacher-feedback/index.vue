@@ -39,17 +39,6 @@
         <textarea v-model="se._cf.performanceNote" class="result-area performance-note" placeholder="例如：大部分学生能主动讲解思路，计算细节还需提醒" :maxlength="120" />
         <text class="field-label">课后作业</text>
         <input v-model="se._cf.homework" class="input big" placeholder="填写作业内容（可选）" />
-        <view v-if="String(se._cf.homework||'').trim()" class="share-card-builder homework-share-builder">
-          <view class="share-builder-copy">
-            <text class="share-builder-kicker">HOMEWORK CARD</text>
-            <text class="share-builder-title">课后任务单</text>
-            <text class="share-builder-note">方格纸任务主题，作业与课堂反馈分开保存。</text>
-          </view>
-          <view class="share-builder-actions">
-            <button :disabled="se._cf._homeworkCardBusy" @tap="previewHomeworkCard(se)">{{ se._cf._homeworkCardBusy?'生成中…':'预览' }}</button>
-            <button :disabled="se._cf._homeworkCardBusy" @tap="saveHomeworkCard(se)">保存</button>
-          </view>
-        </view>
         <button class="btn-primary big" @tap="genClassFeedback(se)" :disabled="se._cf._genning">
           {{ se._cf._genning?'生成中...':(se._cf._text?'重新生成':'一键生成学习小组反馈') }}
         </button>
@@ -64,6 +53,17 @@
           <view class="share-builder-actions">
             <button :disabled="se._cf._classCardBusy" @tap="previewClassFeedbackCard(se)">{{ se._cf._classCardBusy?'生成中…':'预览' }}</button>
             <button :disabled="se._cf._classCardBusy" @tap="saveClassFeedbackCard(se)">保存</button>
+          </view>
+        </view>
+        <view v-if="String(se._cf.homework||'').trim()" class="share-card-builder homework-share-builder">
+          <view class="share-builder-copy">
+            <text class="share-builder-kicker">HOMEWORK CARD</text>
+            <text class="share-builder-title">课后任务单</text>
+            <text class="share-builder-note">方格纸任务主题，作业与课堂反馈分开保存。</text>
+          </view>
+          <view class="share-builder-actions">
+            <button :disabled="se._cf._homeworkCardBusy" @tap="previewHomeworkCard(se)">{{ se._cf._homeworkCardBusy?'生成中…':'预览' }}</button>
+            <button :disabled="se._cf._homeworkCardBusy" @tap="saveHomeworkCard(se)">保存</button>
           </view>
         </view>
       </view>
@@ -173,11 +173,12 @@ export default {
     completedSessions:[],loading:false,error:''
   };},
   onLoad(options){
-    if(options?.preview==='1')this.loadShareCardPreview();
+    if(options?.preview==='1')this.loadShareCardPreview(options);
     else this.loadSessions();
   },
   methods:{
-    loadShareCardPreview(){
+    loadShareCardPreview(options={}){
+      const previewImage=import.meta.env.DEV?String(options.image||''):'';
       this.completedSessions=[{
         id:'share-card-preview',title:'六年级数学精练班',class_date:'2026-07-23',class_id:1,
         _open:true,_tab:'class',_batching:false,_swiped:false,_feedbackStyle:'concise',_hasExitQuiz:true,
@@ -188,7 +189,7 @@ export default {
           _genning:false,_classCardBusy:false,_homeworkCardBusy:false
         },
         _students:[{
-          id:1,name:'曾泳捷',level:'稳步进阶',_score:8,_performanceScore:8,_note:'',_leave:false,_genning:false,_savingCard:false,_previewingCard:false,_images:[],
+          id:1,name:'曾泳捷',level:'稳步进阶',_score:8,_performanceScore:8,_note:'',_leave:false,_genning:false,_savingCard:false,_previewingCard:false,_images:previewImage?[previewImage]:[],
           _text:'曾泳捷🌱\n　　今天讲例题时低头记了很久笔记，抬头听讲的眼神很专注。出门测里两道题思路是对的，计算时少写了一步；下一步把草稿写完整，别急着省时间。'
         }],
         _publishing:false,_publishingNotes:false,_pdfTemp:'',_pdfName:'',_noteRemark:''
