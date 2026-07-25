@@ -383,7 +383,12 @@ function runMigrations() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   ensureColumn('parent_feedbacks', 'student_id', 'INTEGER REFERENCES students(id)');
-  ensureColumn('parent_feedbacks', 'updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+  // SQLite forbids ALTER TABLE ADD COLUMN with a non-constant CURRENT_TIMESTAMP
+  // default. Add the legacy-compatible nullable column, then backfill it.
+  ensureColumn('parent_feedbacks', 'updated_at', 'DATETIME');
+  _db.run(`UPDATE parent_feedbacks
+    SET updated_at=COALESCE(updated_at,created_at,CURRENT_TIMESTAMP)
+    WHERE updated_at IS NULL`);
   _db.run(`CREATE TABLE IF NOT EXISTS user_roles (
     user_id INTEGER NOT NULL REFERENCES users(id),
     role TEXT NOT NULL CHECK(role IN ('parent', 'teacher')),
