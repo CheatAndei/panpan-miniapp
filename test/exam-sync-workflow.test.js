@@ -28,3 +28,11 @@ test('生产试卷可复用服务器现有资源安全重建索引并校验 194/
   assert.match(reimportWorkflow, /counts\.papers !== 194 \|\| counts\.answers !== 193/);
   assert.doesNotMatch(reimportWorkflow, /docker exec panpan-api npm run exams:mock:import/);
 });
+
+test('生产试卷同步支持经质检的七年级 PDF manifest，并逐卷核对答案资源', () => {
+  assert.match(workflow, /import-manifest\.json/);
+  assert.match(workflow, /--manifest \/app\/exam-library\/import-manifest\.json/);
+  assert.match(workflow, /missingAnswers/);
+  assert.match(workflow, /manifest\.expected\.papers/);
+  assert.match(workflow, /manifest\.expected\.answers/);
+});

@@ -22,7 +22,7 @@
         <view class="l-top">
           <view>
             <text class="l-name">{{ item.student_name }}</text>
-            <text class="l-type">{{ item.item_type==='feedback' ? '意见反馈' : '请假申请' }}</text>
+            <text class="l-type">{{ item.item_type==='feedback' ? ((item.parent_name||'家长')+' · 意见反馈') : '请假申请' }}</text>
           </view>
           <text :class="['l-tag',item.status]">{{ statusText(item) }}</text>
         </view>
@@ -38,6 +38,19 @@
     </view>
     <view :class="['swipe-del',{show:item._swiped}]" @tap="deleteItem(item)">删除</view>
   </view>
+
+  <view v-if="replying" class="modal-mask" @tap="closeReply">
+    <view class="modal reply-modal" @tap.stop>
+      <text class="modal-title">回复 {{ replying.student_name }}家长</text>
+      <text class="reply-source">{{ replying.reason }}</text>
+      <textarea v-model="replyText" class="reply-input" maxlength="300" placeholder="写下给家长的具体回复" />
+      <text class="reply-count">{{ replyText.length }}/300</text>
+      <button class="btn-primary" :disabled="!replyText.trim() || replying._busy" @tap="sendReply">
+        {{ replying._busy ? '发送中...' : '发送并标记已处理' }}
+      </button>
+      <button class="btn-cancel" @tap="closeReply">取消</button>
+    </view>
+  </view>
 </view>
 </template>
 
@@ -47,7 +60,8 @@ import { confirmAction, toastSuccess, toastError, logError } from '@/utils/ui';
 export default {
   data(){return{
     leaves:[],filter:'pending',loading:false,error:'',
-    statusMap:{pending:'待审批',approved:'已批准',rejected:'已拒绝'}
+    statusMap:{pending:'待审批',approved:'已批准',rejected:'已拒绝'},
+    replying:null,replyText:''
   };},
   computed:{
     pending(){return this.leaves.filter(l=>l.status==='pending');},
@@ -73,7 +87,13 @@ export default {
     },
     async handle(item,status){
       if(item.item_type==='feedback'){
-        await this.submitDecision(item,status,status==='approved'?'已收到':'已忽略');
+        if(status==='approved'){
+          this.replying=item;
+          this.replyText=item.reply||'';
+          return;
+        }
+        const confirmed=await confirmAction({title:'忽略这条反馈',content:'家长端会显示“已处理”，但不会收到老师回复。',confirmText:'确认忽略'});
+        if(confirmed)await this.submitDecision(item,status,'');
         return;
       }
       if(status==='rejected'){
@@ -92,6 +112,18 @@ export default {
       }
       await this.submitDecision(item,status,'收到，好好休息');
     },
+    closeReply(){
+      if(this.replying?._busy)return;
+      this.replying=null;
+      this.replyText='';
+    },
+    async sendReply(){
+      const item=this.replying;
+      const reply=this.replyText.trim();
+      if(!item||!reply)return;
+      const saved=await this.submitDecision(item,'approved',reply);
+      if(saved)this.closeReply();
+    },
     async submitDecision(item,status,reply){
       if(item._busy)return;
       item._busy=true;
@@ -99,7 +131,8 @@ export default {
         await api.put('/leaves/'+item.id,{status,reply,item_type:item.item_type});
         toastSuccess(item.item_type==='feedback'?(status==='approved'?'已处理':'已忽略'):(status==='approved'?'已批准':'已拒绝'));
         await this.loadData();
-      }catch(e){toastError(e,'操作失败');}
+        return true;
+      }catch(e){toastError(e,'操作失败');return false;}
       finally{item._busy=false;}
     },
     onTouchStart(e,item){item._startX=e.touches[0].clientX;item._swiping=true;},
@@ -147,4 +180,7 @@ export default {
 .btn-approve{flex:1;min-height:76rpx;background:var(--accent);color:#fff;border:none;border-radius:13rpx;padding:14rpx;font-size:27rpx;font-weight:650}
 .btn-reject{flex:1;min-height:76rpx;background:var(--danger-soft);color:var(--danger);border:1rpx solid #F1D4D0;border-radius:13rpx;padding:14rpx;font-size:27rpx;font-weight:650}
 .empty{text-align:center;color:#A4B1AD;padding:40rpx;font-size:28rpx}
+.reply-modal{position:relative}.reply-source{display:block;padding:17rpx 19rpx;border-radius:14rpx;background:var(--surface-muted);color:var(--text-secondary);font-size:25rpx;line-height:1.6}
+.reply-input{width:100%;height:240rpx;box-sizing:border-box;margin-top:18rpx;padding:20rpx;border:1rpx solid var(--border);border-radius:15rpx;background:#FAFCFB;color:var(--ink);font-size:27rpx;line-height:1.65}
+.reply-count{display:block;margin:7rpx 2rpx 17rpx;color:var(--faint);font-size:21rpx;text-align:right}
 </style>

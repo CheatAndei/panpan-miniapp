@@ -49,7 +49,7 @@ test('题目、答案和教师批改页统一使用分式组件，输入仍保�
     'pages/mental-arena/result.vue',
     'pages/learning-session/index.vue',
     'pages/practice-parent/index.vue',
-    'pages/practice-teacher/index.vue',
+    'pages/practice-review/index.vue',
     'pages/choice-king/index.vue',
     'pages/knowledge-challenge/index.vue',
     'pages/choice-reports/index.vue',

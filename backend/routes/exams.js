@@ -100,6 +100,13 @@ function ownedStudent(db, user, rawStudentId) {
   return Number.isInteger(studentId) && studentId > 0 && parentBoundStudent(db, user.id, studentId) ? studentId : 0;
 }
 
+function parentCanReadAnswer(db, userId, studentId, examId) {
+  return Boolean(db.get(`SELECT id FROM exam_answer_requests
+    WHERE exam_id=? AND parent_id=? AND student_id=? AND status='sent'`, [
+    Number(examId), Number(userId), Number(studentId),
+  ]));
+}
+
 function publicPaper(row, teacher = false) {
   return {
     id: Number(row.id),
@@ -186,14 +193,38 @@ router.get('/teacher/activity', auth, teacherOnly, (req, res) => {
   res.json({ downloads, requests });
 });
 
-router.patch('/teacher/answer-requests/:id', auth, teacherOnly, (req, res) => {
+router.get('/teacher/answer-todos', auth, teacherOnly, (req, res) => {
+  const db = getDB();
+  const limit = Math.max(1, Math.min(20, Number.parseInt(req.query.limit || '3', 10) || 3));
+  const total = Number(db.get(`SELECT COUNT(*) count FROM exam_answer_requests
+    WHERE teacher_id=? AND status='pending'`, [req.user.id])?.count || 0);
+  const requests = db.all(`SELECT r.id,r.exam_id,r.student_id,r.note,r.created_at,
+    p.display_title,s.name student_name,COALESCE(NULLIF(u.nickname,''),'家长') parent_name
+    FROM exam_answer_requests r
+    JOIN exam_papers p ON p.id=r.exam_id
+    JOIN students s ON s.id=r.student_id
+    JOIN users u ON u.id=r.parent_id
+    WHERE r.teacher_id=? AND r.status='pending'
+    ORDER BY r.created_at ASC,r.id ASC LIMIT ?`, [req.user.id, limit]);
+  res.json({ count: total, requests });
+});
+
+function handleAnswerRequest(req, res) {
   const status = String(req.body?.status || '');
   if (!['sent', 'dismissed'].includes(status)) return res.status(400).json({ error: '处理状态无效' });
-  const result = getDB().run(`UPDATE exam_answer_requests SET status=?,handled_at=CURRENT_TIMESTAMP
+  const db = getDB();
+  const request = db.get(`SELECT r.id,p.answer_asset_id FROM exam_answer_requests r
+    JOIN exam_papers p ON p.id=r.exam_id WHERE r.id=? AND r.teacher_id=?`, [req.params.id, req.user.id]);
+  if (!request) return res.status(404).json({ error: '答案请求不存在' });
+  if (status === 'sent' && !request.answer_asset_id) return res.status(409).json({ error: '该试卷尚未配对答案' });
+  const result = db.run(`UPDATE exam_answer_requests SET status=?,handled_at=CURRENT_TIMESTAMP
     WHERE id=? AND teacher_id=?`, [status, req.params.id, req.user.id]);
   if (!result.changes) return res.status(404).json({ error: '答案请求不存在' });
-  res.json({ ok: true });
-});
+  res.json({ ok: true, status });
+}
+
+router.put('/teacher/answer-requests/:id', auth, teacherOnly, handleAnswerRequest);
+router.patch('/teacher/answer-requests/:id', auth, teacherOnly, handleAnswerRequest);
 
 router.get('/assets/:assetId', auth, (req, res) => {
   const db = getDB();
@@ -202,10 +233,14 @@ router.get('/assets/:assetId', auth, (req, res) => {
     WHERE a.id=? LIMIT 1`, [Number(req.params.assetId)]);
   if (!asset) return res.status(404).json({ error: '文件不存在' });
   const isAnswer = Number(asset.answer_asset_id) === Number(asset.id);
-  if (isAnswer && req.user.role !== 'teacher') return res.status(404).json({ error: '文件不存在' });
-  if (!isAnswer && req.user.role === 'parent') {
+  if (req.user.role === 'parent') {
     const studentId = ownedStudent(db, req.user, req.query.student_id);
     if (!studentId || asset.paper_status !== 'published') return res.status(404).json({ error: '文件不存在' });
+    if (isAnswer && !parentCanReadAnswer(db, req.user.id, studentId, asset.exam_id)) {
+      return res.status(404).json({ error: '文件不存在' });
+    }
+  } else if (isAnswer && req.user.role !== 'teacher') {
+    return res.status(404).json({ error: '文件不存在' });
   }
   const fullPath = resolveExamPath(asset.storage_key);
   if (!fullPath || !fs.existsSync(fullPath)) return res.status(404).json({ error: '文件暂未同步到服务器' });
@@ -226,12 +261,18 @@ router.post('/:id/download', auth, (req, res) => {
   const db = getDB();
   const paper = db.get('SELECT * FROM exam_papers WHERE id=?', [Number(req.params.id)]);
   if (!paper) return res.status(404).json({ error: '试卷不存在' });
-  const assetKind = req.user.role === 'teacher' && req.body?.asset_kind === 'answer' ? 'answer' : 'paper';
+  const requestedKind = req.body?.asset_kind === 'answer' ? 'answer' : 'paper';
+  let assetKind = req.user.role === 'teacher' ? requestedKind : 'paper';
   let studentId = null;
   let teacherId = req.user.role === 'teacher' ? req.user.id : null;
   if (req.user.role === 'parent') {
     studentId = ownedStudent(db, req.user, req.body?.student_id);
     if (!studentId || paper.status !== 'published') return res.status(403).json({ error: '无权下载该试卷' });
+    if (requestedKind === 'answer') {
+      if (parentCanReadAnswer(db, req.user.id, studentId, paper.id)) {
+        assetKind = 'answer';
+      }
+    }
     teacherId = db.get(`SELECT COALESCE(s.teacher_id,c.teacher_id) teacher_id FROM students s
       LEFT JOIN classes c ON c.id=s.class_id WHERE s.id=?`, [studentId])?.teacher_id || null;
   }

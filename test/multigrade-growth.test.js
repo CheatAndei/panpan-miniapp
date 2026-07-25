@@ -25,7 +25,7 @@ test('三类成就共用匿名海报，小程序码与保存相册链路完整',
   assert.match(pages,/pages\/achievements\/index/);assert.match(page,/选择刷题王/);assert.match(page,/口算王/);assert.match(page,/压轴挑战/);
   assert.match(page,/api\.downloadPrivate/);assert.match(page,/\/code\?student_id=/);assert.match(page,/saveAchievementPoster/);
   assert.match(page,/不展示学校和班级/);assert.match(poster,/真实学习数据/);assert.match(poster,/扫码免费体验/);
-  assert.match(poster,/canvasToTempFilePath/);assert.match(poster,/saveImageToPhotosAlbum/);
+  assert.match(poster,/canvasToTempFilePath/);assert.match(poster,/saveImageToAlbum/);assert.match(poster,/photo-album/);
 });
 
 test('连续压轴挑战已去掉每周限制并使用 V2 接口',()=>{

@@ -383,6 +383,7 @@ function runMigrations() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
   ensureColumn('parent_feedbacks', 'student_id', 'INTEGER REFERENCES students(id)');
+  ensureColumn('parent_feedbacks', 'updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
   _db.run(`CREATE TABLE IF NOT EXISTS user_roles (
     user_id INTEGER NOT NULL REFERENCES users(id),
     role TEXT NOT NULL CHECK(role IN ('parent', 'teacher')),

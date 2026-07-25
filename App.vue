@@ -1,8 +1,32 @@
 <script>
 import { BRAND, DEFAULT_TEACHER_NAME } from './utils/brand';
+import { api } from './utils/api';
 
 export default {
-  onLaunch() { console.log(BRAND + '启动'); },
+  onLaunch() {
+    console.log(BRAND + '启动');
+  },
+  onShow() {
+    this.checkMaintenanceStatus();
+  },
+  methods: {
+    async checkMaintenanceStatus() {
+      if (this._maintenanceChecking) return;
+      this._maintenanceChecking = true;
+      try {
+        const status = await api.get('/system/status', null, { handleUnauthorized: false, timeout: 5000 });
+        uni.setStorageSync('systemMaintenance', status);
+        const user = uni.getStorageSync('user') || {};
+        if (status.maintenance && user.role !== 'teacher') {
+          uni.reLaunch({ url: '/pages/maintenance/index' });
+        }
+      } catch (error) {
+        console.warn('维护状态读取失败，继续使用当前版本', error);
+      } finally {
+        this._maintenanceChecking = false;
+      }
+    },
+  },
   globalData: {
     brand: {
       name: BRAND,

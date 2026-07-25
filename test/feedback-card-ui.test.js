@@ -25,12 +25,13 @@ test('feedback card is private, full-name, 3:4, and supports up to three photos'
   assert.match(renderer, /destHeight:\s*1440/);
   assert.match(renderer, /FEEDBACK_CARD_MAX_TEXT = 180/);
   assert.match(renderer, /slice\(0, 3\)/);
-  assert.match(renderer, /仅供学生家长查看/);
-  assert.match(renderer, /panpan-feedback-line\.jpg/);
+  assert.match(renderer, /陪孩子看见每一次进步/);
+  assert.match(renderer, /panpan-feedback-color-v1\.jpg/);
   assert.match(renderer, /feedbackCardStudentLabel/);
   assert.match(renderer, /FALLBACK_FEEDBACK_EMOJI = '🌟'/u);
   assert.match(renderer, /resolvePackagedImage/);
   assert.match(renderer, /USER_DATA_PATH/);
+  assert.match(renderer, /panpan-feedback-avatar-\$\{FEEDBACK_CARD_AVATAR_CACHE_VERSION\}/);
   assert.match(renderer, /studentCardLayout/);
   assert.match(renderer, /drawCover\(ctx, photos\[0\]/);
   assert.match(renderer, /drawAvatarFallback/);
@@ -68,7 +69,7 @@ test('批量反馈生成放宽到 45 秒，避免模型正常响应被前端提�
 });
 
 test('feedback card assets exist and stay lightweight', () => {
-  for (const name of ['panpan-feedback-line.jpg', 'panpan-feedback-line.webp']) {
+  for (const name of ['panpan-feedback-line.jpg', 'panpan-feedback-line.webp', 'panpan-feedback-color-v1.jpg', 'panpan-feedback-color-v1.webp']) {
     const file = path.join(root, 'static', 'brand', name);
     assert.equal(fs.existsSync(file), true, `${name} should exist`);
     assert.ok(fs.statSync(file).size < 100 * 1024, `${name} should be below 100 KiB`);

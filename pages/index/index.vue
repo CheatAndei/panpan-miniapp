@@ -31,7 +31,7 @@
           <text v-else class="focus-ready">待办已清</text>
         </view>
         <view class="focus-metrics">
-          <button class="focus-metric" aria-label="查看待批改学生打卡" @tap="navTo('/pages/practice-teacher/index')">
+          <button class="focus-metric" aria-label="查看待批改学生打卡" @tap="navTo('/pages/practice-review/index')">
             <text class="focus-number num">{{ pendingPracticeCount }}</text>
             <text class="focus-copy">打卡批改</text>
           </button>
@@ -93,7 +93,7 @@
           </view>
           <text class="practice-todo-action">批改 ›</text>
         </view>
-        <button class="practice-todo-all" @tap="navTo('/pages/practice-teacher/index')">进入批改台</button>
+        <button class="practice-todo-all" @tap="navTo('/pages/practice-review/index')">进入批改台</button>
       </view>
 
       <view v-if="pendingChallengeCount" class="card practice-todo-card challenge-todo-card">
@@ -112,6 +112,24 @@
           <text class="practice-todo-action">批阅 ›</text>
         </view>
         <button class="practice-todo-all" @tap="navTo('/pages/weekly-review/index')">进入压轴挑战批阅台</button>
+      </view>
+
+      <view v-if="answerRequestCount" class="card practice-todo-card answer-todo-card">
+        <view class="practice-todo-head">
+          <view>
+            <text class="practice-todo-kicker">真题答案申请</text>
+            <text class="practice-todo-title">有 {{ answerRequestCount }} 份答案等待批准</text>
+          </view>
+          <text class="practice-todo-badge">待批准</text>
+        </view>
+        <view v-for="item in answerRequestTodos" :key="item.id" class="practice-todo-row" @tap="openAnswerRequests">
+          <view>
+            <text class="practice-todo-name">{{ item.student_name }} · {{ item.parent_name }}</text>
+            <text class="practice-todo-meta">{{ item.display_title }}</text>
+          </view>
+          <text class="practice-todo-action">处理 ›</text>
+        </view>
+        <button class="practice-todo-all" @tap="openAnswerRequests">进入答案申请</button>
       </view>
 
       <view v-if="choiceAlerts.length" class="card choice-alert-card">
@@ -329,6 +347,21 @@
         <view v-if="!latestFeedback && !stuFeedback" class="hint">暂无反馈</view>
       </view>
 
+      <view v-if="child && parentOpinions.length" class="card opinion-card">
+        <view class="section-title">
+          我的反馈
+          <text class="card-hint" @tap="navTo('/pages/parent-opinions/index?student_id='+child.id)">全部记录</text>
+        </view>
+        <view v-for="item in parentOpinions" :key="item.id" class="opinion-row" @tap="navTo('/pages/parent-opinions/index?student_id='+child.id)">
+          <view class="opinion-head">
+            <text :class="['opinion-status',item.status]">{{ opinionStatus(item.status) }}</text>
+            <text class="opinion-date">{{ shortDate(item.created_at) }}</text>
+          </view>
+          <text class="opinion-content">{{ item.content }}</text>
+          <text v-if="item.reply" class="opinion-reply">老师：{{ item.reply }}</text>
+        </view>
+      </view>
+
       <view v-if="child" class="card learning-shortcuts">
         <view class="section-title">更多练习<text class="card-hint" @tap="navTo('/pages/learning-center/index?student_id='+child.id)">进入学习中心</text></view>
         <view class="shortcut-grid">
@@ -482,6 +515,8 @@ const pendingPracticeCount = ref(0);
 const pendingPracticeTodos = ref([]);
 const pendingChallengeCount = ref(0);
 const pendingChallengeTodos = ref([]);
+const answerRequestCount = ref(0);
+const answerRequestTodos = ref([]);
 const choiceAlerts = ref([]);
 const promotionItems = ref([]);
 const promotionUnseen = ref(0);
@@ -497,6 +532,7 @@ const dayNames = ['周日','周一','周二','周三','周四','周五','周六'
 const weekSchedules = ref([]);
 const latestFeedback = ref(null);
 const stuFeedback = ref(null);
+const parentOpinions = ref([]);
 const showFbDetail = ref('');
 const profile = ref(null);
 const learningToday = ref(null);
@@ -520,10 +556,13 @@ const feedbackPlaceholder = computed(() => `有任何问题或建议告诉${chil
 const totalPending = computed(() => Number(pendingLeaves.value || 0)
   + Number(pendingPracticeCount.value || 0)
   + Number(pendingChallengeCount.value || 0)
+  + Number(answerRequestCount.value || 0)
   + choiceAlerts.value.length);
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
 const today = new Date().toLocaleDateString('zh-CN', { month:'long', day:'numeric', weekday:'long' });
+function opinionStatus(status) { return status==='approved'?'老师已回复':status==='rejected'?'已处理':'等待回复'; }
+function shortDate(value) { return String(value||'').replace('T',' ').slice(0,16); }
 
 function localDateKey() {
   const date = new Date();
@@ -574,6 +613,7 @@ function switchChild(k) {
   uni.setStorageSync('activeChildId', k.id);
   latestFeedback.value = null;
   stuFeedback.value = null;
+  parentOpinions.value = [];
   leaves.value = [];
   weekSchedules.value = [];
   learningToday.value = null;
@@ -589,6 +629,8 @@ async function sendFeedback() {
     uni.showToast({ title: '已发送', icon: 'success' });
     fbText.value = '';
     showFb.value = false;
+    const history=await api.get('/leaves/feedback/history?student_id='+child.value.id+'&limit=3');
+    parentOpinions.value=history.feedbacks||[];
   } catch(e) {
     toastError(e, '发送失败');
   } finally {
@@ -645,8 +687,9 @@ function copyTeacherWechat() {
   uni.setClipboardData({ data:TEACHER_WECHAT, success:()=>uni.showToast({ title:'微信号已复制', icon:'success' }) });
 }
 function openPracticeTodo(item) {
-  navTo(`/pages/practice-teacher/index?plan_id=${item.plan_id}&submission_id=${item.submission_id}`);
+  navTo(`/pages/practice-review/index?plan_id=${item.plan_id}&submission_id=${item.submission_id}`);
 }
+function openAnswerRequests(){navTo('/pages/exam-library/index?teacher_tab=requests');}
 function openPromotionStudio() {
   navTo('/pages/promotion-posters/index');
 }
@@ -718,12 +761,13 @@ async function loadTeacherData() {
   teacherLoading.value = true;
   teacherError.value = '';
   try {
-    const [cRes, lRes, sessionRes, practiceTodos, challengeTodos, promotionResult] = await Promise.all([
+    const [cRes, lRes, sessionRes, practiceTodos, challengeTodos, answerTodos, promotionResult] = await Promise.all([
       api.get('/classes'),
       api.get('/leaves'),
       api.get('/schedules/sessions'),
       api.get('/practice/todos?limit=3'),
       api.get('/weekly-challenge/v2/teacher/submissions?status=submitted&limit=3'),
+      api.get('/exams/teacher/answer-todos?limit=3'),
       api.get('/promotions?limit=12').catch(error => ({ __error:error, promotions:[], unseen:0 }))
     ]);
     classes.value = cRes.classes || [];
@@ -732,6 +776,8 @@ async function loadTeacherData() {
     pendingPracticeTodos.value = practiceTodos.todos || [];
     pendingChallengeCount.value = Number(challengeTodos.count || 0);
     pendingChallengeTodos.value = challengeTodos.todos || [];
+    answerRequestCount.value = Number(answerTodos.count || 0);
+    answerRequestTodos.value = answerTodos.requests || [];
     promotionItems.value = promotionResult.promotions || [];
     promotionUnseen.value = Number(promotionResult.unseen || 0);
     todaySessions.value = (sessionRes.sessions || []).filter(item => item.class_date === localDateKey());
@@ -786,20 +832,23 @@ async function loadParentData(childId) {
       weekSchedules.value = [];
       latestFeedback.value = null;
       stuFeedback.value = null;
+      parentOpinions.value = [];
       learningToday.value = null;
       mentalSummary.value = null;
       return false;
     }
     child.value = target;
 
-    const [schedParent, checkin, lv, fb, learning, mental] = await Promise.all([
+    const [schedParent, checkin, lv, fb, opinions, learning, mental] = await Promise.all([
       api.get('/schedules/parent?student_id='+target.id),
       api.get('/checkins/today?student_id='+target.id),
       api.get('/leaves'),
       api.get('/feedbacks/latest?class_id='+target.class_id),
+      api.get('/leaves/feedback/history?student_id='+target.id+'&limit=3'),
       api.get('/learning/today?student_id='+target.id).catch(error => ({ __error: error })),
       api.get('/mental-arena/summary?student_id='+target.id).catch(error => ({ __error: error }))
     ]);
+    parentOpinions.value=opinions.feedbacks||[];
     mentalSummary.value = mental.__error ? null : mental;
     if (learning.__error) {
       learningToday.value = null;
@@ -1019,6 +1068,12 @@ function scheduleLabel(sc) {
 .lv-status.pending { color: #2F7D6B; }
 .lv-status.approved { color: #2F7D6B; }
 .lv-status.rejected { color: #C75D54; }
+.opinion-row{padding:20rpx 0;border-top:1rpx solid var(--hairline)}
+.opinion-row:first-of-type{border-top:0}.opinion-head{display:flex;align-items:center;justify-content:space-between;gap:16rpx}
+.opinion-status{padding:5rpx 12rpx;border-radius:9rpx;background:var(--warning-soft);color:var(--warning);font-size:21rpx;font-weight:700}
+.opinion-status.approved{background:var(--accent-soft);color:var(--accent-strong)}.opinion-status.rejected{background:var(--surface-muted);color:var(--text-muted)}
+.opinion-date{color:var(--faint);font-size:21rpx}.opinion-content{display:block;margin-top:10rpx;color:var(--ink);font-size:26rpx;line-height:1.6}
+.opinion-reply{display:block;margin-top:10rpx;padding:13rpx 15rpx;border-left:5rpx solid var(--accent);border-radius:0 10rpx 10rpx 0;background:var(--accent-soft);color:var(--accent-strong);font-size:23rpx;line-height:1.55}
 .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99; display: flex; align-items: flex-end; }
 .modal { background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 30rpx; width: 100%; }
 .modal-title { font-size: 32rpx; font-weight: 700; color: #183A36; text-align: center; margin-bottom: 20rpx; }

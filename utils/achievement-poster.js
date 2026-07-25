@@ -1,3 +1,5 @@
+import { isAlbumPermissionError, saveImageToAlbum } from './photo-album';
+
 export const ACHIEVEMENT_POSTER_WIDTH = 750;
 export const ACHIEVEMENT_POSTER_HEIGHT = 1000;
 
@@ -84,9 +86,9 @@ export async function renderAchievementPoster({ page, achievement, codePath, can
 }
 
 export function saveAchievementPoster(filePath){
-  return new Promise((resolve,reject)=>uni.saveImageToPhotosAlbum({filePath,success:resolve,fail:reject}));
+  return saveImageToAlbum(filePath);
 }
 
 export function albumPermissionDenied(error){
-  return /auth deny|authorize|permission|scope\.writePhotosAlbum|用户拒绝|权限/i.test(String(error?.errMsg||error?.message||error||''));
+  return isAlbumPermissionError(error);
 }

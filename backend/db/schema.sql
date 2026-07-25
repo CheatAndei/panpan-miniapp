@@ -149,7 +149,16 @@ CREATE TABLE IF NOT EXISTS parent_feedbacks (
   content TEXT NOT NULL,
   status TEXT DEFAULT 'pending',
   reply TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 可由教师远程切换的轻量系统设置。维护开关预埋后无需再次发版。
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_by INTEGER REFERENCES users(id),
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 发布的课程实例（课表套日期后生成）

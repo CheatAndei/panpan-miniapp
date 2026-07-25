@@ -143,6 +143,10 @@ jobs:
             -in "$ROOT/bundle.enc" | tar -xzf - -C "$ROOT/stage"
           test -d "$ROOT/stage/exam-library/paper"
           test -d "$ROOT/stage/exam-library/answer"
+          IMPORT_ARGS=()
+          if [ -f "$ROOT/stage/exam-library/import-manifest.json" ]; then
+            IMPORT_ARGS=(--manifest /app/exam-library/import-manifest.json)
+          fi
           EXAM_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/exam-library"}}{{.Source}}{{end}}{{end}}')"
           DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
           test -n "$EXAM_DIR"
@@ -152,9 +156,13 @@ jobs:
           docker run --rm \
             -e NODE_ENV=test -e DATABASE_PATH=/tmp/validate.db -e EXAM_LIBRARY_DIR=/app/exam-library \
             -e PANPAN_SKIP_STARTUP_RESOURCE_SEED=1 \
-            -v "$ROOT/stage/exam-library:/app/exam-library:ro" "$IMAGE" npm run exams:mock:import -- --publish
+            -v "$ROOT/stage/exam-library:/app/exam-library:ro" "$IMAGE" \
+            npm run exams:mock:import -- --publish "${IMPORT_ARGS[@]}"
           cp -an "$ROOT/stage/exam-library/paper/." "$EXAM_DIR/paper/"
           cp -an "$ROOT/stage/exam-library/answer/." "$EXAM_DIR/answer/"
+          if [ -f "$ROOT/stage/exam-library/import-manifest.json" ]; then
+            cp -a "$ROOT/stage/exam-library/import-manifest.json" "$EXAM_DIR/import-manifest.json"
+          fi
           BACKUP="/opt/panpan-miniapp/backend/teach.pre-exam-sync-$SYNC_ID.db"
           restore_and_restart() {
             set +e
@@ -171,7 +179,7 @@ jobs:
             -e NODE_ENV=production -e DATABASE_PATH=/app/data/teach.db -e EXAM_LIBRARY_DIR=/app/exam-library \
             -e PANPAN_SKIP_STARTUP_RESOURCE_SEED=1 \
             -v "$DATA_DIR:/app/data" -v "$EXAM_DIR:/app/exam-library" \
-            "$IMAGE" npm run exams:mock:import -- --publish
+            "$IMAGE" npm run exams:mock:import -- --publish "${IMPORT_ARGS[@]}"
           (cd /opt/panpan-miniapp && docker compose up -d --no-build --pull never panpan-api)
           for attempt in $(seq 1 60); do
             if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null; then
@@ -185,8 +193,20 @@ jobs:
           import initSqlJs from 'sql.js';
           const SQL=await initSqlJs();const db=new SQL.Database(fs.readFileSync('/app/data/teach.db'));
           const q=(sql)=>Number(db.exec(sql)[0]?.values[0]?.[0]||0);
-          const counts={papers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published'"),answers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published' AND answer_asset_id IS NOT NULL")};
-          console.log(JSON.stringify(counts));if(counts.papers!==194||counts.answers!==193)process.exit(1);
+          const manifestPath='/app/exam-library/import-manifest.json';
+          if(fs.existsSync(manifestPath)){
+            const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+            const result=db.exec("SELECT stable_code,answer_asset_id FROM exam_papers WHERE status='published'");
+            const rows=new Map((result[0]?.values||[]).map(([code,answer])=>[String(code),answer]));
+            const missing=manifest.papers.filter(item=>!rows.has(item.stable_code));
+            const missingAnswers=manifest.papers.filter(item=>item.answer&&rows.get(item.stable_code)==null);
+            const counts={papers:manifest.papers.length-missing.length,answers:manifest.papers.filter(item=>item.answer).length-missingAnswers.length};
+            console.log(JSON.stringify({...counts,missing:missing.length,missing_answers:missingAnswers.length}));
+            if(missing.length||missingAnswers.length||counts.papers!==manifest.expected.papers||counts.answers!==manifest.expected.answers)process.exit(1);
+          }else{
+            const counts={papers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published'"),answers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published' AND answer_asset_id IS NOT NULL")};
+            console.log(JSON.stringify(counts));if(counts.papers!==194||counts.answers!==193)process.exit(1);
+          }
           NODE
           trap - ERR
           test "$ROOT" = "/opt/panpan-miniapp/exam-sync/$SYNC_ID"

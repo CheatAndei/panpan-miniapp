@@ -27,7 +27,7 @@ test('口算登顶与压轴通关使用两套主题，并生成高清可保存�
   const poster = read('utils/promotion-poster.js');
   assert.match(page, /mental_first/);
   assert.match(page, /challenge_pass/);
-  assert.match(page, /本周榜首播报/);
+  assert.match(page, /本周口算王/);
   assert.match(page, /压轴通关喜报/);
   assert.match(page, /保存到相册/);
   assert.match(page, /open-type="share"/);
@@ -36,7 +36,24 @@ test('口算登顶与压轴通关使用两套主题，并生成高清可保存�
   assert.match(poster, /drawChallengePoster/);
   assert.match(poster, /destWidth: 1080/);
   assert.match(poster, /destHeight: 1440/);
-  assert.match(poster, /saveImageToPhotosAlbum/);
+  assert.match(poster, /saveImageToAlbum/);
+  assert.match(poster, /photo-album/);
+  assert.match(page, /PANPAN · MATH LEAGUE/);
+  assert.match(page, /PANPAN · BREAKTHROUGH REPORT/);
+  assert.match(page, /Light poster studio/);
+  assert.match(page, /mental-motto/);
+  assert.match(page, /score-aside/);
+  assert.match(page, /score-aside-detail/);
+  assert.match(page, /font-variant-numeric:tabular-nums/);
+  assert.match(page, /Score dashboard/);
+  assert.match(poster, /#FFF9EC/);
+  assert.match(poster, /#6FA9E6/);
+  assert.match(poster, /#DDEEFF/);
+  assert.match(poster, /#FFF8EE/);
+  assert.match(poster, /#F39A6B/);
+  assert.match(poster, /#FFE2D1/);
+  assert.doesNotMatch(poster, /#111C3D|#080F24|#3B241C|#C84E32/);
+  assert.doesNotMatch(poster, /panpan-feedback-line|pantouxiang/);
 });
 
 test('压轴通关海报下载并放大绘制题目原图', () => {

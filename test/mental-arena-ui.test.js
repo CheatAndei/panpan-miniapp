@@ -61,7 +61,8 @@ test('动画结束自动生成口算王专属海报，并提供关闭、保存�
   assert.match(poster, /kind: 'trophy'/);
   assert.match(poster, /kind: 'medal'/);
   assert.match(poster, /canvasToTempFilePath/);
-  assert.match(poster, /saveImageToPhotosAlbum/);
+  assert.match(poster, /saveImageToAlbum/);
+  assert.match(poster, /photo-album/);
   assert.match(poster, /1080/);
   assert.match(poster, /1440/);
   assert.match(achievement, /challenge_id:Number\(row\.id\)/);

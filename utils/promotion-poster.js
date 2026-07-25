@@ -1,3 +1,5 @@
+import { isAlbumPermissionError, saveImageToAlbum } from './photo-album';
+
 export const PROMOTION_POSTER_WIDTH = 750;
 export const PROMOTION_POSTER_HEIGHT = 1000;
 
@@ -24,6 +26,13 @@ function roundRect(ctx, x, y, width, height, radius, color) {
   ctx.closePath();
   ctx.setFillStyle(color);
   ctx.fill();
+}
+
+function borderedRoundRect(ctx, x, y, width, height, radius, fill, border, lineWidth = 2) {
+  roundRect(ctx, x, y, width, height, radius, fill);
+  ctx.setStrokeStyle(border);
+  ctx.setLineWidth(lineWidth);
+  ctx.stroke();
 }
 
 function wrap(ctx, value, maxWidth, maxLines = 3) {
@@ -64,194 +73,229 @@ function drawCover(ctx, image, x, y, width, height) {
 }
 
 function drawChallengeQuestion(ctx, question) {
-  roundRect(ctx, 48, 478, 654, 230, 18, '#FFFFFF');
+  borderedRoundRect(ctx, 42, 372, 666, 300, 22, '#FFFFFF', '#F1D8C8', 3);
   if (question) {
     ctx.save();
     ctx.beginPath();
-    ctx.rect(58, 488, 634, 210);
+    ctx.rect(56, 386, 638, 272);
     ctx.clip();
-    drawCover(ctx, question, 58, 488, 634, 210);
+    drawCover(ctx, question, 56, 386, 638, 272);
     ctx.restore();
   } else {
-    ctx.setFillStyle('#E8DED0');
-    ctx.fillRect(58, 488, 634, 210);
-    ctx.setFillStyle('#806E5E');
+    ctx.setFillStyle('#FFF0E5');
+    ctx.fillRect(56, 386, 638, 272);
+    ctx.setFillStyle('#9A7561');
     ctx.setTextAlign('center');
     ctx.setFontSize(22);
-    ctx.fillText('原题图片', 375, 604);
+    ctx.fillText('原题图片', 375, 535);
     ctx.setTextAlign('left');
   }
-  roundRect(ctx, 62, 498, 154, 34, 8, 'rgba(23,58,52,.88)');
-  ctx.setFillStyle('#FFFFFF');
+  roundRect(ctx, 58, 388, 174, 38, 10, '#F39A6B');
+  ctx.setFillStyle('#4A2F25');
   ctx.setFontSize(16);
-  ctx.fillText('原题节选 · 放大', 78, 522);
+  ctx.fillText('原题节选 · 放大展示', 74, 413);
 }
 
 function drawMentalPoster(ctx, item, code) {
-  const bg = ctx.createLinearGradient(0, 0, 750, 1000);
-  bg.addColorStop(0, '#0E332D');
-  bg.addColorStop(0.62, '#09241F');
-  bg.addColorStop(1, '#061714');
-  ctx.setFillStyle(bg);
+  ctx.setFillStyle('#FFF9EC');
   ctx.fillRect(0, 0, 750, 1000);
 
-  ctx.setStrokeStyle('rgba(196,224,216,.10)');
-  ctx.setLineWidth(1);
-  for (let x = 30; x < 750; x += 72) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1000); ctx.stroke(); }
-  for (let y = 32; y < 1000; y += 72) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(750, y); ctx.stroke(); }
-  ctx.setFillStyle('#E4BE62');
-  ctx.fillRect(0, 0, 13, 1000);
-  ctx.fillRect(52, 62, 86, 7);
-
-  ctx.setTextAlign('left');
-  ctx.setFillStyle('#A8D0C6');
-  ctx.setFontSize(18);
-  ctx.fillText('PANPAN WEEKLY MENTAL CHAMPION', 52, 104);
-  ctx.setFillStyle('#F5EDDC');
-  ctx.setFontSize(39);
-  ctx.fillText('本周口算王 · 新榜首', 52, 160);
-
-  ctx.setFillStyle('rgba(228,190,98,.11)');
+  ctx.setFillStyle('#EAF4FF');
   ctx.beginPath();
-  ctx.arc(579, 236, 154, 0, Math.PI * 2);
+  ctx.arc(694, 112, 170, 0, Math.PI * 2);
   ctx.fill();
-  ctx.setStrokeStyle('rgba(228,190,98,.5)');
-  ctx.setLineWidth(2);
+  ctx.setFillStyle('#F6D77A');
   ctx.beginPath();
-  ctx.arc(579, 236, 122, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setTextAlign('center');
-  ctx.setFillStyle('#E4BE62');
-  ctx.setFontSize(118);
-  ctx.fillText('01', 579, 271);
-  ctx.setFontSize(17);
-  ctx.fillText('WEEKLY RANK', 579, 316);
+  ctx.arc(680, 138, 50, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.setFillStyle('#D7E9FB');
+  for (let x = 54; x < 710; x += 44) {
+    for (let y = 45; y < 950; y += 44) {
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.setFillStyle('#6FA9E6');
+  ctx.fillRect(0, 0, 14, 1000);
 
   ctx.setTextAlign('left');
-  ctx.setFillStyle('#E4BE62');
-  ctx.setFontSize(22);
-  ctx.fillText(item.battle_label || '口算挑战', 52, 246);
-  ctx.setFillStyle('#FFFFFF');
-  ctx.setFontSize(66);
-  ctx.fillText(item.student_name || '同学', 52, 326);
-  ctx.setFillStyle('#9FC5BC');
-  ctx.setFontSize(22);
-  ctx.fillText('凭真实成绩登上本周榜首', 52, 368);
+  ctx.setFillStyle('#4C8FD8');
+  ctx.setFontSize(18);
+  ctx.fillText('PANPAN · WEEKLY MATH STAR', 48, 62);
+  ctx.setFillStyle('#1F3A56');
+  ctx.setFontSize(50);
+  ctx.fillText('本周口算王', 48, 122);
 
-  ctx.setFillStyle('#F8F1E2');
-  ctx.setFontSize(142);
-  ctx.fillText(String(item.score || 0), 45, 530);
-  ctx.setFillStyle('#E4BE62');
-  ctx.setFontSize(20);
-  ctx.fillText('SCORE / 本局得分', 54, 570);
+  borderedRoundRect(ctx, 586, 48, 116, 116, 58, '#FFFFFF', '#B9D9F7', 3);
+  ctx.setTextAlign('center');
+  ctx.setFillStyle('#4C8FD8');
+  ctx.setFontSize(50);
+  ctx.fillText('01', 644, 112);
+  ctx.setFillStyle('#6F8294');
+  ctx.setFontSize(12);
+  ctx.fillText('WEEKLY', 644, 137);
+
+  ctx.setTextAlign('left');
+  roundRect(ctx, 48, 154, 116, 38, 19, '#DDEEFF');
+  ctx.setFillStyle('#326FAE');
+  ctx.setFontSize(16);
+  ctx.fillText(item.battle_label || '口算挑战', 70, 180);
+  ctx.setFillStyle('#1F3A56');
+  ctx.setFontSize(68);
+  ctx.fillText(item.student_name || '同学', 48, 252);
+  ctx.setFillStyle('#6F8294');
+  ctx.setFontSize(19);
+  ctx.fillText('20 题快算 · 排名由真实成绩生成', 50, 282);
+
+  borderedRoundRect(ctx, 40, 312, 670, 254, 28, '#DDEEFF', '#B9D9F7', 3);
+  ctx.setFillStyle('#326FAE');
+  ctx.setFontSize(16);
+  ctx.fillText('本局得分 / SCORE', 66, 350);
+  ctx.setFillStyle('#1F3A56');
+  ctx.setFontSize(138);
+  ctx.fillText(String(item.score || 0), 60, 456);
+  borderedRoundRect(ctx, 486, 330, 192, 120, 18, '#FFFFFF', '#B9D9F7', 2);
+  ctx.setTextAlign('center');
+  ctx.setFillStyle('#4C8FD8');
+  ctx.setFontSize(12);
+  ctx.fillText('WEEKLY BEST', 582, 356);
+  ctx.setFillStyle('#1F3A56');
+  ctx.setFontSize(24);
+  ctx.fillText('本周榜首', 582, 390);
+  ctx.setFillStyle('#6F8294');
+  ctx.setFontSize(14);
+  ctx.fillText(
+    `${Number(item.correct_count || 0)}/${Number(item.total_questions || 20)} 全部答对`,
+    582,
+    422,
+  );
+  ctx.setTextAlign('left');
 
   const metrics = [
     ['正确率', `${Number(item.accuracy || 0)}%`],
     ['答对', `${Number(item.correct_count || 0)}/${Number(item.total_questions || 20)}`],
     ['用时', `${Number(item.elapsed_seconds || 0)}秒`],
   ];
+  borderedRoundRect(ctx, 60, 468, 630, 78, 16, '#FFFFFF', '#C9DFF3', 2);
   metrics.forEach((metric, index) => {
-    const x = 52 + index * 216;
-    if (index) { ctx.setFillStyle('rgba(168,208,198,.2)'); ctx.fillRect(x - 25, 616, 1, 80); }
-    ctx.setFillStyle('#7FA89E');
-    ctx.setFontSize(18);
-    ctx.fillText(metric[0], x, 640);
-    ctx.setFillStyle('#F5EDDC');
-    ctx.setFontSize(36);
-    ctx.fillText(metric[1], x, 687);
+    const x = 82 + index * 204;
+    if (index) {
+      ctx.setFillStyle('#D8E7F4');
+      ctx.fillRect(x - 24, 482, 2, 50);
+    }
+    ctx.setFillStyle('#7B8D9D');
+    ctx.setFontSize(14);
+    ctx.fillText(metric[0], x, 496);
+    ctx.setFillStyle('#1F3A56');
+    ctx.setFontSize(28);
+    ctx.fillText(metric[1], x, 530);
   });
 
-  roundRect(ctx, 42, 746, 666, 190, 26, '#EFE6D4');
-  drawCode(ctx, code, 72, 779, 124);
-  ctx.setFillStyle('#163A33');
-  ctx.setFontSize(29);
-  ctx.fillText('扫码挑战本周榜首', 245, 808);
-  ctx.setFillStyle('#587069');
-  ctx.setFontSize(20);
-  ctx.fillText('20 道题 · 比正确，也比速度', 245, 850);
-  ctx.setFillStyle('#9C731F');
+  roundRect(ctx, 40, 592, 670, 66, 18, '#FFF0BF');
+  ctx.setFillStyle('#6A5321');
+  ctx.setFontSize(22);
+  ctx.fillText('把速度练成底气，每一次认真练习都算数', 66, 633);
+
+  borderedRoundRect(ctx, 40, 688, 670, 254, 24, '#FFFFFF', '#D8E7F4', 2);
+  drawCode(ctx, code, 70, 756, 120);
+  ctx.setFillStyle('#1F3A56');
+  ctx.setFontSize(28);
+  ctx.fillText('扫码挑战本周口算王', 224, 780);
+  ctx.setFillStyle('#6F8294');
   ctx.setFontSize(19);
-  ctx.fillText('潘潘老师数学课堂', 245, 890);
-  ctx.setFillStyle('#76968E');
-  ctx.setFontSize(17);
-  ctx.fillText('公开海报不展示全名、学校和班级', 52, 972);
+  ctx.fillText('20 道题 · 比正确，也比速度', 224, 824);
+  ctx.setFillStyle('#4C8FD8');
+  ctx.setFontSize(18);
+  ctx.fillText('潘潘老师数学课堂', 224, 868);
+  ctx.setFillStyle('#8B98A5');
+  ctx.setFontSize(15);
+  ctx.fillText('公开海报不展示全名、学校和班级', 52, 978);
 }
 
 function drawChallengePoster(ctx, item, code, question) {
-  ctx.setFillStyle('#F3EADC');
+  ctx.setFillStyle('#FFF8EE');
   ctx.fillRect(0, 0, 750, 1000);
-  ctx.setStrokeStyle('rgba(47,66,59,.09)');
+  ctx.setFillStyle('#FFE9DA');
+  ctx.beginPath();
+  ctx.arc(682, 90, 166, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.setFillStyle('#FFD8BF');
+  ctx.beginPath();
+  ctx.arc(698, 96, 72, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.setStrokeStyle('#F6E3D6');
   ctx.setLineWidth(1);
-  for (let x = 28; x < 750; x += 44) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1000); ctx.stroke(); }
-  for (let y = 28; y < 1000; y += 44) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(750, y); ctx.stroke(); }
-  ctx.setFillStyle('#173A34');
-  ctx.fillRect(0, 0, 750, 154);
-  ctx.setFillStyle('#C85F3B');
-  ctx.fillRect(0, 154, 16, 846);
+  for (let x = 44; x < 740; x += 52) {
+    ctx.beginPath();
+    ctx.moveTo(x, 328);
+    ctx.lineTo(x, 968);
+    ctx.stroke();
+  }
+  ctx.setFillStyle('#F39A6B');
+  ctx.fillRect(0, 0, 14, 1000);
 
   ctx.setTextAlign('left');
-  ctx.setFillStyle('#A9CFC5');
+  ctx.setFillStyle('#D36F43');
   ctx.setFontSize(18);
-  ctx.fillText('PANPAN · PROBLEM SOLVED', 48, 60);
-  ctx.setFillStyle('#FFFFFF');
-  ctx.setFontSize(38);
-  ctx.fillText('压轴挑战 · 通关记录', 48, 113);
+  ctx.fillText('PANPAN · BREAKTHROUGH REPORT', 48, 62);
+  ctx.setFillStyle('#4A2F25');
+  ctx.setFontSize(50);
+  ctx.fillText('压轴通关喜报', 48, 122);
 
-  roundRect(ctx, 548, 184, 140, 140, 18, '#C85F3B');
+  borderedRoundRect(ctx, 574, 48, 130, 78, 18, '#FFFFFF', '#F2B493', 3);
   ctx.setTextAlign('center');
-  ctx.setFillStyle('#FFF5E7');
-  ctx.setFontSize(25);
-  ctx.fillText('已', 618, 235);
-  ctx.fillText('攻', 618, 272);
-  ctx.fillText('克', 618, 309);
+  ctx.setFillStyle('#D36F43');
+  ctx.setFontSize(14);
+  ctx.fillText('VERIFIED', 639, 78);
+  ctx.setFontSize(23);
+  ctx.fillText('通 关', 639, 108);
 
   ctx.setTextAlign('left');
-  ctx.setFillStyle('#A84D32');
-  ctx.setFontSize(20);
-  ctx.fillText(item.question_type_label || '压轴题', 52, 220);
-  ctx.setFillStyle('#173A34');
-  ctx.setFontSize(67);
-  ctx.fillText(item.student_name || '同学', 52, 304);
-  ctx.setFillStyle('#5F6E68');
-  ctx.setFontSize(23);
-  ctx.fillText('独立思考，完整作答，成功通关', 52, 350);
+  roundRect(ctx, 48, 150, 110, 36, 18, '#FFE2D1');
+  ctx.setFillStyle('#B95835');
+  ctx.setFontSize(16);
+  ctx.fillText(item.question_type_label || '压轴题', 70, 175);
+  ctx.setFillStyle('#4A2F25');
+  ctx.setFontSize(62);
+  ctx.fillText(item.student_name || '同学', 48, 244);
+  ctx.setFillStyle('#8C6C5D');
+  ctx.setFontSize(19);
+  ctx.fillText('独立思考 · 完整作答 · 成功通关', 50, 276);
 
-  ctx.setFillStyle('#173A34');
-  ctx.setFontSize(42);
-  wrap(ctx, item.headline || '成功攻下一道压轴题', 620, 1).forEach((line) => ctx.fillText(line, 52, 425));
-  ctx.setFillStyle('#725F4E');
-  ctx.setFontSize(18);
-  wrap(ctx, item.question_title || '压轴挑战', 620, 1).forEach((line) => ctx.fillText(line, 52, 461));
+  ctx.setFillStyle('#4A2F25');
+  ctx.setFontSize(36);
+  wrap(ctx, item.headline || '成功攻下一道压轴题', 630, 1).forEach((line) => ctx.fillText(line, 48, 326));
+  ctx.setFillStyle('#8C6C5D');
+  ctx.setFontSize(17);
+  wrap(ctx, item.question_title || '压轴挑战', 630, 1).forEach((line) => ctx.fillText(line, 48, 356));
 
   drawChallengeQuestion(ctx, question);
-  ctx.setFillStyle('#C85F3B');
-  ctx.fillRect(52, 735, 104, 6);
-  ctx.setFillStyle('#7D6A59');
-  ctx.setFontSize(18);
-  ctx.fillText('累计通关', 52, 774);
-  ctx.setFillStyle('#173A34');
-  ctx.setFontSize(48);
-  ctx.fillText(String(Number(item.passed_count || 1)), 52, 824);
-  ctx.setFontSize(21);
-  ctx.fillText('道压轴题', 103, 820);
-  ctx.setFillStyle('#7D6A59');
-  ctx.setFontSize(18);
-  ctx.fillText('题目来源', 285, 774);
-  ctx.setFillStyle('#173A34');
-  ctx.setFontSize(22);
-  wrap(ctx, item.source_label || '潘潘老师精选', 340, 1).forEach((line) => ctx.fillText(line, 285, 816));
-
-  roundRect(ctx, 42, 850, 666, 112, 20, '#173A34');
-  drawCode(ctx, code, 66, 870, 72);
-  ctx.setFillStyle('#FFFFFF');
-  ctx.setFontSize(25);
-  ctx.fillText('扫码体验真实数学挑战', 178, 893);
-  ctx.setFillStyle('#B9D8D0');
-  ctx.setFontSize(17);
-  ctx.fillText('潘潘老师数学课堂 · 思路比答案更重要', 178, 927);
-  ctx.setFillStyle('#806E5E');
+  borderedRoundRect(ctx, 42, 700, 206, 108, 20, '#FFFFFF', '#F1D8C8', 2);
+  borderedRoundRect(ctx, 266, 700, 442, 108, 20, '#FFFFFF', '#F1D8C8', 2);
+  ctx.setFillStyle('#9A7561');
   ctx.setFontSize(15);
-  ctx.fillText('公开海报不展示全名、学校和班级', 52, 988);
+  ctx.fillText('累计通关', 64, 735);
+  ctx.fillText('题目来源', 290, 735);
+  ctx.setFillStyle('#4A2F25');
+  ctx.setFontSize(38);
+  ctx.fillText(String(Number(item.passed_count || 1)), 64, 784);
+  ctx.setFontSize(17);
+  ctx.fillText('道压轴题', 110, 780);
+  ctx.setFontSize(20);
+  wrap(ctx, item.source_label || '潘潘老师精选', 380, 1).forEach((line) => ctx.fillText(line, 290, 780));
+
+  borderedRoundRect(ctx, 42, 836, 666, 120, 22, '#FFF0E5', '#F2B493', 2);
+  drawCode(ctx, code, 62, 854, 84);
+  ctx.setFillStyle('#4A2F25');
+  ctx.setFontSize(24);
+  ctx.fillText('扫码体验真实数学挑战', 184, 876);
+  ctx.setFillStyle('#8C6C5D');
+  ctx.setFontSize(16);
+  ctx.fillText('思路比答案更重要 · 潘潘老师数学课堂', 184, 915);
+  ctx.setFillStyle('#9A7561');
+  ctx.setFontSize(15);
+  ctx.fillText('公开海报不展示全名、学校和班级', 52, 986);
 }
 
 function exportCanvas(canvasId, page) {
@@ -296,9 +340,9 @@ export async function renderPromotionPoster({ page, promotion, codePath, questio
 }
 
 export function savePromotionPoster(filePath) {
-  return new Promise((resolve, reject) => uni.saveImageToPhotosAlbum({ filePath, success:resolve, fail:reject }));
+  return saveImageToAlbum(filePath);
 }
 
 export function promotionPosterPermissionDenied(error) {
-  return /auth deny|authorize|permission|scope\.writePhotosAlbum|用户拒绝|权限/i.test(String(error?.errMsg || error?.message || error || ''));
+  return isAlbumPermissionError(error);
 }

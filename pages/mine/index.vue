@@ -94,6 +94,19 @@
     </view>
   </view>
 
+  <view class="card maintenance-card" v-if="user.role==='teacher'">
+    <view class="maintenance-head">
+      <view>
+        <text class="section-title">维护模式</text>
+        <text class="maintenance-desc">开启后，家长进入新版小程序会看到维护页；教师端仍可使用。</text>
+      </view>
+      <switch :checked="Boolean(maintenanceStatus.maintenance)" color="#2F7D6B" :disabled="savingMaintenance" @change="changeMaintenance" />
+    </view>
+    <view :class="['maintenance-state',{active:maintenanceStatus.maintenance}]">
+      {{ maintenanceStatus.maintenance ? '当前已开启' : '当前未开启' }}
+    </view>
+  </view>
+
   <view class="card actions" v-if="user.role==='teacher' && (!user.roles || !user.roles.includes('parent'))">
     <view class="action-row" @tap="nav('/pages/bind/bind?source=repair')">
       <view class="action-copy"><pp-icon name="users" :size="38" /><text>绑定学生并切换到家长端</text></view>
@@ -121,7 +134,8 @@ import { teacherDisplayName } from '@/utils/brand';
 export default {
   data(){return{
     user:{},profile:null,childName:'',studentName:'',notifyStatus:null,teacherNickname:'',boundKids:[],teacherAvatarBroken:false,
-    loading:false,savingTeacher:false,switchingRole:false
+    loading:false,savingTeacher:false,switchingRole:false,savingMaintenance:false,
+    maintenanceStatus:{maintenance:false}
   };},
   computed:{
     teacherDisplay(){return teacherDisplayName(this.teacherNickname || this.user.nickname);},
@@ -161,7 +175,7 @@ export default {
           await this.loadBoundKids();
           await this.loadProfile();
         }
-        if(this.user.role==='teacher')await this.loadNotifyStatus();
+        if(this.user.role==='teacher')await Promise.all([this.loadNotifyStatus(),this.loadMaintenanceStatus()]);
       }finally{this.loading=false;}
     },
     teacherName(kid){return teacherDisplayName(kid?.teacher_name,'孩子的老师');},
@@ -186,6 +200,36 @@ export default {
     async loadNotifyStatus(){
       try{this.notifyStatus=await api.get('/notify/status');}
       catch(e){logError('mine.notifyStatus',e);}
+    },
+    async loadMaintenanceStatus(){
+      try{this.maintenanceStatus=await api.get('/system/status',null,{handleUnauthorized:false});}
+      catch(e){logError('mine.maintenanceStatus',e);}
+    },
+    async changeMaintenance(event){
+      const enabled=Boolean(event?.detail?.value);
+      if(enabled){
+        const confirmed=await confirmAction({
+          title:'开启维护模式',
+          content:'家长使用新版小程序时将无法进入业务页面。确认现在开启？',
+          confirmText:'确认开启',
+          danger:true
+        });
+        if(!confirmed){await this.loadMaintenanceStatus();return;}
+      }
+      this.savingMaintenance=true;
+      try{
+        this.maintenanceStatus=await api.put('/system/maintenance',{
+          maintenance:enabled,
+          title:this.maintenanceStatus.title,
+          message:this.maintenanceStatus.message,
+          estimated_restore_at:this.maintenanceStatus.estimated_restore_at
+        });
+        uni.setStorageSync('systemMaintenance',this.maintenanceStatus);
+        uni.showToast({title:enabled?'维护已开启':'维护已关闭',icon:'success'});
+      }catch(e){
+        toastError(e,'切换失败');
+        await this.loadMaintenanceStatus();
+      }finally{this.savingMaintenance=false;}
     },
     async loadProfile(){
       try{
@@ -334,4 +378,9 @@ export default {
 .service-title { display: block; color: var(--ink); font-size: 27rpx; font-weight: 680; }
 .service-desc { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 23rpx; line-height: 1.55; }
 .brand { color: var(--faint); padding-bottom: calc(18rpx + env(safe-area-inset-bottom)); }
+.maintenance-head { display:flex;align-items:center;justify-content:space-between;gap:24rpx; }
+.maintenance-head>view { flex:1;min-width:0; }
+.maintenance-desc { display:block;margin-top:8rpx;color:var(--text-muted);font-size:23rpx;line-height:1.55; }
+.maintenance-state { display:inline-flex;margin-top:18rpx;padding:7rpx 15rpx;border-radius:10rpx;background:var(--surface-muted);color:var(--text-muted);font-size:22rpx;font-weight:650; }
+.maintenance-state.active { background:var(--warning-soft);color:var(--warning); }
 </style>

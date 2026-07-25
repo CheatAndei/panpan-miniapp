@@ -5,7 +5,7 @@ const { teacherOwnsClass, parentBoundStudent } = require('../utils/scope');
 const {
   MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
   normalizeTopicKeys, questionTypesForTopics,
-  practiceDateAt, dateRange, generateAssignment, preGenerateDate, evaluateProgression, generatePlanPdf,
+  practiceDateAt, dateRange, generateAssignment, preGenerateDate, evaluateProgression, generatePlanPdf, generateStudentPlanPdf,
 } = require('../services/practice');
 const {
   decodePrivateImage, storePrivateFile, removePrivateFile,
@@ -150,17 +150,69 @@ router.post('/plans', auth, teacherOnly, (req, res) => {
 });
 
 router.get('/plans', auth, teacherOnly, (req, res) => {
-  const plans = getDB().all(`SELECT p.*,c.name class_name,
+  const db = getDB();
+  const clauses = ['p.teacher_id=?'];
+  const params = [req.user.id];
+  const keyword = String(req.query.keyword || '').trim().slice(0, 40);
+  if (keyword) {
+    clauses.push(`(p.title LIKE ? OR c.name LIKE ? OR EXISTS (
+      SELECT 1 FROM practice_student_settings pss JOIN students st ON st.id=pss.student_id
+      WHERE pss.plan_id=p.id AND st.deleted_at IS NULL AND st.name LIKE ?
+    ))`);
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+  }
+  const classId = Number(req.query.class_id);
+  if (Number.isInteger(classId) && classId > 0) {
+    clauses.push('p.class_id=?');
+    params.push(classId);
+  }
+  const status = String(req.query.status || 'all');
+  const today = practiceDateAt();
+  if (status === 'current') {
+    clauses.push("p.status='published' AND p.start_date<=? AND p.end_date>=?");
+    params.push(today, today);
+  } else if (status === 'upcoming') {
+    clauses.push("p.status='published' AND p.start_date>?");
+    params.push(today);
+  } else if (status === 'ended') {
+    clauses.push("(p.status!='published' OR p.end_date<?)");
+    params.push(today);
+  } else if (status !== 'all') {
+    return res.status(400).json({ error: '计划状态无效' });
+  }
+  const month = String(req.query.month || '');
+  if (month) {
+    if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: '月份格式无效' });
+    const [year, monthNumber] = month.split('-').map(Number);
+    const next = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 7);
+    clauses.push('p.start_date<? AND p.end_date>=?');
+    params.push(`${next}-01`, `${month}-01`);
+  }
+  const page = Math.max(1, Number.parseInt(req.query.page || '1', 10) || 1);
+  const limit = Math.max(5, Math.min(100, Number.parseInt(req.query.limit || '50', 10) || 50));
+  const where = clauses.join(' AND ');
+  const total = Number(db.get(`SELECT COUNT(*) count FROM practice_plans p
+    JOIN classes c ON c.id=p.class_id WHERE ${where}`, params)?.count || 0);
+  const plans = db.all(`SELECT p.*,c.name class_name,
     (SELECT COUNT(*) FROM practice_student_settings s WHERE s.plan_id=p.id) student_count,
     (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id) submission_count,
     (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id AND ps.status='submitted') pending_submission_count
     FROM practice_plans p JOIN classes c ON c.id=p.class_id
-    WHERE p.teacher_id=? ORDER BY p.created_at DESC LIMIT 50`, [req.user.id]);
-  res.json({ plans: plans.map((plan) => ({
-    ...plan,
-    question_types: JSON.parse(plan.question_types || '[]'),
-    topic_keys: normalizeTopicKeys(plan.topic_keys),
-  })) });
+    WHERE ${where} ORDER BY p.created_at DESC,p.id DESC LIMIT ? OFFSET ?`,
+  [...params, limit, (page - 1) * limit]);
+  const classes = db.all(`SELECT DISTINCT c.id,c.name FROM practice_plans p
+    JOIN classes c ON c.id=p.class_id WHERE p.teacher_id=? ORDER BY c.name`, [req.user.id]);
+  const months = db.all(`SELECT DISTINCT substr(start_date,1,7) value FROM practice_plans
+    WHERE teacher_id=? ORDER BY value DESC`, [req.user.id]).map((item) => item.value);
+  res.json({
+    plans: plans.map((plan) => ({
+      ...plan,
+      question_types: JSON.parse(plan.question_types || '[]'),
+      topic_keys: normalizeTopicKeys(plan.topic_keys),
+    })),
+    filters: { classes, months, statuses: ['current', 'upcoming', 'ended'] },
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+  });
 });
 
 router.get('/todos', auth, teacherOnly, (req, res) => {
@@ -353,6 +405,20 @@ router.get('/plans/:id/pdf', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const plan = db.get('SELECT * FROM practice_plans WHERE id=? AND teacher_id=?', [req.params.id, req.user.id]);
   if (!plan) return res.status(404).json({ error: '计划不存在' });
+  const studentId = Number(req.query.student_id);
+  if (Number.isInteger(studentId) && studentId > 0) {
+    const student = db.get(`SELECT s.id,s.name FROM students s
+      JOIN practice_student_settings pss ON pss.student_id=s.id AND pss.plan_id=?
+      WHERE s.id=? AND s.deleted_at IS NULL`, [plan.id, studentId]);
+    if (!student) return res.status(404).json({ error: '学生不在该计划中' });
+    try { generateStudentPlanPdf(db, plan, student, res); }
+    catch (error) {
+      if (!res.headersSent) res.status(500).json({ error: 'PDF 生成失败' });
+      else res.destroy(error);
+    }
+    return;
+  }
+  // 兼容旧正式版：未传 student_id 时继续生成原五日整班 PDF。
   const start = String(req.query.start_date || plan.start_date);
   if (!validDate(start) || start < plan.start_date || start > plan.end_date) return res.status(400).json({ error: 'PDF 起始日期不在计划范围内' });
   try { generatePlanPdf(db, plan, res, start); }

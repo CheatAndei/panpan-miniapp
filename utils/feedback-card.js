@@ -1,9 +1,11 @@
 import { SUPPORTED_FEEDBACK_EMOJIS } from './feedback';
+import { isAlbumPermissionError as isPhotoAlbumPermissionError, saveImageToAlbum } from './photo-album';
 
 export const FEEDBACK_CARD_WIDTH = 750;
 export const FEEDBACK_CARD_HEIGHT = 1000;
 export const FEEDBACK_CARD_MAX_TEXT = 180;
-export const FEEDBACK_CARD_AVATAR = '/static/brand/panpan-feedback-line.jpg';
+export const FEEDBACK_CARD_AVATAR = '/static/brand/panpan-feedback-color-v1.jpg';
+export const FEEDBACK_CARD_AVATAR_CACHE_VERSION = 'v3';
 
 const FALLBACK_FEEDBACK_EMOJI = '🌟';
 
@@ -81,7 +83,7 @@ async function resolvePackagedImage(src) {
   if (!userDataPath || !fileSystem) return resilientImageInfo(source);
   const packagePath = source.replace(/^\/+/, '');
   const suffix = packagePath.includes('.') ? packagePath.slice(packagePath.lastIndexOf('.')) : '.jpg';
-  const targetPath = `${userDataPath}/panpan-feedback-avatar${suffix}`;
+  const targetPath = `${userDataPath}/panpan-feedback-avatar-${FEEDBACK_CARD_AVATAR_CACHE_VERSION}${suffix}`;
   try {
     try { return await imageInfo(targetPath); } catch {}
     const data = fileSystem.readFileSync(packagePath);
@@ -309,7 +311,7 @@ export async function renderFeedbackCard({
   avatarPath = FEEDBACK_CARD_AVATAR,
 }) {
   const name = cleanLine(studentName) || '同学';
-  const displayName = feedbackCardStudentLabel(name, feedbackText);
+  const feedbackEmoji = firstFeedbackEmoji(feedbackText);
   const body = cleanFeedbackCardText(feedbackText, name);
   if (!body) throw new Error('请先填写学生反馈');
   if (Array.from(body).length > FEEDBACK_CARD_MAX_TEXT) throw new Error(`反馈卡文字请控制在 ${FEEDBACK_CARD_MAX_TEXT} 字以内`);
@@ -335,9 +337,9 @@ export async function renderFeedbackCard({
   ctx.fillText('PANPAN · STUDENT NOTE', 77, 71);
   ctx.setFillStyle('#173A35');
   ctx.setFontSize(48);
-  ctx.fillText('课堂反馈', 77, 127);
-  ctx.setFontSize(29);
-  ctx.fillText(displayName, 77, 172);
+  ctx.fillText(name, 77, 127);
+  ctx.setFontSize(27);
+  ctx.fillText(`课堂反馈 ${feedbackEmoji}`, 77, 172);
   ctx.setTextAlign('right');
   ctx.setFillStyle('#756F65');
   ctx.setFontSize(19);
@@ -377,7 +379,7 @@ export async function renderFeedbackCard({
   ctx.setTextAlign('right');
   ctx.setFillStyle('#8A8174');
   ctx.setFontSize(17);
-  ctx.fillText('仅供学生家长查看', 702, 968);
+  ctx.fillText('陪孩子看见每一次进步', 702, 968);
   ctx.setTextAlign('left');
 
   return finishCanvas(ctx, canvasId, page);
@@ -528,12 +530,9 @@ export async function renderHomeworkCard({
 }
 
 export function saveFeedbackCardToAlbum(filePath) {
-  return new Promise((resolve, reject) => {
-    if (typeof uni.saveImageToPhotosAlbum !== 'function') return reject(new Error('请在微信小程序中保存分享卡'));
-    uni.saveImageToPhotosAlbum({ filePath, success: resolve, fail: reject });
-  });
+  return saveImageToAlbum(filePath);
 }
 
 export function isAlbumPermissionError(error) {
-  return /auth deny|authorize|permission|scope\.writePhotosAlbum|用户拒绝|权限/.test(String(error?.errMsg || error?.message || error || ''));
+  return isPhotoAlbumPermissionError(error);
 }

@@ -1,3 +1,5 @@
+import { isAlbumPermissionError, saveImageToAlbum } from './photo-album';
+
 export const MENTAL_POSTER_WIDTH = 750;
 export const MENTAL_POSTER_HEIGHT = 1000;
 
@@ -231,9 +233,9 @@ export async function renderMentalArenaPoster({ page, result, codePath, canvasId
 }
 
 export function saveMentalArenaPoster(filePath) {
-  return new Promise((resolve, reject) => uni.saveImageToPhotosAlbum({ filePath, success: resolve, fail: reject }));
+  return saveImageToAlbum(filePath);
 }
 
 export function mentalPosterPermissionDenied(error) {
-  return /auth deny|authorize|permission|scope\.writePhotosAlbum|用户拒绝|权限/i.test(String(error?.errMsg || error?.message || error || ''));
+  return isAlbumPermissionError(error);
 }

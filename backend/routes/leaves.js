@@ -24,14 +24,15 @@ router.get('/', auth, (req, res) => {
       LEFT JOIN classes c ON c.id=s.class_id
       WHERE COALESCE(s.teacher_id,c.teacher_id)=?
       ORDER BY l.created_at DESC LIMIT 50`, [req.user.id]);
-    const feedbackRows = db.all(`SELECT pf.id, NULL as student_id, pf.parent_id, '' as class_date,
+    const feedbackRows = db.all(`SELECT pf.id,pf.student_id,pf.parent_id,'' as class_date,
       pf.content as reason, pf.status, pf.reply, pf.created_at,
-      COALESCE(NULLIF(u.nickname,''),'家长') as student_name, 'feedback' as item_type
-      FROM parent_feedbacks pf LEFT JOIN users u ON u.id=pf.parent_id
-      WHERE pf.student_id IS NOT NULL AND EXISTS (
-        SELECT 1 FROM students s LEFT JOIN classes c ON c.id=s.class_id
-        WHERE s.id=pf.student_id AND COALESCE(s.teacher_id,c.teacher_id)=?
-      )
+      s.name as student_name,COALESCE(NULLIF(u.nickname,''),'家长') as parent_name,
+      'feedback' as item_type
+      FROM parent_feedbacks pf
+      JOIN students s ON s.id=pf.student_id
+      LEFT JOIN classes c ON c.id=s.class_id
+      LEFT JOIN users u ON u.id=pf.parent_id
+      WHERE COALESCE(s.teacher_id,c.teacher_id)=?
       ORDER BY pf.created_at DESC LIMIT 50`, [req.user.id]);
     leaves = [...leaveRows, ...feedbackRows].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0, 80);
   } else {
@@ -40,15 +41,34 @@ router.get('/', auth, (req, res) => {
   res.json({ leaves });
 });
 
+router.get('/feedback/history', auth, (req, res) => {
+  if (req.user.role !== 'parent') return res.status(403).json({ error: '无权限' });
+  const db = getDB();
+  const studentId = Number(req.query.student_id);
+  if (!parentBoundStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权查看该学生' });
+  const limit = Math.max(3, Math.min(50, Number.parseInt(req.query.limit || '20', 10) || 20));
+  const feedbacks = db.all(`SELECT id,student_id,content,status,COALESCE(reply,'') reply,created_at,updated_at
+    FROM parent_feedbacks WHERE parent_id=? AND student_id=?
+    ORDER BY created_at DESC,id DESC LIMIT ?`, [req.user.id, studentId, limit]);
+  res.json({ feedbacks });
+});
+
 router.put('/:id', auth, (req, res) => {
   if (req.user.role !== 'teacher') return res.status(403).json({ error: '无权限' });
   const db = getDB();
   if (req.body.item_type === 'feedback') {
     if (!parentFeedbackBelongsToTeacher(db, req.user.id, req.params.id)) return res.status(403).json({ error: '无权操作该反馈' });
-    db.run('UPDATE parent_feedbacks SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
+    const status = String(req.body.status || '');
+    const reply = String(req.body.reply || '').trim().slice(0, 300);
+    if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: '处理状态无效' });
+    if (status === 'approved' && !reply) return res.status(400).json({ error: '请填写给家长的回复' });
+    db.run(`UPDATE parent_feedbacks SET status=?,reply=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+      [status, reply, req.params.id]);
   } else {
+    const status = String(req.body.status || '');
+    if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: '处理状态无效' });
     if (!leaveBelongsToTeacher(db, req.user.id, req.params.id)) return res.status(403).json({ error: '无权操作该请假' });
-    db.run('UPDATE leaves SET status=?, reply=? WHERE id=?', [req.body.status, req.body.reply||'', req.params.id]);
+    db.run('UPDATE leaves SET status=?, reply=? WHERE id=?', [status, String(req.body.reply || '').trim().slice(0, 300), req.params.id]);
   }
   res.json({ ok: true });
 });

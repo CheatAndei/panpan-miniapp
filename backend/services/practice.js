@@ -292,7 +292,7 @@ function writePdfText(doc, value, options = {}) {
   }
 }
 
-function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
+function generateLegacyPlanPdf(db, plan, response, requestedStart = plan.start_date) {
   const start = requestedStart < plan.start_date ? plan.start_date : requestedStart;
   const fifth = new Date(`${start}T00:00:00Z`);
   fifth.setUTCDate(fifth.getUTCDate() + 4);
@@ -339,6 +339,144 @@ function generatePlanPdf(db, plan, response, requestedStart = plan.start_date) {
   doc.end();
 }
 
+function preferredPracticeAvatar() {
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  const candidates = [
+    path.join(projectRoot, 'static', 'brand', 'panpan-feedback-color-v1.png'),
+    path.join(projectRoot, 'static', 'brand', 'panpan-feedback-color-v1.jpg'),
+    path.join(projectRoot, 'static', 'brand', 'panpan-feedback-line.jpg'),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || '';
+}
+
+function drawPracticePdfHeader(doc, { studentName, date, dateRangeText, topicLabel, dayIndex, avatarPath }) {
+  doc.rect(0, 0, doc.page.width, 112).fill('#173A35');
+  doc.rect(0, 112, doc.page.width, 6).fill('#B9DDD2');
+  if (avatarPath) {
+    try {
+      doc.save().roundedRect(487, 24, 64, 64, 16).clip().image(avatarPath, 487, 24, {
+        width: 64, height: 64, fit: [64, 64], align: 'center', valign: 'center',
+      }).restore();
+    } catch {}
+  }
+  doc.x = 42;
+  doc.y = 27;
+  writePdfText(doc, `${studentName}定制计算打卡`, { size: 17, color: '#FFFFFF', characters: 25, lineGap: 1 });
+  doc.x = 42;
+  doc.y = 67;
+  writePdfText(doc, `潘潘老师｜${dateRangeText}｜${topicLabel}`, { size: 8.5, color: '#CDE7DF', characters: 52, lineGap: 1 });
+  doc.x = 42;
+  doc.y = 139;
+  writePdfText(doc, `${date}　DAY ${String(dayIndex).padStart(2, '0')}　约20分钟`, {
+    size: 12, color: '#2F7D6B', characters: 42, lineGap: 1,
+  });
+  doc.moveTo(42, 168).lineTo(553, 168).lineWidth(0.7).strokeColor('#D9E4DF').stroke();
+  doc.x = 42;
+  doc.y = 185;
+}
+
+function writePracticeFooter(doc, text, pageNumber) {
+  doc.save();
+  doc.moveTo(42, 770).lineTo(553, 770).lineWidth(0.6).strokeColor('#D9E4DF').stroke();
+  doc.x = 42;
+  doc.y = 780;
+  writePdfText(doc, text, { size: 7.5, color: '#73837E', characters: 45, lineGap: 0 });
+  doc.font(fontForCharacter(String(pageNumber))).fontSize(8).fillColor('#73837E')
+    .text(String(pageNumber), 515, 780, { width: 38, align: 'right', lineBreak: false });
+  doc.restore();
+}
+
+function drawPracticeQuestionColumn(doc, items, x, rowPitch) {
+  items.forEach((item, index) => {
+    const y = 188 + index * rowPitch;
+    doc.x = x;
+    doc.y = y;
+    writePdfText(doc, `${item.position}. ${item.snapshot_stem}`, {
+      size: 10.2, color: '#183A36', characters: 23, lineGap: 2,
+    });
+  });
+}
+
+function generateStudentPlanPdf(db, plan, student, response) {
+  const dates = dateRange(plan.start_date, plan.end_date, 31);
+  db.transaction(() => {
+    for (const date of dates) generateAssignment(db, plan, student.id, date);
+  });
+  const assignments = dates.map((date) => {
+    const assignment = db.get(`SELECT id FROM practice_assignments
+      WHERE plan_id=? AND student_id=? AND practice_date=?`, [plan.id, student.id, date]);
+    return {
+      date,
+      items: assignment ? db.all(`SELECT position,snapshot_stem,snapshot_answer
+        FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignment.id]) : [],
+    };
+  });
+  const topicLabel = normalizeTopicKeys(plan.topic_keys).map((key) => TOPICS[key].label).join(' · ');
+  const dateRangeText = `${dates[0]}至${dates[dates.length - 1]}`;
+  const title = `${student.name}定制计算打卡`;
+  const avatarPath = preferredPracticeAvatar();
+  const doc = new PDFDocument({
+    size: 'A4',
+    margin: 42,
+    info: { Title: title, Author: '潘潘老师', Subject: `${dateRangeText} ${topicLabel}` },
+    autoFirstPage: true,
+  });
+  response.type('application/pdf');
+  response.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(`${title}.pdf`)}`);
+  response.set('Cache-Control', 'private, no-store');
+  doc.pipe(response);
+
+  assignments.forEach((assignment, index) => {
+    if (index > 0) doc.addPage();
+    drawPracticePdfHeader(doc, {
+      studentName: student.name,
+      date: assignment.date,
+      dateRangeText,
+      topicLabel: FIXED_MODULE,
+      dayIndex: index + 1,
+      avatarPath,
+    });
+    const left = assignment.items.slice(0, 6);
+    const right = assignment.items.slice(6);
+    drawPracticeQuestionColumn(doc, left, 42, 88);
+    drawPracticeQuestionColumn(doc, right, 310, right.length > 6 ? 73 : 88);
+    writePracticeFooter(doc, '学生记录 · 每天一点点，进步看得见', index + 1);
+  });
+
+  let answerPageNumber = assignments.length;
+  const startAnswerPage = () => {
+    doc.addPage();
+    answerPageNumber += 1;
+    doc.rect(0, 0, doc.page.width, 96).fill('#E8F2EE');
+    doc.x = 42;
+    doc.y = 28;
+    writePdfText(doc, `${student.name}｜教师参考答案`, { size: 17, color: '#173A35', characters: 28, lineGap: 1 });
+    doc.x = 42;
+    doc.y = 67;
+    writePdfText(doc, `${dateRangeText}｜多日答案紧凑排版`, { size: 8.5, color: '#536762', characters: 45, lineGap: 1 });
+    doc.x = 42;
+    doc.y = 124;
+  };
+  startAnswerPage();
+  assignments.forEach((assignment, index) => {
+    const answerText = assignment.items.map((item) => `${item.position}.${item.snapshot_answer}`).join('　');
+    const estimatedLines = Math.max(1, Math.ceil(Array.from(answerText).length / 48));
+    if (doc.y + 28 + estimatedLines * 17 > 750) {
+      writePracticeFooter(doc, '答案仅供教师核对 · 题目来自项目自编参数化题库', answerPageNumber);
+      startAnswerPage();
+    }
+    doc.roundedRect(42, doc.y - 3, 511, 22 + estimatedLines * 17, 7).fill(index % 2 ? '#F7FAF8' : '#FCF7EE');
+    doc.x = 52;
+    doc.y += 5;
+    writePdfText(doc, `${assignment.date}（第${index + 1}天）`, { size: 9.5, color: '#2F7D6B', characters: 45, lineGap: 1 });
+    doc.x = 52;
+    writePdfText(doc, answerText, { size: 8.8, color: '#243D38', characters: 48, lineGap: 2 });
+    doc.moveDown(0.35);
+  });
+  writePracticeFooter(doc, '答案仅供教师核对 · 题目来自项目自编参数化题库', answerPageNumber);
+  doc.end();
+}
+
 module.exports = {
   MODULES,
   TOPICS,
@@ -353,5 +491,6 @@ module.exports = {
   generateAssignment,
   preGenerateDate,
   evaluateProgression,
-  generatePlanPdf,
+  generatePlanPdf: generateLegacyPlanPdf,
+  generateStudentPlanPdf,
 };
