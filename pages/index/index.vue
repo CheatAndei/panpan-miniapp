@@ -270,7 +270,7 @@
         </view>
         <view class="today-progress"><view class="today-progress-fill" :style="{width:learningToday.progress.percent+'%'}"></view></view>
         <button v-for="task in learningToday.tasks" :key="task.key" class="today-task" @tap="openTodayTask(task)">
-          <view :class="['task-position',{done:task.completed,pending:task.status==='pending_review'}]">
+          <view :class="['task-position',{done:task.completed,pending:['pending_review','correction_required'].includes(task.status)}]">
             <text>{{ task.completed ? '✓' : task.position }}</text>
           </view>
           <view class="task-copy">
@@ -697,6 +697,7 @@ function openPromotionStudio() {
 function taskStatusLabel(task) {
   if (task.completed) return '已完成';
   if (task.status === 'pending_review') return '待批改';
+  if (task.status === 'correction_required') return '去订正';
   return task.status === 'active' ? '继续' : '开始';
 }
 

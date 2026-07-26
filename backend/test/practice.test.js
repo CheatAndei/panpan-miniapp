@@ -18,8 +18,9 @@ process.env.CORS_ORIGIN = 'http://localhost';
 process.env.DISABLE_REMINDER = 'true';
 
 const { start } = require('../server');
-const { getDB } = require('../db/init');
+const { getDB, runMigrations } = require('../db/init');
 const { practiceDateAt, generateAssignment } = require('../services/practice');
+const { syncWrongSources } = require('../services/learning');
 
 let server;
 let base;
@@ -147,10 +148,19 @@ test('打卡照片私有存储，未登录和跨学生跨老师都不可读取',
   assert.equal(invalid.response.status, 400);
   assert.equal(getDB().get('SELECT id FROM practice_submissions WHERE assignment_id=?', [assignmentId]), null);
   const png = (await sharp({ create: { width: 8, height: 8, channels: 3, background: '#2F7D6B' } }).png().toBuffer()).toString('base64');
-  const uploaded = await request('POST', `/practice/assignments/${assignmentId}/upload`, parentToken, {
+  const partialUpload = await request('POST', `/practice/assignments/${assignmentId}/upload?upload_complete=0`, parentToken, {
     base64: png, fileName: 'practice.png', mimeType: 'image/png',
   });
-  assert.equal(uploaded.response.status, 201);
+  assert.equal(partialUpload.response.status, 201);
+  assert.equal(partialUpload.payload.submission.status, 'uploading');
+  assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
+    '多图尚未传完时不能进入教师待批队列');
+  const uploaded = await request('POST', `/practice/assignments/${assignmentId}/upload?upload_complete=1`, parentToken, {
+    base64: png, fileName: 'practice.png', mimeType: 'image/png',
+  });
+  assert.equal(uploaded.response.status, 200);
+  assert.equal(uploaded.payload.idempotent, true);
+  assert.equal(uploaded.payload.submission.status, 'submitted');
   assert.match(uploaded.payload.attachment.url, /^\/api\/private-files\/[a-f0-9]{32}$/);
   const duplicate = await request('POST', `/practice/assignments/${assignmentId}/upload`, parentToken, { base64: png, fileName: 'practice.png' });
   assert.equal(duplicate.payload.idempotent, true);
@@ -195,12 +205,23 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal((await request('GET', '/practice/todos', otherTeacherToken)).payload.count, 0);
   assert.equal(Number(submission.student_id), Number(studentId));
   assert.equal(submission.attachments.length, 1);
+  assert.equal(submission.correction_round, 1);
+  assert.equal(submission.is_correction, false);
+  assert.equal(submission.needs_correction, false);
+  assert.deepEqual(submission.focus_item_ids, submission.items.map((item) => Number(item.id)));
+  assert.equal(submission.attachment_count, 1);
+  assert.equal(submission.total_attachment_count, 1);
   assert.ok(submission.items.every((item) => item.answer));
   const answerSnapshots = getDB().all(`SELECT id,position,snapshot_answer answer FROM practice_assignment_items
     WHERE assignment_id=? ORDER BY position`, [submission.assignment_id]);
   assert.deepEqual(submission.items.map(({ id, position, answer }) => ({ id, position, answer })), answerSnapshots,
     '学生照片必须与该学生当天题单的标准答案一起返回');
   const body = { teacher_note: '已认真完成', results: submission.items.map((item, index) => ({ item_id: item.id, is_correct: index >= 3 })) };
+  getDB().run('UPDATE practice_attachments SET round_no=99 WHERE submission_id=?', [submission.id]);
+  const missingRoundPhoto = await request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, body);
+  assert.equal(missingRoundPhoto.response.status, 409);
+  assert.match(missingRoundPhoto.payload.error, /尚未上传照片/);
+  getDB().run('UPDATE practice_attachments SET round_no=1 WHERE submission_id=?', [submission.id]);
   const forbidden = await request('PUT', `/practice/submissions/${submission.id}/review`, otherTeacherToken, body);
   assert.equal(forbidden.response.status, 404);
   const db = getDB();
@@ -210,16 +231,144 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal((await request('PUT', `/practice/submissions/${submission.id}/review`, otherTeacherToken, body)).response.status, 404);
   const reviewed = await request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, body);
   assert.equal(reviewed.response.status, 200);
-  assert.equal(reviewed.payload.status, 'reviewed');
+  assert.equal(reviewed.payload.status, 'correction_required');
+  assert.equal(reviewed.payload.correction_round, 1);
+  assert.equal(reviewed.payload.is_correction, false);
+  assert.equal(reviewed.payload.needs_correction, true);
+  assert.deepEqual(reviewed.payload.wrong_item_ids, submission.items.slice(0, 3).map((item) => Number(item.id)));
+  assert.deepEqual(reviewed.payload.focus_item_ids, reviewed.payload.wrong_item_ids);
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0);
   db.run('UPDATE students SET class_id=?,teacher_id=? WHERE id=?', [classId, originalTeacherId, studentId]);
   const today = await request('GET', `/practice/today?student_id=${studentId}`, parentToken);
-  assert.equal(today.payload.assignment.submission.status, 'reviewed');
+  assert.equal(today.payload.assignment.submission.status, 'correction_required');
+  assert.equal(today.payload.assignment.submission.needs_correction, true);
+  assert.equal(today.payload.assignment.submission.correction_round, 1);
+  assert.equal(today.payload.assignment.submission.attachments.length, 0,
+    '待订正时顶层照片清空，兼容旧版继续上传');
+  assert.equal(today.payload.assignment.submission.total_attachment_count, 1);
+  assert.equal(today.payload.assignment.submission.rounds[0].attachments.length, 1);
+  assert.equal(today.payload.assignment.submission.rounds[0].status, 'correction_required');
+  const correctionToday = await request('GET', `/learning/today?student_id=${studentId}`, parentToken);
+  const correctionTask = correctionToday.payload.tasks.find((task) => task.key === 'practice');
+  assert.equal(correctionTask.status, 'correction_required');
+  assert.equal(correctionTask.completed, false);
+  assert.match(correctionTask.description, /上传订正照片/);
   const pendingOnly = await request('GET', `/practice/submissions?plan_id=${planId}`, teacherToken);
   assert.equal(pendingOnly.payload.submissions.length, 0);
+  const correctionPhoto = (await sharp({
+    create: { width: 8, height: 8, channels: 3, background: '#C2784A' },
+  }).png().toBuffer()).toString('base64');
+  const partialCorrectionUpload = await request('POST',
+    `/practice/assignments/${submission.assignment_id}/upload?upload_complete=0`, parentToken, {
+      base64: correctionPhoto, fileName: 'correction-2.png', mimeType: 'image/png',
+    });
+  assert.equal(partialCorrectionUpload.response.status, 201);
+  assert.equal(partialCorrectionUpload.payload.attachment.round_no, 2);
+  assert.equal(partialCorrectionUpload.payload.submission.status, 'correction_required');
+  assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
+    '订正照片整批上传完成前不能进入教师待批队列');
+  const correctionUpload = await request('POST',
+    `/practice/assignments/${submission.assignment_id}/upload?upload_complete=1`, parentToken, {
+    base64: correctionPhoto, fileName: 'correction-2.png', mimeType: 'image/png',
+  });
+  assert.equal(correctionUpload.response.status, 200);
+  assert.equal(correctionUpload.payload.idempotent, true);
+  assert.equal(correctionUpload.payload.attachment.round_no, 2);
+  assert.equal(correctionUpload.payload.attachment.is_correction, true);
+  assert.equal(correctionUpload.payload.submission.status, 'submitted');
+  assert.equal(correctionUpload.payload.submission.correction_round, 2);
+  assert.equal(correctionUpload.payload.submission.is_correction, true);
+  assert.equal(correctionUpload.payload.submission.needs_correction, false);
+  assert.equal(correctionUpload.payload.submission.attachments.length, 1, '当前轮只返回本轮照片');
+  assert.equal(correctionUpload.payload.submission.total_attachment_count, 2);
+  assert.equal(correctionUpload.payload.submission.rounds.length, 2);
+
+  const correctionTodos = await request('GET', '/practice/todos', teacherToken);
+  assert.equal(correctionTodos.payload.count, 1);
+  assert.equal(correctionTodos.payload.todos[0].correction_round, 2);
+  assert.equal(correctionTodos.payload.todos[0].is_correction, true);
+  assert.deepEqual(correctionTodos.payload.todos[0].focus_item_ids, reviewed.payload.wrong_item_ids);
+  const correctionList = await request('GET', `/practice/submissions?plan_id=${planId}`, teacherToken);
+  assert.equal(correctionList.payload.submissions.length, 1);
+  const correctionSubmission = correctionList.payload.submissions[0];
+  assert.deepEqual(
+    correctionSubmission.items.map((item) => Number(item.id)),
+    reviewed.payload.wrong_item_ids,
+    '下一轮教师只看到上一轮错题',
+  );
+  assert.ok(correctionSubmission.items.every((item) => item.is_correct === null));
+  assert.ok(correctionSubmission.attachments.every((item) => item.round_no === 2));
+
+  const staleReview = await request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, {
+    correction_round: 1,
+    teacher_note: '旧页面提交',
+    results: correctionSubmission.items.map((item) => ({ item_id: item.id, is_correct: true })),
+  });
+  assert.equal(staleReview.response.status, 409);
+  const roundTwoReview = await request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, {
+    correction_round: 2,
+    teacher_note: '还有一题需订正',
+    results: correctionSubmission.items.map((item, index) => ({ item_id: item.id, is_correct: index > 0 })),
+  });
+  assert.equal(roundTwoReview.response.status, 200);
+  assert.equal(roundTwoReview.payload.status, 'correction_required');
+  assert.deepEqual(roundTwoReview.payload.wrong_item_ids, [Number(correctionSubmission.items[0].id)]);
+  assert.equal(getDB().get(`SELECT COUNT(*) count FROM practice_review_rounds
+    WHERE submission_id=?`, [submission.id]).count, submission.items.length + 3);
+
+  const finalPhoto = (await sharp({
+    create: { width: 8, height: 8, channels: 3, background: '#183A36' },
+  }).png().toBuffer()).toString('base64');
+  const finalUpload = await request('POST', `/practice/assignments/${submission.assignment_id}/upload`, parentToken, {
+    base64: finalPhoto, fileName: 'correction-3.png', mimeType: 'image/png',
+  });
+  assert.equal(finalUpload.response.status, 201);
+  assert.equal(finalUpload.payload.submission.correction_round, 3);
+  assert.deepEqual(finalUpload.payload.submission.focus_item_ids, [Number(correctionSubmission.items[0].id)]);
+  const finalReviewBody = {
+    round_no: 3,
+    teacher_note: '订正完成',
+    results: [{ item_id: correctionSubmission.items[0].id, is_correct: true }],
+  };
+  const finalReviewAttempts = await Promise.all([
+    request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, finalReviewBody),
+    request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, finalReviewBody),
+  ]);
+  assert.deepEqual(finalReviewAttempts.map((item) => item.response.status).sort(), [200, 409]);
+  const finalReview = finalReviewAttempts.find((item) => item.response.status === 200);
+  assert.equal(finalReview.payload.status, 'reviewed');
+  assert.equal(finalReview.payload.needs_correction, false);
+  assert.ok(finalReview.payload.completed_at);
+  assert.deepEqual(finalReview.payload.focus_item_ids, []);
+  assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0);
+
+  const latestReviews = getDB().all(`SELECT is_correct FROM practice_reviews
+    WHERE submission_id=?`, [submission.id]);
+  assert.ok(latestReviews.every((item) => Number(item.is_correct) === 1));
+  assert.equal(Number(getDB().get(`SELECT COUNT(*) count FROM practice_review_rounds
+    WHERE submission_id=?`, [submission.id]).count), submission.items.length + 4,
+  '并发/重复提交不能生成额外批改历史');
+  syncWrongSources(getDB(), studentId);
+  const preservedWrongs = getDB().all(`SELECT source_id FROM wrong_item_progress
+    WHERE student_id=? AND source_type='practice_review' ORDER BY source_id`, [studentId]);
+  assert.equal(preservedWrongs.length, 3, '已订正题仍保留为历史错题并进入错题学习');
+
   const all = await request('GET', `/practice/submissions?plan_id=${planId}&status=all&limit=5`, teacherToken);
   assert.equal(all.payload.submissions.length, 1);
   assert.equal(all.payload.pagination.total, 1);
+  assert.equal(all.payload.submissions[0].correction_round, 3);
+  assert.equal(all.payload.submissions[0].attachments.length, 1);
+  assert.equal(all.payload.submissions[0].total_attachment_count, 3);
+  assert.deepEqual(all.payload.submissions[0].rounds.map((round) => round.status), [
+    'correction_required', 'correction_required', 'reviewed',
+  ]);
+  const historyCount = Number(getDB().get(`SELECT COUNT(*) count FROM practice_review_rounds
+    WHERE submission_id=?`, [submission.id]).count);
+  runMigrations();
+  runMigrations();
+  assert.equal(Number(getDB().get(`SELECT COUNT(*) count FROM practice_review_rounds
+    WHERE submission_id=?`, [submission.id]).count), historyCount,
+  '增量迁移可重复执行且不会覆盖或复制批改历史');
 });
 
 test('固定题库不允许按学生调整模块或难度', async () => {

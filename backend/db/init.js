@@ -167,6 +167,10 @@ function prepareLegacySchemaColumns() {
     ['weekly_challenge_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
     ['choice_king_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
     ['choice_king_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
+    ['practice_submissions', 'current_round', 'INTEGER NOT NULL DEFAULT 1'],
+    ['practice_submissions', 'needs_correction', 'INTEGER NOT NULL DEFAULT 0'],
+    ['practice_submissions', 'completed_at', 'DATETIME'],
+    ['practice_attachments', 'round_no', 'INTEGER NOT NULL DEFAULT 1'],
   ];
   for (const [table, column, definition] of bridges) {
     if (execOne("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name=?", [table])) {
@@ -314,6 +318,10 @@ function runMigrations() {
   ensureColumn('learning_attempts', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'");
   ensureColumn('learning_attempts', 'subject_code', "TEXT NOT NULL DEFAULT 'math'");
   ensureColumn('choice_king_reports', 'selected_answer', 'TEXT');
+  ensureColumn('practice_submissions', 'current_round', 'INTEGER NOT NULL DEFAULT 1');
+  ensureColumn('practice_submissions', 'needs_correction', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('practice_submissions', 'completed_at', 'DATETIME');
+  ensureColumn('practice_attachments', 'round_no', 'INTEGER NOT NULL DEFAULT 1');
   _db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_challenge_source_key ON weekly_challenge_questions(source_key)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_classes_teacher_active ON classes(teacher_id, deleted_at)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_students_class_active ON students(class_id, deleted_at)');
@@ -336,6 +344,8 @@ function runMigrations() {
     ON choice_king_wrong_progress(student_id, status, next_due_at, new_questions_since_review)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_report_status
     ON choice_king_reports(status, created_at)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_attachment_round
+    ON practice_attachments(submission_id, round_no, created_at)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_teacher_alert_unread
     ON teacher_alerts(teacher_id, read_at, created_at)`);
   _db.run(`UPDATE practice_plans SET topic_keys='["rational_numbers","absolute_value","algebra","linear_equation"]'
@@ -406,6 +416,26 @@ function runMigrations() {
     SELECT DISTINCT teacher_id, 'teacher' FROM classes WHERE teacher_id IS NOT NULL`);
   _db.run(`INSERT OR IGNORE INTO user_roles(user_id, role)
     SELECT DISTINCT teacher_id, 'teacher' FROM students WHERE teacher_id IS NOT NULL`);
+  // 旧库中的单次提交视为第 1 轮。只复制、不删除旧批改数据，
+  // 可重复执行并保证既有已完成记录不会被重新打开。
+  _db.run(`INSERT OR IGNORE INTO practice_submission_rounds
+    (submission_id,round_no,status,teacher_note,submitted_at,reviewed_by,reviewed_at,created_at)
+    SELECT id,1,
+      CASE
+        WHEN status IN ('submitted','correction_required','reviewed') THEN status
+        ELSE 'reviewed' END,
+      teacher_note,submitted_at,reviewed_by,reviewed_at,COALESCE(submitted_at,CURRENT_TIMESTAMP)
+    FROM practice_submissions`);
+  _db.run(`INSERT OR IGNORE INTO practice_review_rounds
+    (submission_id,round_no,assignment_item_id,is_correct,teacher_note,reviewed_at)
+    SELECT submission_id,1,assignment_item_id,is_correct,teacher_note,reviewed_at
+    FROM practice_reviews`);
+  _db.run(`UPDATE practice_submissions
+    SET current_round=COALESCE(NULLIF(current_round,0),1),
+      needs_correction=COALESCE(needs_correction,0),
+      completed_at=CASE
+        WHEN status='reviewed' THEN COALESCE(completed_at,reviewed_at)
+        ELSE completed_at END`);
   migrateLegacyChallengesToV2();
   // 作业批改表由 schema.sql 以 CREATE TABLE IF NOT EXISTS 创建。
   // 这里保留可向后兼容的增量字段迁移位置。

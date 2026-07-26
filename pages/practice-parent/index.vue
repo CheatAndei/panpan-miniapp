@@ -19,6 +19,12 @@
         <text :class="['status-pill', statusClass]">{{ statusText }}</text>
       </view>
 
+      <view v-if="needsCorrection" class="correction-card">
+        <text class="correction-kicker">老师已打回</text>
+        <text class="correction-title">待上传订正照片</text>
+        <text class="correction-copy">请订正老师标记的错题，只上传本轮新照片；提交后老师只复核上一轮错题。</text>
+      </view>
+
       <view class="card question-card">
         <view class="section-head">
           <text class="section-title">今日题目</text>
@@ -36,16 +42,21 @@
       <view class="card upload-card">
         <view class="section-head">
           <view>
-            <text class="section-title">拍照提交</text>
-            <text class="upload-help">拍清题号和解题过程；照片会对应今天题单和标准答案供老师核对，最多 6 张</text>
+            <text class="section-title">{{ needsCorrection || isCorrection ? '上传订正' : '拍照提交' }}</text>
+            <text class="upload-help">
+              {{ needsCorrection || isCorrection
+                ? '只上传订正后的新照片；老师会仅复核上一轮错题，本轮最多 6 张'
+                : '拍清题号和解题过程；照片会对应今天题单和标准答案供老师核对，最多 6 张' }}
+            </text>
           </view>
-          <text v-if="attachmentCount" class="photo-count">已传 {{ attachmentCount }} 张</text>
+          <text v-if="assignment.submission" class="photo-count">本轮新增 {{ attachmentCount }} 张</text>
         </view>
-        <button class="primary-btn" :disabled="uploading || attachmentCount >= 6" aria-label="拍照上传打卡作业" @tap="chooseAndUpload">
-          {{ uploading ? `正在上传 ${uploadProgress}` : attachmentCount ? '继续补充照片' : '拍照或选择图片' }}
+        <button class="primary-btn" :disabled="uploading || attachmentCount >= 6 || uploadLocked" aria-label="拍照上传打卡作业" @tap="chooseAndUpload">
+          {{ uploadButtonText }}
         </button>
         <view v-if="assignment.submission" class="submit-note">
-          <text>{{ assignment.submission.status === 'reviewed' ? '老师已对照答案复核' : '提交成功，等待老师对照答案复核' }}</text>
+          <text>{{ submissionNote }}</text>
+          <text v-if="isCorrection" class="round-note">当前为第 {{ correctionRound }} 轮订正</text>
           <text v-if="assignment.submission.teacher_note" class="teacher-note">{{ assignment.submission.teacher_note }}</text>
         </view>
       </view>
@@ -64,8 +75,8 @@
         <text class="section-title">最近记录</text>
         <view v-for="item in history.slice(0, 7)" :key="item.id" class="history-row">
           <text>{{ item.practice_date }}</text>
-          <text :class="['history-status', item.submission_status === 'reviewed' ? 'reviewed' : '']">
-            {{ item.submission_status === 'reviewed' ? '已复核' : item.submission_id ? '已提交' : '待完成' }}
+          <text :class="['history-status', historyStatusClass(item)]">
+            {{ historyStatusText(item) }}
           </text>
         </view>
       </view>
@@ -89,13 +100,52 @@ const plan = ref({});
 const assignment = ref(null);
 const history = ref([]);
 
-const attachmentCount = computed(() => assignment.value?.submission?.attachments?.length || 0);
+function booleanField(value) {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+function recordNeedsCorrection(record) {
+  const status = record?.status ?? record?.submission_status;
+  return booleanField(record?.needs_correction ?? record?.needsCorrection)
+    || status === 'correction_required'
+    || status === 'needs_correction'
+    || status === 'returned';
+}
+
+const submission = computed(() => assignment.value?.submission || null);
+const correctionRound = computed(() => Math.max(1, Number(submission.value?.correction_round ?? submission.value?.correctionRound ?? 1) || 1));
+const isCorrection = computed(() => booleanField(submission.value?.is_correction ?? submission.value?.isCorrection) || correctionRound.value > 1);
+const needsCorrection = computed(() => recordNeedsCorrection(submission.value));
+const attachmentCount = computed(() => {
+  if (!submission.value || needsCorrection.value) return 0;
+  const explicit = submission.value.attachment_count
+    ?? submission.value.current_round_attachment_count
+    ?? submission.value.new_attachment_count;
+  if (explicit !== undefined && explicit !== null) return Math.max(0, Number(explicit) || 0);
+  return submission.value.attachments?.length || 0;
+});
+const uploadLocked = computed(() => submission.value?.status === 'reviewed' && !needsCorrection.value);
 const minuteText = computed(() => `${Math.max(1, Math.round(Number(assignment.value?.estimated_seconds || 1200) / 60))} 分钟`);
 const statusText = computed(() => {
-  const status = assignment.value?.submission?.status;
-  return status === 'reviewed' ? '已复核' : status ? '已提交' : '待完成';
+  const status = submission.value?.status;
+  if (needsCorrection.value) return '待订正';
+  if (status === 'reviewed') return isCorrection.value ? '订正完成' : '已复核';
+  if (status === 'submitted') return isCorrection.value ? '订正已提交' : '已提交';
+  return status ? '已提交' : '待完成';
 });
-const statusClass = computed(() => assignment.value?.submission?.status || 'ready');
+const statusClass = computed(() => needsCorrection.value ? 'correction-required' : (submission.value?.status || 'ready'));
+const uploadButtonText = computed(() => {
+  if (uploading.value) return `正在上传 ${uploadProgress.value}`;
+  if (uploadLocked.value) return '本轮练习已完成';
+  if (needsCorrection.value) return '上传订正照片';
+  if (isCorrection.value) return attachmentCount.value ? '继续补充订正照片' : '上传订正照片';
+  return attachmentCount.value ? '继续补充照片' : '拍照或选择图片';
+});
+const submissionNote = computed(() => {
+  if (needsCorrection.value) return '老师已打回，等待上传新的订正照片';
+  if (submission.value?.status === 'reviewed') return isCorrection.value ? '本轮订正已通过复核' : '老师已对照答案复核';
+  return isCorrection.value ? '订正提交成功，等待老师复核上一轮错题' : '提交成功，等待老师对照答案复核';
+});
 
 onLoad((options) => { studentId.value = String(options?.student_id || ''); });
 onShow(() => loadData());
@@ -150,14 +200,19 @@ function chooseImages() {
 }
 
 async function chooseAndUpload() {
-  if (uploading.value || !assignment.value) return;
+  if (uploading.value || uploadLocked.value || !assignment.value) return;
   try {
     const files = await chooseImages();
     if (!files.length) return;
     uploading.value = true;
     for (let index = 0; index < files.length; index++) {
       uploadProgress.value = `${index + 1}/${files.length}`;
-      await api.upload(`/practice/assignments/${assignment.value.id}/upload`, files[index], 'image');
+      const uploadComplete = index === files.length - 1 ? 1 : 0;
+      await api.upload(
+        `/practice/assignments/${assignment.value.id}/upload?upload_complete=${uploadComplete}`,
+        files[index],
+        'image',
+      );
     }
     uni.showToast({ title: '打卡照片已提交', icon: 'success' });
     await loadData();
@@ -167,6 +222,22 @@ async function chooseAndUpload() {
     uploading.value = false;
     uploadProgress.value = '';
   }
+}
+
+function historyStatusText(item) {
+  if (recordNeedsCorrection(item)) return '待订正';
+  if (item.submission_status === 'reviewed') {
+    return booleanField(item.is_correction) || Number(item.correction_round || 1) > 1 ? '订正完成' : '已复核';
+  }
+  if (item.submission_id) {
+    return booleanField(item.is_correction) || Number(item.correction_round || 1) > 1 ? '订正已提交' : '已提交';
+  }
+  return '待完成';
+}
+
+function historyStatusClass(item) {
+  if (recordNeedsCorrection(item)) return 'correction-required';
+  return item.submission_status === 'reviewed' ? 'reviewed' : '';
 }
 </script>
 
@@ -181,16 +252,17 @@ async function chooseAndUpload() {
 .plan-title,.section-title{display:block;color:var(--ink);font-size:30rpx;font-weight:720}
 .plan-meta,.upload-help{display:block;margin-top:7rpx;color:var(--text-muted);font-size:23rpx;line-height:1.5}
 .status-pill{flex:none;padding:10rpx 18rpx;border-radius:999rpx;background:var(--warning-soft);color:var(--warning);font-size:22rpx;font-weight:700}
-.status-pill.submitted{background:var(--accent-soft);color:var(--accent-strong)}.status-pill.reviewed{background:#E8F4F0;color:#236856}
+.status-pill.submitted{background:var(--accent-soft);color:var(--accent-strong)}.status-pill.reviewed{background:#E8F4F0;color:#236856}.status-pill.correction-required{background:#FFF0CF;color:#805A12}
+.correction-card{margin:0 0 20rpx;padding:24rpx 26rpx;border:1rpx solid #E7C46F;border-radius:20rpx;background:#FFF8E7}.correction-kicker,.correction-title,.correction-copy{display:block}.correction-kicker{color:#9A6F18;font-size:20rpx;font-weight:760;letter-spacing:2rpx}.correction-title{margin-top:5rpx;color:#583E0C;font-size:31rpx;font-weight:780}.correction-copy{margin-top:8rpx;color:#765E2B;font-size:23rpx;line-height:1.55}
 .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx;margin-bottom:18rpx}
 .section-note,.photo-count{color:var(--accent-strong);font-size:22rpx}
 .question-row{display:flex;gap:18rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.question-row:last-child{border-bottom:0}
 .question-no{display:flex;align-items:center;justify-content:center;flex:none;width:48rpx;height:48rpx;border-radius:14rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:24rpx;font-weight:750}
 .question-copy{flex:1;min-width:0}.question-text{display:block;color:var(--ink);font-size:29rpx;line-height:1.65}.question-type{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}
 .primary-btn{min-height:92rpx;display:flex;align-items:center;justify-content:center;margin:0;background:var(--primary);color:#fff;border-radius:16rpx;font-size:28rpx;font-weight:700}.primary-btn::after{border:0}.primary-btn[disabled]{opacity:.45}
-.submit-note{margin-top:18rpx;padding:18rpx 20rpx;border-radius:14rpx;background:var(--surface-muted);color:var(--accent-strong);font-size:24rpx}.teacher-note{display:block;margin-top:8rpx;color:var(--ink);line-height:1.55}
+.submit-note{margin-top:18rpx;padding:18rpx 20rpx;border-radius:14rpx;background:var(--surface-muted);color:var(--accent-strong);font-size:24rpx}.round-note{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}.teacher-note{display:block;margin-top:8rpx;color:var(--ink);line-height:1.55}
 .history-row{min-height:76rpx;display:flex;align-items:center;justify-content:space-between;border-bottom:1rpx solid var(--hairline);color:var(--ink);font-size:25rpx}.history-row:last-child{border-bottom:0}
-.history-status{color:var(--warning)}.history-status.reviewed{color:var(--success)}
+.history-status{color:var(--warning)}.history-status.reviewed{color:var(--success)}.history-status.correction-required{color:#95680C;font-weight:700}
 .share-card{display:flex;align-items:center;gap:18rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFFBED,#FFFFFF)}.share-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:20rpx;background:#F5B83D;color:#493000;font-size:35rpx;font-weight:900}.share-copy{flex:1;min-width:0}.share-title{display:block;color:var(--ink);font-size:28rpx;font-weight:760}.share-desc{display:block;margin-top:4rpx;color:#6C572F;font-size:22rpx;line-height:1.45}.share-privacy{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx}.share-btn{flex:none;min-height:84rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:23rpx;font-weight:750}.share-btn::after{border:0}
 @media (max-width:380px){.share-card{align-items:flex-start;flex-wrap:wrap}.share-copy{min-width:calc(100% - 90rpx)}.share-btn{width:100%}}
 .question-text{display:flex}

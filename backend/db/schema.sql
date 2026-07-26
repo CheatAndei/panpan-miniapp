@@ -398,10 +398,29 @@ CREATE TABLE IF NOT EXISTS practice_submissions (
   assignment_id INTEGER UNIQUE NOT NULL REFERENCES practice_assignments(id),
   parent_id INTEGER NOT NULL REFERENCES users(id),
   status TEXT NOT NULL DEFAULT 'submitted',
+  current_round INTEGER NOT NULL DEFAULT 1,
+  needs_correction INTEGER NOT NULL DEFAULT 0,
   teacher_note TEXT,
   submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   reviewed_by INTEGER REFERENCES users(id),
-  reviewed_at DATETIME
+  reviewed_at DATETIME,
+  completed_at DATETIME
+);
+
+-- 一份每日练习只保留一个 submission；家长每次订正上传会新增一轮，
+-- 从而避免覆盖首次批改及之前的订正记录。
+CREATE TABLE IF NOT EXISTS practice_submission_rounds (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER NOT NULL REFERENCES practice_submissions(id),
+  round_no INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'submitted'
+    CHECK(status IN ('submitted', 'correction_required', 'reviewed')),
+  teacher_note TEXT,
+  submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id, round_no)
 );
 
 -- 通用私有文件元数据。业务表只关联 file_id，下载统一走鉴权 token。
@@ -424,6 +443,7 @@ CREATE TABLE IF NOT EXISTS private_files (
 CREATE TABLE IF NOT EXISTS practice_attachments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   submission_id INTEGER NOT NULL REFERENCES practice_submissions(id),
+  round_no INTEGER NOT NULL DEFAULT 1,
   owner_parent_id INTEGER NOT NULL REFERENCES users(id),
   file_id INTEGER UNIQUE NOT NULL REFERENCES private_files(id),
   sha256 TEXT NOT NULL,
@@ -438,6 +458,19 @@ CREATE TABLE IF NOT EXISTS practice_reviews (
   teacher_note TEXT,
   reviewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY(submission_id, assignment_item_id)
+);
+
+-- 不可变的逐轮批改历史。practice_reviews 继续保存每道题的最新结果，
+-- 供旧接口与统计兼容；历史错题学习统一从本表读取。
+CREATE TABLE IF NOT EXISTS practice_review_rounds (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER NOT NULL REFERENCES practice_submissions(id),
+  round_no INTEGER NOT NULL,
+  assignment_item_id INTEGER NOT NULL REFERENCES practice_assignment_items(id),
+  is_correct INTEGER NOT NULL CHECK(is_correct IN (0, 1)),
+  teacher_note TEXT,
+  reviewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id, round_no, assignment_item_id)
 );
 
 -- 口算王挑战。题目与答案使用快照保存，保证题库更新后历史成绩仍可复核。
@@ -968,6 +1001,10 @@ CREATE INDEX IF NOT EXISTS idx_practice_submission_status
   ON practice_submissions(status, submitted_at);
 CREATE INDEX IF NOT EXISTS idx_practice_attachment_submission
   ON practice_attachments(submission_id);
+CREATE INDEX IF NOT EXISTS idx_practice_submission_round
+  ON practice_submission_rounds(submission_id, round_no, status);
+CREATE INDEX IF NOT EXISTS idx_practice_review_round
+  ON practice_review_rounds(submission_id, round_no, is_correct);
 CREATE INDEX IF NOT EXISTS idx_private_file_owner
   ON private_files(owner_type, owner_id);
 CREATE INDEX IF NOT EXISTS idx_private_file_student

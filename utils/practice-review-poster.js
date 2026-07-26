@@ -91,12 +91,31 @@ export async function renderPracticeReviewPoster({
   wrongNumbers = [],
   photoPaths = [],
   rotations = [],
+  isCorrection = false,
+  correctionRound = 1,
 }) {
   if (!photoPaths.length) throw new Error('没有可用于海报的作业照片');
   const photos = await Promise.all(photoPaths.slice(0, 4).map(inspectPracticePhoto));
   const ctx = uni.createCanvasContext(canvasId, page);
   const allCorrect = wrongNumbers.length === 0;
-  const encouragement = allCorrect ? '认真有回响，坚持会发光' : '发现问题，就是进步的开始';
+  const correctionComplete = Boolean(isCorrection) && allCorrect;
+  const normalizedCorrectionRound = Math.max(1, Number.parseInt(correctionRound, 10) || 1);
+  const brandLine = correctionComplete ? 'PANPAN · TIMELY CORRECTION' : 'PANPAN · DAILY PRACTICE';
+  const posterTitle = correctionComplete
+    ? `${studentName || '同学'}的及时订正`
+    : `${studentName || '同学'}的打卡记录`;
+  const resultHeading = correctionComplete ? '及时订正' : '批改结果';
+  const resultSummary = correctionComplete ? '已订正' : (allCorrect ? '全对' : `错 ${wrongNumbers.length} 题`);
+  const detailHeading = correctionComplete
+    ? `第 ${normalizedCorrectionRound} 轮`
+    : (allCorrect ? '保持节奏' : '错题号');
+  const resultText = correctionComplete
+    ? '本轮错题已订正'
+    : (allCorrect ? '今天完成得很扎实' : wrongNumbers.map((value) => `${value}`).join('、'));
+  const encouragement = correctionComplete
+    ? '及时订正，进步看得见'
+    : (allCorrect ? '认真有回响，坚持会发光' : '发现问题，就是进步的开始');
+  const footerLabel = correctionComplete ? '订正记录' : '学生记录';
 
   ctx.setFillStyle('#F7F0E5');
   ctx.fillRect(0, 0, 750, 1000);
@@ -104,10 +123,10 @@ export async function renderPracticeReviewPoster({
   ctx.fillRect(0, 0, 750, 165);
   ctx.setFillStyle('#B9DDD2');
   ctx.setFontSize(19);
-  ctx.fillText('PANPAN · DAILY PRACTICE', 46, 54);
+  ctx.fillText(brandLine, 46, 54);
   ctx.setFillStyle('#FFFFFF');
   ctx.setFontSize(46);
-  ctx.fillText(`${studentName || '同学'}的打卡记录`, 46, 112);
+  ctx.fillText(posterTitle, 46, 112);
   ctx.setFillStyle('#D7EBE5');
   ctx.setFontSize(22);
   ctx.fillText(practiceDate || '', 48, 147);
@@ -140,17 +159,16 @@ export async function renderPracticeReviewPoster({
   ctx.fillRect(548, 224, 62, 7);
   ctx.setFillStyle('#173A35');
   ctx.setFontSize(23);
-  ctx.fillText('批改结果', 548, 274);
+  ctx.fillText(resultHeading, 548, 274);
   ctx.setFontSize(40);
   ctx.setFillStyle(allCorrect ? '#2F7D6B' : '#C75D54');
-  ctx.fillText(allCorrect ? '全对' : `错 ${wrongNumbers.length} 题`, 548, 330);
+  ctx.fillText(resultSummary, 548, 330);
 
   ctx.setFillStyle('#697B76');
   ctx.setFontSize(21);
-  ctx.fillText(allCorrect ? '保持节奏' : '错题号', 548, 390);
+  ctx.fillText(detailHeading, 548, 390);
   ctx.setFillStyle('#183A36');
   ctx.setFontSize(28);
-  const resultText = allCorrect ? '今天完成得很扎实' : wrongNumbers.map((value) => `${value}`).join('、');
   const resultLines = wrapText(ctx, resultText, 156).slice(0, 7);
   resultLines.forEach((line, index) => ctx.fillText(line, 548, 430 + index * 42));
 
@@ -163,7 +181,7 @@ export async function renderPracticeReviewPoster({
 
   ctx.setFillStyle('#746F66');
   ctx.setFontSize(19);
-  ctx.fillText('学生记录', 548, 955);
+  ctx.fillText(footerLabel, 548, 955);
   ctx.setFillStyle('#2F7D6B');
   ctx.fillRect(665, 944, 35, 4);
 

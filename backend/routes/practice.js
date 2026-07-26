@@ -6,6 +6,7 @@ const {
   MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
   normalizeTopicKeys, questionTypesForTopics,
   practiceDateAt, dateRange, generateAssignment, preGenerateDate, evaluateProgression, generatePlanPdf, generateStudentPlanPdf,
+  practiceFocusItemIds, practiceVisibleItemIds, serializePracticeSubmission,
 } = require('../services/practice');
 const {
   decodePrivateImage, storePrivateFile, removePrivateFile,
@@ -223,7 +224,7 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
     JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
     WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL`, [req.user.id])?.count || 0);
-  const todos = db.all(`SELECT ps.id submission_id,ps.submitted_at,a.plan_id,a.practice_date,a.student_id,
+  const todos = db.all(`SELECT ps.*,ps.id submission_id,a.id assignment_id,a.plan_id,a.practice_date,a.student_id,
     st.name student_name,p.title plan_title,c.name class_name
     FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
@@ -232,6 +233,14 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
     JOIN classes c ON c.id=p.class_id
     WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL
     ORDER BY ps.submitted_at ASC,ps.id ASC LIMIT ?`, [req.user.id, limit]);
+  for (const todo of todos) {
+    const state = serializePracticeSubmission(db, todo, { includeRounds: false });
+    todo.correction_round = state.correction_round;
+    todo.is_correction = state.is_correction;
+    todo.needs_correction = state.needs_correction;
+    todo.focus_item_ids = state.focus_item_ids;
+    todo.attachment_count = state.attachment_count;
+  }
   res.json({ count: total, todos });
 });
 
@@ -272,15 +281,17 @@ router.get('/today', auth, parentOnly, (req, res) => {
   if (!assignment.claimed_at) db.run('UPDATE practice_assignments SET claimed_at=CURRENT_TIMESTAMP WHERE id=?', [assignment.id]);
   const items = db.all(`SELECT id,position,snapshot_stem stem,snapshot_module module,snapshot_type question_type,
     estimated_seconds FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignment.id]);
-  const submission = db.get('SELECT id,status,teacher_note,submitted_at,reviewed_at FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
-  let attachments = [];
-  if (submission) attachments = db.all(`SELECT pa.id,pf.token,pf.mime_type,pf.byte_size FROM practice_attachments pa
-    JOIN private_files pf ON pf.id=pa.file_id WHERE pa.submission_id=? ORDER BY pa.created_at`, [submission.id])
-    .map((file) => ({ ...file, url: `/api/private-files/${file.token}` }));
+  const submission = db.get('SELECT * FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
   res.json({
     practice_date: practiceDate,
     plan: { id: plan.id, title: plan.title, module: plan.module },
-    assignment: { ...assignment, items, submission: submission ? { ...submission, attachments } : null },
+    assignment: {
+      ...assignment,
+      items,
+      submission: submission
+        ? serializePracticeSubmission(db, { ...submission, assignment_id: assignment.id })
+        : null,
+    },
   });
 });
 
@@ -289,10 +300,31 @@ router.get('/history', auth, parentOnly, (req, res) => {
   const studentId = Number(req.query.student_id);
   if (!parentBoundStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权查看该学生' });
   const assignments = db.all(`SELECT a.id,a.practice_date,a.estimated_seconds,a.status,p.title,p.module,
-    s.id submission_id,s.status submission_status,s.teacher_note,s.submitted_at,s.reviewed_at
+    s.id submission_id,s.status submission_status,s.current_round,s.needs_correction,
+    s.teacher_note,s.submitted_at,s.reviewed_at,s.completed_at
     FROM practice_assignments a JOIN practice_plans p ON p.id=a.plan_id
     LEFT JOIN practice_submissions s ON s.assignment_id=a.id
     WHERE a.student_id=? ORDER BY a.practice_date DESC LIMIT 31`, [studentId]);
+  for (const assignment of assignments) {
+    if (!assignment.submission_id) continue;
+    const state = serializePracticeSubmission(db, {
+      id: assignment.submission_id,
+      assignment_id: assignment.id,
+      status: assignment.submission_status,
+      current_round: assignment.current_round,
+      needs_correction: assignment.needs_correction,
+      teacher_note: assignment.teacher_note,
+      submitted_at: assignment.submitted_at,
+      reviewed_at: assignment.reviewed_at,
+      completed_at: assignment.completed_at,
+    }, { includeRounds: false });
+    assignment.correction_round = state.correction_round;
+    assignment.is_correction = state.is_correction;
+    assignment.needs_correction = state.needs_correction;
+    assignment.focus_item_ids = state.focus_item_ids;
+    assignment.attachment_count = state.attachment_count;
+    assignment.total_attachment_count = state.total_attachment_count;
+  }
   res.json({ assignments });
 });
 
@@ -300,6 +332,11 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
   const db = getDB();
   const assignment = db.get('SELECT * FROM practice_assignments WHERE id=?', [req.params.id]);
   if (!assignment || !parentBoundStudent(db, req.user.id, assignment.student_id)) return res.status(404).json({ error: '打卡任务不存在' });
+  // 新版家长端逐张上传多图，只有最后一张才进入教师待批队列。
+  // 未传此参数的旧客户端仍按单张完整提交处理。
+  const uploadCompleteValue = req.query?.upload_complete ?? req.body?.upload_complete;
+  const uploadComplete = uploadCompleteValue === undefined
+    || !['0', 'false'].includes(String(uploadCompleteValue).toLowerCase());
   let decoded;
   try { decoded = await decodePrivateImage(req.body?.base64); }
   catch (error) { return res.status(400).json({ error: error.message }); }
@@ -310,41 +347,85 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
     result = db.transaction(() => {
       let submission = db.get('SELECT * FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
       if (!submission) {
-        const created = db.run('INSERT INTO practice_submissions(assignment_id,parent_id,status) VALUES(?,?,?)', [assignment.id, req.user.id, 'submitted']);
+        const created = db.run(`INSERT INTO practice_submissions
+          (assignment_id,parent_id,status,current_round,needs_correction)
+          VALUES(?,?,?,1,0)`, [assignment.id, req.user.id, uploadComplete ? 'submitted' : 'uploading']);
         submission = db.get('SELECT * FROM practice_submissions WHERE id=?', [created.lastInsertRowid]);
       }
       if (Number(submission.parent_id) !== Number(req.user.id)) return { wrongParent: true };
-      const duplicate = db.get(`SELECT pa.id,pf.token FROM practice_attachments pa JOIN private_files pf ON pf.id=pa.file_id
+      if (submission.status === 'reviewed') return { completed: true };
+      if (!['uploading', 'submitted', 'correction_required'].includes(submission.status)) return { invalidStatus: true };
+      const currentRound = Math.max(1, Number(submission.current_round || 1));
+      const targetRound = submission.status === 'correction_required' ? currentRound + 1 : currentRound;
+      const finishRoundUpload = () => {
+        db.run(`INSERT INTO practice_submission_rounds(submission_id,round_no,status,submitted_at)
+          VALUES(?,?,'submitted',CURRENT_TIMESTAMP)
+          ON CONFLICT(submission_id,round_no) DO UPDATE SET
+            status='submitted',submitted_at=CURRENT_TIMESTAMP`, [submission.id, targetRound]);
+        db.run(`UPDATE practice_submissions SET current_round=?,status='submitted',needs_correction=0,
+          teacher_note=NULL,submitted_at=CURRENT_TIMESTAMP,reviewed_by=NULL,reviewed_at=NULL,completed_at=NULL
+          WHERE id=?`, [targetRound, submission.id]);
+        db.run(`UPDATE practice_assignments SET status='submitted' WHERE id=?`, [assignment.id]);
+        return db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]);
+      };
+      const duplicate = db.get(`SELECT pa.id,pa.round_no,pa.created_at,
+          pf.token,pf.mime_type,pf.byte_size
+        FROM practice_attachments pa JOIN private_files pf ON pf.id=pa.file_id
         WHERE pa.submission_id=? AND pa.sha256=?`, [submission.id, decoded.sha256]);
-      if (duplicate) return { duplicate };
-      const files = db.get('SELECT COUNT(*) count FROM practice_attachments WHERE submission_id=?', [submission.id]);
+      if (duplicate) {
+        if (Number(duplicate.round_no || 1) === targetRound) {
+          if (uploadComplete) submission = finishRoundUpload();
+          return { duplicate, submission };
+        }
+        return { duplicatePreviousRound: true };
+      }
+      const files = db.get(`SELECT COUNT(*) count FROM practice_attachments
+        WHERE submission_id=? AND round_no=?`, [submission.id, targetRound]);
       if (Number(files?.count || 0) >= 6) return { tooMany: true };
       stored = storePrivateFile(db, {
         ...decoded, studentId: assignment.student_id, purpose: 'practice_photo',
         ownerType: 'practice_submission', ownerId: submission.id, createdBy: req.user.id,
         originalName: req.body?.fileName || 'practice-photo',
       });
-      const attachment = db.run(`INSERT INTO practice_attachments(submission_id,owner_parent_id,file_id,sha256)
-        VALUES(?,?,?,?)`, [submission.id, req.user.id, stored.id, decoded.sha256]);
-      db.run(`UPDATE practice_submissions SET status='submitted',submitted_at=CURRENT_TIMESTAMP WHERE id=?`, [submission.id]);
-      db.run(`UPDATE practice_assignments SET status='submitted' WHERE id=?`, [assignment.id]);
-      return { attachmentId: attachment.lastInsertRowid };
+      const attachment = db.run(`INSERT INTO practice_attachments
+        (submission_id,round_no,owner_parent_id,file_id,sha256)
+        VALUES(?,?,?,?,?)`, [submission.id, targetRound, req.user.id, stored.id, decoded.sha256]);
+      if (uploadComplete) submission = finishRoundUpload();
+      return {
+        attachmentId: attachment.lastInsertRowid,
+        submission,
+      };
     });
   } catch (error) {
     if (stored) removePrivateFile(db, { id: stored.id, storage_key: stored.storageKey });
     return res.status(500).json({ error: '图片保存失败' });
   }
-  if (result.duplicate) return res.json({ ok: true, attachment: { ...result.duplicate, url: `/api/private-files/${result.duplicate.token}` }, idempotent: true });
+  if (result.duplicate) {
+    const state = serializePracticeSubmission(db, { ...result.submission, assignment_id: assignment.id });
+    const attachment = state.attachments.find((file) => Number(file.id) === Number(result.duplicate.id))
+      || state.rounds?.flatMap((round) => round.attachments || [])
+        .find((file) => Number(file.id) === Number(result.duplicate.id));
+    return res.json({ ok: true, attachment, submission: state, idempotent: true });
+  }
   if (result.wrongParent) return res.status(403).json({ error: '该打卡已由另一位绑定家长提交' });
-  if (result.tooMany) return res.status(400).json({ error: '每次打卡最多上传 6 张图片' });
-  res.status(201).json({ ok: true, attachment: { id: result.attachmentId, token: stored.token, url: `/api/private-files/${stored.token}` } });
+  if (result.completed) return res.status(409).json({ error: '该打卡已完成，无需再次上传' });
+  if (result.invalidStatus) return res.status(409).json({ error: '当前状态暂不可上传' });
+  if (result.duplicatePreviousRound) return res.status(409).json({ error: '订正照片不能与上一轮相同，请上传本轮订正照片' });
+  if (result.tooMany) return res.status(400).json({ error: '每轮打卡最多上传 6 张图片' });
+  const state = serializePracticeSubmission(db, { ...result.submission, assignment_id: assignment.id });
+  const attachment = state.attachments.find((file) => Number(file.id) === Number(result.attachmentId))
+    || state.rounds?.flatMap((round) => round.attachments || [])
+      .find((file) => Number(file.id) === Number(result.attachmentId));
+  res.status(201).json({ ok: true, attachment, submission: state });
 });
 
 router.get('/submissions', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const planId = Number(req.query.plan_id);
   const status = String(req.query.status || 'submitted');
-  if (!['submitted', 'reviewed', 'all'].includes(status)) return res.status(400).json({ error: '提交状态无效' });
+  if (!['submitted', 'correction_required', 'reviewed', 'all'].includes(status)) {
+    return res.status(400).json({ error: '提交状态无效' });
+  }
   const page = Math.max(1, Number.parseInt(req.query.page || '1', 10) || 1);
   const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit || '20', 10) || 20));
   const preferredId = Math.max(0, Number.parseInt(req.query.submission_id || '0', 10) || 0);
@@ -361,44 +442,129 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN students st ON st.id=a.student_id WHERE a.plan_id=? AND st.deleted_at IS NULL${statusSql}
     ORDER BY CASE WHEN ps.id=? THEN 0 ELSE 1 END,a.practice_date DESC,st.name LIMIT ? OFFSET ?`, [...params, preferredId, limit, offset]);
-  for (const submission of submissions) {
+  for (let index = 0; index < submissions.length; index++) {
+    const submission = serializePracticeSubmission(db, submissions[index]);
+    const visibleIds = new Set(practiceVisibleItemIds(db, submission));
     submission.items = db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
-      r.is_correct,r.teacher_note review_note FROM practice_assignment_items i
-      LEFT JOIN practice_reviews r ON r.assignment_item_id=i.id AND r.submission_id=?
-      WHERE i.assignment_id=? ORDER BY i.position`, [submission.id, submission.assignment_id]);
-    submission.attachments = db.all(`SELECT pa.id,pf.token,pf.mime_type,pf.byte_size FROM practice_attachments pa
-      JOIN private_files pf ON pf.id=pa.file_id WHERE pa.submission_id=? ORDER BY pa.created_at`, [submission.id])
-      .map((file) => ({ ...file, url: `/api/private-files/${file.token}` }));
+        r.is_correct,r.teacher_note review_note
+      FROM practice_assignment_items i
+      LEFT JOIN practice_review_rounds r ON r.assignment_item_id=i.id
+        AND r.submission_id=? AND r.round_no=?
+      WHERE i.assignment_id=? ORDER BY i.position`, [
+      submission.id, submission.correction_round, submission.assignment_id,
+    ]).filter((item) => visibleIds.has(Number(item.id)));
+    submissions[index] = submission;
   }
   res.json({ submissions, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 });
 
-router.put('/submissions/:id/review', auth, teacherOnly, (req, res) => {
+router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
   const db = getDB();
   const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,p.teacher_id plan_teacher_id
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN practice_plans p ON p.id=a.plan_id JOIN students st ON st.id=a.student_id
     WHERE ps.id=? AND st.deleted_at IS NULL`, [req.params.id]);
   if (!submission || Number(submission.plan_teacher_id) !== Number(req.user.id)) return res.status(404).json({ error: '提交不存在' });
-  const items = db.all('SELECT id FROM practice_assignment_items WHERE assignment_id=? ORDER BY position', [submission.assignment_id]);
+  if (submission.status !== 'submitted') {
+    const message = submission.status === 'correction_required'
+      ? '请等待家长上传订正照片'
+      : submission.status === 'uploading'
+        ? '照片仍在上传，请稍后刷新'
+        : '该打卡已完成批改';
+    return res.status(409).json({ error: message });
+  }
+  const roundNo = Math.max(1, Number(submission.current_round || 1));
+  const requestedRound = req.body?.round_no ?? req.body?.correction_round;
+  if (requestedRound !== undefined && Number(requestedRound) !== roundNo) {
+    return res.status(409).json({ error: '批改轮次已更新，请刷新后重试' });
+  }
+  const attachmentCount = Number(db.get(`SELECT COUNT(*) count FROM practice_attachments
+    WHERE submission_id=? AND round_no=?`, [submission.id, roundNo])?.count || 0);
+  if (attachmentCount < 1) {
+    return res.status(409).json({ error: '本轮尚未上传照片，暂不可批改' });
+  }
+  const focusItemIds = practiceFocusItemIds(db, submission);
+  const focusSet = new Set(focusItemIds);
+  const items = db.all(`SELECT id FROM practice_assignment_items
+    WHERE assignment_id=? ORDER BY position`, [submission.assignment_id])
+    .filter((item) => focusSet.has(Number(item.id)));
   const results = Array.isArray(req.body.results) ? req.body.results : [];
   const byId = new Map(results.map((item) => [Number(item.item_id), item]));
-  if (!items.length || items.some((item) => !byId.has(Number(item.id)))) return res.status(400).json({ error: '请复核全部题目' });
-  db.transaction(() => {
-    for (const item of items) {
-      const result = byId.get(Number(item.id));
-      if (![true, false, 0, 1].includes(result.is_correct)) throw new Error('复核结果无效');
-      db.run(`INSERT OR REPLACE INTO practice_reviews
-        (submission_id,assignment_item_id,is_correct,teacher_note,reviewed_at)
-        VALUES(?,?,?,?,CURRENT_TIMESTAMP)`, [submission.id, item.id, result.is_correct ? 1 : 0, String(result.note || '').slice(0, 240)]);
+  if (!items.length || items.some((item) => !byId.has(Number(item.id)))) {
+    return res.status(400).json({ error: '请复核本轮全部题目', focus_item_ids: focusItemIds });
+  }
+  for (const item of items) {
+    const result = byId.get(Number(item.id));
+    if (![true, false, 0, 1].includes(result.is_correct)) {
+      return res.status(400).json({ error: '复核结果无效' });
     }
-    db.run(`UPDATE practice_submissions SET status='reviewed',teacher_note=?,reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?`, [
-      String(req.body.teacher_note || '').slice(0, 500), req.user.id, submission.id,
-    ]);
-    db.run(`UPDATE practice_assignments SET status='reviewed' WHERE id=?`, [submission.assignment_id]);
-  });
+  }
+  const wrongItemIds = items
+    .filter((item) => !Number(byId.get(Number(item.id)).is_correct))
+    .map((item) => Number(item.id));
+  const needsCorrection = wrongItemIds.length > 0;
+  const teacherNote = String(req.body.teacher_note || '').slice(0, 500);
+  let claimed;
+  try {
+    claimed = db.transaction(() => {
+      // CAS prevents two stale teacher pages from grading the same round twice.
+      // "reviewing" is transaction-local and is always replaced or rolled back.
+      const lock = db.run(`UPDATE practice_submissions SET status='reviewing'
+        WHERE id=? AND status='submitted' AND current_round=?`, [submission.id, roundNo]);
+      if (Number(lock.changes) !== 1) return false;
+      for (const item of items) {
+        const result = byId.get(Number(item.id));
+        const note = String(result.note || '').slice(0, 240);
+        db.run(`INSERT INTO practice_review_rounds
+          (submission_id,round_no,assignment_item_id,is_correct,teacher_note,reviewed_at)
+          VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)`, [
+          submission.id, roundNo, item.id, result.is_correct ? 1 : 0, note,
+        ]);
+        db.run(`INSERT INTO practice_reviews
+          (submission_id,assignment_item_id,is_correct,teacher_note,reviewed_at)
+          VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+          ON CONFLICT(submission_id,assignment_item_id) DO UPDATE SET
+            is_correct=excluded.is_correct,teacher_note=excluded.teacher_note,
+            reviewed_at=CURRENT_TIMESTAMP`, [submission.id, item.id, result.is_correct ? 1 : 0, note]);
+      }
+      const nextStatus = needsCorrection ? 'correction_required' : 'reviewed';
+      db.run(`UPDATE practice_submission_rounds SET status=?,teacher_note=?,reviewed_by=?,
+        reviewed_at=CURRENT_TIMESTAMP WHERE submission_id=? AND round_no=?`, [
+        nextStatus, teacherNote, req.user.id, submission.id, roundNo,
+      ]);
+      db.run(`UPDATE practice_submissions SET status=?,needs_correction=?,teacher_note=?,
+        reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP,
+        completed_at=${needsCorrection ? 'NULL' : 'CURRENT_TIMESTAMP'} WHERE id=?`, [
+        nextStatus, needsCorrection ? 1 : 0, teacherNote, req.user.id, submission.id,
+      ]);
+      db.run(`UPDATE practice_assignments SET status=? WHERE id=?`, [
+        needsCorrection ? 'correction_required' : 'reviewed', submission.assignment_id,
+      ]);
+      return true;
+    });
+  } catch (error) {
+    if (/UNIQUE constraint failed: practice_review_rounds/i.test(String(error?.message || error))) {
+      return res.status(409).json({ error: '本轮已完成批改，请刷新后查看' });
+    }
+    return next(error);
+  }
+  if (!claimed) return res.status(409).json({ error: '批改轮次已更新，请刷新后重试' });
   const progression = evaluateProgression(db, submission.plan_id, submission.student_id);
-  res.json({ ok: true, status: 'reviewed', progression });
+  const state = serializePracticeSubmission(db, {
+    ...submission,
+    ...db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]),
+  });
+  res.json({
+    ok: true,
+    status: state.status,
+    correction_round: state.correction_round,
+    is_correction: state.is_correction,
+    needs_correction: state.needs_correction,
+    focus_item_ids: state.focus_item_ids,
+    wrong_item_ids: wrongItemIds,
+    completed_at: state.completed_at,
+    progression,
+  });
 });
 
 router.get('/plans/:id/pdf', auth, teacherOnly, (req, res) => {

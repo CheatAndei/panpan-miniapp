@@ -90,11 +90,12 @@ function syncWrongSources(db, studentId) {
   db.transaction(() => {
     const practices = db.all(`SELECT ps.id submission_id,i.id item_id,i.snapshot_module module,
       i.snapshot_type question_type,i.snapshot_stem stem,i.snapshot_answer answer
-      FROM practice_reviews r
+      FROM practice_review_rounds r
       JOIN practice_submissions ps ON ps.id=r.submission_id
       JOIN practice_assignments a ON a.id=ps.assignment_id
       JOIN practice_assignment_items i ON i.id=r.assignment_item_id
-      WHERE a.student_id=? AND r.is_correct=0`, [studentId]);
+      WHERE a.student_id=? AND r.is_correct=0
+      GROUP BY ps.id,i.id`, [studentId]);
     for (const item of practices) insertWrong(db, {
       studentId, sourceType: 'practice_review', sourceId: `${item.submission_id}:${item.item_id}`,
       gradeBand, module: item.module, questionType: item.question_type, stem: item.stem, answer: item.answer,
@@ -339,10 +340,15 @@ function todayOverview(db, { studentId, now = new Date() }) {
   const tasks = taskTypes.map((type, index) => {
     if (type === 'practice') {
       const completed = Boolean(practice.submission_status === 'submitted' || practice.submission_status === 'reviewed');
+      const needsCorrection = practice.submission_status === 'correction_required';
       return {
         key: 'practice', position: index + 1, title: practice.title || '老师每日练习',
-        description: practice.submission_status === 'submitted' ? '已提交，等待老师批改' : '完成后拍照提交，由老师逐题复核',
-        route: 'practice', status: completed ? 'completed' : (practice.submission_status === 'submitted' ? 'pending_review' : 'ready'),
+        description: needsCorrection
+          ? '老师已打回，请上传订正照片'
+          : practice.submission_status === 'submitted'
+            ? '已提交，等待老师批改'
+            : '完成后拍照提交，由老师逐题复核',
+        route: 'practice', status: needsCorrection ? 'correction_required' : (completed ? 'completed' : 'ready'),
         completed,
       };
     }

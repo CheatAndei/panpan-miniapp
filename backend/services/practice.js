@@ -241,6 +241,117 @@ function evaluateProgression(db, planId, studentId) {
   return { advanced: false, reason: 'fixed_junior_calculation' };
 }
 
+function practiceItemIds(db, assignmentId) {
+  return db.all(`SELECT id FROM practice_assignment_items
+    WHERE assignment_id=? ORDER BY position`, [assignmentId])
+    .map((item) => Number(item.id));
+}
+
+function practiceRoundReviewItemIds(db, submissionId, roundNo, isCorrect = null) {
+  const correctSql = isCorrect === null ? '' : ' AND is_correct=?';
+  const params = isCorrect === null
+    ? [submissionId, roundNo]
+    : [submissionId, roundNo, isCorrect ? 1 : 0];
+  return db.all(`SELECT assignment_item_id FROM practice_review_rounds
+    WHERE submission_id=? AND round_no=?${correctSql}
+    ORDER BY assignment_item_id`, params)
+    .map((item) => Number(item.assignment_item_id));
+}
+
+function practiceFocusItemIds(db, submission) {
+  const roundNo = Math.max(1, Number(submission.current_round || 1));
+  if (submission.status === 'reviewed') return [];
+  if (submission.status === 'correction_required') {
+    return practiceRoundReviewItemIds(db, submission.id, roundNo, false);
+  }
+  if (roundNo === 1) return practiceItemIds(db, submission.assignment_id);
+  return practiceRoundReviewItemIds(db, submission.id, roundNo - 1, false);
+}
+
+function practiceVisibleItemIds(db, submission) {
+  if (submission.status !== 'reviewed') return practiceFocusItemIds(db, submission);
+  return practiceRoundReviewItemIds(
+    db,
+    submission.id,
+    Math.max(1, Number(submission.current_round || 1)),
+  );
+}
+
+function publicPracticeAttachment(file) {
+  const roundNo = Math.max(1, Number(file.round_no || 1));
+  return {
+    id: Number(file.id),
+    token: file.token,
+    mime_type: file.mime_type,
+    byte_size: Number(file.byte_size || 0),
+    created_at: file.created_at,
+    round_no: roundNo,
+    is_correction: roundNo > 1,
+    url: `/api/private-files/${file.token}`,
+  };
+}
+
+function serializePracticeSubmission(db, submission, { includeRounds = true } = {}) {
+  if (!submission) return null;
+  const roundNo = Math.max(1, Number(submission.current_round || 1));
+  const allAttachments = db.all(`SELECT pa.id,pa.round_no,pa.created_at,
+      pf.token,pf.mime_type,pf.byte_size
+    FROM practice_attachments pa JOIN private_files pf ON pf.id=pa.file_id
+    WHERE pa.submission_id=? ORDER BY pa.round_no,pa.created_at,pa.id`, [submission.id])
+    .map(publicPracticeAttachment);
+  // 兼容旧家长端：它用顶层 attachments.length 判断还能否上传。
+  // 打回待订正时清空顶层列表，历史照片仍完整保存在 rounds 中。
+  const currentAttachments = submission.status === 'correction_required'
+    ? []
+    : allAttachments.filter((file) => file.round_no === roundNo);
+  const focusItemIds = practiceFocusItemIds(db, submission);
+  const result = {
+    ...submission,
+    current_round: roundNo,
+    correction_round: roundNo,
+    is_correction: roundNo > 1,
+    needs_correction: submission.status === 'correction_required' || Boolean(Number(submission.needs_correction)),
+    focus_item_ids: focusItemIds,
+    attachments: currentAttachments,
+    attachment_count: currentAttachments.length,
+    total_attachment_count: allAttachments.length,
+  };
+  if (!includeRounds) return result;
+  const roundRows = db.all(`SELECT * FROM practice_submission_rounds
+    WHERE submission_id=? ORDER BY round_no`, [submission.id]);
+  const knownRounds = new Map(roundRows.map((round) => [
+    Math.max(1, Number(round.round_no || 1)),
+    round,
+  ]));
+  for (const file of allAttachments) {
+    if (!knownRounds.has(file.round_no)) {
+      knownRounds.set(file.round_no, {
+        round_no: file.round_no,
+        status: 'uploading',
+        teacher_note: null,
+        submitted_at: null,
+        reviewed_at: null,
+      });
+    }
+  }
+  result.rounds = [...knownRounds.values()]
+    .sort((a, b) => Number(a.round_no) - Number(b.round_no))
+    .map((round) => {
+    const value = Math.max(1, Number(round.round_no || 1));
+    return {
+      round_no: value,
+      is_correction: value > 1,
+      status: round.status,
+      teacher_note: round.teacher_note,
+      submitted_at: round.submitted_at,
+      reviewed_at: round.reviewed_at,
+      wrong_item_ids: practiceRoundReviewItemIds(db, submission.id, value, false),
+      attachments: allAttachments.filter((file) => file.round_no === value),
+    };
+    });
+  return result;
+}
+
 let fontRanges;
 function loadFontRanges() {
   if (fontRanges) return fontRanges;
@@ -491,6 +602,9 @@ module.exports = {
   generateAssignment,
   preGenerateDate,
   evaluateProgression,
+  practiceFocusItemIds,
+  practiceVisibleItemIds,
+  serializePracticeSubmission,
   generatePlanPdf: generateLegacyPlanPdf,
   generateStudentPlanPdf,
 };
