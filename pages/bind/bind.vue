@@ -1,29 +1,31 @@
 <template>
 <view class="page">
   <view class="hero">
-    <view class="hero-mark"><pp-icon name="brand" :size="104" /></view>
-    <view class="hero-title">绑定孩子</view>
+    <view class="hero-title-row">
+      <view class="hero-mark"><pp-icon name="brand" :size="40" motion="shine" /></view>
+      <view class="hero-title">绑定孩子</view>
+    </view>
     <view class="hero-desc">输入老师提供的邀请码，查看孩子的学习动态</view>
   </view>
 
   <view class="card" v-if="!bound">
-    <view v-if="repairMode" class="repair-tip">当前微信曾登录教师端。输入学生邀请码后，将自动新增家长身份并切换到家长首页。</view>
+    <view v-if="repairMode" class="repair-tip"><pp-icon name="users" :size="26" /><text>当前微信曾登录教师端。输入学生邀请码后，将自动新增家长身份并切换到家长首页。</text></view>
     <view class="code-group">
       <input class="code-input" :value="code" maxlength="32" placeholder="输入邀请码" @input="code=$event.detail.value.toUpperCase()" focus />
-      <view class="code-hint">邀请码由孩子的老师发给您</view>
+      <view class="code-hint"><pp-icon name="message" :size="22" /><text>邀请码由孩子的老师发给您</text></view>
     </view>
     <button class="btn-primary" @tap="doBind" :disabled="code.length<6 || code.length>32 || binding">
-      {{ binding ? '正在绑定...' : (code.length>=6 && code.length<=32 ? '确认绑定' : '请输入完整邀请码') }}
+      <pp-icon name="check" :size="28" /><text>{{ binding ? '正在绑定...' : (code.length>=6 && code.length<=32 ? '确认绑定' : '请输入完整邀请码') }}</text>
     </button>
   </view>
 
   <view v-if="bound" class="card result-card">
-    <view class="result-icon"><view class="check-circle"><pp-icon name="check" :size="64" /></view></view>
+    <view class="result-icon"><view class="check-circle"><pp-icon name="check" :size="40" motion="pop" /></view></view>
     <view class="result-name">{{ bound.name }}</view>
     <view class="result-class">{{ bound.className }}</view>
     <view v-if="bound.teacher_name" class="result-teacher">来自 {{ teacherName(bound) }}</view>
     <text class="result-tip">绑定成功</text>
-    <button class="btn-primary" @tap="goHome">进入首页</button>
+    <button class="btn-primary" @tap="goHome"><pp-icon name="home" :size="28" /><text>进入首页</text></button>
   </view>
 </view>
 </template>
@@ -83,118 +85,159 @@ export default {
 
 <style scoped>
 .page {
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
+  --panpan-line: #CFE6D8;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 88rpx 40rpx calc(48rpx + env(safe-area-inset-bottom));
+  padding: 52rpx 32rpx calc(42rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
-  background:
-    radial-gradient(circle at 88% 2%, rgba(244, 199, 91, .2), transparent 25%),
-    radial-gradient(circle at 4% 28%, rgba(101, 191, 168, .11), transparent 28%),
-    var(--page-bg);
+  background-color: var(--panpan-paper);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 63rpx,
+    rgba(32, 180, 134, .055) 64rpx 65rpx
+  );
 }
 
 .hero {
   width: 100%;
-  margin-bottom: 42rpx;
-  text-align: center;
+  max-width: 680rpx;
+  margin-bottom: 24rpx;
+  text-align: left;
   animation: bind-enter var(--motion-slow) var(--ease-out) both;
 }
+.hero-title-row { display: flex; align-items: center; gap: 13rpx; margin-bottom: 8rpx; }
 
 .hero-mark {
-  width: 104rpx;
-  height: 104rpx;
-  margin: 0 auto 24rpx;
-  filter: drop-shadow(0 14rpx 24rpx rgba(49, 94, 168, .16));
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin: 0;
+  border: 2rpx solid var(--panpan-ink);
+  border-radius: 14rpx;
+  background: var(--panpan-sprout);
+  box-shadow: 8rpx 8rpx 0 rgba(36, 48, 41, .08);
 }
 
 .hero-title {
-  margin-bottom: 10rpx;
-  color: var(--ink);
-  font-size: 44rpx;
+  color: var(--panpan-ink);
+  font-size: 42rpx;
   font-weight: 780;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .hero-desc {
-  max-width: 500rpx;
-  margin: 0 auto;
-  color: var(--text-muted);
-  font-size: 27rpx;
-  line-height: 1.65;
+  max-width: 570rpx;
+  color: var(--panpan-muted);
+  font-size: 25rpx;
+  line-height: 1.6;
 }
 
 .card {
   width: 100%;
   max-width: 680rpx;
   box-sizing: border-box;
-  padding: 38rpx 32rpx;
-  border: 1rpx solid var(--border);
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  padding: 30rpx;
+  border: 1rpx solid var(--panpan-line);
+  border-top: 7rpx solid var(--panpan-green);
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  box-shadow: 0 12rpx 28rpx rgba(36, 48, 41, .08);
   animation: bind-card-enter var(--motion-slow) 50ms var(--ease-out) both;
 }
 
 .repair-tip {
-  margin-bottom: 28rpx;
-  padding: 20rpx 22rpx;
-  border: 1rpx solid #CFE1FA;
-  border-radius: var(--r-sm);
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-  font-size: 25rpx;
-  line-height: 1.65;
+  display: flex;
+  align-items: flex-start;
+  gap: 9rpx;
+  margin-bottom: 22rpx;
+  padding: 16rpx 18rpx;
+  border: 1rpx solid rgba(255, 116, 104, .42);
+  border-left: 6rpx solid var(--panpan-coral);
+  border-radius: 10rpx;
+  background: #FFF2F0;
+  color: #D94B45;
+  font-size: 24rpx;
+  line-height: 1.58;
 }
+.repair-tip text { flex: 1; min-width: 0; }
 
-.code-group { margin-bottom: 32rpx; }
+.code-group { margin-bottom: 24rpx; }
 
 .code-input {
   width: 100%;
-  height: 108rpx;
+  height: 92rpx;
   box-sizing: border-box;
-  padding: 0 22rpx;
-  border: 2rpx solid #C8D8EA;
-  border-radius: var(--r-sm);
-  background: var(--surface-muted);
-  color: var(--ink);
-  font-size: 38rpx;
+  padding: 0 18rpx;
+  border: 2rpx solid var(--panpan-line);
+  border-radius: 12rpx;
+  background: #F8FCF9;
+  color: var(--panpan-ink);
+  font-size: 34rpx;
   font-weight: 740;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 6rpx;
-  line-height: 108rpx;
+  letter-spacing: 0;
+  line-height: 92rpx;
   text-align: center;
   transition: border-color var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), background-color var(--motion-base) var(--ease-out);
 }
 
 .code-input:focus {
-  border-color: var(--primary);
-  background: var(--surface);
-  box-shadow: 0 0 0 5rpx rgba(82, 124, 201, .12);
+  border-color: var(--panpan-green);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 5rpx rgba(32, 180, 134, .14);
 }
 
-.code-hint { margin-top: 16rpx; color: var(--text-muted); font-size: 24rpx; text-align: center; }
-.btn-primary { width: 100%; min-height: 96rpx; }
-.btn-primary[disabled] { box-shadow: none; }
-.result-card { text-align: center; }
-.result-icon { display: flex; justify-content: center; margin-bottom: 24rpx; }
-
-.check-circle {
-  width: 100rpx;
-  height: 100rpx;
+.code-hint { display: flex; align-items: center; justify-content: center; gap: 7rpx; margin-top: 12rpx; color: var(--panpan-muted); font-size: 22rpx; text-align: center; }
+.btn-primary {
+  width: 100%;
+  min-height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 30rpx;
-  background: var(--success-soft);
+  gap: 9rpx;
+  margin: 0;
+  border-radius: 12rpx;
+  background: var(--panpan-green-strong);
+  color: #FFFFFF;
+  font-size: 27rpx;
+  font-weight: 720;
+  box-shadow: 0 9rpx 18rpx rgba(21, 148, 109, .2);
+}
+.btn-primary::after { border: 0; }
+.btn-primary[disabled] { background: #BBDCCF; box-shadow: none; }
+.result-card { text-align: center; }
+.result-icon { display: flex; justify-content: center; margin-bottom: 20rpx; }
+
+.check-circle {
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid var(--panpan-green);
+  border-radius: 16rpx;
+  background: #E7F8F1;
+  color: var(--panpan-green-strong);
   animation: pop 260ms var(--ease-out);
 }
 
-.result-name { margin-bottom: 8rpx; color: var(--ink); font-size: 40rpx; font-weight: 780; }
-.result-class { margin-bottom: 6rpx; color: var(--text-muted); font-size: 28rpx; }
-.result-teacher { margin-bottom: 8rpx; color: var(--primary-strong); font-size: 26rpx; }
-.result-tip { display: block; margin-bottom: 32rpx; color: var(--success); font-size: 24rpx; }
+.result-name { margin-bottom: 7rpx; color: var(--panpan-ink); font-size: 38rpx; font-weight: 780; }
+.result-class { margin-bottom: 5rpx; color: var(--panpan-muted); font-size: 27rpx; }
+.result-teacher { margin-bottom: 7rpx; color: var(--panpan-green-strong); font-size: 25rpx; }
+.result-tip { display: block; margin-bottom: 26rpx; color: var(--panpan-coral); font-size: 23rpx; font-weight: 680; }
 
 @keyframes bind-enter {
   from { opacity: 0; transform: translateY(12rpx); }

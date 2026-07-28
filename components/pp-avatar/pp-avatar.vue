@@ -7,8 +7,8 @@
 <script setup>
 import { computed } from 'vue';
 
-// 低饱和冷色头像，保持人物可区分，同时不破坏页面统一色温。
-const PALETTE = ['#DDEEE8', '#E7F1EE', '#E5EFEC', '#EAF3F1', '#EEF2E7', '#E8EEEC'];
+// 明亮但不幼稚的课堂色，按姓名稳定取色。
+const PALETTE = ['#DDF7EE', '#FFF0B8', '#FFE1DD', '#DDEBFF', '#E7F8D9', '#FFEACF'];
 
 const props = defineProps({
   name: { type: String, default: '' },
@@ -39,14 +39,15 @@ const textStyle = computed(() => ({ fontSize: Math.round(px.value * 0.42) + 'rpx
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 30%;
+  border: 1rpx solid rgba(36, 48, 41, .08);
+  border-radius: 16rpx;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 8rpx 22rpx rgba(24,58,54,.10), inset 0 0 0 2rpx rgba(255,255,255,.65);
+  box-shadow: 0 6rpx 16rpx rgba(36, 48, 41, .08), inset 0 0 0 2rpx rgba(255, 255, 255, .78);
 }
 .pp-avatar__initial {
   font-weight: 750;
-  color: #183A36;
+  color: #243029;
   line-height: 1;
 }
 </style>

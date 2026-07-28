@@ -1,6 +1,7 @@
 <template>
-  <view class="page">
+  <view class="page student-challenge-page">
     <view class="hero">
+      <view class="hero-mark"><pp-icon name="trophy" :size="42" motion="shine" :delay="80" /></view>
       <text class="eyebrow">LEADERBOARD</text>
       <text class="hero-title">口算排行榜</text>
       <text class="hero-sub">同一位老师名下的同学一起比拼</text>
@@ -19,12 +20,12 @@
     <view v-else-if="error" class="state"><pp-state type="error" title="排行榜加载失败" :description="error" action-text="重试" @action="loadBoard" /></view>
     <template v-else>
       <view v-if="board.my_rank" class="my-rank">
-        <view><text class="my-label">我的最佳排名</text><text class="my-name">{{ board.my_rank.student_name }}</text></view>
+        <view class="my-copy"><view class="my-rank-icon"><pp-icon name="target" :size="30" motion="pop" :delay="220" /></view><view><text class="my-label">我的最佳排名</text><text class="my-name">{{ board.my_rank.student_name }}</text></view></view>
         <view class="my-result"><text class="my-place">第 {{ board.my_rank.rank }} 名</text><text class="my-score">{{ board.my_rank.score }} 分</text></view>
       </view>
 
       <view class="rank-card">
-        <view class="rank-head"><text>名次 / 同学</text><text>正确 · 用时 · 得分</text></view>
+        <view class="rank-head"><view class="rank-head-title"><pp-icon name="trophy" :size="26" motion="pop" :delay="320" /><text>名次 / 同学</text></view><text>正确 · 用时 · 得分</text></view>
         <pp-state v-if="!board.entries?.length" title="还没有上榜记录" description="完成一局挑战，就能成为第一个上榜的人。" />
         <view v-for="item in board.entries" :key="item.student_id" :class="['rank-row',{mine:Number(item.student_id)===Number(studentId)}]">
           <text :class="['place',`place-${item.rank}`]">{{ item.rank }}</text>
@@ -40,7 +41,7 @@
       </view>
 
       <view class="rule-card">
-        <text class="rule-title">排名说明</text>
+        <view class="rule-title-row"><pp-icon name="lightbulb" :size="28" /><text class="rule-title">排名说明</text></view>
         <text class="rule-copy">每位同学只取当前周期最高分；同分时依次比较正确题数、完成用时和提交时间。本周榜按北京时间周一至周日统计。</text>
       </view>
     </template>
@@ -82,26 +83,17 @@ function switchPeriod(value) { if (period.value !== value) { period.value = valu
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx calc(50rpx + env(safe-area-inset-bottom));background:#F3F7F5}.hero{margin:0 -24rpx 22rpx;padding:48rpx 36rpx 42rpx;border-radius:0 0 36rpx 36rpx;background:linear-gradient(145deg,#173A36,#315D56);color:#fff}.eyebrow{display:block;color:#B5DDD3;font-size:20rpx;font-weight:800;letter-spacing:4rpx}.hero-title{display:block;margin-top:10rpx;font-size:43rpx;font-weight:900}.hero-sub{display:block;margin-top:8rpx;color:#D4E9E3;font-size:22rpx}.battle-tabs,.period-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10rpx}.period-tabs{margin-top:10rpx}.battle-tab,.period-tab{min-height:78rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:14rpx;background:#fff;color:#647570;font-size:24rpx;font-weight:700}.battle-tab.active{background:#183A36;color:#fff}.period-tab{min-height:68rpx;font-size:22rpx}.period-tab.active{border:2rpx solid #DCA525;background:#FFF3CD;color:#6C4900}button::after{border:0}.state{margin-top:18rpx;padding:28rpx;border-radius:22rpx;background:#fff}.my-rank{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-top:18rpx;padding:24rpx;border:1rpx solid #E6C36B;border-radius:20rpx;background:linear-gradient(135deg,#FFF7DC,#fff)}.my-label{display:block;color:#946400;font-size:20rpx;font-weight:800}.my-name{display:block;margin-top:4rpx;color:#2E291F;font-size:27rpx;font-weight:800}.my-result{text-align:right}.my-place{display:block;color:#7D5500;font-size:25rpx;font-weight:850}.my-score{display:block;margin-top:3rpx;color:#183A36;font-size:22rpx}.rank-card{margin-top:18rpx;padding:16rpx 22rpx;border:1rpx solid #D8E5E1;border-radius:22rpx;background:#fff}.rank-head{display:flex;justify-content:space-between;padding:8rpx 0 15rpx;color:#81908C;font-size:20rpx}.rank-row{display:flex;align-items:center;gap:14rpx;min-height:104rpx;border-top:1rpx solid #E7EEEC}.rank-row.mine{margin:0 -10rpx;padding:0 10rpx;border-radius:14rpx;background:#F0F7F4}.place{width:46rpx;height:46rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:50%;background:#E9F0EE;color:#61716D;font-size:22rpx;font-weight:850}.place-1{background:#F5B83D;color:#493000}.place-2{background:#DDE4E2;color:#43534F}.place-3{background:#ECD2AE;color:#6A4821}.student-copy{flex:1;min-width:0}.student-line{display:flex;align-items:center;gap:8rpx;min-width:0}.student-name{overflow:hidden;color:#183A36;font-size:26rpx;font-weight:750;text-overflow:ellipsis;white-space:nowrap}.fish-tag{flex:none;padding:5rpx 9rpx;border-radius:999rpx;background:#F5B83D;color:#493000;font-size:20rpx;font-weight:900}.result-meta{display:block;margin-top:5rpx;color:#647570;font-size:20rpx}.score{flex:none;color:#183A36;font-size:30rpx;font-weight:900}.rule-card{margin-top:18rpx;padding:22rpx;border-radius:18rpx;background:#E9F2EF}.rule-title{display:block;color:#285F54;font-size:23rpx;font-weight:800}.rule-copy{display:block;margin-top:6rpx;color:#60736E;font-size:20rpx;line-height:1.6}
+.page{min-height:100vh;padding:0 24rpx calc(50rpx + env(safe-area-inset-bottom))}.hero{margin:0 -24rpx 22rpx;padding:48rpx 36rpx 42rpx}.eyebrow{display:block;font-size:20rpx;font-weight:800}.hero-title{display:block;margin-top:10rpx;font-size:43rpx;font-weight:900}.hero-sub{display:block;margin-top:8rpx;font-size:22rpx}.battle-tabs,.period-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10rpx}.period-tabs{margin-top:10rpx}.battle-tab,.period-tab{min-height:78rpx;display:flex;align-items:center;justify-content:center;margin:0;font-size:24rpx;font-weight:700}.period-tab{min-height:68rpx;font-size:22rpx}.state{margin-top:18rpx;padding:28rpx}.my-rank{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-top:18rpx;padding:24rpx}.my-label{display:block;font-size:20rpx;font-weight:800}.my-name{display:block;margin-top:4rpx;font-size:27rpx;font-weight:800}.my-result{text-align:right}.my-place{display:block;font-size:25rpx;font-weight:850}.my-score{display:block;margin-top:3rpx;font-size:22rpx}.rank-card{margin-top:18rpx;padding:16rpx 22rpx}.rank-head{display:flex;justify-content:space-between;padding:8rpx 0 15rpx;font-size:20rpx}.rank-row{display:flex;align-items:center;gap:14rpx;min-height:104rpx}.rank-row.mine{margin:0 -10rpx;padding:0 10rpx}.place{width:46rpx;height:46rpx;display:flex;align-items:center;justify-content:center;flex:none;font-size:22rpx;font-weight:850}.student-copy{flex:1;min-width:0}.student-line{display:flex;align-items:center;gap:8rpx;min-width:0}.student-name{overflow:hidden;font-size:26rpx;font-weight:750;text-overflow:ellipsis;white-space:nowrap}.fish-tag{flex:none;padding:5rpx 9rpx;font-size:20rpx;font-weight:900}.result-meta{display:block;margin-top:5rpx;font-size:20rpx}.score{flex:none;font-size:30rpx;font-weight:900}.rule-card{margin-top:18rpx;padding:22rpx}.rule-title{display:block;font-size:23rpx;font-weight:800}.rule-copy{display:block;margin-top:6rpx;font-size:20rpx;line-height:1.6}
 
 /* 排行榜使用浅色表格纸，名次奖励用黄/薄荷而非深色背景。 */
 .page {
   overflow-x: hidden;
-  background: var(--page-bg);
-  color: var(--ink);
 }
 
 .hero {
   position: relative;
   margin: 0 -24rpx 22rpx;
   padding: 44rpx 36rpx 38rpx;
-  border-bottom: 1rpx solid var(--border);
-  border-radius: 0;
-  background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
-  background-size: 42rpx 42rpx, auto;
-  color: var(--ink);
 }
 
 .hero::after {
@@ -111,105 +103,276 @@ function switchPeriod(value) { if (period.value !== value) { period.value = valu
   top: 28rpx;
   width: 108rpx;
   height: 18rpx;
-  border-radius: 4rpx;
-  background: var(--gold);
   transform: rotate(2deg);
 }
-
-.eyebrow { color: var(--accent-strong); }
-.hero-title { color: var(--primary-strong); }
-.hero-sub { color: var(--text-secondary); }
 
 .battle-tabs,
 .period-tabs {
   padding: 7rpx;
-  border: 1rpx solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface);
 }
 
 .battle-tab,
 .period-tab {
   min-height: 88rpx;
-  border-radius: 11rpx;
-  background: transparent;
-  color: var(--text-muted);
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.battle-tab.active {
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-}
-
-.period-tab.active {
-  border: 1rpx solid #E6CF88;
-  background: var(--warning-soft);
-  color: #765410;
 }
 
 .battle-tab:active,
 .period-tab:active { transform: scale(var(--tap-scale)); }
+.rank-row {
+  min-height: 112rpx;
+}
 
-.state,
-.rank-card {
+@media (prefers-reduced-motion: reduce) {
+  .battle-tab:active,
+  .period-tab:active { transform: none; }
+}
+
+/* Student challenge theme v3: warm paper and one energetic teaching green. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --accent: #20B486;
+  --accent-strong: #15946D;
+  --accent-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  --hairline: #E4EFE9;
+  --r: 16rpx;
+  --r-sm: 14rpx;
+  --r-xs: 10rpx;
+  --r-lg: 16rpx;
+  --shadow-sm: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+  --shadow: 0 10rpx 28rpx rgba(38, 53, 47, .08);
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 55rpx,
+    rgba(32, 180, 134, .045) 56rpx 57rpx
+  );
+  color: var(--ink);
+}
+
+.student-challenge-page .hero {
+  min-height: 0;
+  margin: 0 -24rpx 18rpx;
+  padding: 34rpx 30rpx 28rpx;
+  border-bottom: 7rpx solid var(--primary);
+  border-radius: 0;
+  background-color: var(--surface);
+  box-shadow: none;
+}
+
+.student-challenge-page .eyebrow {
+  color: var(--primary-strong);
+  font-size: 18rpx;
+  letter-spacing: 0;
+}
+
+.student-challenge-page .hero-title {
+  margin-top: 10rpx;
+  color: var(--ink);
+  font-size: 44rpx;
+}
+
+.student-challenge-page .hero-sub {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .hero-mark {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  width: 70rpx;
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #FFD2CD;
+  border-radius: 14rpx;
+  background: var(--coral-soft);
+}
+
+.student-challenge-page .my-copy,
+.student-challenge-page .rank-head-title,
+.student-challenge-page .rule-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.student-challenge-page .my-copy {
+  min-width: 0;
+  gap: 12rpx;
+}
+
+.student-challenge-page .my-rank-icon {
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 12rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .rank-head-title,
+.student-challenge-page .rule-title-row {
+  gap: 8rpx;
+}
+
+.student-challenge-page .battle-tabs,
+.student-challenge-page .period-tabs {
+  gap: 0;
+  padding: 5rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-challenge-page .period-tabs {
+  margin-top: 10rpx;
+}
+
+.student-challenge-page .battle-tab,
+.student-challenge-page .period-tab {
+  min-height: 78rpx;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .period-tab {
+  min-height: 68rpx;
+}
+
+.student-challenge-page .battle-tab.active {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .period-tab.active {
+  border: 0;
+  background: var(--primary-soft);
+  color: #15946D;
+}
+
+.student-challenge-page .state,
+.student-challenge-page .rank-card {
   border: 1rpx solid var(--border);
   border-radius: var(--r);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 
-.my-rank {
-  border-color: #E6CF88;
-  border-left: 7rpx solid var(--gold);
-  border-radius: var(--r);
-  background: linear-gradient(135deg, #FFFFFF, var(--warning-soft));
-  box-shadow: var(--shadow-sm);
-  animation: board-row-in var(--motion-slow) var(--ease-out) both;
-}
-
-.my-label { color: var(--warning); }
-.my-name,
-.score { color: var(--ink); }
-.my-place { color: var(--primary-strong); }
-.my-score { color: var(--text-secondary); }
-
-.rank-head { color: var(--text-muted); }
-.rank-row {
-  min-height: 112rpx;
-  border-top-color: var(--hairline);
-}
-.rank-row.mine {
+.student-challenge-page .my-rank {
+  margin-top: 16rpx;
+  padding: 22rpx 24rpx;
+  border: 1rpx solid #BFE4D4;
+  border-left: 7rpx solid var(--primary);
   border-radius: var(--r-sm);
   background: var(--primary-soft);
+  box-shadow: none;
 }
 
-.place { background: var(--surface-muted); color: var(--text-muted); }
-.place-1 { background: var(--gold); color: #493000; }
-.place-2 { background: var(--primary-soft); color: var(--primary-strong); }
-.place-3 { background: var(--coral-soft); color: #9B4F46; }
-.student-name { color: var(--ink); }
-.fish-tag { background: var(--warning-soft); color: var(--warning); }
-.result-meta { color: var(--text-muted); }
+.student-challenge-page .my-label {
+  color: var(--primary-strong);
+}
 
-.rule-card {
-  border-left: 6rpx solid var(--accent);
+.student-challenge-page .my-name,
+.student-challenge-page .my-place,
+.student-challenge-page .my-score {
+  color: var(--ink);
+}
+
+.student-challenge-page .rank-card {
+  margin-top: 16rpx;
+  padding: 10rpx 22rpx;
+}
+
+.student-challenge-page .rank-head {
+  padding: 12rpx 0 14rpx;
+  color: var(--text-muted);
+}
+
+.student-challenge-page .rank-row {
+  min-height: 106rpx;
+  border-top-color: var(--hairline);
+}
+
+.student-challenge-page .rank-row.mine {
+  margin: 0 -10rpx;
+  padding: 0 10rpx;
+  border-left: 5rpx solid var(--accent);
+  border-radius: 0;
+  background: var(--accent-soft);
+}
+
+.student-challenge-page .place {
+  width: 48rpx;
+  height: 48rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .place-1 {
+  border-color: #BFE4D4;
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .place-2 {
+  border-color: #BFE4D4;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .place-3 {
+  border-color: #F3C8C2;
+  background: var(--coral-soft);
+  color: #D94B45;
+}
+
+.student-challenge-page .student-name,
+.student-challenge-page .score {
+  color: var(--ink);
+}
+
+.student-challenge-page .fish-tag {
+  border-radius: var(--r-xs);
+  background: var(--coral-soft);
+  color: #D94B45;
+}
+
+.student-challenge-page .result-meta {
+  color: var(--text-muted);
+}
+
+.student-challenge-page .rule-card {
+  margin-top: 16rpx;
+  padding: 22rpx;
+  border: 1rpx solid #CBEADF;
+  border-left: 7rpx solid var(--accent);
   border-radius: var(--r-sm);
   background: var(--accent-soft);
 }
-.rule-title { color: var(--accent-strong); }
-.rule-copy { color: var(--text-secondary); }
 
-@keyframes board-row-in {
-  from { opacity: 0; transform: translateY(14rpx); }
-  to { opacity: 1; transform: translateY(0); }
+.student-challenge-page .rule-title {
+  color: var(--ink);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .my-rank { animation: none; }
-  .battle-tab,
-  .period-tab { transition: none; }
-  .battle-tab:active,
-  .period-tab:active { transform: none; }
+.student-challenge-page .rule-copy {
+  color: var(--text-secondary);
 }
 </style>

@@ -1,7 +1,8 @@
 <template>
-  <view class="page page-bottom-safe achievement-page">
+  <view class="page page-bottom-safe achievement-page student-challenge-page">
     <view class="hero page-hero">
       <view class="hero-tab" aria-hidden="true"></view>
+      <view class="hero-mark"><pp-icon name="trophy" :size="44" motion="shine" :delay="80" /></view>
       <text class="eyebrow">PANPAN · LEARNING NOTES</text>
       <text class="hero-title">学习成就海报</text>
       <text class="hero-sub">把真实努力装进一张校园成长卡，保存后再由你选择分享。</text>
@@ -32,9 +33,12 @@
         </view>
 
         <view class="section-heading">
-          <view>
-            <text class="section-kicker">01 / 选择内容</text>
-            <text class="section-title">哪一次进步值得记录？</text>
+          <view class="section-title-row">
+            <view class="section-icon"><pp-icon name="target" :size="30" motion="pop" :delay="180" /></view>
+            <view>
+              <text class="section-kicker">01 / 选择内容</text>
+              <text class="section-title">哪一次进步值得记录？</text>
+            </view>
           </view>
           <text class="section-count">共 {{ items.length }} 项</text>
         </view>
@@ -62,9 +66,12 @@
 
         <view v-if="selected" class="workspace">
           <view class="workspace-head">
-            <view>
-              <text class="section-kicker">02 / 生成与保存</text>
-              <text class="workspace-title">制作高清成长卡</text>
+            <view class="section-title-row">
+              <view class="section-icon"><pp-icon name="report" :size="30" motion="breathe" :delay="300" /></view>
+              <view>
+                <text class="section-kicker">02 / 生成与保存</text>
+                <text class="workspace-title">制作高清成长卡</text>
+              </view>
             </view>
             <view :class="['workspace-chip', `category-${selected.category}`]">{{ categoryLabel(selected.category) }}</view>
           </view>
@@ -100,7 +107,7 @@
             <button class="retry-action" @tap="retryOperation">重试</button>
           </view>
           <view v-else-if="posterPath" class="operation-status is-ready" role="status" aria-live="polite">
-            <view class="status-badge" aria-hidden="true">✓</view>
+            <view class="status-badge" aria-hidden="true"><pp-icon name="check" :size="28" motion="pop" /></view>
             <view>
               <text class="status-title">高清海报已准备好</text>
               <text class="status-detail">可以先预览，确认后再保存到相册。</text>
@@ -305,9 +312,12 @@ function retryOperation() {
   min-height: 100vh;
   padding: 0 24rpx calc(64rpx + env(safe-area-inset-bottom));
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 92% 2%, rgba(244, 199, 91, .2), transparent 24%),
-    linear-gradient(180deg, #F9FCFF 0%, #F6FAFF 100%);
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 63rpx,
+    rgba(32, 180, 134, .028) 64rpx 65rpx
+  );
 }
 
 .hero {
@@ -315,24 +325,25 @@ function retryOperation() {
   margin: 0 -24rpx;
   padding: 50rpx 36rpx 38rpx;
   overflow: hidden;
-  border-bottom: 1rpx solid #DDE7F2;
+  border-bottom: 1rpx solid #D5E6DE;
   background:
-    linear-gradient(rgba(82, 124, 201, .055) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .055) 1rpx, transparent 1rpx),
-    linear-gradient(150deg, #FFFFFF 0%, #EAF2FF 100%);
+    linear-gradient(rgba(32, 180, 134, .055) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(32, 180, 134, .055) 1rpx, transparent 1rpx),
+    linear-gradient(150deg, #FFFFFF 0%, #E8F5EF 100%);
   background-size: 38rpx 38rpx, 38rpx 38rpx, auto;
-  color: #24324A;
+  color: #26352F;
 }
 
 .hero::after {
   content: '';
   position: absolute;
-  right: -68rpx;
-  top: -58rpx;
-  width: 230rpx;
-  height: 230rpx;
-  border: 22rpx solid rgba(101, 191, 168, .16);
-  border-radius: 50%;
+  right: 36rpx;
+  bottom: 0;
+  width: 118rpx;
+  height: 8rpx;
+  border: 0;
+  border-radius: 0;
+  background: #20B486;
   pointer-events: none;
 }
 
@@ -343,7 +354,7 @@ function retryOperation() {
   width: 106rpx;
   height: 12rpx;
   border-radius: 0 0 10rpx 10rpx;
-  background: #F4C75B;
+  background: #20B486;
 }
 
 .eyebrow,
@@ -355,25 +366,25 @@ function retryOperation() {
 }
 
 .eyebrow {
-  color: #358E7D;
+  color: #15946D;
   font-size: 20rpx;
   font-weight: 760;
-  letter-spacing: 2.4rpx;
+  letter-spacing: 0;
 }
 
 .hero-title {
   margin-top: 10rpx;
-  color: #24324A;
+  color: #26352F;
   font-size: 48rpx;
   font-weight: 850;
   line-height: 1.25;
-  letter-spacing: -1rpx;
+  letter-spacing: 0;
 }
 
 .hero-sub {
   max-width: 580rpx;
   margin-top: 11rpx;
-  color: #5C6C84;
+  color: #5A6A62;
   font-size: 24rpx;
   line-height: 1.65;
 }
@@ -390,10 +401,10 @@ function retryOperation() {
   align-items: center;
   gap: 10rpx;
   box-sizing: border-box;
-  border: 1rpx solid #CFE1FA;
+  border: 1rpx solid #D5E6DE;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, .82);
-  color: #315EA8;
+  color: #15946D;
   font-size: 20rpx;
   font-weight: 650;
 }
@@ -403,7 +414,7 @@ function retryOperation() {
   height: 12rpx;
   flex: none;
   border-radius: 50%;
-  background: #65BFA8;
+  background: #20B486;
   box-shadow: 0 0 0 6rpx rgba(101, 191, 168, .14);
 }
 
@@ -423,10 +434,10 @@ function retryOperation() {
   align-items: center;
   gap: 18rpx;
   box-sizing: border-box;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #D5E6DE;
   border-radius: 20rpx;
   background: #FFFFFF;
-  box-shadow: 0 8rpx 24rpx rgba(49, 94, 168, .06);
+  box-shadow: 0 8rpx 24rpx rgba(38, 53, 47, .06);
 }
 
 .privacy-mark {
@@ -437,8 +448,8 @@ function retryOperation() {
   justify-content: center;
   flex: none;
   border-radius: 18rpx;
-  background: #E9F8F3;
-  color: #358E7D;
+  background: #E8F5EF;
+  color: #15946D;
   font-size: 23rpx;
   font-weight: 820;
 }
@@ -454,14 +465,14 @@ function retryOperation() {
 }
 
 .privacy-title {
-  color: #24324A;
+  color: #26352F;
   font-size: 24rpx;
   font-weight: 750;
 }
 
 .privacy-detail {
   margin-top: 4rpx;
-  color: #5C6C84;
+  color: #5A6A62;
   font-size: 21rpx;
   line-height: 1.55;
 }
@@ -483,15 +494,15 @@ function retryOperation() {
 }
 
 .section-kicker {
-  color: #527CC9;
+  color: #20B486;
   font-size: 19rpx;
   font-weight: 780;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .section-title {
   margin-top: 4rpx;
-  color: #24324A;
+  color: #26352F;
   font-size: 32rpx;
   font-weight: 820;
   line-height: 1.35;
@@ -499,7 +510,7 @@ function retryOperation() {
 
 .section-count {
   flex: none;
-  color: #6E7D91;
+  color: #5A6A62;
   font-size: 21rpx;
 }
 
@@ -508,8 +519,8 @@ function retryOperation() {
 }
 
 .achievement-card {
-  --tone: #527CC9;
-  --tone-soft: #EAF2FF;
+  --tone: #20B486;
+  --tone-soft: #E8F5EF;
   position: relative;
   width: 100%;
   min-height: 190rpx;
@@ -517,15 +528,15 @@ function retryOperation() {
   padding: 24rpx 24rpx 22rpx 34rpx;
   overflow: hidden;
   box-sizing: border-box;
-  border: 2rpx solid #DDE7F2;
+  border: 2rpx solid #D5E6DE;
   border-radius: 22rpx;
   background:
-    linear-gradient(rgba(82, 124, 201, .035) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(32, 180, 134, .035) 1rpx, transparent 1rpx),
     #FFFFFF;
   background-size: 100% 36rpx;
-  color: #24324A;
+  color: #26352F;
   text-align: left;
-  box-shadow: 0 8rpx 24rpx rgba(49, 94, 168, .055);
+  box-shadow: 0 8rpx 24rpx rgba(38, 53, 47, .055);
   transition: transform 120ms ease, opacity 120ms ease;
 }
 
@@ -535,20 +546,20 @@ function retryOperation() {
 
 .achievement-card.category-choice,
 .workspace-chip.category-choice {
-  --tone: #527CC9;
-  --tone-soft: #EAF2FF;
+  --tone: #20B486;
+  --tone-soft: #E8F5EF;
 }
 
 .achievement-card.category-mental,
 .workspace-chip.category-mental {
-  --tone: #C48A20;
-  --tone-soft: #FFF5D7;
+  --tone: #15946D;
+  --tone-soft: #EEF8F3;
 }
 
 .achievement-card.category-challenge,
 .workspace-chip.category-challenge {
-  --tone: #D66D62;
-  --tone-soft: #FFF0ED;
+  --tone: #D94B45;
+  --tone-soft: #FFF0EE;
 }
 
 .achievement-card:active {
@@ -557,7 +568,7 @@ function retryOperation() {
 
 .achievement-card.selected {
   border-color: var(--tone);
-  box-shadow: 0 13rpx 32rpx rgba(49, 94, 168, .13);
+  box-shadow: 0 13rpx 32rpx rgba(38, 53, 47, .1);
 }
 
 .achievement-card[disabled] {
@@ -604,7 +615,7 @@ function retryOperation() {
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 2rpx solid #CBD8E8;
+  border: 2rpx solid #D5E6DE;
   border-radius: 50%;
   background: #FFFFFF;
   color: #FFFFFF;
@@ -625,7 +636,7 @@ function retryOperation() {
 
 .headline {
   margin-top: 13rpx;
-  color: #24324A;
+  color: #26352F;
   font-size: 30rpx;
   font-weight: 810;
   line-height: 1.42;
@@ -633,14 +644,14 @@ function retryOperation() {
 
 .meta {
   margin-top: 7rpx;
-  color: #5C6C84;
+  color: #5A6A62;
   font-size: 23rpx;
   line-height: 1.55;
 }
 
 .date {
   margin-top: 9rpx;
-  color: #8492A5;
+  color: #5A6A62;
   font-size: 19rpx;
 }
 
@@ -648,10 +659,10 @@ function retryOperation() {
   margin-top: 26rpx;
   padding: 28rpx 24rpx 24rpx;
   box-sizing: border-box;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #D5E6DE;
   border-radius: 26rpx;
   background: #FFFFFF;
-  box-shadow: 0 16rpx 42rpx rgba(49, 94, 168, .1);
+  box-shadow: 0 16rpx 42rpx rgba(38, 53, 47, .08);
 }
 
 .workspace-head {
@@ -660,19 +671,19 @@ function retryOperation() {
   justify-content: space-between;
   gap: 18rpx;
   padding-bottom: 20rpx;
-  border-bottom: 1rpx dashed #D8E4F2;
+  border-bottom: 1rpx dashed #D5E6DE;
 }
 
 .workspace-title {
   margin-top: 4rpx;
-  color: #24324A;
+  color: #26352F;
   font-size: 31rpx;
   font-weight: 820;
 }
 
 .workspace-chip {
-  --tone: #527CC9;
-  --tone-soft: #EAF2FF;
+  --tone: #20B486;
+  --tone-soft: #E8F5EF;
   min-height: 48rpx;
   padding: 5rpx 15rpx;
   flex: none;
@@ -687,9 +698,9 @@ function retryOperation() {
   align-items: center;
   gap: 16rpx;
   box-sizing: border-box;
-  border: 1rpx solid #D4E3FA;
+  border: 1rpx solid #D5E6DE;
   border-radius: 18rpx;
-  background: #F7FAFF;
+  background: #F8FCF9;
 }
 
 .operation-status.is-error,
@@ -708,8 +719,8 @@ function retryOperation() {
   height: 42rpx;
   flex: none;
   box-sizing: border-box;
-  border: 4rpx solid rgba(82, 124, 201, .18);
-  border-top-color: #527CC9;
+  border: 4rpx solid rgba(32, 180, 134, .18);
+  border-top-color: #20B486;
   border-radius: 50%;
   animation: achievement-spin .75s linear infinite;
 }
@@ -722,15 +733,15 @@ function retryOperation() {
   justify-content: center;
   flex: none;
   border-radius: 15rpx;
-  background: #FFF0ED;
-  color: #D66D62;
+  background: #FFF0EE;
+  color: #D94B45;
   font-size: 26rpx;
   font-weight: 850;
 }
 
 .is-ready .status-badge {
-  background: #E9F8F3;
-  color: #358E7D;
+  background: #E8F5EF;
+  color: #15946D;
 }
 
 .status-copy {
@@ -744,14 +755,14 @@ function retryOperation() {
 }
 
 .status-title {
-  color: #24324A;
+  color: #26352F;
   font-size: 24rpx;
   font-weight: 750;
 }
 
 .status-detail {
   margin-top: 3rpx;
-  color: #5C6C84;
+  color: #5A6A62;
   font-size: 20rpx;
   line-height: 1.5;
 }
@@ -764,7 +775,7 @@ function retryOperation() {
   padding: 12rpx 20rpx;
   flex: none;
   border-radius: 14rpx;
-  background: #D66D62;
+  background: #D94B45;
   color: #FFFFFF;
   font-size: 22rpx;
   font-weight: 740;
@@ -799,9 +810,9 @@ function retryOperation() {
 }
 
 .generate {
-  background: #315EA8;
+  background: #15946D;
   color: #FFFFFF;
-  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .2);
+  box-shadow: 0 10rpx 24rpx rgba(21, 148, 109, .18);
 }
 
 .secondary-actions {
@@ -811,13 +822,13 @@ function retryOperation() {
 }
 
 .preview {
-  border: 1rpx solid #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border: 1rpx solid #BFE4D4;
+  background: #E8F5EF;
+  color: #15946D;
 }
 
 .save {
-  background: #527CC9;
+  background: #20B486;
   color: #FFFFFF;
 }
 
@@ -832,7 +843,7 @@ function retryOperation() {
 .generate[disabled],
 .preview[disabled],
 .save[disabled] {
-  background: #CDD7E5;
+  background: #D5E6DE;
   color: #FFFFFF;
   box-shadow: none;
   opacity: .74;
@@ -842,8 +853,8 @@ function retryOperation() {
   display: block;
   margin-top: 17rpx;
   padding-top: 17rpx;
-  border-top: 1rpx dashed #D8E4F2;
-  color: #6E7D91;
+  border-top: 1rpx dashed #D5E6DE;
+  color: #5A6A62;
   font-size: 20rpx;
   line-height: 1.62;
 }
@@ -885,5 +896,129 @@ function retryOperation() {
   .status-spinner {
     animation: none;
   }
+}
+
+/* Student challenge theme v3: achievement studio in warm paper and teaching green. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  min-height: 100vh;
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(32, 180, 134, .05) 56rpx 57rpx);
+  color: var(--ink);
+}
+.student-challenge-page .hero {
+  min-height: 0;
+  padding: 34rpx 30rpx 28rpx;
+  border: 0;
+  border-bottom: 6rpx solid var(--primary);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+}
+.student-challenge-page .hero::after { background: var(--primary); }
+.student-challenge-page .eyebrow,
+.student-challenge-page .section-kicker,
+.student-challenge-page .workspace-chip { color: var(--primary-strong); }
+.student-challenge-page .hero-title,
+.student-challenge-page .section-title,
+.student-challenge-page .workspace-title,
+.student-challenge-page .headline { color: var(--ink); }
+.student-challenge-page .hero-sub,
+.student-challenge-page .meta,
+.student-challenge-page .date,
+.student-challenge-page .status-copy,
+.student-challenge-page .status-detail { color: var(--text-secondary); }
+.student-challenge-page .hero-tab,
+.student-challenge-page .workspace,
+.student-challenge-page .achievement-card,
+.student-challenge-page .state-card,
+.student-challenge-page .operation-status,
+.student-challenge-page .privacy-strip {
+  min-height: 0;
+  border-color: var(--border);
+  border-radius: 16rpx;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+}
+.student-challenge-page .achievement-list,
+.student-challenge-page .secondary-actions { align-items: start; }
+.student-challenge-page .card-accent,
+.student-challenge-page .selected-mark,
+.student-challenge-page .is-ready .status-badge {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+.student-challenge-page .category,
+.student-challenge-page .status-badge,
+.student-challenge-page .privacy-mark {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.student-challenge-page .generate,
+.student-challenge-page .save {
+  min-height: 88rpx;
+  border-radius: 14rpx;
+  background: var(--primary);
+  color: #FFFFFF;
+}
+.student-challenge-page .preview,
+.student-challenge-page .retry-action,
+.student-challenge-page .permission-action {
+  min-height: 80rpx;
+  border-radius: 14rpx;
+  border-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .hero {
+  position: relative;
+}
+
+.student-challenge-page .hero-mark {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #FFD2CD;
+  border-radius: 14rpx;
+  background: var(--coral-soft);
+}
+
+.student-challenge-page .section-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.student-challenge-page .section-icon {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1rpx solid #BFE4D4;
+  border-radius: 12rpx;
+  background: var(--primary-soft);
 }
 </style>

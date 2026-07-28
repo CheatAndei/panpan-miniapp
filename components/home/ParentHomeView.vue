@@ -3,13 +3,14 @@
     <scroll-view v-if="boundKids.length > 1" class="child-switcher" scroll-x aria-label="切换孩子">
       <view class="child-switcher-inner">
         <button
-          v-for="item in boundKids"
+          v-for="(item, index) in boundKids"
           :key="item.id"
           :class="['child-chip', { active: child && child.id === item.id }]"
           :aria-label="`切换到${item.name}`"
           @tap="$emit('switch-child', item)"
         >
-          {{ item.name }}
+          <pp-icon name="user" :size="24" motion="pop" :stagger="60" :index="index" decorative />
+          <text>{{ item.name }}</text>
         </button>
       </view>
     </scroll-view>
@@ -27,7 +28,10 @@
           :aria-label="`查看${child.name}的口算王成绩`"
           @tap="navigate('/pages/mental-arena/index?student_id=' + child.id)"
         >
-          <text class="mental-mini-kicker">口算王</text>
+          <view class="mental-mini-kicker-row">
+            <pp-icon name="calculator" :size="25" motion="bob" decorative />
+            <text class="mental-mini-kicker">口算王</text>
+          </view>
           <text class="mental-mini-rank">{{ mentalSummary?.rank ? `本周第 ${mentalSummary.rank} 名` : '本周未上榜' }}</text>
           <text v-if="mentalSummary?.goal && mentalSummary.goal.remaining_score" class="mental-mini-goal">
             距目标差 {{ mentalSummary.goal.remaining_score }} 分
@@ -38,9 +42,18 @@
     </view>
 
     <view v-if="child" class="parent-section-nav" aria-label="家长端学习导航">
-      <button class="parent-nav-item active" aria-current="page">今日</button>
-      <button class="parent-nav-item" @tap="navigate('/pages/learning-center/index?student_id=' + child.id)">学习</button>
-      <button class="parent-nav-item" @tap="navigate('/pages/growth/index?student_id=' + child.id)">成长</button>
+      <button class="parent-nav-item active" aria-current="page">
+        <pp-icon name="calendar" :size="28" motion="breathe" decorative />
+        <text>今日</text>
+      </button>
+      <button class="parent-nav-item" @tap="navigate('/pages/learning-center/index?student_id=' + child.id)">
+        <pp-icon name="book" :size="28" motion="pop" :delay="120" decorative />
+        <text>学习</text>
+      </button>
+      <button class="parent-nav-item" @tap="navigate('/pages/growth/index?student_id=' + child.id)">
+        <pp-icon name="trophy" :size="28" motion="shine" :delay="240" decorative />
+        <text>成长</text>
+      </button>
     </view>
 
     <view v-if="parentError && child" class="parent-error-strip" role="alert">
@@ -80,10 +93,15 @@
     <template v-if="child">
       <view v-if="learningToday" class="today-learning-card">
         <view class="today-learning-head">
-          <view>
-            <text class="today-eyebrow">TODAY'S PLAN</text>
-            <text class="today-title">今日学习任务</text>
-            <text class="today-summary">{{ learningToday.progress.completed }} / {{ learningToday.progress.total }} 已完成 · 连续学习 {{ learningToday.stats.streak_days }} 天</text>
+          <view class="today-heading">
+            <view class="card-title-icon mint" aria-hidden="true">
+              <pp-icon name="target" :size="34" motion="shine" decorative />
+            </view>
+            <view>
+              <text class="today-eyebrow">TODAY'S PLAN</text>
+              <text class="today-title">今日学习任务</text>
+              <text class="today-summary">{{ learningToday.progress.completed }} / {{ learningToday.progress.total }} 已完成 · 连续学习 {{ learningToday.stats.streak_days }} 天</text>
+            </view>
           </view>
           <view class="today-percent"><text class="num">{{ learningToday.progress.percent }}</text>%</view>
         </view>
@@ -105,7 +123,16 @@
           @tap="$emit('open-today-task', task)"
         >
           <view :class="['task-position', { done: task.completed, pending: ['pending_review', 'correction_required'].includes(task.status) }]">
-            <text>{{ task.completed ? '✓' : task.position }}</text>
+            <pp-icon
+              :name="task.completed ? 'check' : taskIcon(task)"
+              :size="29"
+              :motion="task.completed ? 'pop' : task.status === 'correction_required' ? 'ring' : 'breathe'"
+              :delay="80"
+              :stagger="70"
+              :index="task.position"
+              decorative
+            />
+            <text v-if="!task.completed" class="task-sequence">{{ task.position }}</text>
           </view>
           <view class="task-copy">
             <text class="task-title">{{ task.title }}</text>
@@ -133,7 +160,7 @@
 
       <view v-if="todayStatus" class="home-card status-card">
         <view class="status-mark" aria-hidden="true">
-          <pp-icon :name="todayStatus.checkedIn ? 'check' : 'calendar'" :size="48" decorative />
+          <pp-icon :name="todayStatus.checkedIn ? 'check' : 'calendar'" :size="48" motion="pop" decorative />
         </view>
         <view class="status-content">
           <text class="status-kicker">今日状态</text>
@@ -143,7 +170,7 @@
       </view>
 
       <button class="home-card notify-strip" :disabled="notifyRequesting" @tap="$emit('subscribe')">
-        <view class="notify-icon" aria-hidden="true"><pp-icon name="bell" :size="42" decorative /></view>
+        <view class="notify-icon" aria-hidden="true"><pp-icon name="bell" :size="42" motion="ring" :delay="260" decorative /></view>
         <view class="notify-copy">
           <text class="notify-title">{{ notifyRequesting ? '正在申请提醒' : '开启学习提醒' }}</text>
           <text class="notify-desc">接收签到、签退、上课、反馈和作业提醒</text>
@@ -153,7 +180,10 @@
 
       <button class="home-card schedule-card" @tap="navigate('/pages/parent-schedule/index')">
         <view class="card-heading">
-          <text class="card-title">本周课表</text>
+          <view class="card-title-wrap">
+            <view class="card-title-icon sky" aria-hidden="true"><pp-icon name="calendar" :size="30" motion="pop" :delay="100" decorative /></view>
+            <text class="card-title">本周课表</text>
+          </view>
           <text class="card-link">进入学习小组详情</text>
         </view>
         <view v-if="weekSchedules.length === 0" class="hint">本周暂无学习安排</view>
@@ -169,7 +199,10 @@
 
       <view class="home-card feedback-card">
         <view class="card-heading">
-          <text class="card-title">最新反馈</text>
+          <view class="card-title-wrap">
+            <view class="card-title-icon coral" aria-hidden="true"><pp-icon name="message" :size="30" motion="ring" :delay="160" decorative /></view>
+            <text class="card-title">最新反馈</text>
+          </view>
           <button class="card-link-button" @tap="navigate('/pages/parent-feedback/index')">全部反馈</button>
         </view>
         <button
@@ -197,7 +230,10 @@
 
       <view v-if="parentOpinions.length" class="home-card opinion-card">
         <view class="card-heading">
-          <text class="card-title">我的反馈</text>
+          <view class="card-title-wrap">
+            <view class="card-title-icon yellow" aria-hidden="true"><pp-icon name="pencil" :size="30" motion="pop" :delay="220" decorative /></view>
+            <text class="card-title">我的反馈</text>
+          </view>
           <button class="card-link-button" @tap="navigate('/pages/parent-opinions/index?student_id=' + child.id)">全部记录</button>
         </view>
         <button
@@ -218,17 +254,20 @@
 
       <view class="home-card learning-shortcuts">
         <view class="card-heading">
-          <text class="card-title">更多练习</text>
+          <view class="card-title-wrap">
+            <view class="card-title-icon mint" aria-hidden="true"><pp-icon name="lightbulb" :size="30" motion="shine" decorative /></view>
+            <text class="card-title">更多练习</text>
+          </view>
           <button class="card-link-button" @tap="navigate('/pages/learning-center/index?student_id=' + child.id)">进入学习中心</button>
         </view>
         <view class="shortcut-grid">
           <button class="learning-shortcut" @tap="navigate('/pages/weekly-challenge/index?student_id=' + child.id)">
-            <view class="shortcut-icon" aria-hidden="true"><pp-icon name="trophy" :size="38" decorative /></view>
+            <view class="shortcut-icon" aria-hidden="true"><pp-icon name="trophy" :size="38" motion="bob" decorative /></view>
             <text class="shortcut-title">压轴挑战</text>
             <text class="shortcut-desc">填空与大题 · 拍照提交</text>
           </button>
           <button class="learning-shortcut" @tap="$emit('open-exam-library')">
-            <view class="shortcut-icon" aria-hidden="true"><pp-icon name="exam" :size="38" decorative /></view>
+            <view class="shortcut-icon" aria-hidden="true"><pp-icon name="exam" :size="38" motion="pop" :delay="120" decorative /></view>
             <text class="shortcut-title">广州真题大全</text>
             <text class="shortcut-desc">一模 · 期中 · 期末</text>
           </button>
@@ -236,15 +275,18 @@
       </view>
 
       <view class="home-card parent-tools">
-        <text class="card-title service-title">常用服务</text>
+        <view class="card-title-wrap service-title">
+          <view class="card-title-icon sky" aria-hidden="true"><pp-icon name="home" :size="30" motion="pop" decorative /></view>
+          <text class="card-title">常用服务</text>
+        </view>
         <view class="tool-grid">
           <button class="tool-item" @tap="navigate('/pages/parent-leave/index?child_id=' + child.id)">
-            <view class="tool-icon" aria-hidden="true"><pp-icon name="calendar" :size="40" decorative /></view>
+            <view class="tool-icon" aria-hidden="true"><pp-icon name="calendar" :size="40" motion="pop" :delay="80" decorative /></view>
             <text class="tool-title">请假申请</text>
             <text class="tool-desc">提交并查看审批</text>
           </button>
           <button class="tool-item" @tap="$emit('update:showFeedback', true)">
-            <view class="tool-icon" aria-hidden="true"><pp-icon name="message" :size="40" decorative /></view>
+            <view class="tool-icon" aria-hidden="true"><pp-icon name="message" :size="40" motion="pop" :delay="150" decorative /></view>
             <text class="tool-title">反馈建议</text>
             <text class="tool-desc">直接告诉老师</text>
           </button>
@@ -395,6 +437,16 @@ function taskStatusLabel(task) {
   return task.status === 'active' ? '继续' : '开始';
 }
 
+function taskIcon(task) {
+  const route = String(task?.route || task?.key || '').toLowerCase();
+  if (route.includes('practice')) return 'pencil';
+  if (route.includes('mental') || route.includes('calculation')) return 'calculator';
+  if (route.includes('choice') || route.includes('exam')) return 'exam';
+  if (route.includes('challenge')) return 'trophy';
+  if (route.includes('growth')) return 'target';
+  return 'book';
+}
+
 function statusBadgeClass(status) {
   if (status?.onLeave) return 'leave';
   return status?.checkedOut ? 'done' : (status?.checkedIn ? 'in' : 'out');
@@ -438,10 +490,14 @@ function scheduleLabel(schedule) {
 }
 
 .child-chip {
-  min-height: 112rpx;
+  min-height: 78rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
   flex: none;
   margin: 0;
-  padding: 0 24rpx;
+  padding: 8rpx 22rpx;
   border: 1rpx solid var(--border);
   border-radius: 14rpx;
   background: #FFFFFF;
@@ -479,16 +535,16 @@ function scheduleLabel(schedule) {
 .parent-hero {
   position: relative;
   overflow: hidden;
-  padding: 50rpx 30rpx 32rpx 36rpx;
-  border: 1rpx solid #CADCF2;
-  border-radius: 24rpx 12rpx 24rpx 12rpx;
+  padding: 46rpx 30rpx 28rpx 36rpx;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 16rpx;
   background-color: #FFFFFF;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 51rpx,
-    rgba(82, 124, 201, .08) 52rpx,
-    rgba(82, 124, 201, .08) 53rpx
+    rgba(32, 180, 134, .09) 52rpx,
+    rgba(32, 180, 134, .09) 53rpx
   );
   box-shadow: var(--shadow);
   animation: parent-enter var(--motion-slow) var(--ease-out) both;
@@ -501,7 +557,7 @@ function scheduleLabel(schedule) {
   bottom: 0;
   left: 24rpx;
   width: 2rpx;
-  background: rgba(233, 133, 119, .3);
+  background: rgba(255, 116, 104, .42);
 }
 
 .hero-tab {
@@ -510,8 +566,8 @@ function scheduleLabel(schedule) {
   right: 28rpx;
   padding: 9rpx 17rpx 11rpx;
   border-radius: 0 0 10rpx 10rpx;
-  background: var(--primary);
-  color: #FFFFFF;
+  background: var(--coral-soft);
+  color: #A9433B;
   font-size: 19rpx;
   font-weight: 750;
 }
@@ -534,7 +590,7 @@ function scheduleLabel(schedule) {
   color: var(--primary-strong);
   font-size: 19rpx;
   font-weight: 760;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .child-greeting {
@@ -546,7 +602,7 @@ function scheduleLabel(schedule) {
   font-size: 37rpx;
   font-weight: 780;
   line-height: 1.45;
-  letter-spacing: -1rpx;
+  letter-spacing: 0;
 }
 
 .child-class {
@@ -558,26 +614,33 @@ function scheduleLabel(schedule) {
 }
 
 .mental-hero-mini {
-  min-height: 152rpx;
+  min-height: 124rpx;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   margin: 0;
   padding: 18rpx 16rpx;
-  border: 1rpx solid #E6CD7D;
-  border-radius: 16rpx;
-  background: #FFF8DE;
+  border: 1rpx solid #A9E1CE;
+  border-radius: 14rpx;
+  background: #EAF9F3;
   text-align: left;
-  box-shadow: 0 10rpx 24rpx rgba(142, 99, 12, .1);
+  box-shadow: 0 10rpx 24rpx rgba(21, 148, 109, .08);
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
 .mental-mini-kicker {
-  color: #8B6816;
+  color: var(--primary-strong);
   font-size: 19rpx;
   font-weight: 850;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
+}
+
+.mental-mini-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
+  color: var(--primary-strong);
 }
 
 .mental-mini-rank {
@@ -591,7 +654,7 @@ function scheduleLabel(schedule) {
 .mental-mini-goal {
   display: block;
   margin-top: 4rpx;
-  color: #806522;
+  color: var(--text-secondary);
   font-size: 18rpx;
   line-height: 1.4;
 }
@@ -609,7 +672,11 @@ function scheduleLabel(schedule) {
 }
 
 .parent-nav-item {
-  min-height: 112rpx;
+  min-height: 78rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
   border-radius: 12rpx;
   background: transparent;
   color: var(--text-muted);
@@ -629,7 +696,7 @@ function scheduleLabel(schedule) {
 }
 
 .parent-error-strip {
-  min-height: 112rpx;
+  min-height: 82rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -645,7 +712,7 @@ function scheduleLabel(schedule) {
 }
 
 .parent-error-strip button {
-  min-height: 88rpx;
+  min-height: 68rpx;
   flex: none;
   margin: 0;
   padding: 0 20rpx;
@@ -662,8 +729,8 @@ function scheduleLabel(schedule) {
 .guest-home {
   margin-top: 20rpx;
   padding: 32rpx;
-  border: 1rpx solid #CADCF2;
-  border-radius: 20rpx;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow);
 }
@@ -699,7 +766,7 @@ function scheduleLabel(schedule) {
 
 .guest-primary,
 .guest-bind {
-  min-height: 112rpx;
+  min-height: 86rpx;
   margin: 18rpx 0 0;
   border-radius: 15rpx;
   font-size: 27rpx;
@@ -709,10 +776,11 @@ function scheduleLabel(schedule) {
 .guest-primary {
   background: var(--primary-strong);
   color: #FFFFFF;
+  box-shadow: 0 8rpx 0 #BCE8D9;
 }
 
 .guest-bind {
-  border: 1rpx solid #BCD0EC;
+  border: 1rpx solid #9FDCC8;
   background: #FFFFFF;
   color: var(--primary-strong);
 }
@@ -730,13 +798,13 @@ function scheduleLabel(schedule) {
 }
 
 .guest-contact button {
-  min-height: 88rpx;
+  min-height: 74rpx;
   margin: 12rpx 0 0;
   padding: 0 22rpx;
-  border: 1rpx solid #E8D79E;
+  border: 1rpx solid #BCE8D9;
   border-radius: 12rpx;
-  background: #FFF8DE;
-  color: #765413;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
   font-size: 23rpx;
   font-weight: 760;
 }
@@ -744,8 +812,8 @@ function scheduleLabel(schedule) {
 .today-learning-card {
   margin-top: 20rpx;
   overflow: hidden;
-  border: 1rpx solid #C9DAF0;
-  border-radius: 20rpx;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow);
 }
@@ -756,8 +824,15 @@ function scheduleLabel(schedule) {
   justify-content: space-between;
   gap: 18rpx;
   padding: 28rpx 26rpx 22rpx;
-  background: var(--primary-soft);
+  background: #E8F9F2;
   color: var(--ink);
+}
+
+.today-heading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
 }
 
 .today-eyebrow {
@@ -765,7 +840,7 @@ function scheduleLabel(schedule) {
   color: var(--primary-strong);
   font-size: 19rpx;
   font-weight: 780;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .today-title {
@@ -791,7 +866,8 @@ function scheduleLabel(schedule) {
   justify-content: center;
   flex: none;
   padding-top: 17rpx;
-  border: 2rpx solid #AFC7E9;
+  border: 2rpx solid #8BD5BC;
+  background: #FFFFFF;
   border-radius: 50%;
   box-sizing: border-box;
   color: var(--primary-strong);
@@ -804,24 +880,41 @@ function scheduleLabel(schedule) {
 }
 
 .today-progress {
+  position: relative;
   height: 8rpx;
-  background: #DCE8F7;
+  overflow: hidden;
+  background: #E2F4EC;
 }
 
 .today-progress-fill {
+  position: relative;
   height: 100%;
-  background: var(--primary);
+  border-radius: 0 8rpx 8rpx 0;
+  background: var(--primary-strong);
   transition: width var(--motion-base) var(--ease-out);
+}
+
+.today-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: -3rpx;
+  right: 0;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #FFFFFF;
+  opacity: .76;
+  animation: progress-breathe 1800ms ease-in-out infinite;
 }
 
 .today-task {
   width: 100%;
-  min-height: 122rpx;
+  min-height: 90rpx;
   display: flex;
   align-items: center;
   gap: 14rpx;
   margin: 0;
-  padding: 20rpx 22rpx;
+  padding: 14rpx 22rpx;
   border-bottom: 1rpx solid var(--hairline);
   border-radius: 0;
   background: #FFFFFF;
@@ -830,6 +923,7 @@ function scheduleLabel(schedule) {
 }
 
 .task-position {
+  position: relative;
   width: 58rpx;
   height: 58rpx;
   display: flex;
@@ -837,20 +931,39 @@ function scheduleLabel(schedule) {
   justify-content: center;
   flex: none;
   border-radius: 14rpx;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
   font-size: 24rpx;
   font-weight: 800;
 }
 
+.task-sequence {
+  position: absolute;
+  top: -7rpx;
+  right: -7rpx;
+  min-width: 25rpx;
+  height: 25rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4rpx;
+  border: 2rpx solid #FFFFFF;
+  border-radius: 8rpx;
+  background: var(--coral);
+  color: #FFFFFF;
+  font-size: 15rpx;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
 .task-position.done {
-  background: var(--accent);
+  background: var(--primary-strong);
   color: #FFFFFF;
 }
 
 .task-position.pending {
-  background: #FFF4D4;
-  color: #8A681E;
+  background: #FFF0ED;
+  color: #B84E45;
 }
 
 .task-copy {
@@ -880,16 +993,16 @@ function scheduleLabel(schedule) {
   font-weight: 720;
 }
 
-.task-state.completed { color: var(--accent-strong); }
+.task-state.completed { color: var(--primary-strong); }
 .task-state.pending_review,
-.task-state.correction_required { color: #9A6A22; }
+.task-state.correction_required { color: #B84E45; }
 
 .today-footer {
   display: flex;
   justify-content: space-between;
   gap: 12rpx;
   padding: 18rpx 22rpx 20rpx;
-  background: #F8FBFF;
+  background: #F7FCF9;
   color: var(--text-muted);
   font-size: 19rpx;
 }
@@ -899,14 +1012,14 @@ function scheduleLabel(schedule) {
   margin-top: 18rpx;
   padding: 26rpx;
   border: 1rpx solid var(--border);
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-sizing: border-box;
   box-shadow: var(--shadow-sm);
 }
 
 .learning-error-strip {
-  min-height: 112rpx;
+  min-height: 82rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -916,7 +1029,7 @@ function scheduleLabel(schedule) {
 }
 
 .learning-error-strip button {
-  min-height: 88rpx;
+  min-height: 68rpx;
   margin: 0;
   padding: 8rpx 24rpx;
   border-radius: 12rpx;
@@ -927,7 +1040,7 @@ function scheduleLabel(schedule) {
 }
 
 .status-card {
-  min-height: 132rpx;
+  min-height: 104rpx;
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -969,7 +1082,7 @@ function scheduleLabel(schedule) {
 }
 
 .status-badge.out {
-  color: #8A681E;
+  color: #B0574D;
 }
 
 .status-badge.leave {
@@ -984,7 +1097,7 @@ function scheduleLabel(schedule) {
 }
 
 .notify-strip {
-  min-height: 112rpx;
+  min-height: 90rpx;
   display: flex;
   align-items: center;
   gap: 18rpx;
@@ -1031,6 +1144,48 @@ function scheduleLabel(schedule) {
   color: var(--ink);
   font-size: 28rpx;
   font-weight: 750;
+}
+
+.card-title-wrap {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11rpx;
+}
+
+.card-title-icon {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1rpx solid transparent;
+  border-radius: 10rpx;
+}
+
+.card-title-icon.mint {
+  border-color: #BCE8D9;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.card-title-icon.yellow {
+  border-color: #BCE8D9;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.card-title-icon.coral {
+  border-color: #FFD0CB;
+  background: var(--coral-soft);
+  color: var(--danger);
+}
+
+.card-title-icon.sky {
+  border-color: #BCE8D9;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
 }
 
 .card-link,
@@ -1094,13 +1249,13 @@ function scheduleLabel(schedule) {
 
 .feedback-box {
   width: 100%;
-  min-height: 112rpx;
+  min-height: 92rpx;
   display: block;
   margin: 0 0 12rpx;
   padding: 19rpx;
-  border: 1rpx solid #D9E5F3;
+  border: 1rpx solid #CBEADD;
   border-radius: 14rpx;
-  background: #F8FBFF;
+  background: #F7FCF9;
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
@@ -1136,7 +1291,7 @@ function scheduleLabel(schedule) {
 
 .opinion-row {
   width: 100%;
-  min-height: 112rpx;
+  min-height: 88rpx;
   display: block;
   margin: 0;
   padding: 20rpx 0;
@@ -1157,15 +1312,15 @@ function scheduleLabel(schedule) {
 .opinion-status {
   padding: 5rpx 12rpx;
   border-radius: 8rpx;
-  background: #FFF4D4;
-  color: #8A681E;
+  background: var(--coral-soft);
+  color: #A9433B;
   font-size: 20rpx;
   font-weight: 700;
 }
 
 .opinion-status.approved {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
 }
 
 .opinion-status.rejected {
@@ -1190,10 +1345,10 @@ function scheduleLabel(schedule) {
   display: block;
   margin-top: 9rpx;
   padding: 12rpx 14rpx;
-  border-left: 5rpx solid var(--accent);
+  border-left: 5rpx solid var(--primary);
   border-radius: 0 9rpx 9rpx 0;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
   font-size: 22rpx;
   line-height: 1.55;
 }
@@ -1207,16 +1362,16 @@ function scheduleLabel(schedule) {
 
 .learning-shortcut,
 .tool-item {
-  min-height: 148rpx;
+  min-height: 118rpx;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   margin: 0;
-  padding: 20rpx;
-  border: 1rpx solid #D9E5F3;
+  padding: 16rpx;
+  border: 1rpx solid #CBEADD;
   border-radius: 15rpx;
-  background: #F8FBFF;
+  background: #F7FCF9;
   color: var(--ink);
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
@@ -1253,7 +1408,7 @@ function scheduleLabel(schedule) {
 }
 
 .service-title {
-  display: block;
+  display: flex;
   margin-bottom: 15rpx;
 }
 
@@ -1272,7 +1427,7 @@ function scheduleLabel(schedule) {
 
 .leave-date { color: var(--text-secondary); }
 .leave-status { color: var(--text-muted); }
-.leave-status.pending { color: #8A681E; }
+.leave-status.pending { color: #B0574D; }
 .leave-status.approved { color: var(--accent-strong); }
 .leave-status.rejected { color: #B0574D; }
 
@@ -1282,7 +1437,7 @@ function scheduleLabel(schedule) {
   z-index: 99;
   display: flex;
   align-items: flex-end;
-  background: rgba(36, 50, 74, .46);
+  background: rgba(30, 52, 43, .42);
   animation: modal-mask-enter var(--motion-base) ease-out both;
 }
 
@@ -1291,7 +1446,7 @@ function scheduleLabel(schedule) {
   max-height: 86vh;
   padding: 32rpx 30rpx calc(28rpx + env(safe-area-inset-bottom));
   overflow: hidden;
-  border-radius: 24rpx 24rpx 0 0;
+  border-radius: 16rpx 16rpx 0 0;
   background: #FFFFFF;
   box-sizing: border-box;
   box-shadow: var(--shadow-lg);
@@ -1322,11 +1477,11 @@ function scheduleLabel(schedule) {
 .pdf-btn,
 .feedback-submit {
   width: 100%;
-  min-height: 112rpx;
+  min-height: 88rpx;
   margin: 18rpx 0 0;
   border-radius: 14rpx;
-  background: var(--primary-strong);
-  color: #FFFFFF;
+  background: var(--primary);
+  color: #083F31;
   font-size: 27rpx;
   font-weight: 720;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
@@ -1349,9 +1504,9 @@ function scheduleLabel(schedule) {
   width: 100%;
   min-height: 160rpx;
   padding: 18rpx;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #BCE8D9;
   border-radius: 14rpx;
-  background: #FAFCFF;
+  background: #FBFEFC;
   box-sizing: border-box;
   color: var(--ink);
   font-size: 27rpx;
@@ -1360,7 +1515,7 @@ function scheduleLabel(schedule) {
 
 .modal-close {
   width: 100%;
-  min-height: 96rpx;
+  min-height: 82rpx;
   margin: 12rpx 0 0;
   border: 1rpx solid var(--border);
   border-radius: 13rpx;
@@ -1395,6 +1550,12 @@ function scheduleLabel(schedule) {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes progress-breathe {
+  0%,
+  100% { opacity: .42; transform: scale(.72); }
+  50% { opacity: .92; transform: scale(1); }
 }
 
 @keyframes modal-mask-enter {
@@ -1434,7 +1595,7 @@ function scheduleLabel(schedule) {
   }
 
   .mental-hero-mini {
-    min-height: 112rpx;
+    min-height: 108rpx;
   }
 
   .child-greeting {
@@ -1458,6 +1619,7 @@ function scheduleLabel(schedule) {
   .parent-nav-item,
   .guest-home button,
   .today-progress-fill,
+  .today-progress-fill::after,
   .today-task,
   .notify-strip,
   .schedule-card,

@@ -3,7 +3,7 @@
     <view class="brief-rail"></view>
     <view class="brief-main">
       <view class="brief-head">
-        <view class="brief-icon"><pp-icon name="clipboard" :size="38" /></view>
+        <view class="brief-icon"><pp-icon name="clipboard" :size="38" motion="breathe" /></view>
         <view class="brief-heading">
           <text class="brief-kicker">专属清单</text>
           <text class="brief-title">今日课后任务</text>
@@ -33,25 +33,24 @@ defineProps({
 .homework-brief {
   position: relative;
   display: flex;
-  min-height: 190rpx;
   margin: 22rpx 24rpx;
   overflow: hidden;
-  border: 1rpx solid #E8DFC8;
-  border-radius: 24rpx;
-  background: linear-gradient(145deg, #FFFDF7 0%, #FFF9EA 100%);
-  box-shadow: 0 12rpx 30rpx rgba(102, 80, 30, .07);
+  border: 1rpx solid #D9E7DF;
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  box-shadow: 0 5rpx 16rpx rgba(36, 48, 41, .055);
 }
-.brief-rail { width: 10rpx; flex-shrink: 0; background: linear-gradient(180deg, #E5B85B, #C98C32); }
-.brief-main { flex: 1; min-width: 0; padding: 26rpx 28rpx 24rpx; }
+.brief-rail { width: 10rpx; flex-shrink: 0; background: #20B486; }
+.brief-main { flex: 1; min-width: 0; padding: 22rpx 24rpx 20rpx; }
 .brief-head { display: flex; align-items: center; min-height: 64rpx; }
-.brief-icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 19rpx; background: #EAF3EF; }
+.brief-icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 12rpx; background: #E7F8F1; color: #15946D; }
 .brief-heading { flex: 1; min-width: 0; margin-left: 16rpx; }
-.brief-kicker { display: block; color: #9A6A22; font-size: 20rpx; font-weight: 650; letter-spacing: 2rpx; }
-.brief-title { display: block; margin-top: 1rpx; color: #2A3935; font-size: 30rpx; font-weight: 760; }
-.brief-date { margin-left: 14rpx; padding: 7rpx 12rpx; flex-shrink: 0; border-radius: 10rpx; background: rgba(229, 184, 91, .15); color: #8C652A; font-size: 21rpx; }
-.brief-rule { height: 1rpx; margin: 18rpx 0 15rpx; background: repeating-linear-gradient(90deg, #DCCBA5 0, #DCCBA5 10rpx, transparent 10rpx, transparent 20rpx); }
-.brief-content { display: block; color: #3F4D49; font-size: 28rpx; font-weight: 520; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
-.brief-empty-title { display: block; color: #5F6B67; font-size: 26rpx; font-weight: 620; line-height: 1.6; }
-.brief-empty-copy { display: block; margin-top: 3rpx; color: #929C98; font-size: 22rpx; line-height: 1.6; }
-.brief-class { display: block; margin-top: 14rpx; color: #9A7A43; font-size: 21rpx; }
+.brief-kicker { display: block; color: #15946D; font-size: 20rpx; font-weight: 680; letter-spacing: 0; }
+.brief-title { display: block; margin-top: 1rpx; color: #26352F; font-size: 30rpx; font-weight: 760; }
+.brief-date { margin-left: 14rpx; padding: 7rpx 12rpx; flex-shrink: 0; border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-size: 21rpx; }
+.brief-rule { height: 2rpx; margin: 16rpx 0 13rpx; background: repeating-linear-gradient(90deg, #20B486 0, #20B486 12rpx, transparent 12rpx, transparent 23rpx); }
+.brief-content { display: block; color: #26352F; font-size: 28rpx; font-weight: 520; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.brief-empty-title { display: block; color: #5A6A62; font-size: 26rpx; font-weight: 620; line-height: 1.6; }
+.brief-empty-copy { display: block; margin-top: 3rpx; color: #5A6A62; font-size: 22rpx; line-height: 1.6; }
+.brief-class { display: block; margin-top: 14rpx; color: #15946D; font-size: 21rpx; }
 </style>

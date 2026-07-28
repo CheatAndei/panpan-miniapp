@@ -3,6 +3,10 @@ const { getDB } = require('../db/init');
 const router = express.Router();
 const { authRequired: auth } = require('../middleware/auth');
 const { createExternalStudentId, withExternalStudentId } = require('../utils/student-identity');
+const {
+  teacherStudentRecords,
+  teacherStudentRecord,
+} = require('../services/student-learning-records');
 
 function shanghaiDate() {
   return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -15,6 +19,31 @@ function genCode(db) {
   while (db.get('SELECT id FROM students WHERE invite_code=?', [code]));
   return code;
 }
+
+router.get('/learning-records', auth, (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '仅教师可查看学习记录' });
+  const classId = Number(req.query.class_id || 0);
+  return res.json({
+    students: teacherStudentRecords(getDB(), {
+      teacherId: req.user.id,
+      classId: Number.isInteger(classId) && classId > 0 ? classId : null,
+    }),
+  });
+});
+
+router.get('/:id/learning-record', auth, (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '仅教师可查看学习记录' });
+  const studentId = Number(req.params.id);
+  if (!Number.isInteger(studentId) || studentId < 1) {
+    return res.status(400).json({ error: '学生编号无效' });
+  }
+  const record = teacherStudentRecord(getDB(), {
+    teacherId: req.user.id,
+    studentId,
+  });
+  if (!record) return res.status(404).json({ error: '学生不存在' });
+  return res.json(record);
+});
 
 router.get('/', auth, (req, res) => {
   const db = getDB();

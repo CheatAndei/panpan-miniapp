@@ -98,19 +98,21 @@ async function renderCategory(category, overrides = {}) {
   return { ...harness, module, filePath };
 }
 
-test('通用成就工作台使用浅蓝白校园文具风并保留三类选择', () => {
+test('通用成就工作台使用暖白青绿教学风并保留三类选择', () => {
   const page = read('pages/achievements/index.vue');
   assert.match(page, /PANPAN · LEARNING NOTES/);
-  assert.match(page, /#F6FAFF/);
-  assert.match(page, /#527CC9/);
-  assert.match(page, /#65BFA8/);
+  assert.match(page, /background-color:\s*var\(--page-bg\)/);
+  assert.match(page, /#F8FCF9/);
+  assert.match(page, /#20B486/);
+  assert.match(page, /#15946D/);
+  assert.match(page, /#26352F/);
   assert.match(page, /category-choice/);
   assert.match(page, /category-mental/);
   assert.match(page, /category-challenge/);
   assert.match(page, /选择刷题王/);
   assert.match(page, /口算王/);
   assert.match(page, /压轴挑战/);
-  assert.doesNotMatch(page, /#173A36|#183A36|#315D56|#2F7D6B/);
+  assert.doesNotMatch(page, /#173A36|#183A36|#315D56|#2F7D6B|#3268D6|#527CC9|#F2C94C|#FFC94A/);
 });
 
 test('工作台覆盖加载、空、错误、生成、保存、禁用与相册拒权恢复', () => {
@@ -125,7 +127,7 @@ test('工作台覆盖加载、空、错误、生成、保存、禁用与相册�
   assert.match(page, /scope\.writePhotosAlbum/);
   assert.match(page, /openAlbumSettings/);
   assert.match(page, /返回后会自动重试/);
-  assert.match(page, /min-height:\s*112rpx/);
+  assert.match(page, /\.student-challenge-page \.achievement-card,[\s\S]*?min-height:\s*0;/);
   assert.match(page, /prefers-reduced-motion:\s*reduce/);
 });
 
@@ -156,18 +158,18 @@ test('Canvas 保持 750×1000 到 1080×1440，并按三类应用独立浅色强
     assert.equal(rendered.getExportOptions().height, 1000);
     assert.equal(rendered.getExportOptions().destWidth, 1080);
     assert.equal(rendered.getExportOptions().destHeight, 1440);
-    assert.ok(rendered.colors.includes('#F6FAFF'));
+    assert.ok(rendered.colors.includes('#F8FCF9'));
     assert.ok(rendered.colors.includes('#FFFFFF'));
     assert.ok(rendered.texts.includes('陈同学'));
     assert.ok(rendered.texts.includes('真实学习数据 · 隐私友好展示'));
     assert.ok(rendered.texts.includes('扫码免费体验'));
   }
-  assert.ok(choice.colors.includes('#527CC9'));
-  assert.ok(choice.colors.includes('#65BFA8'));
-  assert.ok(mental.colors.includes('#315EA8'));
-  assert.ok(mental.colors.includes('#F4C75B'));
-  assert.ok(challenge.colors.includes('#D66D62'));
-  assert.ok(challenge.colors.includes('#FFF0ED'));
+  assert.ok(choice.colors.includes('#15946D'));
+  assert.ok(choice.colors.includes('#FF7468'));
+  assert.ok(mental.colors.includes('#20B486'));
+  assert.ok(mental.colors.includes('#D94B45'));
+  assert.ok(challenge.colors.includes('#D94B45'));
+  assert.ok(challenge.colors.includes('#E7F8F1'));
 });
 
 test('较长的成就指标按实际宽度截断，不会越出指标卡', async () => {

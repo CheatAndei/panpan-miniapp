@@ -12,14 +12,14 @@
     <pp-avatar v-if="user.role==='parent'" :name="studentName" :size="128" class="parent-avatar" />
     <image v-else-if="user.avatar_url && !teacherAvatarBroken" :src="user.avatar_url" class="teacher-avatar" mode="aspectFill" @error="teacherAvatarBroken=true" />
     <pp-avatar v-else :name="teacherDisplay" :size="128" class="teacher-avatar-fallback" />
-    <text class="name">{{ user.role==='teacher' ? teacherDisplay : (childName||'家长') }}</text>
+    <view class="name"><pp-icon :name="user.role==='teacher'?'pencil':'user'" :size="30" motion="pop" /><text>{{ user.role==='teacher' ? teacherDisplay : (childName||'家长') }}</text></view>
     <text class="role-tag">{{ user.role==='teacher' ? '教师端' : '家长端' }}</text>
     <text class="user-subtitle">{{ user.role==='teacher' ? '管理课程与家校反馈' : '查看孩子的学习动态' }}</text>
   </view>
 
   <!-- 家长：老师印象 -->
   <view class="card profile-section" v-if="user.role==='parent' && profile">
-    <text class="section-title">在老师印象中的孩子</text>
+    <view class="section-title"><pp-icon name="trophy" :size="28" /><text>在老师印象中的孩子</text></view>
 
     <!-- 人物 + 标签 -->
     <view class="character-area">
@@ -32,15 +32,15 @@
     <!-- 三个信息框 -->
     <view class="info-grid">
       <view class="info-box">
-        <view class="info-label">关于 TA</view>
+        <view class="info-label"><pp-icon name="user" :size="22" /><text>关于 TA</text></view>
         <text class="info-text">{{ profile.personality }}</text>
       </view>
       <view class="info-box">
-        <view class="info-label">学习优势</view>
+        <view class="info-label"><pp-icon name="trophy" :size="22" /><text>学习优势</text></view>
         <text class="info-text">{{ profile.strengths }}</text>
       </view>
       <view class="info-box">
-        <view class="info-label">成长空间</view>
+        <view class="info-label"><pp-icon name="target" :size="22" /><text>成长空间</text></view>
         <text class="info-text">{{ profile.weaknesses }}</text>
       </view>
     </view>
@@ -67,19 +67,19 @@
   </view>
 
   <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
-    <text class="section-title">老师资料</text>
+    <view class="section-title"><pp-icon name="pencil" :size="28" /><text>老师资料</text></view>
     <view class="form-field">
       <text class="field-label">老师名称</text>
       <input v-model="teacherNickname" class="input teacher-input" placeholder="例如：李老师" />
     </view>
     <view class="teacher-preview">家长将看到：{{ teacherDisplay }}</view>
-    <button class="btn-primary" :disabled="savingTeacher" @tap="saveTeacherName">{{ savingTeacher ? '保存中...' : '保存资料' }}</button>
+    <button class="btn-primary" :disabled="savingTeacher" @tap="saveTeacherName"><pp-icon name="check" :size="28" /><text>{{ savingTeacher ? '保存中...' : '保存资料' }}</text></button>
   </view>
 
   <view class="card notify-card" v-if="user.role==='teacher' && notifyStatus">
-    <text class="section-title">通知服务</text>
+    <view class="section-title"><pp-icon name="bell" :size="28" /><text>通知服务</text></view>
     <view class="service-health">
-      <view :class="['service-mark',{ok:notifyHealthy}]"><pp-icon name="bell" :size="42" /></view>
+      <view :class="['service-mark',{ok:notifyHealthy}]"><pp-icon name="bell" :size="40" :motion="notifyHealthy ? 'pop' : 'ring'" /></view>
       <view class="service-copy">
         <text class="service-title">{{ notifyHealthy ? '通知配置已就绪' : '部分通知尚未配置' }}</text>
         <text class="service-desc">{{ notifyHealthy ? '实际送达仍取决于家长是否完成本次订阅' : notifyMissingText }}</text>
@@ -97,10 +97,10 @@
   <view class="card maintenance-card" v-if="user.role==='teacher'">
     <view class="maintenance-head">
       <view>
-        <text class="section-title">维护模式</text>
+        <view class="section-title"><pp-icon name="lightbulb" :size="28" /><text>维护模式</text></view>
         <text class="maintenance-desc">开启后，家长进入新版小程序会看到维护页；教师端仍可使用。</text>
       </view>
-      <switch :checked="Boolean(maintenanceStatus.maintenance)" color="#527CC9" :disabled="savingMaintenance" @change="changeMaintenance" />
+      <switch :checked="Boolean(maintenanceStatus.maintenance)" color="#20B486" :disabled="savingMaintenance" @change="changeMaintenance" />
     </view>
     <view :class="['maintenance-state',{active:maintenanceStatus.maintenance}]">
       {{ maintenanceStatus.maintenance ? '当前已开启' : '当前未开启' }}
@@ -289,98 +289,106 @@ export default {
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding-bottom: calc(44rpx + env(safe-area-inset-bottom)); background: var(--page-bg); }
-.mine-state { margin: 150rpx 24rpx 0; border: 1rpx solid var(--border); border-radius: var(--r); background: var(--surface); box-shadow: var(--shadow-sm); }
+.page {
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
+  min-height: 100vh;
+  padding-bottom: calc(44rpx + env(safe-area-inset-bottom));
+  background: var(--panpan-paper);
+}
+.mine-state { margin: 110rpx 24rpx 0; border: 1rpx solid #CFE6D8; border-radius: 14rpx; background: #FFFFFF; box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06); }
 
 .user-card {
-  position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 54rpx 24rpx 44rpx;
-  border-bottom: 1rpx solid var(--hairline);
+  padding: 36rpx 24rpx 30rpx;
+  border-bottom: 1rpx solid #D4E9DC;
   background:
-    linear-gradient(rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
-    linear-gradient(150deg, #FFFFFF, var(--primary-soft));
-  background-size: 40rpx 40rpx, 40rpx 40rpx, auto;
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .055) 48rpx 49rpx),
+    linear-gradient(135deg, #FFFFFF 0 72%, #E7F8F1 100%);
   animation: mine-enter var(--motion-slow) var(--ease-out) both;
-}
-
-.user-card::after {
-  content: '';
-  position: absolute;
-  width: 190rpx;
-  height: 190rpx;
-  right: -74rpx;
-  top: -94rpx;
-  border-radius: 50%;
-  background: rgba(244, 199, 91, .25);
 }
 
 .parent-avatar,
 .teacher-avatar-fallback { margin-bottom: 8rpx; }
-.teacher-avatar { width: 128rpx; height: 128rpx; border: 4rpx solid #FFFFFF; border-radius: 34rpx; box-shadow: 0 12rpx 30rpx rgba(49, 94, 168, .15); }
-.name { margin-top: 16rpx; color: var(--ink); font-size: 38rpx; font-weight: 760; }
-.role-tag { margin-top: 10rpx; padding: 5rpx 16rpx; border-radius: var(--r-xs); background: var(--primary-soft); color: var(--primary-strong); font-size: 21rpx; font-weight: 680; letter-spacing: 1rpx; }
-.user-subtitle { margin-top: 8rpx; color: var(--text-muted); font-size: 24rpx; }
+.teacher-avatar { width: 120rpx; height: 120rpx; border: 4rpx solid #FFFFFF; border-radius: 14rpx; box-shadow: 0 10rpx 24rpx rgba(21, 148, 109, .16); }
+.name { display: flex; align-items: center; gap: 8rpx; margin-top: 14rpx; color: var(--panpan-ink); font-size: 36rpx; font-weight: 770; }
+.role-tag { margin-top: 8rpx; padding: 5rpx 14rpx; border: 1rpx solid rgba(32, 180, 134, .25); border-radius: 7rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 20rpx; font-weight: 700; letter-spacing: 0; }
+.user-subtitle { margin-top: 7rpx; color: var(--panpan-muted); font-size: 23rpx; }
 
-.card { animation: mine-card-enter var(--motion-slow) var(--ease-out) both; }
-.profile-section { margin-top: 22rpx; padding-bottom: 32rpx; }
-.section-title { display: block; margin-bottom: 24rpx; color: var(--ink); font-size: 30rpx; font-weight: 720; }
-.character-area { display: flex; align-items: flex-start; gap: 24rpx; margin-bottom: 32rpx; }
+.card {
+  margin: 14rpx 24rpx 0;
+  padding: 24rpx;
+  border: 1rpx solid #CFE6D8;
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
+  animation: mine-card-enter var(--motion-slow) var(--ease-out) both;
+}
+.profile-section { margin-top: 18rpx; border-top: 6rpx solid var(--panpan-sprout); }
+.section-title { display: flex; align-items: center; gap: 8rpx; margin-bottom: 19rpx; color: var(--panpan-ink); font-size: 29rpx; font-weight: 730; }
+.character-area { display: flex; align-items: flex-start; gap: 20rpx; margin-bottom: 25rpx; }
 .tag-cloud { flex: 1; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 12rpx; }
-.profile-tag { padding: 8rpx 18rpx; border-radius: var(--r-xs); background: var(--primary-soft); color: var(--primary-strong); font-size: 24rpx; font-weight: 620; }
+.profile-tag { padding: 7rpx 15rpx; border-radius: 8rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 23rpx; font-weight: 650; }
 .tag-c1,
-.tag-c4 { background: var(--success-soft); color: var(--success); }
+.tag-c4 { background: #E7F8F1; color: #15946D; }
 .tag-c2,
-.tag-c5 { background: var(--warning-soft); color: var(--warning); }
-.tag-c3 { background: var(--danger-soft); color: var(--danger); }
+.tag-c5 { background: #E7F8F1; color: #15946D; }
+.tag-c3 { background: #FFF0EE; color: #D94B45; }
 
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
-.info-box { padding: 24rpx; border: 1rpx solid var(--hairline); border-radius: var(--r-sm); background: var(--surface-muted); }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx 18rpx; }
+.info-box { padding: 13rpx 0 13rpx 15rpx; border-left: 5rpx solid var(--panpan-green); border-radius: 0; background: transparent; }
 .info-box:first-child { grid-column: 1 / -1; }
-.info-label { margin-bottom: 12rpx; color: var(--ink); font-size: 26rpx; font-weight: 700; }
-.info-text { color: var(--text-secondary); font-size: 26rpx; line-height: 1.7; }
-.empty-hint { padding: 30rpx; color: var(--text-muted); font-size: 28rpx; text-align: center; }
+.info-box:nth-child(2) { border-left-color: var(--panpan-leaf); }
+.info-box:nth-child(3) { border-left-color: var(--panpan-coral); }
+.info-label { display: flex; align-items: center; gap: 6rpx; margin-bottom: 7rpx; color: var(--panpan-ink); font-size: 25rpx; font-weight: 700; }
+.info-text { color: #5A6A62; font-size: 25rpx; line-height: 1.64; }
+.empty-hint { padding: 22rpx; color: var(--panpan-muted); font-size: 27rpx; text-align: center; }
 
 .actions,
 .notify-card { margin-top: 12rpx; }
-.bind-row { min-height: 92rpx; display: flex; align-items: center; justify-content: space-between; gap: 16rpx; padding: 14rpx 0; border-bottom: 1rpx solid var(--hairline); }
-.bind-row:last-of-type { border-bottom: 1rpx solid var(--hairline); }
+.bind-row { min-height: 80rpx; display: flex; align-items: center; justify-content: space-between; gap: 14rpx; padding: 10rpx 0; border-bottom: 1rpx solid #E0EEE5; }
+.bind-row:last-of-type { border-bottom: 1rpx solid #E0EEE5; }
 .bind-copy { flex: 1; min-width: 0; }
-.bind-name { display: block; color: var(--ink); font-size: 28rpx; font-weight: 700; }
-.bind-class { display: block; margin-top: 2rpx; color: var(--text-muted); font-size: 24rpx; line-height: 1.5; }
-.btn-unbind { min-height: 62rpx; margin: 0; padding: 8rpx 16rpx; border: none; border-radius: var(--r-xs); background: var(--danger-soft); color: var(--danger); font-size: 24rpx; line-height: 1.4; transition: transform var(--motion-fast) var(--ease-out); }
+.bind-name { display: block; color: var(--panpan-ink); font-size: 27rpx; font-weight: 700; }
+.bind-class { display: block; margin-top: 2rpx; color: var(--panpan-muted); font-size: 23rpx; line-height: 1.48; }
+.btn-unbind { min-height: 58rpx; margin: 0; padding: 6rpx 14rpx; border: 1rpx solid rgba(255, 116, 104, .28); border-radius: 8rpx; background: #FFF0EE; color: #D94B45; font-size: 23rpx; line-height: 1.4; transition: transform var(--motion-fast) var(--ease-out); }
 .btn-unbind:active { transform: scale(var(--tap-scale)); }
 .btn-unbind::after { border: 0; }
 
-.action-row { min-height: 82rpx; display: flex; align-items: center; justify-content: space-between; padding: 8rpx 0; color: var(--ink); font-size: 28rpx; transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out); }
+.action-row { min-height: 72rpx; display: flex; align-items: center; justify-content: space-between; padding: 7rpx 0; color: var(--panpan-ink); font-size: 27rpx; transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out); }
 .action-row:active { transform: scale(var(--tap-scale)); opacity: .88; }
 .action-copy { display: flex; align-items: center; gap: 14rpx; font-weight: 620; }
-.action-danger { color: var(--danger); }
+.action-danger { color: #D94B45; }
 
 .form-field { margin: 20rpx 0; }
-.field-label { display: block; margin-bottom: 10rpx; color: var(--text-secondary); font-size: 25rpx; font-weight: 680; }
-.input { min-height: 92rpx; box-sizing: border-box; margin: 0; padding: 0 24rpx; border: 1rpx solid #D6E2F1; border-radius: var(--r-sm); background: var(--surface-muted); color: var(--ink); font-size: 31rpx; line-height: 92rpx; }
+.field-label { display: block; margin-bottom: 8rpx; color: #5A6A62; font-size: 24rpx; font-weight: 680; }
+.input { min-height: 84rpx; box-sizing: border-box; margin: 0; padding: 0 18rpx; border: 1rpx solid #CFE6D8; border-radius: 10rpx; background: #F8FCF9; color: var(--panpan-ink); font-size: 29rpx; line-height: 84rpx; }
 .teacher-input { width: 100%; }
-.teacher-preview { margin: 2rpx 0 18rpx; padding: 18rpx 20rpx; border-radius: var(--r-sm); background: var(--primary-soft); color: var(--primary-strong); font-size: 26rpx; line-height: 1.6; }
-.btn-primary { width: 100%; min-height: 96rpx; margin-bottom: 10rpx; }
+.teacher-preview { margin: 2rpx 0 16rpx; padding: 14rpx 16rpx; border-left: 5rpx solid var(--panpan-leaf); border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-size: 25rpx; line-height: 1.55; }
+.btn-primary { width: 100%; min-height: 86rpx; display: flex; align-items: center; justify-content: center; gap: 8rpx; margin: 0 0 8rpx; border-radius: 11rpx; background: var(--panpan-green-strong); color: #FFFFFF; font-size: 26rpx; font-weight: 720; box-shadow: 0 8rpx 18rpx rgba(21, 148, 109, .18); }
+.btn-primary::after { border: 0; }
 
-.service-health { display: flex; align-items: center; gap: 18rpx; padding: 20rpx; border: 1rpx solid var(--hairline); border-radius: var(--r-sm); background: var(--surface-muted); }
-.service-mark { width: 70rpx; height: 70rpx; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: var(--warning-soft); }
-.service-mark.ok { background: var(--success-soft); }
+.service-health { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 0 14rpx 16rpx; border-left: 5rpx solid var(--panpan-sprout); border-radius: 0; background: transparent; }
+.service-mark { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; border-radius: 12rpx; background: #E7F8F1; }
+.service-mark.ok { background: #E7F8F1; }
 .service-copy { flex: 1; }
-.service-title { display: block; color: var(--ink); font-size: 27rpx; font-weight: 680; }
-.service-desc { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 23rpx; line-height: 1.55; }
+.service-title { display: block; color: var(--panpan-ink); font-size: 26rpx; font-weight: 680; }
+.service-desc { display: block; margin-top: 3rpx; color: var(--panpan-muted); font-size: 22rpx; line-height: 1.52; }
 
 .maintenance-head { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; }
 .maintenance-head > view { flex: 1; min-width: 0; }
-.maintenance-desc { display: block; margin-top: 8rpx; color: var(--text-muted); font-size: 23rpx; line-height: 1.55; }
-.maintenance-state { display: inline-flex; margin-top: 18rpx; padding: 7rpx 15rpx; border-radius: var(--r-xs); background: var(--surface-muted); color: var(--text-muted); font-size: 22rpx; font-weight: 650; }
-.maintenance-state.active { background: var(--warning-soft); color: var(--warning); }
-.brand { padding: 30rpx 0 calc(18rpx + env(safe-area-inset-bottom)); color: var(--faint); font-size: 22rpx; text-align: center; }
+.maintenance-desc { display: block; margin-top: 7rpx; color: var(--panpan-muted); font-size: 22rpx; line-height: 1.52; }
+.maintenance-state { display: inline-flex; margin-top: 15rpx; padding: 6rpx 13rpx; border-radius: 7rpx; background: #E7F8F1; color: #15946D; font-size: 21rpx; font-weight: 680; }
+.maintenance-state.active { background: #FFF0EE; color: #D94B45; }
+.brand { padding: 26rpx 0 calc(16rpx + env(safe-area-inset-bottom)); color: #5A6A62; font-size: 21rpx; text-align: center; }
 
 @keyframes mine-enter {
   from { opacity: 0; transform: translateY(-10rpx); }

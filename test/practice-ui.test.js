@@ -42,7 +42,7 @@ test('家长页领取结构化题目并上传照片', () => {
   assert.match(parent, /assignment\.items/);
   assert.match(parent, /chooseMedia|chooseImage/);
   assert.match(parent, /\/practice\/assignments\/\$\{assignment\.value\.id\}\/upload/);
-  assert.match(parent, /min-height:92rpx/);
+  assert.match(parent, /\.primary-btn\s*\{\s*min-height:\s*86rpx/u);
   assert.doesNotMatch(parent, /难度 \{\{ item\.difficulty \}\}/);
   assert.match(parent, /照片会对应今天题单和标准答案/);
   assert.match(parent, /open-type="share"/);
@@ -139,7 +139,7 @@ test('教师首页初次加载和失败时不会误报待办已清', () => {
   assert.match(teacherHome, /v-else-if="error"/);
   assert.match(teacherHome, /title="今日教务加载失败"/);
   assert.match(teacherHome, /@action="\$emit\('reload'\)"/);
-  assert.match(teacherHome, /\.todo-row\s*\{[\s\S]*?min-height:\s*112rpx/u);
+  assert.match(teacherHome, /\.todo-row\s*\{[\s\S]*?min-height:\s*82rpx/u);
 });
 
 test('教师端独立轮询学生打卡并在到件时明确提醒', () => {

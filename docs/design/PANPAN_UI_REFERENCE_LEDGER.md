@@ -1,17 +1,18 @@
 # 番番记录 UI 外部参考账本
 
 更新日期：2026-07-28  
-适用范围：`teach/panpan` 全部 40 个小程序页面、共用组件与打卡/成就海报工作台。
+适用范围：`teach/panpan` 全部 41 个小程序页面、共用组件与打卡/成就海报工作台。
 
 ## 本轮视觉决策
 
-**清爽校园文具 × 教师高效率 × 家长安心 × 学习区轻活力**
+**暖白作业纸 × 潘潘老师数学记录 × 明亮学习活力**
 
-- 主界面以浅蓝白纸张、墨蓝文字、薄荷绿完成态、阳光黄奖励态和珊瑚橙提醒态为主，不再使用大面积深绿色。
+- 主界面收敛为暖白作业纸、明亮青绿和少量珊瑚红：青绿承担品牌、主行动、进度与学习数据，珊瑚只承担提醒、纠错、老师反馈和少数高价值亮点；蓝色与黄色退出大卡底色、主按钮、主图标和装饰条。
+- 视觉主体不是通用教育后台，而是“潘潘老师正在记录、批改并陪学生练数学”：练习纸横线、批改记号、题号、进度与老师签名成为跨页面识别线索。
 - 教师端先呈现高频动作和待办，信息密度高但层级清楚。
 - 家长端围绕“孩子今天怎么样、接下来做什么、最近有何进步”组织连续阅读，减少后台感。
-- 学生学习与挑战页允许更活泼的进度、徽章和一次性庆祝，但不牺牲可读性，不使用持续漂浮或大面积深色底。
-- 打卡与成就海报可保留独立主题；编辑、预览、保存工作台仍采用浅色教育底座。
+- 学生学习与挑战页通过图标、进度、徽章、短促入场和一次性庆祝获得活力，不通过四色卡片拼贴；不牺牲可读性，不使用大幅漂浮或大面积深色底。
+- 公开成就/宣传海报继续匿名化；老师私发家长的批改海报不再重复书写隐私说明，底栏改为随机鼓励与老师签名。
 
 ## 灵感来源
 
@@ -19,23 +20,34 @@
 
 | 来源 | 访问日期 | 本项目取用 | 明确不取用 |
 |---|---|---|---|
-| [Mobbin](https://mobbin.com/) | 2026-07-28 | 移动端完整流程、列表到详情、筛选、进度、弹窗、空状态与底部操作区 | 不照搬具体 App 的品牌、文案、图标或像素布局 |
-| [CTA.gallery](https://www.cta.gallery/) | 2026-07-28 | 保存、提交、重试、确认、下载等动作的主次层级；表单与弹窗的行动闭环 | 不把营销页的夸张转化手法套入家校沟通 |
+| [Mobbin：Overview](https://docs.mobbin.com/) | 2026-07-28 | 以真实移动产品完整流程检查列表到详情、筛选、进度、弹窗、空状态与底部操作区 | 不照搬具体 App 的品牌、文案、图标或像素布局 |
+| [CTA.gallery：Mobile App](https://www.cta.gallery/industry/mobile-app) | 2026-07-28 | 移动 App 的保存、提交、重试、确认、下载等动作主次；表单与弹窗的行动闭环 | 不把营销页的夸张转化手法套入家校沟通 |
 | [Tubik Studio：Abuk](https://tubikstudio.com/works/abuk) | 2026-07-28 | 教育阅读产品的跨设备一致性、清晰可读的移动信息层级与品牌统一 | 不复制插画、角色、商标与案例画面 |
 | [Tubik Studio：Evergreen Nexus University](https://tubikstudio.com/works/evergreen-nexus-university) | 2026-07-28 | 面向多年龄段的友好、清楚、功能型教育视觉；自定义视觉内容与克制动效 | 不采用大面积宣传页构图替代任务型小程序结构 |
-| [Recent](https://recent.design/) | 2026-07-28 | 用于核对当前界面、品牌、动效与排版趋势，避免视觉显旧 | 不将趋势当作可用性证据，不追逐短期装饰风格 |
-| [Pinterest](https://www.pinterest.com/) | 2026-07-28 | 校园文具、练习册、成长记录与浅色教育氛围的情绪板交叉验证 | 不直接采用来源不明素材，不以收藏热度代替产品判断 |
-| [Land-book](https://land-book.com/) | 2026-07-28 | 仅用于宣传海报、成就海报和公开展示页的版式节奏 | 不用于批改、打卡、反馈、请假等核心任务流程 |
+| [Recent：Aave Auto Saver Flow](https://recent.design/i/9v93bo5-aave-auto-saver-flow) | 2026-07-28 | 浅色移动界面中用短促状态过渡表达进度，用于孩子切换、保存和完成反馈的动效校准 | 不将趋势当作可用性证据，不复制品牌与具体画面 |
+| [Pinterest](https://www.pinterest.com/) | 沿用边界，未计入本轮直接证据 | 校园文具、练习册、成长记录的补充检索入口 | 不直接采用来源不明素材，不以收藏热度代替产品判断 |
+| [Land-book](https://land-book.com/) | 沿用边界，未计入本轮直接证据 | 仅作为公开宣传页/公开海报的补充检索入口 | 不用于批改、打卡、反馈、请假等核心任务流程 |
 
 ## 支撑证据
 
 支撑证据与灵感来源分开记录。下列内容只用于说明为何这样分工，不用于要求页面复刻：
 
-- Mobbin 公开页面按 Pattern、Screen、Flow 组织真实移动产品界面，适合作为小程序流程完整性检查入口。
-- CTA.gallery 公开分类覆盖 Button、Form、Modal/Pop-up、Navigation、Download 等行动模块，适合检查“保存—确认—结果”的动作层级。
+- Mobbin 的设计参考入口强调真实产品界面与流程，适合作为小程序流程完整性、渐进展开和列表到详情的检查入口。
+- CTA.gallery 的 Mobile App 分类聚合移动端行动界面，适合检查“保存—确认—结果”的动作层级。
 - Tubik 的 Abuk 与 Evergreen Nexus University 均为教育场景案例，强调可读性、一致性、友好而功能性的表达，适合建立番番记录的教育品牌语气。
-- Recent 与 Pinterest 是视觉探索入口，只用于交叉验证风格方向。
-- Land-book 以落地页案例为主，因此只路由到海报和公开展示场景。
+- Recent 的浅色移动微交互案例只用于校准短促、可中断的状态过渡，不作为视觉照搬依据。
+- Pinterest 与 Land-book 本轮不计入已浏览的最低三来源证据，只保留后续素材探索和公开页路由边界。
+
+## 来源到代码的追踪映射
+
+| 来源 | 设计决策 | 组件 / 页面落点 |
+|---|---|---|
+| Mobbin | 教师先看待办与快捷动作；学习记录从学生索引渐进进入个人数据与题库；最近记录只露出 3 份再展开 | `components/home/TeacherHomeView.vue`、`pages/student-records/index.vue`、`pages/practice-review/index.vue` |
+| CTA.gallery | 每个阶段保留明确主行动；预览、保存、重试、确认修改分层；失败不伪装为空状态 | `pages/practice-review/index.vue`、`pages/practice-parent/index.vue`、`components/pp-state/pp-state.vue` |
+| Tubik / Abuk | 同一套浅色教育品牌贯穿身份入口、教师、家长和共用组件；图标本地化、文字优先可读 | `App.vue`、`components/home/HomeWelcome.vue`、`components/pp-avatar/pp-avatar.vue`、`components/pp-question-reader/pp-question-reader.vue` |
+| Tubik / Evergreen Nexus University | 教师运营页保持友好但功能型，以扫描效率而非装饰为先 | `pages/teacher-classes/index.vue`、`pages/teacher-feedback/index.vue`、`pages/teacher-schedule/index.vue`、`pages/teacher-checkin/index.vue`、`pages/student-detail/index.vue` |
+| Recent / Aave Auto Saver Flow | 学生挑战页和保存反馈使用浅底、清楚进度、短促状态过渡；色彩收敛到青绿与珊瑚，不使用沉重暗底、四色拼贴或幼儿化装饰 | `pages/choice-king*`、`pages/mental-arena/*`、`pages/learning-session/index.vue`、`pages/weekly-challenge/index.vue`、`pages/knowledge-challenge/index.vue` |
+| 本轮用户实拍反馈 | 全局统一 `border-box` 与原生按钮垂直居中，修复按钮/答案卡/状态卡/空照片区被固定高度撑出的白块；批改图保留独立缩放位移并启用惯性回弹；蓝黄退出可见主色与 Canvas 输出；功能图标加入语义动效 | `App.vue`、`components/pp-state/pp-state.vue`、`components/pp-icon/pp-icon.vue`、`components/home/ParentHomeView.vue`、`components/home/TeacherHomeView.vue`、`pages/learning-center/index.vue`、`pages/practice-review/index.vue`、`utils/practice-review-poster.js`、`utils/mental-arena-poster.js`、`utils/promotion-poster.js`、`utils/achievement-poster.js`、`utils/feedback-card.js` |
 
 ## 角色与页面映射
 
@@ -60,30 +72,30 @@
 ### 学生学习与挑战
 
 - 页面：学习会话、练习、成长、成就、口算竞技、选择题王、周挑战、知识点闯关及结果/排行页。
-- 采用：Mobbin 的进度与结果流程 + Recent/Pinterest 的轻活力氛围交叉验证。
-- 重点：题目、输入和反馈高对比；阳光黄/薄荷绿承担奖励；庆祝为一次性且支持 reduced-motion；排行和结果页移除大面积深色底。
+- 采用：Mobbin 的进度与结果流程 + Recent 的轻量状态动效 + Tubik 的教育可读性。
+- 重点：题目、输入和反馈高对比；青绿承担学习进度，珊瑚承担纠错和结果提醒；庆祝为一次性且支持 reduced-motion；排行和结果页移除大面积深色底与蓝黄拼色卡。
 
 ### 海报与保存工作台
 
 - 页面：宣传海报、打卡海报、批改海报、成就海报及其编辑/预览/保存状态。
 - 采用：Land-book 的版式节奏 + CTA.gallery 的预览、保存、失败重试闭环。
-- 重点：海报成品允许独立深浅主题；工作台保持浅色；打卡海报保护学生隐私；编辑后清除旧缓存并重新生成。
+- 重点：公开海报继续匿名化；批改海报以作业证据、结果、数据、随机评语为主，底栏只放鼓励语与“XX老师批改”；编辑后清除旧缓存并重新生成。
 
 ## 组件翻译规则
 
-- 顶部：白色或极浅蓝页头，短标题 + 当前对象/上下文；避免大块品牌色 Hero。
+- 顶部：暖白或极浅绿作业纸页头，短标题 + 当前对象/上下文；避免大块深色品牌 Hero。
 - 卡片：按“任务、记录、提醒、结果”区分结构，不把所有内容做成同一种圆角卡。
-- 主行动：每个视口原则上只有一个高对比蓝色主按钮；完成使用薄荷绿，警告使用珊瑚橙，奖励使用阳光黄。
+- 主行动：每个视口原则上只有一个青绿主按钮；完成、数据与链接使用青绿，警告、纠错与老师消息使用珊瑚；黄色和蓝色不再承担界面层级。
 - 列表：重要状态靠左或靠标题，次要时间/标签后置；行高满足触控，长内容支持展开。
 - 弹窗：标题先说明影响，正文说明不可逆/联动结果，主次按钮位置和文案一致。
-- 动效：120–260ms 的按压、切换、弹层和状态反馈；不使用无意义循环动画；支持 reduced-motion。
+- 动效：120–600ms 的按压、切换、弹层和结果反馈；`pp-icon` 的 `pop/ring/shine/breathe/bob` 只绑定完成、提醒、奖励、目标和当前任务，避免所有卡片同时循环；支持 reduced-motion。
 
 ## 验收
 
-- 40 个注册页面均使用全局浅色教育 tokens，主流程不存在大面积深绿色。
+- 41 个注册页面均使用全局浅色教育 tokens，主流程不存在大面积深蓝、黄色奖励卡或蓝黄绿拼贴。
 - 家长、教师、学生三个角色有明显但一致的节奏差异。
-- 教师首页快捷工作置顶；批改台最近四份可展开并横向滑动。
+- 教师首页快捷工作置顶并新增“学生记录”；批改台最近三份可展开并横向滑动。
 - 作业照片在真机可自然缩放、拖动、复位和多图切换，不与页面/轮播手势冲突。
+- 批改海报全对、有错和底栏鼓励各有 100 条唯一文案，同一洗牌周期内不重复；右下角显示老师签名。
 - 保存、提交、重试、确认、预览的主次层级一致。
-- 320 / 390 / 430px 等效宽度无横向溢出；状态、触控、reduced-motion 和真机手势通过验收。
-
+- 390×844、768×1024、1440×900 无横向溢出；补查 320 / 430px 等效宽度；状态、触控、reduced-motion 和真机手势通过验收。

@@ -1,16 +1,16 @@
 <template>
-  <view class="session-page">
+  <view class="session-page student-challenge-page">
     <pp-state v-if="loading" type="loading" title="正在准备题目" description="题目只会在服务端判定，练习中不会显示答案。" />
     <pp-state v-else-if="error && !attempt" type="error" title="题目加载失败" :description="error" action-text="重新加载" @action="loadAttempt" />
 
     <template v-else-if="attempt && attempt.status !== 'completed'">
       <view class="session-head">
         <view class="head-copy">
-          <text class="head-kicker">{{ attempt.task_title }}</text>
+          <view class="head-title-row"><pp-icon name="pencil" :size="28" motion="pop" :delay="80" /><text class="head-kicker">{{ attempt.task_title }}</text></view>
           <text class="head-count"><text class="num">{{ currentIndex + 1 }}</text> / {{ attempt.total_questions }}</text>
         </view>
         <view class="head-actions">
-          <text class="head-time num">{{ elapsedLabel }}</text>
+          <view class="head-time num"><pp-icon name="history" :size="26" motion="breathe" :delay="160" /><text>{{ elapsedLabel }}</text></view>
           <button class="exit-btn" @tap="confirmExit">暂存退出</button>
         </view>
       </view>
@@ -18,7 +18,7 @@
 
       <view v-if="currentQuestion" class="question-stage">
         <view class="question-meta">
-          <text class="question-type">{{ currentQuestion.type || '综合计算' }}</text>
+          <view class="question-type-row"><pp-icon name="calculator" :size="26" motion="bob" :delay="240" /><text class="question-type">{{ currentQuestion.type || '综合计算' }}</text></view>
           <text class="question-position">第 {{ currentIndex + 1 }} 题</text>
         </view>
         <pp-math-text class="question-stem" :value="currentQuestion.stem" align="center" />
@@ -50,6 +50,7 @@
     <template v-else-if="attempt">
       <scroll-view scroll-y class="result-scroll">
         <view class="result-hero">
+          <view class="result-icon"><view class="result-icon-mark"><pp-icon name="trophy" :size="48" motion="shine" :delay="80" /></view></view>
           <text class="result-kicker">练习完成</text>
           <text class="result-score num">{{ attempt.score }}</text>
           <text class="result-unit">分</text>
@@ -58,7 +59,7 @@
 
         <view class="result-card">
           <view class="result-head">
-            <text class="result-title">逐题结果</text>
+            <view class="result-title-row"><pp-icon name="report" :size="28" motion="pop" :delay="180" /><text class="result-title">逐题结果</text></view>
             <text class="result-correct">正确率 {{ attempt.score }}%</text>
           </view>
           <view v-for="item in attempt.answers" :key="item.question_id" :class="['answer-row',{wrong:!item.is_correct}]">
@@ -73,7 +74,7 @@
         </view>
 
         <view class="result-note">
-          <pp-icon name="message" :size="38" />
+          <pp-icon name="message" :size="38" motion="ring" :delay="260" />
           <text>本次错题已自动进入错题本；同类题连续答对 2 次后会标记为已掌握。</text>
         </view>
         <button class="done-btn" @tap="finish">返回学习中心</button>
@@ -239,116 +240,46 @@ function finish() {
 </script>
 
 <style scoped>
-.session-page{min-height:100vh;background:linear-gradient(180deg,#F7FAF8 0%,#EEF5F2 100%);box-sizing:border-box}.session-head{display:flex;align-items:flex-end;justify-content:space-between;padding:34rpx 30rpx 18rpx}.head-kicker{display:block;color:var(--accent-strong);font-size:22rpx;font-weight:750;letter-spacing:1rpx}.head-count{display:block;margin-top:4rpx;color:var(--ink);font-size:30rpx;font-weight:700}.head-count .num{font-size:40rpx}.head-actions{display:flex;align-items:center;gap:12rpx}.head-time{color:var(--text-muted);font-size:26rpx;font-weight:650}.exit-btn{min-height:58rpx;margin:0;padding:0 16rpx;border:1rpx solid var(--border);border-radius:11rpx;background:#fff;color:var(--text-secondary);font-size:21rpx;font-weight:650}.exit-btn::after{border:0}.progress-track{height:8rpx;margin:0 30rpx;border-radius:999rpx;background:#DCE8E4;overflow:hidden}.progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#2F7D6B,#66A997);transition:width .22s ease-out}.question-stage{margin:40rpx 24rpx 0;padding:34rpx 30rpx 38rpx;border:1rpx solid var(--border);border-radius:28rpx;background:#fff;box-shadow:0 18rpx 48rpx rgba(24,58,54,.09)}.question-meta{display:flex;align-items:center;justify-content:space-between}.question-type{padding:7rpx 14rpx;border-radius:9rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:21rpx;font-weight:700}.question-position{color:var(--text-muted);font-size:22rpx}.question-stem{display:block;min-height:190rpx;padding:60rpx 6rpx 34rpx;color:var(--ink);font-size:42rpx;font-weight:720;line-height:1.55;text-align:center;word-break:break-word}.answer-block{padding-top:28rpx;border-top:1rpx solid var(--hairline)}.answer-label{display:block;margin-bottom:10rpx;color:var(--text-secondary);font-size:24rpx;font-weight:700}.answer-input{height:104rpx;padding:0 24rpx;border:2rpx solid #BFD2CC;border-radius:18rpx;background:#FAFCFB;color:var(--ink);font-size:36rpx;font-weight:680;text-align:center;box-sizing:border-box}.answer-input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 6rpx rgba(47,125,107,.08)}.answer-tip{display:block;margin-top:10rpx;color:var(--faint);font-size:21rpx;text-align:center}.session-actions{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:190rpx 1fr;gap:14rpx;padding:20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));background:rgba(247,250,248,.96);border-top:1rpx solid var(--border);backdrop-filter:blur(14px)}.previous-btn,.next-btn{min-height:92rpx;border-radius:16rpx;font-size:28rpx;font-weight:700}.previous-btn{border:1rpx solid #BFD2CC;background:#fff;color:var(--text-secondary)}.next-btn{background:var(--primary);color:#fff;box-shadow:0 10rpx 24rpx rgba(24,58,54,.15)}.result-scroll{height:100vh}.result-hero{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;padding:58rpx 30rpx 48rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.result-kicker{width:100%;margin-bottom:2rpx;color:#B8DDD3;font-size:22rpx;font-weight:750;letter-spacing:3rpx;text-align:center}.result-score{font-size:112rpx;font-weight:820;line-height:1.1}.result-unit{margin-left:8rpx;font-size:28rpx}.result-summary{width:100%;margin-top:8rpx;color:#D7EBE5;font-size:25rpx;text-align:center}.result-card{margin:22rpx 24rpx;padding:28rpx;border:1rpx solid var(--border);border-radius:24rpx;background:#fff;box-shadow:var(--shadow-sm)}.result-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:18rpx;border-bottom:1rpx solid var(--hairline)}.result-title{font-size:30rpx;font-weight:740}.result-correct{color:var(--accent-strong);font-size:23rpx;font-weight:700}.answer-row{display:flex;gap:16rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.answer-row:last-child{border-bottom:0}.answer-mark{width:48rpx;height:48rpx;flex:none;display:flex;align-items:center;justify-content:center;border-radius:14rpx;background:var(--danger-soft);color:var(--danger);font-size:23rpx;font-weight:800}.answer-mark.ok{background:var(--success-soft);color:var(--success)}.answer-copy{flex:1;min-width:0}.answer-stem{display:block;color:var(--ink);font-size:26rpx;font-weight:650;line-height:1.55}.answer-given,.answer-correct{display:block;margin-top:5rpx;color:var(--text-muted);font-size:23rpx}.answer-correct{color:var(--danger);font-weight:650}.result-note{display:flex;gap:14rpx;margin:0 24rpx;padding:22rpx;border-radius:18rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:23rpx;line-height:1.65}.done-btn{min-height:92rpx;margin:22rpx 24rpx calc(38rpx + env(safe-area-inset-bottom));border-radius:16rpx;background:var(--primary);color:#fff;font-size:29rpx;font-weight:720}
-.question-report{min-height:56rpx;margin:10rpx auto 0;padding:0 12rpx;background:transparent;color:var(--text-muted);font-size:20rpx;text-decoration:underline}.question-report::after{border:0}.result-report{margin:7rpx 0 0;padding:0;text-align:left}
+.session-page{min-height:100vh;box-sizing:border-box}.session-head{display:flex;align-items:flex-end;justify-content:space-between;padding:34rpx 30rpx 18rpx}.head-kicker{display:block;font-size:22rpx;font-weight:750}.head-count{display:block;margin-top:4rpx;font-size:30rpx;font-weight:700}.head-count .num{font-size:40rpx}.head-actions{display:flex;align-items:center;gap:12rpx}.head-time{font-size:26rpx;font-weight:650}.exit-btn{min-height:58rpx;margin:0;padding:0 16rpx;font-size:21rpx;font-weight:650}.progress-track{height:8rpx;margin:0 30rpx;overflow:hidden}.progress-fill{height:100%}.question-stage{margin:40rpx 24rpx 0;padding:34rpx 30rpx 38rpx}.question-meta{display:flex;align-items:center;justify-content:space-between}.question-type{padding:7rpx 14rpx;font-size:21rpx;font-weight:700}.question-position{font-size:22rpx}.question-stem{display:block;min-height:190rpx;padding:60rpx 6rpx 34rpx;font-size:42rpx;font-weight:720;line-height:1.55;text-align:center;word-break:break-word}.answer-block{padding-top:28rpx}.answer-label{display:block;margin-bottom:10rpx;font-size:24rpx;font-weight:700}.answer-input{height:104rpx;padding:0 24rpx;font-size:36rpx;font-weight:680;text-align:center;box-sizing:border-box}.answer-tip{display:block;margin-top:10rpx;font-size:21rpx;text-align:center}.session-actions{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:190rpx 1fr;gap:14rpx;padding:20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));backdrop-filter:blur(14px)}.previous-btn,.next-btn{min-height:92rpx;font-size:28rpx;font-weight:700}.result-scroll{height:100vh}.result-hero{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;padding:58rpx 30rpx 48rpx}.result-kicker{width:100%;margin-bottom:2rpx;font-size:22rpx;font-weight:750;text-align:center}.result-score{font-size:112rpx;font-weight:820;line-height:1.1}.result-unit{margin-left:8rpx;font-size:28rpx}.result-summary{width:100%;margin-top:8rpx;font-size:25rpx;text-align:center}.result-card{margin:22rpx 24rpx;padding:28rpx}.result-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:18rpx}.result-title{font-size:30rpx;font-weight:740}.result-correct{font-size:23rpx;font-weight:700}.answer-row{display:flex;gap:16rpx;padding:22rpx 0}.answer-mark{width:48rpx;height:48rpx;flex:none;display:flex;align-items:center;justify-content:center;font-size:23rpx;font-weight:800}.answer-copy{flex:1;min-width:0}.answer-stem{display:block;font-size:26rpx;font-weight:650;line-height:1.55}.answer-given,.answer-correct{display:block;margin-top:5rpx;font-size:23rpx}.answer-correct{font-weight:650}.result-note{display:flex;gap:14rpx;margin:0 24rpx;padding:22rpx;font-size:23rpx;line-height:1.65}.done-btn{min-height:92rpx;margin:22rpx 24rpx calc(38rpx + env(safe-area-inset-bottom));font-size:29rpx;font-weight:720}
+.question-report{min-height:56rpx;margin:10rpx auto 0;padding:0 12rpx;font-size:20rpx;text-decoration:underline}.result-report{margin:7rpx 0 0;padding:0;text-align:left}
 .question-stem,.answer-stem{display:flex}.answer-given,.answer-correct{display:flex;align-items:center;flex-wrap:wrap;gap:5rpx}.answer-inline{width:auto;flex:none}
 
 /* 浅色校园学习场景：题目始终是页面的最高视觉层级。 */
 .session-page {
   padding-bottom: calc(156rpx + env(safe-area-inset-bottom));
-  background:
-    linear-gradient(rgba(82, 124, 201, .035) 1rpx, transparent 1rpx),
-    var(--page-bg);
-  background-size: 100% 56rpx, auto;
-  color: var(--ink);
 }
 
 .session-head {
   align-items: center;
   padding: 28rpx 28rpx 18rpx;
-  border-bottom: 1rpx solid var(--hairline);
-  background: rgba(255, 255, 255, .94);
 }
-
-.head-kicker { color: var(--primary-strong); }
-.head-count,
-.head-count .num { color: var(--ink); }
-.head-time { color: var(--text-secondary); }
 
 .exit-btn {
   min-height: 88rpx;
   padding: 0 20rpx;
-  border-color: var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  color: var(--text-secondary);
 }
 
 .progress-track {
   height: 10rpx;
   margin: 18rpx 28rpx 0;
-  background: var(--primary-soft);
-}
-
-.progress-fill {
-  background: var(--primary);
-  transition: none;
 }
 
 .question-stage {
   margin: 28rpx 24rpx 0;
   padding: 30rpx 28rpx 34rpx;
-  border-color: var(--border);
-  border-top: 7rpx solid var(--gold);
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  animation: session-paper-in var(--motion-slow) var(--ease-out) both;
-}
-
-.question-type {
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-}
-
-.question-position,
-.answer-tip { color: var(--text-muted); }
-.question-stem { color: var(--ink); }
-.answer-block { border-top-color: var(--hairline); }
-.answer-label { color: var(--text-secondary); }
-
-.answer-input {
-  border-color: #BFD0EC;
-  border-radius: var(--r-sm);
-  background: var(--surface-muted);
-  color: var(--ink);
-}
-
-.answer-input:focus {
-  border-color: var(--primary);
-  background: var(--surface);
-  box-shadow: 0 0 0 6rpx rgba(82, 124, 201, .1);
 }
 
 .session-actions {
   z-index: 10;
   grid-template-columns: 190rpx 1fr;
   padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
-  border-top-color: var(--border);
-  background: #FFFFFF;
   backdrop-filter: none;
-  box-shadow: 0 -10rpx 28rpx rgba(49, 94, 168, .08);
 }
 
 .previous-btn,
 .next-btn,
 .done-btn {
   min-height: 112rpx;
-  border-radius: var(--r-sm);
-  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
-}
-
-.previous-btn {
-  border-color: var(--border);
-  background: var(--surface);
-  color: var(--text-secondary);
-}
-
-.next-btn,
-.done-btn {
-  background: var(--primary-strong);
-  color: #FFFFFF;
-  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .18);
 }
 
 .previous-btn:active,
@@ -358,64 +289,15 @@ function finish() {
 .previous-btn[disabled],
 .next-btn[disabled] {
   opacity: .5;
-  box-shadow: none;
 }
 
 .result-hero {
   margin: 0 24rpx;
   padding: 46rpx 30rpx 42rpx;
-  border: 1rpx solid #E6CF88;
-  border-top: 9rpx solid var(--gold);
-  border-radius: 0 0 var(--r-lg) var(--r-lg);
-  background:
-    linear-gradient(rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, var(--warning-soft));
-  background-size: 100% 42rpx, auto;
-  color: var(--ink);
-}
-
-.result-kicker { color: var(--warning); }
-.result-score { color: var(--primary-strong); }
-.result-unit,
-.result-summary { color: var(--text-secondary); }
-
-.result-card {
-  border-color: var(--border);
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  animation: session-paper-in var(--motion-slow) var(--ease-out) both;
-}
-
-.result-title { color: var(--ink); }
-.result-correct { color: var(--accent-strong); }
-.answer-row { border-bottom-color: var(--hairline); }
-.answer-mark { background: var(--danger-soft); color: var(--danger); }
-.answer-mark.ok { background: var(--success-soft); color: var(--success); }
-.answer-stem { color: var(--ink); }
-.answer-given { color: var(--text-muted); }
-.answer-correct { color: var(--danger); }
-
-.result-note {
-  border: 1rpx solid #CBEADF;
-  border-radius: var(--r-sm);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
 }
 
 .question-report {
   min-height: 88rpx;
-  color: var(--text-muted);
-}
-
-.previous-btn::after,
-.next-btn::after,
-.done-btn::after,
-.question-report::after { border: 0; }
-
-@keyframes session-paper-in {
-  from { opacity: 0; transform: translateY(16rpx); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 360px) {
@@ -427,13 +309,303 @@ function finish() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .question-stage,
-  .result-card { animation: none; }
-  .previous-btn,
-  .next-btn,
-  .done-btn { transition: none; }
   .previous-btn:active,
   .next-btn:active,
   .done-btn:active { transform: none; }
+}
+
+/* Student challenge theme v3: warm paper and one energetic teaching green. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --accent: #20B486;
+  --accent-strong: #15946D;
+  --accent-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  --hairline: #E4EFE9;
+  --r: 16rpx;
+  --r-sm: 14rpx;
+  --r-xs: 10rpx;
+  --r-lg: 16rpx;
+  --shadow-sm: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+  --shadow: 0 10rpx 28rpx rgba(38, 53, 47, .08);
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 55rpx,
+    rgba(32, 180, 134, .045) 56rpx 57rpx
+  );
+  color: var(--ink);
+}
+
+.student-challenge-page .session-head {
+  min-height: 0;
+  align-items: center;
+  padding: 24rpx 28rpx 18rpx;
+  border-bottom: 1rpx solid var(--border);
+  background: var(--surface);
+}
+
+.student-challenge-page .head-kicker {
+  color: var(--primary-strong);
+  letter-spacing: 0;
+}
+
+.student-challenge-page .head-count,
+.student-challenge-page .head-count .num {
+  color: var(--ink);
+}
+
+.student-challenge-page .head-time {
+  padding: 8rpx 10rpx;
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: #15946D;
+}
+
+.student-challenge-page .exit-btn {
+  min-height: 74rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .progress-track {
+  height: 12rpx;
+  margin: 16rpx 28rpx 0;
+  border-radius: 5rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .progress-fill {
+  border-radius: 5rpx;
+  background: var(--primary);
+}
+
+.student-challenge-page .question-stage {
+  margin: 24rpx 24rpx 0;
+  padding: 24rpx 24rpx 28rpx;
+  border: 1rpx solid var(--border);
+  border-top: 7rpx solid var(--primary);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.student-challenge-page .question-type {
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .question-position,
+.student-challenge-page .answer-tip,
+.student-challenge-page .question-report {
+  color: var(--text-muted);
+}
+
+.student-challenge-page .question-report {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 56rpx;
+  padding: 0;
+  border: 0;
+  background-color: transparent !important;
+  background-image: none !important;
+  text-decoration: underline;
+}
+
+.student-challenge-page .question-report::after {
+  border: 0;
+}
+
+.student-challenge-page .question-stem {
+  min-height: 0;
+  padding: 32rpx 6rpx 24rpx;
+  color: var(--ink);
+}
+
+.student-challenge-page .answer-block {
+  border-top-color: var(--hairline);
+}
+
+.student-challenge-page .answer-label {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .answer-input {
+  height: 102rpx;
+  border: 2rpx solid #BFE4D4;
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.student-challenge-page .answer-input:focus {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 5rpx rgba(32, 180, 134, .1);
+}
+
+.student-challenge-page .session-actions {
+  z-index: 10;
+  grid-template-columns: 180rpx 1fr;
+  gap: 12rpx;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 -8rpx 24rpx rgba(38, 53, 47, .08);
+  backdrop-filter: none;
+}
+
+.student-challenge-page .previous-btn,
+.student-challenge-page .next-btn,
+.student-challenge-page .done-btn {
+  min-height: 96rpx;
+  border-radius: var(--r-sm);
+}
+
+.student-challenge-page .previous-btn {
+  border: 1rpx solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .next-btn,
+.student-challenge-page .done-btn {
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+.student-challenge-page .result-scroll {
+  height: 100vh;
+  background-color: var(--page-bg);
+}
+
+.student-challenge-page .result-hero {
+  margin: 0;
+  padding: 44rpx 30rpx 38rpx;
+  border: 0;
+  border-bottom: 7rpx solid var(--primary);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.student-challenge-page .result-kicker {
+  color: var(--primary-strong);
+  letter-spacing: 0;
+}
+
+.student-challenge-page .result-score {
+  color: var(--ink);
+}
+
+.student-challenge-page .result-unit,
+.student-challenge-page .result-summary {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .result-card {
+  margin: 18rpx 24rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--border);
+  border-top: 7rpx solid var(--primary);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-challenge-page .result-head,
+.student-challenge-page .answer-row {
+  border-color: var(--hairline);
+}
+
+.student-challenge-page .result-title,
+.student-challenge-page .answer-stem {
+  color: var(--ink);
+}
+
+.student-challenge-page .result-correct {
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .answer-mark {
+  border-radius: var(--r-xs);
+  background: var(--coral-soft);
+  color: #D94B45;
+}
+
+.student-challenge-page .answer-mark.ok {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .answer-given {
+  color: var(--text-muted);
+}
+
+.student-challenge-page .answer-correct {
+  color: #D94B45;
+}
+
+.student-challenge-page .result-note {
+  border: 1rpx solid #CBEADF;
+  border-left: 7rpx solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .done-btn {
+  margin-top: 18rpx;
+}
+
+.student-challenge-page .head-title-row,
+.student-challenge-page .head-time,
+.student-challenge-page .question-type-row,
+.student-challenge-page .result-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.student-challenge-page .result-icon {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10rpx;
+}
+
+.student-challenge-page .result-icon-mark {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #FFD2CD;
+  border-radius: 16rpx;
+  background: var(--coral-soft);
+}
+
+@media (max-width: 360px) {
+  .student-challenge-page .session-actions {
+    grid-template-columns: 150rpx 1fr;
+  }
 }
 </style>

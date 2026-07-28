@@ -20,7 +20,7 @@ test('teacher can preview, save one, save all, and retry feedback cards', () => 
 test('feedback card is private, full-name, 3:4, and supports up to three photos', () => {
   assert.match(page, /studentName:s\.name/);
   assert.match(page, /images:\(s\._images\|\|\[\]\)\.slice\(0,3\)/);
-  assert.match(page, /每位学生单独生成一张，仅保存到老师手机后私发家长/);
+  assert.match(page, /每位学生单独生成一张，可逐张预览或批量保存/);
   assert.match(renderer, /destWidth:\s*1080/);
   assert.match(renderer, /destHeight:\s*1440/);
   assert.match(renderer, /FEEDBACK_CARD_MAX_TEXT = 180/);
@@ -44,9 +44,12 @@ test('课堂反馈、学生反馈、作业是三套独立主题分享卡并都�
   assert.match(renderer, /今日课堂简报/u);
   assert.match(renderer, /课后任务单/u);
   assert.match(renderer, /drawFittedText/);
-  assert.match(renderer, /#F7F2E8/);
+  assert.match(renderer, /#F8FCF9/);
+  assert.match(renderer, /#20B486/);
+  assert.match(renderer, /#FF7468/);
+  assert.match(renderer, /FEEDBACK_THEME/);
   assert.doesNotMatch(renderer, /for \(let x = 0; x <= 750; x \+= 62\)/);
-  assert.match(renderer, /#D35F4D/);
+  assert.doesNotMatch(renderer, /#173A35|#F7F2E8|#D35F4D|#E1BC62|#C89446|#263F59/i);
   for (const handler of ['previewClassFeedbackCard', 'saveClassFeedbackCard', 'previewHomeworkCard', 'saveHomeworkCard']) {
     assert.match(page, new RegExp(`${handler}\\(se\\)`));
   }

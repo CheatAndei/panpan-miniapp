@@ -2,7 +2,10 @@
 <view class="page">
   <view class="hero">
     <view class="eyebrow">反馈</view>
-    <text class="hero-title">课后反馈</text>
+    <view class="hero-title-row">
+      <view class="title-icon tone-green"><pp-icon name="message" :size="34" motion="pop" /></view>
+      <text class="hero-title">课后反馈</text>
+    </view>
     <view class="gold-rule"></view>
     <text class="hero-sub">{{ teacherName }}的学习记录</text>
   </view>
@@ -12,11 +15,14 @@
   <view v-else-if="feedbacks.length===0" class="state-card"><pp-state title="还没有课后反馈" description="老师发布后会出现在这里。" /></view>
 
   <view v-for="fb in feedbacks" :key="fb.id" class="card fb-card" @tap="showDetail(fb)">
-    <view class="fb-head"><view class="fb-date">{{ fb.class_date }}</view><pp-icon name="arrow" :size="34" /></view>
+    <view class="fb-head">
+      <view class="meta-with-icon"><pp-icon name="calendar" :size="24" /><view class="fb-date">{{ fb.class_date }}</view></view>
+      <pp-icon name="arrow" :size="30" />
+    </view>
     <view class="fb-summary">{{ (fb.summary||'').slice(0,100) }}{{ fb.summary&&fb.summary.length>100?'...':'' }}</view>
-    <view v-if="fb.homework" class="fb-hw">作业：{{ fb.homework }}</view>
-    <view v-if="fb.notes_pdf_url" class="pdf-link" @tap.stop="openPdf(fb.notes_pdf_url)">打开学习笔记</view>
-    <text class="fb-more">查看完整反馈</text>
+    <view v-if="fb.homework" class="fb-hw"><pp-icon name="pencil" :size="24" /><text>作业：{{ fb.homework }}</text></view>
+    <view v-if="fb.notes_pdf_url" class="pdf-link" @tap.stop="openPdf(fb.notes_pdf_url)"><pp-icon name="book" :size="24" /><text>打开学习笔记</text></view>
+    <view class="fb-more"><text>查看完整反馈</text><pp-icon name="arrow" :size="24" /></view>
   </view>
 
   <!-- 详情弹窗 -->
@@ -25,11 +31,11 @@
       <view class="modal-date">{{ detail.class_date }}</view>
       <scroll-view scroll-y class="modal-body">
         <text class="detail-text">{{ detail.summary }}</text>
-        <view v-if="detail.homework" class="hw-block">作业：{{ detail.homework }}</view>
-        <button v-if="detail.notes_pdf_url" class="pdf-btn" @tap="openPdf(detail.notes_pdf_url)">打开学习笔记 PDF</button>
+        <view v-if="detail.homework" class="hw-block"><pp-icon name="pencil" :size="26" /><text>作业：{{ detail.homework }}</text></view>
+        <button v-if="detail.notes_pdf_url" class="pdf-btn" @tap="openPdf(detail.notes_pdf_url)"><pp-icon name="book" :size="28" /><text>打开学习笔记 PDF</text></button>
         <!-- 学生个人反馈 -->
         <view v-if="detail._students && detail._students.length>0" class="stu-fb-section">
-          <text class="stu-fb-title">学生个人反馈</text>
+          <view class="stu-fb-title"><pp-icon name="users" :size="28" /><text>学生个人反馈</text></view>
           <view v-for="s in detail._students" :key="s.id" class="stu-fb-card">
             <text class="stu-fb-name">{{ s.name }}</text>
             <text class="stu-fb-text">{{ s.text }}</text>
@@ -84,83 +90,97 @@ export default {
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding-bottom: calc(60rpx + env(safe-area-inset-bottom)); background: var(--page-bg); }
+.page {
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
+  min-height: 100vh;
+  padding-bottom: calc(54rpx + env(safe-area-inset-bottom));
+  background: var(--panpan-paper);
+}
 
 .hero {
-  position: relative;
-  padding: 46rpx 34rpx 36rpx;
-  border-bottom: 1rpx solid var(--hairline);
-  background: linear-gradient(150deg, #FFFFFF, var(--primary-soft));
+  padding: 38rpx 32rpx 30rpx;
+  border-bottom: 1rpx solid #D4E9DC;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .055) 48rpx 49rpx),
+    linear-gradient(135deg, #FFFFFF 0 72%, #E7F8F1 100%);
   text-align: left;
   animation: feedback-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.hero::after {
-  content: '';
-  position: absolute;
-  right: 36rpx;
-  bottom: 32rpx;
-  width: 70rpx;
-  height: 48rpx;
-  border: 3rpx solid rgba(82, 124, 201, .2);
-  border-radius: 12rpx;
-  box-shadow: -12rpx -12rpx 0 rgba(244, 199, 91, .22);
-}
-
-.hero .eyebrow { color: var(--primary-strong); }
-.hero .gold-rule { display: none; }
-.hero-title { display: block; margin-top: 8rpx; color: var(--ink); font-size: 40rpx; font-weight: 760; }
-.hero-sub { display: block; margin-top: 4rpx; color: var(--text-muted); font-size: 24rpx; }
-.state-card { margin: 22rpx 24rpx; border: 1rpx solid var(--border); border-radius: var(--r); background: var(--surface); box-shadow: var(--shadow-sm); }
+.hero .eyebrow { display: inline-flex; padding: 5rpx 12rpx; border-radius: 7rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 20rpx; font-weight: 720; letter-spacing: 0; }
+.hero .gold-rule { width: 78rpx; height: 6rpx; display: block; margin-top: 13rpx; border-radius: 3rpx; background: var(--panpan-sprout); }
+.hero-title-row { display: flex; align-items: center; gap: 12rpx; margin-top: 9rpx; }
+.title-icon { width: 50rpx; height: 50rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; }
+.title-icon.tone-green { background: #E7F8F1; }
+.hero-title { color: var(--panpan-ink); font-size: 40rpx; font-weight: 770; }
+.hero-sub { display: block; margin-top: 7rpx; color: var(--panpan-muted); font-size: 23rpx; }
+.state-card { margin: 20rpx 24rpx; border: 1rpx solid #D4E9DC; border-radius: 14rpx; background: #FFFFFF; box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06); }
 
 .fb-card {
-  margin-bottom: 14rpx;
-  padding: 28rpx;
-  border-radius: var(--r);
+  margin: 16rpx 24rpx 0;
+  padding: 23rpx 24rpx;
+  border: 1rpx solid #CFE6D8;
+  border-left: 6rpx solid var(--panpan-green);
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
   animation: feedback-card-enter var(--motion-slow) var(--ease-out) both;
   transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
 
 .fb-card:active { transform: scale(var(--tap-scale)); box-shadow: none; }
 .fb-head { display: flex; align-items: center; justify-content: space-between; }
-.fb-date { margin-bottom: 8rpx; color: var(--text-muted); font-size: 24rpx; font-variant-numeric: tabular-nums; }
-.fb-summary { color: var(--text-secondary); font-size: 28rpx; line-height: 1.7; }
-.fb-hw { display: block; margin-top: 12rpx; padding: 14rpx 16rpx; border-radius: var(--r-xs); background: var(--warning-soft); color: var(--warning); font-size: 24rpx; line-height: 1.55; }
-.pdf-link { display: inline-flex; margin-top: 12rpx; padding: 12rpx 16rpx; border-radius: var(--r-xs); background: var(--primary-soft); color: var(--primary-strong); font-size: 24rpx; font-weight: 650; }
-.fb-more { display: block; margin-top: 14rpx; color: var(--primary-strong); font-size: 24rpx; font-weight: 650; }
-.empty { padding: 40rpx; color: var(--text-muted); text-align: center; }
+.meta-with-icon { display: flex; align-items: center; gap: 7rpx; }
+.fb-date { color: var(--panpan-muted); font-size: 23rpx; font-variant-numeric: tabular-nums; }
+.fb-summary { color: #5A6A62; font-size: 27rpx; line-height: 1.66; }
+.fb-hw { display: flex; align-items: flex-start; gap: 8rpx; margin-top: 11rpx; padding: 12rpx 14rpx; border-left: 5rpx solid var(--panpan-sprout); border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-size: 23rpx; line-height: 1.52; }
+.fb-hw text,
+.hw-block text { flex: 1; min-width: 0; }
+.pdf-link { display: inline-flex; align-items: center; gap: 7rpx; margin-top: 11rpx; padding: 10rpx 14rpx; border: 1rpx solid rgba(32, 180, 134, .25); border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-size: 23rpx; font-weight: 680; }
+.fb-more { display: flex; align-items: center; justify-content: flex-end; gap: 5rpx; margin-top: 12rpx; color: var(--panpan-green-strong); font-size: 23rpx; font-weight: 700; }
+.empty { padding: 34rpx; color: var(--panpan-muted); text-align: center; }
 
-.modal { max-height: 82vh; display: flex; flex-direction: column; }
-.modal-date { margin-bottom: 20rpx; color: var(--text-muted); font-size: 26rpx; text-align: center; }
+.modal-mask { background: rgba(36, 48, 41, .42); }
+.modal { max-height: 82vh; display: flex; flex-direction: column; padding: 26rpx; border-radius: 16rpx 16rpx 0 0; background: #FFFFFF; }
+.modal-date { margin-bottom: 17rpx; color: var(--panpan-muted); font-size: 25rpx; text-align: center; }
 .modal-body { flex: 1; overflow-y: auto; }
-.detail-text { color: var(--text-secondary); font-size: 28rpx; line-height: 1.8; white-space: pre-wrap; }
-.hw-block { margin-top: 20rpx; padding: 18rpx; border-radius: var(--r-sm); background: var(--warning-soft); color: var(--warning); font-size: 28rpx; line-height: 1.65; }
+.detail-text { color: #5A6A62; font-size: 27rpx; line-height: 1.75; white-space: pre-wrap; }
+.hw-block { display: flex; align-items: flex-start; gap: 9rpx; margin-top: 18rpx; padding: 16rpx; border-left: 5rpx solid var(--panpan-sprout); border-radius: 10rpx; background: #E7F8F1; color: #15946D; font-size: 27rpx; line-height: 1.62; }
 
 .pdf-btn,
 .btn-cancel {
   width: 100%;
-  min-height: 88rpx;
+  min-height: 84rpx;
+  margin-left: 0;
+  margin-right: 0;
   border: none;
-  border-radius: var(--r-sm);
-  font-size: 28rpx;
-  font-weight: 650;
+  border-radius: 12rpx;
+  font-size: 27rpx;
+  font-weight: 680;
   text-align: center;
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
-.pdf-btn { margin-top: 18rpx; background: var(--primary-strong); color: #FFFFFF; }
-.btn-cancel { margin-top: 20rpx; background: var(--surface-muted); color: var(--text-muted); }
+.pdf-btn { display: flex; align-items: center; justify-content: center; gap: 9rpx; margin-top: 16rpx; background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 8rpx 16rpx rgba(21, 148, 109, .18); }
+.btn-cancel { margin-top: 16rpx; border: 1rpx solid #D4E9DC; background: var(--panpan-paper); color: var(--panpan-muted); }
 .pdf-btn:active,
 .btn-cancel:active { transform: scale(var(--tap-scale)); }
 .pdf-btn::after,
 .btn-cancel::after { border: 0; }
-.stu-fb-section { margin-top: 24rpx; padding-top: 20rpx; border-top: 1rpx solid var(--hairline); }
-.stu-fb-title { display: block; margin-bottom: 16rpx; color: var(--ink); font-size: 28rpx; font-weight: 720; }
-.stu-fb-card { margin-bottom: 12rpx; padding: 20rpx; border: 1rpx solid var(--hairline); border-radius: var(--r-sm); background: var(--surface-muted); }
-.stu-fb-name { display: block; margin-bottom: 6rpx; color: var(--primary-strong); font-size: 26rpx; font-weight: 700; }
-.stu-fb-text { color: var(--text-secondary); font-size: 26rpx; line-height: 1.65; }
+.stu-fb-section { margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid #E0EEE5; }
+.stu-fb-title { display: flex; align-items: center; gap: 9rpx; margin-bottom: 14rpx; color: var(--panpan-ink); font-size: 27rpx; font-weight: 730; }
+.stu-fb-card { margin-bottom: 0; padding: 16rpx 0; border-bottom: 1rpx solid #E0EEE5; border-radius: 0; background: transparent; }
+.stu-fb-name { display: block; margin-bottom: 5rpx; color: var(--panpan-green-strong); font-size: 25rpx; font-weight: 700; }
+.stu-fb-text { color: #5A6A62; font-size: 25rpx; line-height: 1.62; }
 .fb-imgs { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 10rpx; }
-.fb-thumb { width: 150rpx; height: 150rpx; border-radius: var(--r-xs); background: var(--surface-muted); }
+.fb-thumb { width: 150rpx; height: 150rpx; border: 1rpx solid #D4E9DC; border-radius: 10rpx; background: var(--panpan-paper); }
 
 @keyframes feedback-enter {
   from { opacity: 0; transform: translateY(-10rpx); }

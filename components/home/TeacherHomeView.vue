@@ -38,27 +38,31 @@
 
     <view class="quick-actions">
       <button class="action-item" aria-label="进入签到" @tap="navigate('/pages/teacher-checkin/index')">
-        <view class="action-icon"><pp-icon name="check" :size="40" decorative /></view>
+        <view class="action-icon"><pp-icon name="check" :size="40" motion="pop" :delay="60" decorative /></view>
         <text>签到</text>
       </button>
       <button class="action-item" aria-label="发送课堂反馈" @tap="navigate('/pages/teacher-feedback/index')">
-        <view class="action-icon"><pp-icon name="message" :size="40" decorative /></view>
+        <view class="action-icon"><pp-icon name="message" :size="40" motion="ring" :delay="120" decorative /></view>
         <text>发反馈</text>
       </button>
       <button class="action-item" aria-label="管理学习小组" @tap="navigate('/pages/teacher-classes/index')">
-        <view class="action-icon"><pp-icon name="users" :size="40" decorative /></view>
+        <view class="action-icon"><pp-icon name="users" :size="40" motion="pop" :delay="180" decorative /></view>
         <text>小组管理</text>
       </button>
       <button class="action-item" aria-label="查看教师课表" @tap="navigate('/pages/teacher-schedule/index')">
-        <view class="action-icon"><pp-icon name="calendar" :size="40" decorative /></view>
+        <view class="action-icon"><pp-icon name="calendar" :size="40" motion="pop" :delay="240" decorative /></view>
         <text>课表</text>
       </button>
       <button class="action-item" aria-label="处理请假审批" @tap="navigate('/pages/teacher-leaves/index')">
         <view class="action-icon">
-          <pp-icon name="clipboard" :size="40" decorative />
+          <pp-icon name="clipboard" :size="40" :motion="pendingLeaves > 0 ? 'ring' : 'pop'" :delay="300" decorative />
           <view v-if="pendingLeaves > 0" class="red-dot">{{ pendingLeaves }}</view>
         </view>
         <text>审批</text>
+      </button>
+      <button class="action-item record-action" aria-label="查看学生学习记录" @tap="navigate('/pages/student-records/index')">
+        <view class="action-icon"><pp-icon name="report" :size="40" motion="shine" :delay="360" decorative /></view>
+        <text>学习记录</text>
       </button>
     </view>
 
@@ -74,19 +78,31 @@
       </view>
       <view class="focus-metrics">
         <button class="focus-metric tone-blue" aria-label="查看待批改学生打卡" @tap="navigate('/pages/practice-review/index')">
-          <text class="focus-number num">{{ pendingPracticeCount }}</text>
+          <view class="focus-metric-head">
+            <pp-icon name="clipboard" :size="29" :motion="pendingPracticeCount ? 'breathe' : 'pop'" decorative />
+            <text class="focus-number num">{{ pendingPracticeCount }}</text>
+          </view>
           <text class="focus-copy">打卡批改</text>
         </button>
         <button class="focus-metric tone-yellow" aria-label="查看待批阅压轴挑战" @tap="navigate('/pages/weekly-review/index')">
-          <text class="focus-number num">{{ pendingChallengeCount }}</text>
+          <view class="focus-metric-head">
+            <pp-icon name="trophy" :size="29" :motion="pendingChallengeCount ? 'shine' : 'pop'" decorative />
+            <text class="focus-number num">{{ pendingChallengeCount }}</text>
+          </view>
           <text class="focus-copy">压轴批阅</text>
         </button>
         <button class="focus-metric tone-coral" aria-label="查看待审批请假" @tap="navigate('/pages/teacher-leaves/index')">
-          <text class="focus-number num">{{ pendingLeaves }}</text>
+          <view class="focus-metric-head">
+            <pp-icon name="calendar" :size="29" :motion="pendingLeaves ? 'ring' : 'pop'" decorative />
+            <text class="focus-number num">{{ pendingLeaves }}</text>
+          </view>
           <text class="focus-copy">待审批</text>
         </button>
         <button class="focus-metric tone-mint" aria-label="查看今日课程" @tap="navigate('/pages/teacher-schedule/index')">
-          <text class="focus-number num">{{ todaySessionCount }}</text>
+          <view class="focus-metric-head">
+            <pp-icon name="calendar" :size="29" motion="pop" :delay="160" decorative />
+            <text class="focus-number num">{{ todaySessionCount }}</text>
+          </view>
           <text class="focus-copy">今日课程</text>
         </button>
       </view>
@@ -212,7 +228,7 @@
       </view>
 
       <view v-if="!hasPriority" class="priority-clear">
-        <view class="priority-clear-mark" aria-hidden="true"><pp-icon name="check" :size="42" decorative /></view>
+        <view class="priority-clear-mark" aria-hidden="true"><pp-icon name="check" :size="42" motion="pop" decorative /></view>
         <view>
           <text class="priority-clear-title">高优先事项已处理</text>
           <text class="priority-clear-copy">可以继续准备课程或整理学习小组。</text>
@@ -287,7 +303,7 @@
     <view class="resource-list">
       <button class="resource-entry" @tap="navigate('/pages/practice-teacher/index')">
         <view class="resource-index">01</view>
-        <view class="resource-icon tone-mint"><pp-icon name="clipboard" :size="42" decorative /></view>
+        <view class="resource-icon tone-mint"><pp-icon name="clipboard" :size="42" motion="pop" decorative /></view>
         <view class="resource-copy">
           <text class="resource-kicker">假期个性化练习</text>
           <text class="resource-title">打卡计划与复核</text>
@@ -297,7 +313,7 @@
       </button>
       <button class="resource-entry" @tap="navigate('/pages/teacher-tools/index')">
         <view class="resource-index">02</view>
-        <view class="resource-icon tone-blue"><pp-icon name="exam" :size="42" decorative /></view>
+        <view class="resource-icon tone-blue"><pp-icon name="exam" :size="42" motion="pop" :delay="100" decorative /></view>
         <view class="resource-copy">
           <text class="resource-kicker">教学工具箱</text>
           <text class="resource-title">真题、压轴挑战与口算目标</text>
@@ -401,15 +417,15 @@ function toggleClasses() {
   min-height: 224rpx;
   overflow: hidden;
   padding: 54rpx 34rpx 34rpx 42rpx;
-  border: 1rpx solid #CADCF2;
-  border-radius: 24rpx 12rpx 24rpx 12rpx;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 16rpx;
   background-color: #FFFFFF;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 50rpx,
-    rgba(82, 124, 201, .08) 51rpx,
-    rgba(82, 124, 201, .08) 52rpx
+    rgba(32, 180, 134, .075) 51rpx,
+    rgba(32, 180, 134, .075) 52rpx
   );
   box-shadow: var(--shadow);
   animation: section-enter var(--motion-slow) var(--ease-out) both;
@@ -422,7 +438,7 @@ function toggleClasses() {
   bottom: 0;
   left: 26rpx;
   width: 2rpx;
-  background: rgba(233, 133, 119, .32);
+  background: rgba(255, 116, 104, .42);
 }
 
 .hero-tab {
@@ -431,11 +447,11 @@ function toggleClasses() {
   right: 30rpx;
   padding: 9rpx 18rpx 11rpx;
   border-radius: 0 0 10rpx 10rpx;
-  background: var(--primary);
-  color: #FFFFFF;
+  background: var(--coral-soft);
+  color: #A9433B;
   font-size: 19rpx;
   font-weight: 750;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .hero-copy {
@@ -449,7 +465,7 @@ function toggleClasses() {
   color: var(--primary-strong);
   font-size: 20rpx;
   font-weight: 750;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .hero-greeting {
@@ -459,7 +475,7 @@ function toggleClasses() {
   font-size: 39rpx;
   font-weight: 780;
   line-height: 1.4;
-  letter-spacing: -1rpx;
+  letter-spacing: 0;
 }
 
 .hero-date {
@@ -499,7 +515,7 @@ function toggleClasses() {
   right: 0;
   width: 34rpx;
   height: 34rpx;
-  border: 3rpx solid rgba(82, 124, 201, .52);
+  border: 3rpx solid rgba(255, 116, 104, .62);
   transform: rotate(9deg);
 }
 
@@ -508,7 +524,7 @@ function toggleClasses() {
   overflow: hidden;
   border: 1rpx solid var(--border);
   border-top: 5rpx solid var(--primary);
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow-sm);
 }
@@ -517,9 +533,9 @@ function toggleClasses() {
   position: relative;
   margin-top: 18rpx;
   padding: 28rpx;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #BCE8D9;
   border-left: 8rpx solid var(--primary);
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow-sm);
   animation: section-enter var(--motion-slow) 40ms var(--ease-out) both;
@@ -537,7 +553,7 @@ function toggleClasses() {
   color: var(--primary-strong);
   font-size: 22rpx;
   font-weight: 750;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .focus-summary {
@@ -577,7 +593,7 @@ function toggleClasses() {
 
 .focus-metric {
   min-width: 0;
-  min-height: 112rpx;
+  min-height: 94rpx;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -616,13 +632,13 @@ function toggleClasses() {
 }
 
 .tone-blue {
-  border-color: #D0DFF4;
-  background: var(--primary-soft);
+  border-color: #BCE8D9;
+  background: #F2FBF7;
 }
 
 .tone-yellow {
-  border-color: #EEDDA8;
-  background: #FFF8E3;
+  border-color: #BCE8D9;
+  background: #F2FBF7;
 }
 
 .tone-coral {
@@ -631,8 +647,8 @@ function toggleClasses() {
 }
 
 .tone-mint {
-  border-color: #CDE9E1;
-  background: var(--accent-soft);
+  border-color: #BCE8D9;
+  background: #F2FBF7;
 }
 
 .focus-number {
@@ -640,6 +656,17 @@ function toggleClasses() {
   font-size: 38rpx;
   font-weight: 820;
   line-height: 1.05;
+}
+
+.focus-metric-head {
+  display: flex;
+  align-items: center;
+  gap: 9rpx;
+  color: var(--primary-strong);
+}
+
+.tone-coral .focus-metric-head {
+  color: var(--danger);
 }
 
 .focus-copy {
@@ -665,7 +692,7 @@ function toggleClasses() {
   color: var(--primary);
   font-size: 18rpx;
   font-weight: 800;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .section-title {
@@ -699,8 +726,8 @@ function toggleClasses() {
 }
 
 .todo-card.tone-blue { border-left: 6rpx solid var(--primary); }
-.todo-card.tone-yellow { border-left: 6rpx solid var(--gold); }
-.todo-card.tone-mint { border-left: 6rpx solid var(--accent); }
+.todo-card.tone-yellow { border-left: 6rpx solid var(--primary); }
+.todo-card.tone-mint { border-left: 6rpx solid var(--primary); }
 .todo-card.tone-coral { border-left: 6rpx solid var(--coral); }
 
 .todo-head {
@@ -715,7 +742,7 @@ function toggleClasses() {
   color: var(--primary-strong);
   font-size: 19rpx;
   font-weight: 800;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .todo-title {
@@ -739,12 +766,12 @@ function toggleClasses() {
 
 .todo-row {
   width: 100%;
-  min-height: 112rpx;
+  min-height: 82rpx;
   display: flex;
   align-items: center;
   gap: 9rpx;
   margin: 16rpx 0 0;
-  padding: 15rpx 0;
+  padding: 12rpx 0;
   border-top: 1rpx solid rgba(185, 202, 224, .62);
   border-radius: 0;
   background: transparent;
@@ -782,9 +809,10 @@ function toggleClasses() {
 
 .todo-all {
   width: 100%;
-  min-height: 112rpx;
+  min-height: 80rpx;
   margin: 18rpx 0 0;
-  border: 1rpx solid #BFD2ED;
+  padding: 12rpx 18rpx;
+  border: 1rpx solid #9EDAC6;
   border-radius: 14rpx;
   background: #FFFFFF;
   color: var(--primary-strong);
@@ -810,7 +838,7 @@ function toggleClasses() {
 }
 
 .choice-alert-dismiss {
-  min-height: 112rpx;
+  min-height: 72rpx;
   flex: none;
   margin: 0;
   padding: 0 20rpx;
@@ -824,7 +852,7 @@ function toggleClasses() {
 }
 
 .priority-clear {
-  min-height: 128rpx;
+  min-height: 104rpx;
   display: flex;
   align-items: center;
   gap: 18rpx;
@@ -863,9 +891,9 @@ function toggleClasses() {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12rpx;
-  padding: 16rpx;
+  padding: 12rpx;
   border: 1rpx solid var(--border);
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow-sm);
   animation: section-enter var(--motion-slow) 30ms var(--ease-out) both;
@@ -873,16 +901,17 @@ function toggleClasses() {
 
 .action-item {
   min-width: 0;
-  min-height: 128rpx;
+  min-height: 104rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 9rpx;
   margin: 0;
-  padding: 10rpx 6rpx;
+  padding: 10rpx 6rpx 9rpx;
   border-radius: 14rpx;
-  background: var(--surface-muted);
+  border: 1rpx solid #CDEADF;
+  background: #F8FCF9;
   color: var(--text-secondary);
   font-size: 22rpx;
   font-weight: 650;
@@ -891,14 +920,61 @@ function toggleClasses() {
 
 .action-icon {
   position: relative;
-  width: 66rpx;
-  height: 66rpx;
+  width: 58rpx;
+  height: 58rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #D6E4F5;
-  border-radius: 16rpx;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 14rpx;
   background: var(--primary-soft);
+}
+
+.action-item:nth-child(1),
+.action-item:nth-child(6) {
+  border-color: #BCE8D9;
+  background: var(--primary-soft);
+}
+
+.action-item:nth-child(2) {
+  border-color: #CDEADF;
+  background: #F8FCF9;
+}
+
+.action-item:nth-child(2) .action-icon {
+  border-color: #FFD0CB;
+  background: #FFFFFF;
+  color: var(--danger);
+}
+
+.action-item:nth-child(3),
+.action-item:nth-child(4) {
+  border-color: #CDEADF;
+  background: #F8FCF9;
+}
+
+.action-item:nth-child(3) .action-icon,
+.action-item:nth-child(4) .action-icon {
+  border-color: #BCE8D9;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.action-item:nth-child(5) {
+  border-color: #CDEADF;
+  background: #F8FCF9;
+}
+
+.action-item:nth-child(5) .action-icon {
+  border-color: #FFD0CB;
+  background: var(--coral-soft);
+  color: var(--danger);
+}
+
+.record-action .action-icon {
+  border-color: #BCE8D9;
+  background: #FFFFFF;
+  color: var(--primary-strong);
 }
 
 .red-dot {
@@ -917,18 +993,19 @@ function toggleClasses() {
   color: #FFFFFF;
   font-size: 19rpx;
   box-sizing: border-box;
+  animation: pending-dot-pop 440ms 420ms var(--ease-out) both;
 }
 
 .class-history-card {
   overflow: hidden;
   border: 1rpx solid var(--border);
-  border-radius: 18rpx;
+  border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow-sm);
 }
 
 .class-history-head {
-  min-height: 112rpx;
+  min-height: 92rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -958,10 +1035,10 @@ function toggleClasses() {
 }
 
 .class-manage {
-  min-height: 72rpx;
+  min-height: 66rpx;
   margin: 0;
   padding: 0 17rpx;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #9EDAC6;
   border-radius: 11rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -977,7 +1054,7 @@ function toggleClasses() {
 
 .class-item {
   width: calc(100% - 48rpx);
-  min-height: 104rpx;
+  min-height: 86rpx;
   display: flex;
   align-items: center;
   gap: 14rpx;
@@ -1033,12 +1110,12 @@ function toggleClasses() {
 
 .resource-entry {
   width: 100%;
-  min-height: 140rpx;
+  min-height: 96rpx;
   display: flex;
   align-items: center;
   gap: 14rpx;
   margin: 0;
-  padding: 20rpx;
+  padding: 15rpx 20rpx;
   border: 1rpx solid var(--border);
   border-left: 5rpx solid var(--primary);
   border-radius: 15rpx;
@@ -1053,7 +1130,7 @@ function toggleClasses() {
   flex: none;
   padding-right: 8rpx;
   border-right: 1rpx solid var(--border);
-  color: #8AA2C2;
+  color: var(--accent-strong);
   font-size: 19rpx;
   font-weight: 800;
 }
@@ -1078,7 +1155,7 @@ function toggleClasses() {
   color: var(--primary-strong);
   font-size: 18rpx;
   font-weight: 750;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .resource-title {
@@ -1101,7 +1178,7 @@ function toggleClasses() {
 .promotion-launcher {
   position: relative;
   width: 100%;
-  min-height: 190rpx;
+  min-height: 156rpx;
   display: grid;
   grid-template-columns: 102rpx minmax(0, 1fr) auto;
   align-items: center;
@@ -1109,9 +1186,9 @@ function toggleClasses() {
   margin: 18rpx 0 0;
   padding: 26rpx;
   overflow: hidden;
-  border: 1rpx solid #C6D8EF;
-  border-radius: 16rpx 28rpx 16rpx 28rpx;
-  background: #F3F8FF;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 16rpx;
+  background: #F8FCF9;
   color: var(--ink);
   text-align: left;
   box-shadow: var(--shadow);
@@ -1122,8 +1199,8 @@ function toggleClasses() {
   position: absolute;
   inset: 0;
   opacity: .4;
-  background-image: linear-gradient(rgba(82, 124, 201, .09) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .09) 1rpx, transparent 1rpx);
+  background-image: linear-gradient(rgba(32, 180, 134, .09) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(32, 180, 134, .09) 1rpx, transparent 1rpx);
   background-size: 38rpx 38rpx;
 }
 
@@ -1140,10 +1217,10 @@ function toggleClasses() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #E6C972;
-  border-radius: 10rpx 24rpx 10rpx 24rpx;
-  background: #FFF8DE;
-  color: #8B6816;
+  border: 1rpx solid #FFD0CB;
+  border-radius: 12rpx;
+  background: var(--coral-soft);
+  color: #A9433B;
   font-family: "DIN Alternate", monospace;
   font-size: 42rpx;
   font-weight: 900;
@@ -1159,7 +1236,7 @@ function toggleClasses() {
   color: var(--primary-strong);
   font-size: 17rpx;
   font-weight: 820;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .promotion-title {
@@ -1208,6 +1285,12 @@ function toggleClasses() {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes pending-dot-pop {
+  0% { opacity: 0; transform: scale(.65); }
+  72% { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 @media (max-width: 340px) {
@@ -1259,6 +1342,10 @@ function toggleClasses() {
   .promotion-launcher {
     animation: none !important;
     transition: none !important;
+  }
+
+  .red-dot {
+    animation: none !important;
   }
 
   .focus-metric:active,

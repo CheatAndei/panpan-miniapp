@@ -9,7 +9,7 @@ export function createApp() {
   // 注入品牌配置
   app.provide('brand', {
     name: BRAND,
-    colors: { primary: '#527CC9', accent: '#65BFA8' }
+    colors: { primary: '#20B486', accent: '#FF7468' }
   });
   return { app };
 }

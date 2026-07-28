@@ -4,7 +4,7 @@
 export const BRAND = '番番记录';
 export const DEFAULT_TEACHER_NAME = '老师';
 export const APP_SUBTITLE = '课堂记录与家校反馈助手';
-export const FOOTER_TEXT = '番番记录 · 熟人老师共用版';
+export const FOOTER_TEXT = '潘潘老师数学课堂 · 番番记录';
 export const TEACHER_WECHAT = String(import.meta.env.VITE_TEACHER_WECHAT || 'sysu0011203').trim();
 export const CONTACT_MODE = String(import.meta.env.VITE_CONTACT_MODE || 'wechat_copy').trim() === 'customer_service'
   ? 'customer_service' : 'wechat_copy';

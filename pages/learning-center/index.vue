@@ -1,5 +1,5 @@
 <template>
-  <view class="page page-bottom-safe learning-page">
+  <view class="page page-bottom-safe learning-page student-challenge-page">
     <view class="page-hero learning-hero">
       <view class="hero-top">
         <view class="workbook-label">
@@ -7,8 +7,8 @@
           <text class="eyebrow">LEARNING HUB</text>
         </view>
         <view class="hero-tools" aria-hidden="true">
-          <view class="hero-tool hero-tool--blue"><pp-icon name="pencil" :size="32" /></view>
-          <view class="hero-tool hero-tool--mint"><pp-icon name="calculator" :size="32" /></view>
+          <view class="hero-tool hero-tool--blue"><pp-icon name="pencil" :size="32" motion="pop" :delay="80" /></view>
+          <view class="hero-tool hero-tool--mint"><pp-icon name="calculator" :size="32" motion="bob" :delay="160" /></view>
         </view>
       </view>
       <view class="hero-copy">
@@ -23,9 +23,9 @@
 
     <view class="section-nav-shell">
       <view class="section-nav" aria-label="家长端学习导航">
-        <button class="nav-item" @tap="goToday">今日</button>
-        <button class="nav-item active" aria-current="page">学习</button>
-        <button class="nav-item" @tap="goGrowth">成长</button>
+        <button class="nav-item" @tap="goToday"><pp-icon name="calendar" :size="25" decorative />今日</button>
+        <button class="nav-item active" aria-current="page"><pp-icon name="book" :size="25" decorative />学习</button>
+        <button class="nav-item" @tap="goGrowth"><pp-icon name="trophy" :size="25" decorative />成长</button>
       </view>
       <view class="notebook-rule" aria-hidden="true"></view>
     </view>
@@ -70,14 +70,14 @@
       </view>
       <view v-if="error" class="inline-error" role="alert">
         <view class="inline-error-copy">
-          <pp-icon name="bell" :size="30" />
+          <pp-icon name="bell" :size="30" motion="ring" />
           <text>{{ error }}</text>
         </view>
         <button :disabled="loading" @tap="loadCatalog">重新加载</button>
       </view>
 
       <view class="overview-card ruled-card">
-        <view class="overview-icon"><pp-icon name="target" :size="38" /></view>
+        <view class="overview-icon"><pp-icon name="target" :size="38" motion="breathe" :delay="240" /></view>
         <view class="overview-copy">
           <text class="overview-label">今日建议</text>
           <text class="overview-title">先热身，再做一项重点练习</text>
@@ -89,7 +89,7 @@
       </view>
 
       <button v-if="catalog.features?.choice_king" class="choice-king-card" :disabled="loading" aria-label="开始选择刷题王" @tap="openChoiceKing">
-        <view class="choice-king-icon"><pp-icon name="exam" :size="46" /></view>
+        <view class="choice-king-icon"><pp-icon name="exam" :size="46" motion="shine" :delay="320" /></view>
         <view class="choice-king-copy">
           <text class="choice-king-kicker">原卷选择题专项</text>
           <text class="choice-king-title">选择刷题王</text>
@@ -103,7 +103,7 @@
 
       <view class="section-head">
         <view class="section-heading">
-          <view class="section-heading-icon"><pp-icon name="pencil" :size="30" /></view>
+          <view class="section-heading-icon"><pp-icon name="pencil" :size="30" motion="pop" :delay="400" /></view>
           <view>
             <text class="section-kicker">每天都能做</text>
             <text class="section-title">轻量练习</text>
@@ -132,7 +132,7 @@
 
       <view class="section-head spaced">
         <view class="section-heading">
-          <view class="section-heading-icon section-heading-icon--reward"><pp-icon name="trophy" :size="30" /></view>
+          <view class="section-heading-icon section-heading-icon--reward"><pp-icon name="trophy" :size="30" motion="shine" :delay="480" /></view>
           <view>
             <text class="section-kicker">阶段提升</text>
             <text class="section-title">挑战与测评</text>
@@ -255,13 +255,13 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 .learning-page {
   min-height: 100vh;
   overflow-x: hidden;
-  color: var(--ink, #24324A);
-  background-color: var(--page-bg, #F6FAFF);
+  color: var(--ink, #26352F);
+  background-color: var(--page-bg, #F8FCF9);
   background-image: repeating-linear-gradient(
     180deg,
     transparent 0,
     transparent 55rpx,
-    rgba(82, 124, 201, .045) 56rpx
+    rgba(32, 180, 134, .045) 56rpx
   );
 }
 
@@ -271,15 +271,15 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   margin: 20rpx 24rpx 0;
   padding: 28rpx 30rpx 30rpx;
   overflow: hidden;
-  border: 1rpx solid var(--border, #DDE7F2);
-  border-left: 8rpx solid var(--primary, #527CC9);
+  border: 1rpx solid var(--border, #D5E6DE);
+  border-left: 8rpx solid var(--primary, #20B486);
   border-radius: 24rpx;
   background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(32, 180, 134, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(32, 180, 134, .05) 1rpx, transparent 1rpx),
     var(--surface, #FFFFFF);
   background-size: 36rpx 36rpx, 36rpx 36rpx, auto;
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
 }
 
 .learning-hero::before {
@@ -301,7 +301,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   width: 112rpx;
   height: 24rpx;
   border-radius: 5rpx;
-  background: var(--gold, #F4C75B);
+  background: var(--gold, #20B486);
   opacity: .72;
   transform: rotate(2deg);
   pointer-events: none;
@@ -332,14 +332,14 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   width: 26rpx;
   height: 8rpx;
   border-radius: 2rpx;
-  background: var(--accent, #65BFA8);
+  background: var(--accent, #20B486);
 }
 
 .learning-hero .eyebrow {
-  color: var(--primary-strong, #315EA8);
+  color: var(--primary-strong, #15946D);
   font-size: 20rpx;
   font-weight: 750;
-  letter-spacing: 2.5rpx;
+  letter-spacing: 0;
 }
 
 .hero-tools {
@@ -355,12 +355,12 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(82, 124, 201, .14);
+  border: 1rpx solid rgba(32, 180, 134, .14);
   border-radius: 14rpx;
 }
 
-.hero-tool--blue { background: var(--primary-soft, #EAF2FF); }
-.hero-tool--mint { background: var(--accent-soft, #E9F8F3); }
+.hero-tool--blue { background: var(--primary-soft, #E8F5EF); }
+.hero-tool--mint { background: var(--accent-soft, #E8F5EF); }
 
 .hero-copy {
   position: relative;
@@ -370,18 +370,18 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 
 .hero-title {
   display: block;
-  color: var(--ink, #24324A);
+  color: var(--ink, #26352F);
   font-size: 46rpx;
   font-weight: 800;
   line-height: 1.25;
-  letter-spacing: -1rpx;
+  letter-spacing: 0;
 }
 
 .hero-sub {
   display: block;
   max-width: 560rpx;
   margin-top: 8rpx;
-  color: var(--text-secondary, #5C6C84);
+  color: var(--text-secondary, #5A6A62);
   font-size: 25rpx;
   line-height: 1.6;
 }
@@ -393,7 +393,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   gap: 16rpx;
   margin-top: 24rpx;
   padding-top: 18rpx;
-  border-top: 1rpx dashed #C9D8EA;
+  border-top: 1rpx dashed #D5E6DE;
 }
 
 .subject-chip {
@@ -402,10 +402,10 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   align-items: center;
   gap: 9rpx;
   padding: 0 14rpx;
-  border: 1rpx solid #C5D6EE;
+  border: 1rpx solid #D5E6DE;
   border-radius: 10rpx;
-  background: var(--primary-soft, #EAF2FF);
-  color: var(--primary-strong, #315EA8);
+  background: var(--primary-soft, #E8F5EF);
+  color: var(--primary-strong, #15946D);
   font-size: 20rpx;
   font-weight: 700;
 }
@@ -414,11 +414,11 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: var(--primary, #527CC9);
+  background: var(--primary, #20B486);
 }
 
 .hero-foot-note {
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 20rpx;
 }
 
@@ -432,19 +432,23 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   grid-template-columns: repeat(3, 1fr);
   gap: 8rpx;
   padding: 8rpx;
-  border: 1rpx solid var(--border, #DDE7F2);
+  border: 1rpx solid var(--border, #D5E6DE);
   border-radius: 18rpx;
   background: var(--surface, #FFFFFF);
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
 }
 
 .nav-item {
   position: relative;
-  min-height: 112rpx;
-  padding: 0 16rpx;
+  min-height: 76rpx;
+  padding: 0 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
   border-radius: 12rpx;
   background: transparent;
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 27rpx;
   font-weight: 700;
   line-height: 1.2;
@@ -452,9 +456,9 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 }
 
 .nav-item.active {
-  background: var(--primary, #527CC9);
+  background: var(--primary, #20B486);
   color: #FFFFFF;
-  box-shadow: 0 7rpx 18rpx rgba(49, 94, 168, .2);
+  box-shadow: 0 7rpx 18rpx rgba(21, 148, 109, .18);
 }
 
 .nav-item.active::before {
@@ -465,7 +469,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   width: 26rpx;
   height: 4rpx;
   border-radius: 4rpx;
-  background: var(--gold, #F4C75B);
+  background: var(--gold, #20B486);
   transform: translateX(-50%);
 }
 
@@ -476,18 +480,18 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   height: 5rpx;
   margin: 0 auto;
   border-radius: 0 0 4rpx 4rpx;
-  background: #D6E4F3;
+  background: #D5E6DE;
 }
 
 .grade-panel {
   box-sizing: border-box;
   margin: 18rpx 24rpx 0;
   padding: 22rpx;
-  border: 1rpx solid var(--border, #DDE7F2);
-  border-top: 5rpx solid var(--gold, #F4C75B);
+  border: 1rpx solid var(--border, #D5E6DE);
+  border-top: 5rpx solid var(--gold, #20B486);
   border-radius: 20rpx;
   background: var(--surface, #FFFFFF);
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
 }
 
 .grade-panel-head {
@@ -500,16 +504,16 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 
 .grade-panel-kicker {
   display: block;
-  color: var(--accent-strong, #358E7D);
+  color: var(--accent-strong, #15946D);
   font-size: 18rpx;
   font-weight: 750;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .grade-panel-title {
   display: block;
   margin-top: 2rpx;
-  color: var(--ink, #24324A);
+  color: var(--ink, #26352F);
   font-size: 27rpx;
   font-weight: 750;
 }
@@ -522,8 +526,8 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   align-items: center;
   justify-content: center;
   border-radius: 12rpx;
-  background: var(--warning-soft, #FFF5D7);
-  color: #9A6A12;
+  background: var(--warning-soft, #EEF8F3);
+  color: #15946D;
   font-size: 24rpx;
   font-weight: 800;
   transform: rotate(2deg);
@@ -534,7 +538,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   height: 3rpx;
   margin-top: 1rpx;
   border-radius: 2rpx;
-  background: var(--gold, #F4C75B);
+  background: var(--gold, #20B486);
 }
 
 .grade-switch {
@@ -550,10 +554,10 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   margin: 0;
   padding: 14rpx 8rpx 12rpx;
   overflow: hidden;
-  border: 1rpx solid var(--border, #DDE7F2);
+  border: 1rpx solid var(--border, #D5E6DE);
   border-radius: 14rpx 14rpx 10rpx 10rpx;
-  background: var(--surface-muted, #F9FBFF);
-  color: var(--text-secondary, #5C6C84);
+  background: var(--surface-muted, #F8FCF9);
+  color: var(--text-secondary, #5A6A62);
   font-size: 24rpx;
   font-weight: 750;
   line-height: 1.25;
@@ -567,46 +571,46 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   top: 0;
   height: 4rpx;
   border-radius: 0 0 4rpx 4rpx;
-  background: #CFDBEA;
+  background: #D5E6DE;
 }
 
 .grade-tab-sub {
   display: block;
   margin-top: 5rpx;
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 17rpx;
   font-weight: 550;
 }
 
 .grade-tab.active {
-  border-color: #AFC7EA;
-  background: var(--primary-soft, #EAF2FF);
-  color: var(--primary-strong, #315EA8);
-  box-shadow: inset 0 0 0 1rpx rgba(82, 124, 201, .08);
+  border-color: #BFE4D4;
+  background: var(--primary-soft, #E8F5EF);
+  color: var(--primary-strong, #15946D);
+  box-shadow: inset 0 0 0 1rpx rgba(32, 180, 134, .08);
 }
 
-.grade-tab.active .grade-tab-pin { background: var(--primary, #527CC9); }
-.grade-tab.active .grade-tab-sub { color: #5272A5; }
+.grade-tab.active .grade-tab-pin { background: var(--primary, #20B486); }
+.grade-tab.active .grade-tab-sub { color: #15946D; }
 .grade-tab:active { transform: scale(var(--tap-scale, .975)); opacity: .9; }
 
 .state-sheet {
   margin: 20rpx 24rpx 0;
   overflow: hidden;
-  border: 1rpx solid var(--border, #DDE7F2);
-  border-top: 5rpx solid var(--accent, #65BFA8);
+  border: 1rpx solid var(--border, #D5E6DE);
+  border-top: 5rpx solid var(--accent, #20B486);
   border-radius: 20rpx;
   background: var(--surface, #FFFFFF);
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
 }
 
-.state-sheet--error { border-top-color: var(--coral, #E98577); }
+.state-sheet--error { border-top-color: var(--coral, #FF7468); }
 .state-sheet--empty { margin-top: 18rpx; }
 .state-sheet :deep(.pp-state) { padding: 48rpx 30rpx; }
 .state-sheet :deep(.pp-state__action) {
   min-height: 112rpx;
-  border-color: #BFD0EC;
+  border-color: #BFE4D4;
   background: #FFFFFF;
-  color: var(--primary-strong, #315EA8);
+  color: var(--primary-strong, #15946D);
 }
 
 .refresh-status {
@@ -616,7 +620,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   justify-content: center;
   gap: 10rpx;
   margin: 14rpx 24rpx 0;
-  color: var(--primary-strong, #315EA8);
+  color: var(--primary-strong, #15946D);
   font-size: 21rpx;
   font-weight: 650;
 }
@@ -625,7 +629,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: var(--primary, #527CC9);
+  background: var(--primary, #20B486);
 }
 
 .inline-error {
@@ -637,8 +641,8 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   padding: 14rpx 14rpx 14rpx 20rpx;
   border: 1rpx solid #F0C7C1;
   border-radius: 16rpx;
-  background: var(--danger-soft, #FFF0ED);
-  color: var(--danger, #D66D62);
+  background: var(--danger-soft, #FFF0EE);
+  color: var(--danger, #D94B45);
   font-size: 22rpx;
 }
 
@@ -655,7 +659,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   border: 1rpx solid #E9B7B0;
   border-radius: 12rpx;
   background: #FFFFFF;
-  color: var(--danger, #D66D62);
+  color: var(--danger, #D94B45);
   font-size: 21rpx;
   font-weight: 700;
   transition: transform var(--motion-fast, 120ms) var(--ease-out, ease-out), opacity var(--motion-fast, 120ms) var(--ease-out, ease-out);
@@ -673,12 +677,12 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   margin: 20rpx 24rpx 0;
   padding: 24rpx;
   overflow: hidden;
-  border: 1rpx solid var(--border, #DDE7F2);
-  border-left: 6rpx solid var(--accent, #65BFA8);
+  border: 1rpx solid var(--border, #D5E6DE);
+  border-left: 6rpx solid var(--accent, #20B486);
   border-radius: 20rpx;
   background: var(--surface, #FFFFFF);
-  color: var(--ink, #24324A);
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  color: var(--ink, #26352F);
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
 }
 
 .ruled-card::after {
@@ -688,7 +692,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   right: 24rpx;
   bottom: 13rpx;
   height: 1rpx;
-  background: #D9E6F3;
+  background: #D5E6DE;
   pointer-events: none;
 }
 
@@ -699,23 +703,23 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   align-items: center;
   justify-content: center;
   border-radius: 18rpx;
-  background: var(--accent-soft, #E9F8F3);
+  background: var(--accent-soft, #E8F5EF);
 }
 
 .overview-copy { min-width: 0; }
 
 .overview-label {
   display: block;
-  color: var(--accent-strong, #358E7D);
+  color: var(--accent-strong, #15946D);
   font-size: 19rpx;
   font-weight: 750;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .overview-title {
   display: block;
   margin-top: 4rpx;
-  color: var(--ink, #24324A);
+  color: var(--ink, #26352F);
   font-size: 28rpx;
   font-weight: 750;
   line-height: 1.45;
@@ -727,8 +731,8 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   padding: 10rpx 14rpx;
   border: 1rpx solid #F1C4BE;
   border-radius: 13rpx;
-  background: var(--coral-soft, #FFF0ED);
-  color: #B55349;
+  background: var(--coral-soft, #FFF0EE);
+  color: #D94B45;
   font-size: 19rpx;
   line-height: 1.35;
   text-align: center;
@@ -737,12 +741,12 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 .wrong-pill-label {
   display: block;
   margin-bottom: 2rpx;
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 17rpx;
 }
 
 .wrong-pill .num {
-  color: var(--danger, #D66D62);
+  color: var(--danger, #D94B45);
   font-size: 30rpx;
   font-weight: 800;
 }
@@ -757,11 +761,11 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   grid-template-columns: 82rpx minmax(0, 1fr) auto;
   align-items: center;
   gap: 18rpx;
-  border: 1rpx solid #EAD38C;
-  border-left: 6rpx solid var(--gold, #F4C75B);
+  border: 1rpx solid #BFE4D4;
+  border-left: 6rpx solid var(--gold, #20B486);
   border-radius: 20rpx;
-  background: var(--warning-soft, #FFF5D7);
-  color: var(--ink, #24324A);
+  background: var(--warning-soft, #EEF8F3);
+  color: var(--ink, #26352F);
   text-align: left;
   box-shadow: 0 7rpx 20rpx rgba(154, 106, 18, .08);
   transition: transform var(--motion-fast, 120ms) var(--ease-out, ease-out), opacity var(--motion-fast, 120ms) var(--ease-out, ease-out);
@@ -776,7 +780,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #C5D6EE;
+  border: 1rpx solid #D5E6DE;
   border-radius: 18rpx;
   background: #FFFFFF;
 }
@@ -792,22 +796,22 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 }
 
 .choice-king-kicker {
-  color: #9A6A12;
+  color: #15946D;
   font-size: 18rpx;
   font-weight: 750;
-  letter-spacing: 1rpx;
+  letter-spacing: 0;
 }
 
 .choice-king-title {
   margin-top: 3rpx;
-  color: var(--primary-strong, #315EA8);
+  color: var(--primary-strong, #15946D);
   font-size: 32rpx;
   font-weight: 800;
 }
 
 .choice-king-desc {
   margin-top: 5rpx;
-  color: var(--text-secondary, #5C6C84);
+  color: var(--text-secondary, #5A6A62);
   font-size: 21rpx;
   line-height: 1.5;
 }
@@ -822,7 +826,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   flex: none;
   padding: 0 14rpx;
   border-radius: 13rpx;
-  background: var(--primary-strong, #315EA8);
+  background: var(--primary-strong, #15946D);
   color: #FFFFFF;
   font-size: 21rpx;
   font-weight: 700;
@@ -845,28 +849,28 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #C5D6EE;
+  border: 1rpx solid #D5E6DE;
   border-radius: 14rpx;
-  background: var(--primary-soft, #EAF2FF);
+  background: var(--primary-soft, #E8F5EF);
 }
 
 .section-heading-icon--reward {
-  border-color: #E8D28A;
-  background: var(--warning-soft, #FFF5D7);
+  border-color: #BFE4D4;
+  background: var(--warning-soft, #EEF8F3);
 }
 
 .section-kicker {
   display: block;
-  color: var(--accent-strong, #358E7D);
+  color: var(--accent-strong, #15946D);
   font-size: 18rpx;
   font-weight: 750;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
 .section-title {
   display: block;
   margin-top: 1rpx;
-  color: var(--ink, #24324A);
+  color: var(--ink, #26352F);
   font-size: 32rpx;
   font-weight: 780;
   line-height: 1.3;
@@ -875,10 +879,10 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 .section-note {
   flex: none;
   padding: 7rpx 12rpx;
-  border: 1rpx solid #D1DEEE;
+  border: 1rpx solid #D5E6DE;
   border-radius: 9rpx;
   background: rgba(255, 255, 255, .75);
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 20rpx;
 }
 
@@ -890,19 +894,19 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 }
 
 .learning-card {
-  --tone-color: var(--primary, #527CC9);
-  --tone-soft: var(--primary-soft, #EAF2FF);
+  --tone-color: var(--primary, #20B486);
+  --tone-soft: var(--primary-soft, #E8F5EF);
   position: relative;
   min-width: 0;
   min-height: 302rpx;
   padding: 22rpx;
   overflow: hidden;
-  border: 1rpx solid var(--border, #DDE7F2);
+  border: 1rpx solid var(--border, #D5E6DE);
   border-top: 6rpx solid var(--tone-color);
   border-radius: 18rpx;
   background: var(--surface, #FFFFFF);
   text-align: left;
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -935,7 +939,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 .card-icon {
   width: 70rpx;
   height: 70rpx;
-  border: 1rpx solid var(--border, #DDE7F2);
+  border: 1rpx solid var(--border, #D5E6DE);
   border-radius: 17rpx;
 }
 
@@ -950,37 +954,37 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   width: 6rpx;
   height: 6rpx;
   border-radius: 50%;
-  background: #C8D5E5;
+  background: #D5E6DE;
 }
 
 .tone-mint,
 .tone-green {
-  --tone-color: var(--accent, #65BFA8);
-  --tone-soft: var(--accent-soft, #E9F8F3);
+  --tone-color: var(--accent, #20B486);
+  --tone-soft: var(--accent-soft, #E8F5EF);
 }
 
 .tone-blue,
 .tone-navy {
-  --tone-color: var(--primary, #527CC9);
-  --tone-soft: var(--primary-soft, #EAF2FF);
+  --tone-color: var(--primary, #20B486);
+  --tone-soft: var(--primary-soft, #E8F5EF);
 }
 
 .tone-amber,
 .tone-rose {
-  --tone-color: var(--coral, #E98577);
-  --tone-soft: var(--coral-soft, #FFF0ED);
+  --tone-color: var(--coral, #FF7468);
+  --tone-soft: var(--coral-soft, #FFF0EE);
 }
 
 .tone-purple,
 .tone-gold {
-  --tone-color: var(--gold, #F4C75B);
-  --tone-soft: var(--warning-soft, #FFF5D7);
+  --tone-color: var(--gold, #20B486);
+  --tone-soft: var(--warning-soft, #EEF8F3);
 }
 
 .card-title {
   display: block;
   margin-top: 17rpx;
-  color: var(--ink, #24324A);
+  color: var(--ink, #26352F);
   font-size: 27rpx;
   font-weight: 760;
   line-height: 1.4;
@@ -991,7 +995,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   display: block;
   margin-top: 6rpx;
   min-height: 72rpx;
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 21rpx;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -1006,7 +1010,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   margin-top: auto;
   padding-top: 14rpx;
   border-top: 1rpx solid #E6EDF5;
-  color: var(--primary-strong, #315EA8);
+  color: var(--primary-strong, #15946D);
   font-size: 21rpx;
   font-weight: 700;
 }
@@ -1019,8 +1023,8 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 }
 
 .challenge-card {
-  --tone-color: var(--primary, #527CC9);
-  --tone-soft: var(--primary-soft, #EAF2FF);
+  --tone-color: var(--primary, #20B486);
+  --tone-soft: var(--primary-soft, #E8F5EF);
   position: relative;
   box-sizing: border-box;
   width: 100%;
@@ -1029,25 +1033,25 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
   display: flex;
   align-items: center;
   gap: 18rpx;
-  border: 1rpx solid var(--border, #DDE7F2);
+  border: 1rpx solid var(--border, #D5E6DE);
   border-left: 5rpx solid var(--tone-color);
   border-radius: 17rpx;
   background: var(--surface, #FFFFFF);
   text-align: left;
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(38, 53, 47, .055));
   transition: transform var(--motion-fast, 120ms) var(--ease-out, ease-out), opacity var(--motion-fast, 120ms) var(--ease-out, ease-out);
 }
 
 .challenge-card.locked {
-  border-left-color: #B8C5D5;
-  background: #F8FAFD;
+  border-left-color: #D5E6DE;
+  background: #F8FCF9;
   box-shadow: none;
 }
 
 .challenge-mark {
   width: 76rpx;
   height: 76rpx;
-  border: 1rpx solid var(--border, #DDE7F2);
+  border: 1rpx solid var(--border, #D5E6DE);
   border-radius: 17rpx;
 }
 
@@ -1058,7 +1062,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 
 .challenge-title {
   display: block;
-  color: var(--ink, #24324A);
+  color: var(--ink, #26352F);
   font-size: 27rpx;
   font-weight: 750;
   line-height: 1.35;
@@ -1067,7 +1071,7 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 .challenge-desc {
   display: block;
   margin-top: 4rpx;
-  color: var(--text-muted, #6E7D91);
+  color: var(--text-muted, #5A6A62);
   font-size: 21rpx;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -1076,10 +1080,10 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
 .lock-label {
   flex: none;
   padding: 7rpx 12rpx;
-  border: 1rpx solid #E9D39A;
+  border: 1rpx solid #BFE4D4;
   border-radius: 9rpx;
-  background: var(--warning-soft, #FFF5D7);
-  color: #8A651B;
+  background: var(--warning-soft, #EEF8F3);
+  color: #15946D;
   font-size: 19rpx;
   font-weight: 700;
 }
@@ -1139,5 +1143,109 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
     transform: none;
     opacity: 1;
   }
+}
+
+/* Student challenge theme v3: warm paper and one energetic teaching green. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --accent: #20B486;
+  --accent-strong: #15946D;
+  --accent-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  --hairline: #E4EFE9;
+  min-height: 100vh;
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(32, 180, 134, .05) 56rpx 57rpx);
+  color: var(--ink);
+}
+.student-challenge-page .learning-hero {
+  min-height: 0;
+  padding: 34rpx 30rpx 28rpx;
+  border: 0;
+  border-bottom: 6rpx solid var(--primary);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+}
+.student-challenge-page .learning-hero::before,
+.student-challenge-page .learning-hero::after { display: none; }
+.student-challenge-page .learning-hero .eyebrow,
+.student-challenge-page .section-kicker,
+.student-challenge-page .grade-panel-kicker,
+.student-challenge-page .choice-king-kicker { color: var(--primary-strong); }
+.student-challenge-page .hero-title,
+.student-challenge-page .section-title,
+.student-challenge-page .grade-panel-title,
+.student-challenge-page .choice-king-title,
+.student-challenge-page .learning-card-title { color: var(--ink); }
+.student-challenge-page .hero-sub,
+.student-challenge-page .section-note,
+.student-challenge-page .choice-king-desc,
+.student-challenge-page .learning-card-desc { color: var(--text-secondary); }
+.student-challenge-page .hero-tool--blue,
+.student-challenge-page .hero-tool--mint,
+.student-challenge-page .section-heading-icon,
+.student-challenge-page .section-heading-icon--reward,
+.student-challenge-page .overview-icon,
+.student-challenge-page .choice-king-icon {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.student-challenge-page .overview-card,
+.student-challenge-page .grade-panel,
+.student-challenge-page .choice-king-card,
+.student-challenge-page .learning-card,
+.student-challenge-page .challenge-card,
+.student-challenge-page .state-sheet {
+  min-height: 0;
+  border-color: var(--border);
+  border-radius: 16rpx;
+  background: var(--surface);
+  box-shadow: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+}
+.student-challenge-page .learning-grid,
+.student-challenge-page .grade-switch { align-items: start; }
+.student-challenge-page .grade-tab {
+  min-height: 76rpx;
+  padding: 10rpx 14rpx;
+  border-color: var(--border);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+.student-challenge-page .grade-tab.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.student-challenge-page .choice-king-action,
+.student-challenge-page .challenge-action {
+  min-height: 84rpx;
+  border-radius: 14rpx;
+  background: var(--primary);
+  color: #FFFFFF;
+}
+.student-challenge-page .nav-item {
+  min-height: 76rpx;
+  padding-block: 0;
+}
+.student-challenge-page .nav-item.active {
+  box-shadow: 0 7rpx 18rpx rgba(21, 148, 109, .18);
+}
+.student-challenge-page .wrong-pill,
+.student-challenge-page .inline-error {
+  background: var(--coral-soft);
+  color: var(--danger);
 }
 </style>

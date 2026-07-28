@@ -1,6 +1,7 @@
 <template>
-  <view class="page page-bottom-safe">
+  <view class="page page-bottom-safe student-challenge-page">
     <view class="hero">
+      <view class="hero-mark"><pp-icon name="target" :size="42" motion="bob" :delay="80" /></view>
       <text class="eyebrow">TERMINAL CHALLENGE</text>
       <text class="hero-title">压轴挑战</text>
       <text class="hero-sub">连续闯关 · 答错重交同题 · 答对后手动领取下一题</text>
@@ -9,9 +10,10 @@
     <pp-state v-else-if="error && !assignment" type="error" title="挑战加载失败" :description="error" action-text="重试" @action="loadCurrent" />
 
     <view v-if="!loading && !assignment && !error" class="choose-card">
-      <text class="section-title">想挑战哪类压轴题？</text>
+      <view class="section-title-row"><pp-icon name="book" :size="30" motion="pop" :delay="180" /><text class="section-title">想挑战哪类压轴题？</text></view>
       <text class="section-desc">从未通关题库随机领取；未提交前每天可更换 1 次。</text>
-      <button v-for="item in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
+      <button v-for="(item,index) in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
+        <view class="type-icon"><pp-icon name="exam" :size="30" :motion="index === 0 ? 'pop' : 'none'" :delay="260" :stagger="70" :index="index" /></view>
         <view :class="['type-mark',item.value]">{{ item.short }}</view>
         <view class="type-copy"><text class="type-title">{{ item.label }}</text><text class="type-desc">{{ item.desc }} · 题库 {{ available[item.value] || 0 }} 题</text></view>
         <pp-icon name="arrow" :size="30" />
@@ -20,7 +22,7 @@
 
     <template v-if="assignment">
       <view class="challenge-card">
-        <view class="challenge-head"><view><text class="type-pill">{{ typeLabel(assignment.question_type) }}</text><text class="challenge-title">{{ assignment.title }}</text></view><text class="week-label">已通关 {{ progress[assignment.question_type]||0 }} 题</text></view>
+        <view class="challenge-head"><view class="challenge-title-row"><view class="challenge-icon"><pp-icon name="target" :size="32" motion="shine" :delay="120" /></view><view><text class="type-pill">{{ typeLabel(assignment.question_type) }}</text><text class="challenge-title">{{ assignment.title }}</text></view></view><text class="week-label">已通关 {{ progress[assignment.question_type]||0 }} 题</text></view>
         <text class="source">{{ assignment.source_label || '广州七年级数学真题精选' }}</text>
         <pp-question-reader
           :src="questionImage"
@@ -34,7 +36,7 @@
       </view>
 
       <view class="submit-card">
-        <view class="submit-head"><view><text class="section-title">拍照提交解题过程</text><text class="section-desc">写清题号和步骤，最多 4 张；答案仅老师批阅时可见。</text></view><text v-if="photoCount" class="count">{{ photoCount }} 张</text></view>
+        <view class="submit-head"><view class="section-title-row"><pp-icon name="pencil" :size="30" motion="pop" :delay="240" /><view><text class="section-title">拍照提交解题过程</text><text class="section-desc">写清题号和步骤，最多 4 张；答案仅老师批阅时可见。</text></view></view><text v-if="photoCount" class="count">{{ photoCount }} 张</text></view>
         <view v-if="localPhotos.length" class="photo-grid"><image v-for="(src,index) in localPhotos" :key="src" :src="src" mode="aspectFill" @tap="previewPhotos(index)" /></view>
         <button class="upload-btn" :disabled="uploading || assignment.status==='submitted' || photoCount>=4" @tap="chooseAndUpload">{{ assignment.status==='submitted'?'等待老师批阅':uploading?`正在上传 ${uploadProgress}`:assignment.status==='reviewed_wrong'?'重新拍照提交':photoCount?'继续补充照片':'拍照或选择图片' }}</button>
         <view v-if="assignment.submission" :class="['review-state',assignment.submission.status]">
@@ -45,7 +47,7 @@
     </template>
 
     <view v-if="!assignment&&lastPassed" class="passed-card">
-      <text class="passed-mark">✓</text>
+      <view class="passed-mark"><pp-icon name="check" :size="42" motion="pop" :delay="100" /></view>
       <text class="passed-title">挑战通过</text>
       <text class="passed-desc">{{ lastPassed.title }} 已计入通关记录。</text>
       <button class="poster-btn" @tap="openAchievements">生成通关成就海报</button>
@@ -107,31 +109,19 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 48rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 22rpx;padding:50rpx 34rpx 44rpx;border-radius:0 0 34rpx 34rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:19rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;color:#D8EDE7;font-size:23rpx}.choose-card,.challenge-card,.submit-card{margin-bottom:18rpx;padding:28rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.section-title{display:block;color:var(--ink);font-size:30rpx;font-weight:750}.section-desc{display:block;margin-top:6rpx;color:var(--text-muted);font-size:22rpx;line-height:1.5}.type-card{width:100%;min-height:112rpx;display:flex;align-items:center;gap:17rpx;margin:18rpx 0 0;padding:17rpx;border-radius:17rpx;background:var(--surface-muted);text-align:left}.type-card::after,.upload-btn::after{border:0}.type-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:18rpx;background:#E1F0EB;color:#276B5C;font-size:28rpx;font-weight:850}.type-mark.fill{background:#FFF0D6;color:#8B5E08}.type-mark.subjective{background:#ECE9F7;color:#5A4B90}.type-copy{flex:1}.type-title{display:block;color:var(--ink);font-size:27rpx;font-weight:720}.type-desc{display:block;margin-top:3rpx;color:var(--text-muted);font-size:20rpx}.challenge-head,.submit-head{display:flex;justify-content:space-between;gap:18rpx}.type-pill{display:inline-block;padding:6rpx 13rpx;border-radius:999rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:20rpx;font-weight:720}.challenge-title{display:block;margin-top:10rpx;color:var(--ink);font-size:29rpx;font-weight:740}.week-label,.count{flex:none;color:var(--text-muted);font-size:20rpx}.source{display:block;margin-top:7rpx;color:var(--text-muted);font-size:21rpx}.question-image{width:100%;margin-top:22rpx;border-radius:14rpx;background:#F5F7F6}.upload-btn{min-height:88rpx;margin:22rpx 0 0;border-radius:15rpx;background:var(--primary);color:#fff;font-size:27rpx;font-weight:720}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:20rpx}.photo-grid image{width:100%;height:180rpx;border-radius:12rpx}.review-state{margin-top:18rpx;padding:18rpx;border-radius:14rpx;background:#FFF8E7;color:#84620C}.review-state.reviewed{background:#EAF5F1;color:#236756}.review-title{display:block;font-size:24rpx;font-weight:720}.review-note{display:block;margin-top:6rpx;color:var(--ink);font-size:23rpx;line-height:1.55}
-.change-btn{min-height:68rpx;margin:14rpx 0 0;border:1rpx solid #C7D9D4;border-radius:12rpx;background:#fff;color:#426D63;font-size:22rpx}.change-btn::after{border:0}.passed-card{margin-bottom:18rpx;padding:42rpx 28rpx;border:1rpx solid #C9DFD8;border-radius:24rpx;background:linear-gradient(145deg,#F7FCFA,#EAF5F1);text-align:center}.passed-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:22rpx;background:#2F7D6B;color:#fff;font-size:46rpx;font-weight:800}.passed-title{display:block;margin-top:18rpx;color:#183A36;font-size:34rpx;font-weight:800}.passed-desc{display:block;margin-top:6rpx;color:#60736E;font-size:23rpx;line-height:1.55}
-.poster-btn{min-height:76rpx;margin:20rpx 0 10rpx;border:1rpx solid #D2B55F;border-radius:13rpx;background:#FFF7D8;color:#6D500F;font-size:23rpx;font-weight:760}.poster-btn::after{border:0}
+.page{min-height:100vh;padding:0 24rpx 48rpx}.hero{margin:0 -24rpx 22rpx;padding:50rpx 34rpx 44rpx}.eyebrow{display:block;font-size:19rpx;font-weight:800}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;font-size:23rpx}.choose-card,.challenge-card,.submit-card{margin-bottom:18rpx;padding:28rpx}.section-title{display:block;font-size:30rpx;font-weight:750}.section-desc{display:block;margin-top:6rpx;font-size:22rpx;line-height:1.5}.type-card{width:100%;min-height:112rpx;display:flex;align-items:center;gap:17rpx;margin:18rpx 0 0;padding:17rpx;text-align:left}.type-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;font-size:28rpx;font-weight:850}.type-copy{flex:1}.type-title{display:block;font-size:27rpx;font-weight:720}.type-desc{display:block;margin-top:3rpx;font-size:20rpx}.challenge-head,.submit-head{display:flex;justify-content:space-between;gap:18rpx}.type-pill{display:inline-block;padding:6rpx 13rpx;font-size:20rpx;font-weight:720}.challenge-title{display:block;margin-top:10rpx;font-size:29rpx;font-weight:740}.week-label,.count{flex:none;font-size:20rpx}.source{display:block;margin-top:7rpx;font-size:21rpx}.question-image{width:100%;margin-top:22rpx}.upload-btn{min-height:88rpx;margin:22rpx 0 0;font-size:27rpx;font-weight:720}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:20rpx}.photo-grid image{width:100%;height:180rpx}.review-state{margin-top:18rpx;padding:18rpx}.review-title{display:block;font-size:24rpx;font-weight:720}.review-note{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
+.change-btn{min-height:68rpx;margin:14rpx 0 0;font-size:22rpx}.passed-card{margin-bottom:18rpx;padding:42rpx 28rpx;text-align:center}.passed-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:46rpx;font-weight:800}.passed-title{display:block;margin-top:18rpx;font-size:34rpx;font-weight:800}.passed-desc{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
+.poster-btn{min-height:76rpx;margin:20rpx 0 10rpx;font-size:23rpx;font-weight:760}
 
 /* 压轴挑战：浅色试卷页，珊瑚提示风险、薄荷表示通过。 */
 .page {
   overflow-x: hidden;
-  background:
-    linear-gradient(rgba(82, 124, 201, .03) 1rpx, transparent 1rpx),
-    var(--page-bg);
-  background-size: 100% 58rpx, auto;
-  color: var(--ink);
 }
 
 .hero {
   position: relative;
   margin: 0 -24rpx 22rpx;
   padding: 44rpx 34rpx 38rpx;
-  border-bottom: 1rpx solid var(--border);
-  border-radius: 0;
-  background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
-  background-size: 42rpx 42rpx, auto;
-  color: var(--ink);
 }
 .hero::after {
   content: '';
@@ -140,70 +130,19 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
   top: 28rpx;
   width: 112rpx;
   height: 18rpx;
-  border-radius: 4rpx;
-  background: var(--coral);
   opacity: .78;
   transform: rotate(2deg);
 }
-.eyebrow { color: var(--accent-strong); }
-.hero-title { color: var(--primary-strong); }
-.hero-sub { color: var(--text-secondary); }
-
-.choose-card,
-.challenge-card,
-.submit-card {
-  border-color: var(--border);
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  animation: terminal-card-in var(--motion-slow) var(--ease-out) both;
-}
-.challenge-card { border-top: 7rpx solid var(--coral); }
-.submit-card { border-top: 7rpx solid var(--primary); }
-.section-title,
-.type-title,
-.challenge-title { color: var(--ink); }
-.section-desc,
-.type-desc,
-.week-label,
-.count,
-.source { color: var(--text-muted); }
-
-.type-card {
-  border: 1rpx solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface-muted);
-  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
-}
 .type-card:active { transform: scale(var(--tap-scale)); }
 .type-card[disabled] { opacity: .5; }
-.type-mark { background: var(--accent-soft); color: var(--accent-strong); }
-.type-mark.fill { background: var(--warning-soft); color: var(--warning); }
-.type-mark.subjective { background: var(--coral-soft); color: var(--danger); }
-.type-pill { background: var(--coral-soft); color: var(--danger); }
 
 .change-btn {
   min-height: 88rpx;
-  border-color: var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  color: var(--primary-strong);
 }
 
 .upload-btn,
 .poster-btn {
   min-height: 112rpx;
-  border-radius: var(--r-sm);
-  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
-}
-.upload-btn {
-  background: var(--primary-strong);
-  color: #FFFFFF;
-}
-.poster-btn {
-  border-color: #E6CF88;
-  background: var(--warning-soft);
-  color: #765410;
 }
 .upload-btn:active,
 .poster-btn:active,
@@ -211,42 +150,6 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 .upload-btn[disabled],
 .poster-btn[disabled],
 .change-btn[disabled] { opacity: .5; }
-
-.photo-grid image {
-  border: 1rpx solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface-muted);
-}
-
-.review-state {
-  border-left: 6rpx solid var(--gold);
-  border-radius: var(--r-sm);
-  background: var(--warning-soft);
-  color: var(--warning);
-}
-.review-state.reviewed {
-  border-left-color: var(--accent);
-  background: var(--success-soft);
-  color: var(--success);
-}
-.review-note { color: var(--text-secondary); }
-
-.passed-card {
-  border-color: #BFE5D9;
-  border-top: 7rpx solid var(--accent);
-  border-radius: var(--r);
-  background: linear-gradient(145deg, #FFFFFF, var(--accent-soft));
-  box-shadow: var(--shadow-sm);
-  animation: terminal-card-in var(--motion-slow) var(--ease-out) both;
-}
-.passed-mark { background: var(--success); }
-.passed-title { color: var(--ink); }
-.passed-desc { color: var(--text-secondary); }
-
-@keyframes terminal-card-in {
-  from { opacity: 0; transform: translateY(16rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 @media (max-width: 360px) {
   .challenge-head,
@@ -256,16 +159,282 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .choose-card,
-  .challenge-card,
-  .submit-card,
-  .passed-card { animation: none; }
-  .type-card,
-  .upload-btn,
-  .poster-btn { transition: none; }
   .type-card:active,
   .upload-btn:active,
   .poster-btn:active,
   .change-btn:active { transform: none; }
+}
+
+/* Student challenge theme v3: warm paper and one energetic teaching green. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --accent: #20B486;
+  --accent-strong: #15946D;
+  --accent-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  --hairline: #E4EFE9;
+  --r: 16rpx;
+  --r-sm: 14rpx;
+  --r-xs: 10rpx;
+  --r-lg: 16rpx;
+  --shadow-sm: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+  --shadow: 0 10rpx 28rpx rgba(38, 53, 47, .08);
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 55rpx,
+    rgba(32, 180, 134, .045) 56rpx 57rpx
+  );
+  color: var(--ink);
+}
+
+.student-challenge-page .hero {
+  min-height: 0;
+  margin: 0 -24rpx 18rpx;
+  padding: 34rpx 30rpx 28rpx;
+  border-bottom: 7rpx solid var(--primary);
+  border-radius: 0;
+  background-color: var(--surface);
+  box-shadow: none;
+}
+
+.student-challenge-page .hero::after {
+  top: 0;
+  right: 34rpx;
+  bottom: auto;
+  width: 94rpx;
+  height: 10rpx;
+  border-radius: 0 0 4rpx 4rpx;
+  background: var(--primary);
+  opacity: 1;
+  transform: none;
+}
+
+.student-challenge-page .eyebrow {
+  color: var(--primary-strong);
+  font-size: 18rpx;
+  letter-spacing: 0;
+}
+
+.student-challenge-page .hero-title {
+  margin-top: 10rpx;
+  color: var(--ink);
+  font-size: 44rpx;
+}
+
+.student-challenge-page .hero-sub {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .choose-card,
+.student-challenge-page .challenge-card,
+.student-challenge-page .submit-card,
+.student-challenge-page .passed-card {
+  margin-bottom: 16rpx;
+  padding: 26rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-challenge-page .choose-card {
+  border-top: 7rpx solid var(--accent);
+}
+
+.student-challenge-page .challenge-card {
+  border-top: 7rpx solid var(--primary);
+}
+
+.student-challenge-page .submit-card {
+  border-top: 7rpx solid var(--primary);
+}
+
+.student-challenge-page .section-title,
+.student-challenge-page .type-title,
+.student-challenge-page .challenge-title {
+  color: var(--ink);
+}
+
+.student-challenge-page .section-desc,
+.student-challenge-page .type-desc,
+.student-challenge-page .week-label,
+.student-challenge-page .count,
+.student-challenge-page .source {
+  color: var(--text-muted);
+}
+
+.student-challenge-page .type-card {
+  min-height: 0;
+  margin-top: 14rpx;
+  padding: 16rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+  box-shadow: none;
+}
+
+.student-challenge-page .type-mark {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: var(--r-xs);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .type-mark.fill {
+  background: var(--primary-soft);
+  color: #15946D;
+}
+
+.student-challenge-page .type-mark.subjective {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .type-pill {
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: #15946D;
+}
+
+.student-challenge-page .change-btn {
+  min-height: 84rpx;
+  border: 1rpx solid #BFE4D4;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .photo-grid {
+  gap: 10rpx;
+}
+
+.student-challenge-page .photo-grid image {
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+}
+
+.student-challenge-page .upload-btn,
+.student-challenge-page .poster-btn {
+  min-height: 96rpx;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+
+.student-challenge-page .upload-btn {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .poster-btn {
+  border: 1rpx solid #CBEADF;
+  background: var(--primary-soft);
+  color: #15946D;
+}
+
+.student-challenge-page .review-state {
+  padding: 18rpx;
+  border: 1rpx solid #CBEADF;
+  border-left: 7rpx solid var(--primary);
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+  color: #15946D;
+}
+
+.student-challenge-page .review-state.reviewed,
+.student-challenge-page .review-state.passed {
+  border-color: #CBEADF;
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .review-state.reviewed_wrong,
+.student-challenge-page .review-state.rejected {
+  border-color: #F3C8C2;
+  border-left-color: var(--coral);
+  background: var(--coral-soft);
+  color: #D94B45;
+}
+
+.student-challenge-page .review-note {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .passed-card {
+  border-color: #CBEADF;
+  border-top: 7rpx solid var(--accent);
+  background: var(--surface);
+}
+
+.student-challenge-page .passed-mark {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .passed-title {
+  color: var(--ink);
+}
+
+.student-challenge-page .passed-desc {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .hero-mark {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  width: 70rpx;
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #BFE4D4;
+  border-radius: 14rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .section-title-row,
+.student-challenge-page .challenge-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.student-challenge-page .type-icon,
+.student-challenge-page .challenge-icon {
+  width: 52rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1rpx solid #BFE4D4;
+  border-radius: 12rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .passed-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
 }
 </style>

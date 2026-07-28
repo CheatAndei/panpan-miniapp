@@ -29,6 +29,25 @@ test('切换孩子不会被后台刷新吞掉，失败时旧孩子页面也有�
   assert.match(homeSource, /setInterval\(\(\) => loadParentData\(\), 30000\)/);
   assert.match(parentHomeSource, /v-if="parentError && child"/);
   assert.match(parentHomeSource, /@tap="\$emit\('reload', child\.id\)"/);
-  assert.match(parentHomeSource, /\.child-chip\s*\{[\s\S]*?min-height:\s*112rpx/u);
-  assert.match(parentHomeSource, /\.parent-nav-item\s*\{[\s\S]*?min-height:\s*112rpx/u);
+  assert.match(parentHomeSource, /\.child-chip\s*\{[\s\S]*?min-height:\s*78rpx/u);
+  assert.match(parentHomeSource, /\.parent-nav-item\s*\{[\s\S]*?min-height:\s*78rpx/u);
+  assert.doesNotMatch(parentHomeSource, /#(?:3268D6|1E4EA8|315EA8|527CC9)/iu);
+});
+
+test('家长首页用小图标组织任务、成长与家校服务，但不依赖符号占位', () => {
+  const iconNames = [...parentHomeSource.matchAll(/<pp-icon\b[^>]*name="([^"]+)"/g)]
+    .map((match) => match[1]);
+  const iconSizes = [...parentHomeSource.matchAll(/<pp-icon\b[^>]*:size="(\d+)"/g)]
+    .map((match) => Number(match[1]));
+
+  assert.ok(iconNames.length >= 18);
+  for (const name of ['user', 'calculator', 'calendar', 'book', 'trophy', 'target', 'bell', 'message']) {
+    assert.ok(iconNames.includes(name), `家长首页应包含 ${name} 图标`);
+  }
+  assert.ok(iconSizes.every((size) => size >= 20 && size <= 48));
+  assert.match(parentHomeSource, /<pp-icon[\s\S]{0,120}:name="task\.completed \? 'check' : taskIcon\(task\)"/);
+  assert.match(parentHomeSource, /motion="(?:breathe|bob|pop|ring|shine)"/);
+  assert.match(parentHomeSource, /:motion="task\.completed \? 'pop'/);
+  assert.doesNotMatch(parentHomeSource, /#(?:5B9DF7|337BD8|FFC94A|B27600|FFF6D8|EDF4FF)/i);
+  assert.doesNotMatch(parentHomeSource, /<svg\b|[✓□★⭐🔒📌📚🎯✨💡]/u);
 });

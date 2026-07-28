@@ -22,7 +22,14 @@ function loadPosterModule(uni) {
     },
   };
   vm.runInNewContext(
-    `${source}\nmodule.exports = { renderPracticeReviewPoster, practicePhotoLayouts };`,
+    `${source}\nmodule.exports = {
+      renderPracticeReviewPoster,
+      practicePhotoLayouts,
+      pickPracticeReviewMessage,
+      PRACTICE_ALL_CORRECT_MESSAGES,
+      PRACTICE_NEEDS_WORK_MESSAGES,
+      PRACTICE_ENCOURAGEMENT_MESSAGES
+    };`,
     context,
     { filename: file },
   );
@@ -32,12 +39,19 @@ function loadPosterModule(uni) {
 function createPosterHarness() {
   const texts = [];
   const fillStyles = [];
+  const fillRects = [];
   const imageSources = [];
   const drawImages = [];
   const exportOptions = [];
+  let currentFillStyle = '';
   const context = {
-    setFillStyle(value) { fillStyles.push(value); },
-    fillRect() {},
+    setFillStyle(value) {
+      currentFillStyle = value;
+      fillStyles.push(value);
+    },
+    fillRect(x, y, width, height) {
+      fillRects.push({ color: currentFillStyle, x, y, width, height });
+    },
     setFontSize() {},
     fillText(value) { texts.push(String(value)); },
     save() {},
@@ -73,6 +87,7 @@ function createPosterHarness() {
     uni,
     texts,
     fillStyles,
+    fillRects,
     imageSources,
     drawImages,
     exportOptions,
@@ -97,18 +112,22 @@ async function renderTexts(options = {}) {
   return harness.texts;
 }
 
-test('首次批改全对时保持原海报文案，新增参数向后兼容', async () => {
+test('首次批改全对时使用全对随机池并保持参数向后兼容', async () => {
   const texts = await renderTexts();
   const rendered = texts.join('');
+  const { PRACTICE_ALL_CORRECT_MESSAGES, PRACTICE_ENCOURAGEMENT_MESSAGES } = loadPosterModule(
+    createPosterHarness().uni,
+  );
 
   assert.ok(rendered.includes('PANPAN · DAILY PRACTICE'));
   assert.ok(rendered.includes('小满的打卡记录'));
   assert.ok(rendered.includes('批改结果'));
   assert.ok(rendered.includes('全对'));
-  assert.ok(rendered.includes('保持节奏'));
-  assert.ok(rendered.includes('今天完成得很扎实'));
-  assert.ok(rendered.includes('认真有回响，坚持会发光'));
-  assert.ok(rendered.includes('学生记录'));
+  assert.ok(rendered.includes('作答情况'));
+  assert.ok(rendered.includes('本次题目全部正确'));
+  assert.ok(PRACTICE_ALL_CORRECT_MESSAGES.some((message) => rendered.includes(message)));
+  assert.ok(PRACTICE_ENCOURAGEMENT_MESSAGES.some((message) => rendered.includes(message)));
+  assert.ok(rendered.includes('任课老师批改'));
   assert.ok(!rendered.includes('本轮错题已订正'));
 });
 
@@ -121,12 +140,11 @@ test('订正全对时按轮次生成及时订正海报', async () => {
 
   assert.ok(rendered.includes('PANPAN · TIMELY CORRECTION'));
   assert.ok(rendered.includes('小满的及时订正'));
-  assert.ok(rendered.includes('及时订正'));
+  assert.ok(rendered.includes('订正结果'));
   assert.ok(rendered.includes('已订正'));
   assert.ok(rendered.includes('第 2 轮'));
   assert.ok(rendered.includes('本轮错题已订正'));
-  assert.ok(rendered.includes('及时订正，进步看得见'));
-  assert.ok(rendered.includes('订正记录'));
+  assert.ok(rendered.includes('订正轮次 2'));
 });
 
 test('订正仍有错题时不误报本轮已订正', async () => {
@@ -196,6 +214,44 @@ test('首次有错时显示正确题数、总题数、轮次与待订正状态',
   assert.ok(!rendered.includes('本轮错题已订正'));
 });
 
+test('全对、有错和底栏鼓励各有 100 条不重复文案，洗牌袋轮完前不复用', () => {
+  const {
+    pickPracticeReviewMessage,
+    PRACTICE_ALL_CORRECT_MESSAGES,
+    PRACTICE_NEEDS_WORK_MESSAGES,
+    PRACTICE_ENCOURAGEMENT_MESSAGES,
+  } = loadPosterModule(createPosterHarness().uni);
+
+  for (const pool of [
+    PRACTICE_ALL_CORRECT_MESSAGES,
+    PRACTICE_NEEDS_WORK_MESSAGES,
+    PRACTICE_ENCOURAGEMENT_MESSAGES,
+  ]) {
+    assert.equal(pool.length, 100);
+    assert.equal(new Set(pool).size, 100);
+  }
+
+  const draws = Array.from(
+    { length: 100 },
+    () => pickPracticeReviewMessage(PRACTICE_ALL_CORRECT_MESSAGES, 'test-all-correct'),
+  );
+  assert.equal(new Set(draws).size, 100);
+  const next = pickPracticeReviewMessage(PRACTICE_ALL_CORRECT_MESSAGES, 'test-all-correct');
+  assert.notEqual(next, draws.at(-1));
+});
+
+test('海报移除隐私说明，左下角为随机鼓励，右下角为老师签名', async () => {
+  const texts = await renderTexts({ teacherName: '潘潘老师' });
+  const rendered = texts.join('');
+  const { PRACTICE_ENCOURAGEMENT_MESSAGES } = loadPosterModule(createPosterHarness().uni);
+
+  assert.ok(PRACTICE_ENCOURAGEMENT_MESSAGES.some((message) => rendered.includes(message)));
+  assert.ok(rendered.includes('潘潘老师批改'));
+  assert.ok(!rendered.includes('PRIVATE REVIEW'));
+  assert.ok(!rendered.includes('私密批改记录'));
+  assert.ok(!rendered.includes('仅供私下查看'));
+});
+
 test('长姓名与长错题号会安全截断', async () => {
   const studentName = '这是一个非常非常长需要安全截断的小朋友姓名';
   const wrongNumbers = Array.from({ length: 30 }, (_, index) => index + 1);
@@ -213,20 +269,55 @@ test('长姓名与长错题号会安全截断', async () => {
   assert.ok(!rendered.includes(completeWrongList));
 });
 
-test('海报使用浅蓝白练习册色系并保持 750×1000 逻辑画布与 2 倍导出', async () => {
+test('海报使用暖白、青绿与少量珊瑚的统一配色并保持 750×1000 逻辑画布与 2 倍导出', async () => {
   const file = path.join(__dirname, '..', 'utils', 'practice-review-poster.js');
   const source = fs.readFileSync(file, 'utf8');
   const harness = await renderPoster();
   const options = harness.exportOptions[0];
 
-  assert.match(source, /#F6FAFF/);
-  assert.match(source, /#527CC9/);
+  assert.match(source, /#F8FCF9/);
+  assert.match(source, /#20B486/);
+  assert.match(source, /#15946D/);
+  assert.match(source, /#FF7468/);
+  assert.match(source, /#FFF0EE/);
+  assert.match(source, /#26352F/);
   assert.match(source, /#FFFFFF/);
   assert.match(source, /drawCover\([\s\S]*?'contain'/u);
   assert.doesNotMatch(source, /total === 1 \? 'cover'/);
-  assert.doesNotMatch(source, /#173A35|#E9D8BC|#F7F0E5/);
+  assert.doesNotMatch(source, /#3268D6|#1E4EA8|#315EA8|#527CC9|#24324A/iu);
+  assert.doesNotMatch(source, /#FFC94A|#FFF4C2|#5B9DF7|#EAF3FF|#337BD8|#B27600/iu);
+  assert.doesNotMatch(source, /#173A35|#E9D8BC|#F7F0E5/iu);
   assert.equal(options.width, 750);
   assert.equal(options.height, 1000);
   assert.equal(options.destWidth, 1500);
   assert.equal(options.destHeight, 2000);
+});
+
+test('海报使用明显青绿大色面，珊瑚只承担状态与签名，并区分全对与有错', async () => {
+  const allCorrect = await renderPoster({ totalCount: 10, correctCount: 10 });
+  const needsWork = await renderPoster({
+    totalCount: 10,
+    correctCount: 8,
+    wrongNumbers: [2, 7],
+  });
+  const hasLargePanel = (harness, color, minimumArea = 20000) => harness.fillRects.some(
+    (rect) => rect.color === color && rect.width * rect.height >= minimumArea,
+  );
+
+  for (const harness of [allCorrect, needsWork]) {
+    assert.ok(hasLargePanel(harness, '#20B486'));
+    assert.ok(hasLargePanel(harness, '#FF7468', 15000));
+    assert.equal(harness.fillRects.some((rect) => ['#FFC94A', '#5B9DF7'].includes(rect.color)), false);
+  }
+  assert.ok(hasLargePanel(allCorrect, '#20B486', 24000));
+  assert.ok(hasLargePanel(allCorrect, '#E7F8F1', 100000));
+  assert.ok(hasLargePanel(needsWork, '#FF7468', 20000));
+  assert.equal(
+    allCorrect.fillRects.some((rect) => rect.color === '#FFF0EE' && rect.width === 202),
+    false,
+  );
+  assert.equal(
+    needsWork.fillRects.some((rect) => rect.color === '#FFF0EE' && rect.width === 202),
+    true,
+  );
 });

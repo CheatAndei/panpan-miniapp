@@ -1,18 +1,18 @@
 <template>
   <view class="maintenance-page">
     <view class="paper-card">
-      <view class="brand-mark">番番记录</view>
-      <view class="status-dot"><view class="dot-core" /></view>
-      <text class="title">{{ status.title || '系统升级维护中' }}</text>
+      <view class="brand-mark"><pp-icon name="brand" :size="24" motion="shine" /><text>番番记录</text></view>
+      <view :class="['status-icon',{checking}]"><pp-icon name="lightbulb" :size="40" :motion="checking ? 'ring' : 'breathe'" /></view>
+      <view class="title"><pp-icon name="pencil" :size="30" /><text>{{ status.title || '系统升级维护中' }}</text></view>
       <text class="message">{{ status.message || defaultMessage }}</text>
       <view v-if="status.estimated_restore_at" class="eta">
-        <text class="eta-label">预计恢复</text>
+        <view class="eta-label"><pp-icon name="calendar" :size="24" /><text>预计恢复</text></view>
         <text class="eta-value">{{ status.estimated_restore_at }}</text>
       </view>
       <button class="retry-btn" :disabled="checking" @tap="checkStatus">
-        {{ checking ? '正在检查...' : '检查是否恢复' }}
+        <pp-icon name="search" :size="28" /><text>{{ checking ? '正在检查...' : '检查是否恢复' }}</text>
       </button>
-      <text class="care">学习记录已妥善保存，请放心。</text>
+      <view class="care"><pp-icon name="check" :size="24" /><text>学习记录已妥善保存，请放心。</text></view>
     </view>
   </view>
 </template>
@@ -51,106 +51,124 @@ export default {
 
 <style scoped>
 .maintenance-page {
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
   min-height: 100vh;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  padding: 72rpx 34rpx calc(72rpx + env(safe-area-inset-bottom));
-  background:
-    radial-gradient(circle at 92% 5%, rgba(244, 199, 91, .2), transparent 26%),
-    radial-gradient(circle at 5% 22%, rgba(82, 124, 201, .12), transparent 28%),
-    var(--page-bg);
+  padding: 52rpx 32rpx calc(52rpx + env(safe-area-inset-bottom));
+  background-color: var(--panpan-paper);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 63rpx,
+    rgba(32, 180, 134, .055) 64rpx 65rpx
+  );
 }
 
 .paper-card {
   width: 100%;
   box-sizing: border-box;
-  padding: 54rpx 38rpx 44rpx;
-  border: 1rpx solid var(--border);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  padding: 34rpx 30rpx 30rpx;
+  border: 1rpx solid #CFE6D8;
+  border-top: 7rpx solid var(--panpan-sprout);
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  box-shadow: 0 14rpx 30rpx rgba(36, 48, 41, .08);
   text-align: center;
   animation: maintenance-enter var(--motion-slow) var(--ease-out) both;
 }
 
 .brand-mark {
   display: inline-flex;
-  padding: 8rpx 18rpx;
-  border-radius: var(--r-xs);
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  align-items: center;
+  gap: 6rpx;
+  padding: 7rpx 16rpx;
+  border: 1rpx solid rgba(32, 180, 134, .3);
+  border-radius: 8rpx;
+  background: #E7F8F1;
+  color: var(--panpan-green-strong);
   font-size: 22rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
+  letter-spacing: 0;
 }
 
-.status-dot {
-  width: 116rpx;
-  height: 116rpx;
+.status-icon {
+  width: 64rpx;
+  height: 64rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 38rpx auto 26rpx;
-  border-radius: 34rpx;
-  background: linear-gradient(145deg, var(--primary-soft), var(--warning-soft));
+  margin: 24rpx auto 18rpx;
+  border: 2rpx solid var(--panpan-green);
+  border-radius: 14rpx;
+  background: #E7F8F1;
 }
 
-.dot-core {
-  width: 34rpx;
-  height: 34rpx;
-  border: 9rpx solid var(--primary);
-  border-top-color: transparent;
-  border-radius: 50%;
+.status-icon.checking {
   animation: turn 1.1s linear infinite;
 }
 
 .title {
-  display: block;
-  color: var(--ink);
-  font-size: 42rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  color: var(--panpan-ink);
+  font-size: 38rpx;
   font-weight: 780;
-  letter-spacing: -1rpx;
+  letter-spacing: 0;
 }
 
 .message {
   display: block;
-  margin-top: 20rpx;
-  color: var(--text-secondary);
-  font-size: 27rpx;
-  line-height: 1.8;
+  margin-top: 16rpx;
+  color: var(--panpan-muted);
+  font-size: 25rpx;
+  line-height: 1.7;
 }
 
 .eta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 28rpx;
-  padding: 20rpx 22rpx;
-  border: 1rpx solid var(--hairline);
-  border-radius: var(--r-sm);
-  background: var(--surface-muted);
+  margin-top: 22rpx;
+  padding: 16rpx 18rpx;
+  border: 1rpx solid rgba(32, 180, 134, .28);
+  border-left: 5rpx solid var(--panpan-leaf);
+  border-radius: 10rpx;
+  background: #E7F8F1;
 }
 
-.eta-label { color: var(--text-muted); font-size: 24rpx; }
-.eta-value { color: var(--primary-strong); font-size: 25rpx; font-weight: 700; }
+.eta-label { display: flex; align-items: center; gap: 6rpx; color: var(--panpan-muted); font-size: 23rpx; }
+.eta-value { color: #15946D; font-size: 24rpx; font-weight: 700; }
 
 .retry-btn {
-  min-height: 96rpx;
-  margin: 34rpx 0 0;
-  border-radius: var(--r-sm);
-  background: var(--primary-strong);
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin: 26rpx 0 0;
+  border-radius: 12rpx;
+  background: var(--panpan-green-strong);
   color: #FFFFFF;
-  font-size: 28rpx;
+  font-size: 27rpx;
   font-weight: 700;
-  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .2);
+  box-shadow: 0 9rpx 20rpx rgba(21, 148, 109, .2);
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
 .retry-btn:active { transform: scale(var(--tap-scale)); }
-.retry-btn[disabled] { opacity: .55; box-shadow: none; }
+.retry-btn[disabled] { background: #BBDCCF; opacity: .7; box-shadow: none; }
 .retry-btn::after { border: 0; }
-.care { display: block; margin-top: 22rpx; color: var(--text-muted); font-size: 22rpx; }
+.care { display: flex; align-items: center; justify-content: center; gap: 6rpx; margin-top: 18rpx; color: var(--panpan-muted); font-size: 22rpx; }
 
 @keyframes turn { to { transform: rotate(360deg); } }
 @keyframes maintenance-enter {
@@ -161,6 +179,6 @@ export default {
 @media (prefers-reduced-motion: reduce) {
   .paper-card { animation: none; }
   .retry-btn { transition: none; }
-  .dot-core { animation-duration: 1.8s; }
+  .status-icon.checking { animation-duration: 1.8s; }
 }
 </style>

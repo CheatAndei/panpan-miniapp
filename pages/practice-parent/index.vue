@@ -2,8 +2,11 @@
   <view class="page">
     <view class="practice-hero">
       <text class="eyebrow">DAILY PRACTICE</text>
-      <text class="hero-title">每日初中计算打卡</text>
-      <text class="hero-sub">{{ practiceDate || '今日' }} · 约 20 分钟</text>
+      <view class="hero-title-row">
+        <view class="title-icon tone-green"><pp-icon name="calculator" :size="34" motion="pop" /></view>
+        <text class="hero-title">每日初中计算打卡</text>
+      </view>
+      <view class="hero-sub"><pp-icon name="calendar" :size="24" /><text>{{ practiceDate || '今日' }} · 约 20 分钟</text></view>
     </view>
 
     <view v-if="loading" class="state-card"><pp-state type="loading" title="正在准备今日练习" /></view>
@@ -13,21 +16,21 @@
     <template v-else>
       <view class="card plan-card">
         <view>
-          <text class="plan-title">{{ plan.title }}</text>
+          <view class="plan-title"><pp-icon name="target" :size="28" /><text>{{ plan.title }}</text></view>
           <text class="plan-meta">{{ plan.module }} · {{ assignment.items.length }} 题 · {{ minuteText }}</text>
         </view>
-        <text :class="['status-pill', statusClass]">{{ statusText }}</text>
+        <view :class="['status-pill', statusClass]"><pp-icon :name="needsCorrection?'pencil':'check'" :size="22" /><text>{{ statusText }}</text></view>
       </view>
 
       <view v-if="needsCorrection" class="correction-card">
-        <text class="correction-kicker">老师已打回</text>
+        <view class="correction-kicker"><pp-icon name="pencil" :size="24" /><text>老师已打回</text></view>
         <text class="correction-title">待上传订正照片</text>
         <text class="correction-copy">请订正老师标记的错题，只上传本轮新照片；提交后老师只复核上一轮错题。</text>
       </view>
 
       <view class="card question-card">
         <view class="section-head">
-          <text class="section-title">今日题目</text>
+          <view class="section-title"><pp-icon name="book" :size="28" /><text>今日题目</text></view>
           <text class="section-note">建议写在纸上</text>
         </view>
         <view v-for="item in assignment.items" :key="item.id" class="question-row">
@@ -46,7 +49,7 @@
       <view class="card upload-card">
         <view class="section-head">
           <view>
-            <text class="section-title">{{ needsCorrection || isCorrection ? '上传订正' : '拍照提交' }}</text>
+            <view class="section-title"><pp-icon name="pencil" :size="28" /><text>{{ needsCorrection || isCorrection ? '上传订正' : '拍照提交' }}</text></view>
             <text class="upload-help">
               {{ needsCorrection || isCorrection
                 ? '只上传订正后的新照片；老师会仅复核上一轮错题，本轮最多 6 张'
@@ -56,7 +59,7 @@
           <text v-if="assignment.submission" class="photo-count">本轮新增 {{ attachmentCount }} 张</text>
         </view>
         <button class="primary-btn" :disabled="uploading || attachmentCount >= 6 || uploadLocked" aria-label="拍照上传打卡作业" @tap="chooseAndUpload">
-          {{ uploadButtonText }}
+          <pp-icon name="plus" :size="28" /><text>{{ uploadButtonText }}</text>
         </button>
         <button
           v-if="submission && submission.status === 'uploading' && attachmentCount"
@@ -65,7 +68,7 @@
           aria-label="确认将已上传照片送达老师"
           @tap="confirmSavedUpload"
         >
-          已传好，确认送达老师
+          <pp-icon name="check" :size="28" /><text>已传好，确认送达老师</text>
         </button>
         <view v-if="assignment.submission" class="submit-note">
           <text>{{ submissionNote }}</text>
@@ -75,17 +78,17 @@
       </view>
 
       <view v-if="deliveredToTeacher && attachmentCount" class="card share-card">
-        <view class="share-mark">✓</view>
+        <view class="share-mark"><pp-icon name="trophy" :size="34" motion="shine" /></view>
         <view class="share-copy">
           <text class="share-title">今日练习已完成</text>
           <text class="share-desc">分享到群里，邀请大家一起坚持每天多练一点</text>
-          <text class="share-privacy">仅分享打卡鼓励卡，不包含学生作业照片</text>
+          <text class="share-note">每天认真一点，进步就会看得见</text>
         </view>
-        <button class="share-btn" open-type="share">分享至群聊</button>
+        <button class="share-btn" open-type="share"><pp-icon name="message" :size="26" /><text>分享至群聊</text></button>
       </view>
 
       <view v-if="history.length" class="card history-card">
-        <text class="section-title">最近记录</text>
+        <view class="section-title"><pp-icon name="history" :size="28" /><text>最近记录</text></view>
         <view v-for="item in history.slice(0, 7)" :key="item.id" class="history-row">
           <text>{{ item.practice_date }}</text>
           <text :class="['history-status', historyStatusClass(item)]">
@@ -173,6 +176,7 @@ const submissionNote = computed(() => {
 
 onLoad((options) => { studentId.value = String(options?.student_id || ''); });
 onShow(() => loadData());
+// 分享入口只发送打卡鼓励卡，不包含学生作业照片。
 onShareAppMessage(() => ({
   title: '今日练习已打卡，一起坚持每天多练一点！',
   path: '/pages/index/index?from=practice-share',
@@ -306,87 +310,123 @@ function historyStatusClass(item) {
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx calc(48rpx + env(safe-area-inset-bottom));background:var(--page-bg)}
-.practice-hero{margin:0 -24rpx 24rpx;padding:52rpx 36rpx 46rpx;background:linear-gradient(145deg,#FFFFFF,#EDF5FF);color:var(--ink);border-radius:0 0 34rpx 34rpx}
-.eyebrow{display:block;font-size:20rpx;letter-spacing:4rpx;color:#BEE2D8;font-weight:700}
-.hero-title{display:block;margin-top:12rpx;font-size:42rpx;line-height:1.3;font-weight:760}
-.hero-sub{display:block;margin-top:10rpx;font-size:25rpx;color:#D9EFE9}
-.card,.state-card{margin:0 0 20rpx;padding:28rpx;background:#fff;border:1rpx solid var(--border);border-radius:22rpx;box-shadow:var(--shadow-sm)}
-.plan-card{display:flex;align-items:center;justify-content:space-between;gap:20rpx}
-.plan-title,.section-title{display:block;color:var(--ink);font-size:30rpx;font-weight:720}
-.plan-meta,.upload-help{display:block;margin-top:7rpx;color:var(--text-muted);font-size:23rpx;line-height:1.5}
-.status-pill{flex:none;padding:10rpx 18rpx;border-radius:999rpx;background:var(--warning-soft);color:var(--warning);font-size:22rpx;font-weight:700}
-.status-pill.submitted{background:var(--accent-soft);color:var(--accent-strong)}.status-pill.reviewed{background:#E8F4F0;color:#236856}.status-pill.correction-required{background:#FFF0CF;color:#805A12}
-.correction-card{margin:0 0 20rpx;padding:24rpx 26rpx;border:1rpx solid #E7C46F;border-radius:20rpx;background:#FFF8E7}.correction-kicker,.correction-title,.correction-copy{display:block}.correction-kicker{color:#9A6F18;font-size:20rpx;font-weight:760;letter-spacing:2rpx}.correction-title{margin-top:5rpx;color:#583E0C;font-size:31rpx;font-weight:780}.correction-copy{margin-top:8rpx;color:#765E2B;font-size:23rpx;line-height:1.55}
-.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx;margin-bottom:18rpx}
-.section-note,.photo-count{color:var(--accent-strong);font-size:22rpx}
-.question-row{display:flex;gap:18rpx;padding:22rpx 0;border-bottom:1rpx solid var(--hairline)}.question-row:last-child{border-bottom:0}
-.question-no{display:flex;align-items:center;justify-content:center;flex:none;width:48rpx;height:48rpx;border-radius:14rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:24rpx;font-weight:750}
-.question-copy{flex:1;min-width:0}.question-text{display:block;color:var(--ink);font-size:29rpx;line-height:1.65}.question-type{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}
-.primary-btn{min-height:92rpx;display:flex;align-items:center;justify-content:center;margin:0;background:var(--primary);color:#fff;border-radius:16rpx;font-size:28rpx;font-weight:700}.primary-btn::after{border:0}.primary-btn[disabled]{opacity:.45}
-.confirm-btn{min-height:82rpx;display:flex;align-items:center;justify-content:center;margin:14rpx 0 0;border:2rpx solid var(--primary);border-radius:16rpx;background:#fff;color:var(--primary-strong);font-size:25rpx;font-weight:720}.confirm-btn::after{border:0}.confirm-btn[disabled]{opacity:.45}
-.submit-note{margin-top:18rpx;padding:18rpx 20rpx;border-radius:14rpx;background:var(--surface-muted);color:var(--accent-strong);font-size:24rpx}.round-note{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}.teacher-note{display:block;margin-top:8rpx;color:var(--ink);line-height:1.55}
-.history-row{min-height:76rpx;display:flex;align-items:center;justify-content:space-between;border-bottom:1rpx solid var(--hairline);color:var(--ink);font-size:25rpx}.history-row:last-child{border-bottom:0}
-.history-status{color:var(--warning)}.history-status.reviewed{color:var(--success)}.history-status.correction-required{color:#95680C;font-weight:700}
-.share-card{display:flex;align-items:center;gap:18rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFFBED,#FFFFFF)}.share-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:20rpx;background:#F5B83D;color:#493000;font-size:35rpx;font-weight:900}.share-copy{flex:1;min-width:0}.share-title{display:block;color:var(--ink);font-size:28rpx;font-weight:760}.share-desc{display:block;margin-top:4rpx;color:#6C572F;font-size:22rpx;line-height:1.45}.share-privacy{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx}.share-btn{flex:none;min-height:84rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:14rpx;background:var(--primary-strong);color:#fff;font-size:23rpx;font-weight:750}.share-btn::after{border:0}
-@media (max-width:380px){.share-card{align-items:flex-start;flex-wrap:wrap}.share-copy{min-width:calc(100% - 90rpx)}.share-btn{width:100%}}
-.question-text{display:flex}
-</style>
-
-<style scoped>
 .page {
-  background:
-    radial-gradient(circle at 0 12%, rgba(101, 191, 168, .12), transparent 23%),
-    linear-gradient(180deg, #F7FBFF, var(--page-bg, #F6FAFF));
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
+  min-height: 100vh;
+  padding: 0 24rpx calc(48rpx + env(safe-area-inset-bottom));
+  background-color: var(--panpan-paper);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 63rpx,
+    rgba(32, 180, 134, .045) 64rpx 65rpx
+  );
 }
 
 .practice-hero {
-  position: relative;
-  overflow: hidden;
-  border-bottom: 1rpx solid #CADBF1;
-  border-radius: 0 0 24rpx 24rpx;
+  margin: 0 -24rpx 17rpx;
+  padding: 40rpx 32rpx 32rpx;
+  border-bottom: 1rpx solid #D4E9DC;
   background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 50rpx,
-      rgba(82, 124, 201, .07) 51rpx,
-      rgba(82, 124, 201, .07) 52rpx
-    ),
-    linear-gradient(145deg, #FFFFFF, #EDF5FF);
-  color: var(--ink);
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .055) 48rpx 49rpx),
+    linear-gradient(135deg, #FFFFFF 0 72%, #E7F8F1 100%);
+  color: var(--panpan-ink);
   animation: parent-practice-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.practice-hero::after {
-  content: '';
-  position: absolute;
-  right: 34rpx;
-  top: 34rpx;
-  width: 116rpx;
-  height: 22rpx;
-  border-radius: 5rpx;
-  background: rgba(244, 199, 91, .7);
-  transform: rotate(3deg);
-}
-
-.eyebrow { color: var(--accent-strong); }
-.hero-title { color: var(--ink); }
-.hero-sub { color: var(--text-secondary); }
+.eyebrow { display: inline-flex; padding: 5rpx 12rpx; border-radius: 7rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 19rpx; font-weight: 760; letter-spacing: 0; }
+.hero-title-row { display: flex; align-items: center; gap: 12rpx; margin-top: 9rpx; }
+.title-icon { width: 50rpx; height: 50rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; }
+.title-icon.tone-green { background: #E7F8F1; }
+.hero-title { color: var(--panpan-ink); font-size: 40rpx; font-weight: 790; line-height: 1.3; }
+.hero-title-row::after { content: ''; width: 54rpx; height: 7rpx; flex: none; border-radius: 4rpx; background: var(--panpan-coral); }
+.hero-sub { display: flex; align-items: center; gap: 7rpx; margin-top: 10rpx; color: var(--panpan-muted); font-size: 23rpx; }
 
 .card,
 .state-card,
 .correction-card {
-  border-radius: 18rpx;
+  margin: 0 0 15rpx;
+  padding: 23rpx 24rpx;
+  border: 1rpx solid #CFE6D8;
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
   animation: parent-practice-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.plan-card { border-left: 7rpx solid var(--primary); }
-.question-card { border-top: 5rpx solid var(--accent); }
-.upload-card { border-top: 5rpx solid var(--gold); }
-.history-card { border-top: 5rpx solid var(--primary); }
-.share-card { border-radius: 16rpx 26rpx 16rpx 26rpx; }
-.share-btn { background: var(--primary-strong); }
+.plan-card { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; border-left: 7rpx solid var(--panpan-green); }
+.plan-title,
+.section-title { display: flex; align-items: center; gap: 8rpx; color: var(--panpan-ink); font-size: 29rpx; font-weight: 730; }
+.plan-meta,
+.upload-help { display: block; margin-top: 6rpx; color: var(--panpan-muted); font-size: 22rpx; line-height: 1.48; }
+.status-pill { display: flex; align-items: center; gap: 5rpx; flex: none; padding: 6rpx 12rpx; border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-size: 21rpx; font-weight: 700; }
+.status-pill.submitted { background: #E7F8F1; color: #15946D; }
+.status-pill.reviewed { background: #E7F8F1; color: var(--panpan-green-strong); }
+.status-pill.correction-required { background: #FFF0EE; color: #D94B45; }
+
+.correction-card { border-color: rgba(255, 116, 104, .3); border-left: 6rpx solid var(--panpan-coral); background: #FFF2F0; }
+.correction-kicker,
+.correction-title,
+.correction-copy { display: block; }
+.correction-kicker { display: flex; align-items: center; gap: 6rpx; color: #D94B45; font-size: 19rpx; font-weight: 760; letter-spacing: 0; }
+.correction-title { margin-top: 5rpx; color: var(--panpan-ink); font-size: 29rpx; font-weight: 780; }
+.correction-copy { margin-top: 7rpx; color: #5A6A62; font-size: 22rpx; line-height: 1.52; }
+
+.question-card { border-top: 6rpx solid var(--panpan-leaf); }
+.upload-card { border-top: 6rpx solid var(--panpan-sprout); }
+.history-card { border-top: 6rpx solid var(--panpan-green); }
+.section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14rpx; margin-bottom: 15rpx; }
+.section-note,
+.photo-count { color: #15946D; font-size: 21rpx; }
+.question-row { display: flex; gap: 15rpx; padding: 18rpx 0; border-bottom: 1rpx solid #E0EEE5; }
+.question-row:last-child { border-bottom: 0; }
+.question-no { width: 44rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; background: #E7F8F1; color: #15946D; font-size: 22rpx; font-weight: 760; }
+.question-copy { flex: 1; min-width: 0; }
+.question-text { display: flex; color: var(--panpan-ink); font-size: 28rpx; line-height: 1.62; }
+.question-type { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 20rpx; }
+
+.primary-btn,
+.confirm-btn,
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 11rpx;
+  font-weight: 720;
+}
+.primary-btn { min-height: 86rpx; margin-top: 0; background: var(--panpan-green-strong); color: #FFFFFF; font-size: 27rpx; box-shadow: 0 8rpx 18rpx rgba(21, 148, 109, .18); }
+.confirm-btn { min-height: 78rpx; margin-top: 12rpx; border: 2rpx solid var(--panpan-green); background: #FFFFFF; color: var(--panpan-green-strong); font-size: 24rpx; }
+.primary-btn::after,
+.confirm-btn::after,
+.share-btn::after { border: 0; }
+.primary-btn[disabled],
+.confirm-btn[disabled] { background: #BBDCCF; border-color: #BBDCCF; color: #FFFFFF; opacity: .72; box-shadow: none; }
+
+.submit-note { margin-top: 15rpx; padding: 14rpx 16rpx; border-left: 5rpx solid var(--panpan-leaf); border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-size: 23rpx; }
+.round-note { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 20rpx; }
+.teacher-note { display: block; margin-top: 7rpx; color: var(--panpan-ink); line-height: 1.52; }
+.history-row { min-height: 70rpx; display: flex; align-items: center; justify-content: space-between; border-bottom: 1rpx solid #E0EEE5; color: var(--panpan-ink); font-size: 24rpx; }
+.history-row:last-child { border-bottom: 0; }
+.history-status { color: #15946D; }
+.history-status.reviewed { color: var(--panpan-green-strong); }
+.history-status.correction-required { color: #D94B45; font-weight: 700; }
+
+.share-card { display: flex; align-items: center; gap: 15rpx; border-color: rgba(32, 180, 134, .5); border-top: 6rpx solid var(--panpan-sprout); background: #F8FCF9; }
+.share-mark { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 12rpx; background: var(--panpan-sprout); }
+.share-copy { flex: 1; min-width: 0; }
+.share-title { display: block; color: var(--panpan-ink); font-size: 27rpx; font-weight: 760; }
+.share-desc { display: block; margin-top: 4rpx; color: #5A6A62; font-size: 21rpx; line-height: 1.42; }
+.share-note { display: block; margin-top: 4rpx; color: var(--panpan-green-strong); font-size: 20rpx; font-weight: 650; }
+.share-btn { min-height: 78rpx; flex: none; margin: 0; padding: 0 16rpx; background: var(--panpan-green-strong); color: #FFFFFF; font-size: 22rpx; }
 
 .primary-btn,
 .share-btn {
@@ -397,6 +437,12 @@ function historyStatusClass(item) {
 .share-btn:active {
   transform: scale(var(--tap-scale));
   opacity: .9;
+}
+
+@media (max-width: 380px) {
+  .share-card { align-items: flex-start; flex-wrap: wrap; }
+  .share-copy { min-width: calc(100% - 82rpx); }
+  .share-btn { width: 100%; }
 }
 
 @keyframes parent-practice-enter {

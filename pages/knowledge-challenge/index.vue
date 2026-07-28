@@ -1,10 +1,10 @@
 <template>
-  <view class="page page-bottom-safe">
-    <view class="hero"><text class="eyebrow">GRADE 8 KNOWLEDGE</text><text class="hero-title">八上知识点闯关</text><text class="hero-sub">知识卡 → 8 题闯关 → 错题复练</text></view>
+  <view class="page page-bottom-safe student-challenge-page">
+    <view class="hero"><view class="hero-mark"><pp-icon name="lightbulb" :size="42" motion="bob" :delay="80" /></view><text class="eyebrow">GRADE 8 KNOWLEDGE</text><text class="hero-title">八上知识点闯关</text><text class="hero-sub">知识卡 → 8 题闯关 → 错题复练</text></view>
     <pp-state v-if="loading&&!catalog" type="loading" title="正在整理知识点" />
     <pp-state v-else-if="error&&!catalog" type="error" title="知识点加载失败" :description="error" action-text="重试" @action="loadCatalog" />
     <template v-if="catalog&&!attempt&&!selectedTopic">
-      <view class="progress-note"><text>共 {{ catalog.topics.length }} 个知识点</text><text>达到 75 分标记掌握</text></view>
+      <view class="progress-note"><view class="progress-title"><pp-icon name="target" :size="28" motion="pop" :delay="180" /><text>共 {{ catalog.topics.length }} 个知识点</text></view><text>达到 75 分标记掌握</text></view>
       <button v-for="(topic,index) in catalog.topics" :key="topic.topic_key" class="topic-card" @tap="openTopic(topic)">
         <view class="topic-index">{{ String(index+1).padStart(2,'0') }}</view>
         <view class="topic-copy"><text class="chapter">{{ topic.chapter_name }}</text><text class="topic-title">{{ topic.title }}</text><text class="topic-desc">{{ topic.knowledge_card }}</text></view>
@@ -12,18 +12,18 @@
       </button>
     </template>
     <template v-if="selectedTopic&&!attempt">
-      <view class="knowledge-card"><text class="knowledge-kicker">知识卡</text><text class="knowledge-title">{{ selectedTopic.title }}</text><pp-math-text class="knowledge-copy" :value="selectedTopic.knowledge_card" /><button class="start-btn" :disabled="starting" @tap="start">{{ starting?'准备中…':'开始 8 题闯关' }}</button><button class="back-link" @tap="selectedTopic=null">返回知识点列表</button></view>
+      <view class="knowledge-card"><view class="knowledge-kicker-row"><pp-icon name="book" :size="30" motion="shine" :delay="220" /><text class="knowledge-kicker">知识卡</text></view><text class="knowledge-title">{{ selectedTopic.title }}</text><pp-math-text class="knowledge-copy" :value="selectedTopic.knowledge_card" /><button class="start-btn" :disabled="starting" @tap="start">{{ starting?'准备中…':'开始 8 题闯关' }}</button><button class="back-link" @tap="selectedTopic=null">返回知识点列表</button></view>
     </template>
     <template v-if="attempt&&!finished">
       <view class="quiz-progress"><view :style="{width:`${(currentIndex+1)/attempt.questions.length*100}%`}"></view></view>
       <view class="question-card">
-        <text class="question-count">第 {{ currentIndex+1 }} / {{ attempt.questions.length }} 题</text>
+        <view class="question-count-row"><pp-icon name="calculator" :size="28" motion="pop" :delay="120" /><text class="question-count">第 {{ currentIndex+1 }} / {{ attempt.questions.length }} 题</text></view>
         <pp-math-text class="question-stem" :value="currentQuestion.stem" />
         <button v-for="(value,key) in currentQuestion.options" :key="key" :class="['option',{selected:selected===key,correct:answerResult&&key===answerResult.correct_option,wrong:answerResult&&key===selected&&!answerResult.is_correct}]" :disabled="submitting||Boolean(answerResult)" @tap="answer(key)"><text class="option-key">{{ key }}</text><pp-math-text class="option-copy" :value="value" /></button>
       </view>
-      <view v-if="answerResult" :class="['answer-card',{wrong:!answerResult.is_correct}]"><text class="answer-title">{{ answerResult.is_correct?'回答正确':'这题需要再巩固' }}</text><pp-math-text class="answer-copy" :value="answerResult.explanation" /><button class="next-btn" @tap="next">{{ answerResult.completed?'查看本轮结果':'下一题' }}</button></view>
+      <view v-if="answerResult" :class="['answer-card',{wrong:!answerResult.is_correct}]"><view class="answer-title-row"><pp-icon :name="answerResult.is_correct?'check':'message'" :size="30" :motion="answerResult.is_correct?'pop':'ring'" /><text class="answer-title">{{ answerResult.is_correct?'回答正确':'这题需要再巩固' }}</text></view><pp-math-text class="answer-copy" :value="answerResult.explanation" /><button class="next-btn" @tap="next">{{ answerResult.completed?'查看本轮结果':'下一题' }}</button></view>
     </template>
-    <view v-if="attempt&&finished" class="finish-card"><text class="finish-score">{{ attempt.score }}</text><text class="finish-unit">分</text><text class="finish-title">{{ attempt.score>=75?'本知识点已掌握':'再练一次会更稳' }}</text><text class="finish-desc">答对 {{ attempt.correct_count }} / {{ attempt.questions.length }} 题；错题会在下一轮继续出现。</text><button class="start-btn" @tap="restart">再练一次</button><button class="back-link" @tap="backToCatalog">返回知识点列表</button></view>
+    <view v-if="attempt&&finished" class="finish-card"><view class="finish-icon"><pp-icon name="trophy" :size="46" motion="shine" :delay="100" /></view><text class="finish-score">{{ attempt.score }}</text><text class="finish-unit">分</text><text class="finish-title">{{ attempt.score>=75?'本知识点已掌握':'再练一次会更稳' }}</text><text class="finish-desc">答对 {{ attempt.correct_count }} / {{ attempt.questions.length }} 题；错题会在下一轮继续出现。</text><button class="start-btn" @tap="restart">再练一次</button><button class="back-link" @tap="backToCatalog">返回知识点列表</button></view>
   </view>
 </template>
 
@@ -46,7 +46,7 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 60rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 20rpx;padding:48rpx 34rpx 43rpx;border-radius:0 0 34rpx 34rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:18rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:42rpx;font-weight:800}.hero-sub{display:block;margin-top:7rpx;color:#D7ECE6;font-size:23rpx}.progress-note{display:flex;justify-content:space-between;margin:0 5rpx 15rpx;color:var(--text-muted);font-size:21rpx}.topic-card{width:100%;display:flex;align-items:flex-start;gap:16rpx;margin:0 0 14rpx;padding:23rpx;border:1rpx solid var(--border);border-radius:21rpx;background:#fff;text-align:left;box-shadow:var(--shadow-sm)}.topic-card::after,.start-btn::after,.back-link::after,.option::after,.next-btn::after{border:0}.topic-card:active{transform:scale(.98)}.topic-index{flex:none;color:#B89152;font-size:22rpx;font-weight:800}.topic-copy{flex:1;min-width:0}.chapter{display:block;color:#6F817C;font-size:19rpx}.topic-title{display:block;margin-top:3rpx;color:#183A36;font-size:29rpx;font-weight:760}.topic-desc{display:-webkit-box;overflow:hidden;margin-top:5rpx;color:#64736F;font-size:21rpx;line-height:1.5;-webkit-line-clamp:2;-webkit-box-orient:vertical}.topic-score{width:76rpx;flex:none;text-align:right}.topic-score text{display:block;color:#8A8174;font-size:18rpx}.topic-score text:first-child{color:#183A36;font-size:30rpx;font-weight:800}.topic-score.mastered text{color:#27705F}.knowledge-card,.finish-card{padding:34rpx 28rpx;border:1rpx solid var(--border);border-radius:24rpx;background:#fff}.knowledge-kicker{color:#A47429;font-size:20rpx;font-weight:800;letter-spacing:2rpx}.knowledge-title{display:block;margin-top:9rpx;color:#183A36;font-size:36rpx;font-weight:800}.knowledge-copy{display:block;margin-top:20rpx;padding:24rpx;border-radius:17rpx;background:#F4F0E7;color:#3E504B;font-size:27rpx;line-height:1.75}.start-btn,.next-btn{min-height:86rpx;margin:26rpx 0 0;border-radius:14rpx;background:#183A36;color:#fff;font-size:26rpx;font-weight:740}.back-link{min-height:62rpx;margin:10rpx 0 0;background:transparent;color:#64736F;font-size:22rpx}.quiz-progress{height:10rpx;margin:4rpx 0 18rpx;border-radius:999rpx;background:#DDE8E4;overflow:hidden}.quiz-progress view{height:100%;border-radius:999rpx;background:#2F7D6B;transition:width .25s}.question-card{padding:28rpx;border:1rpx solid var(--border);border-radius:22rpx;background:#fff}.question-count{color:#2F7D6B;font-size:21rpx;font-weight:760}.question-stem{display:block;margin:18rpx 0 24rpx;color:#18312D;font-size:30rpx;font-weight:650;line-height:1.65}.option{width:100%;min-height:84rpx;display:flex;align-items:center;gap:15rpx;margin:12rpx 0 0;padding:13rpx 16rpx;border:2rpx solid #D9E5E1;border-radius:15rpx;background:#FAFCFB;color:#314A44;text-align:left;font-size:24rpx}.option-key{width:50rpx;height:50rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:12rpx;background:#E8F1EE;color:#286A5B;font-weight:800}.option.selected{border-color:#2F7D6B}.option.correct{border-color:#2F7D6B;background:#EAF5F1}.option.wrong{border-color:#C75D54;background:#FFF2EF}.answer-card{margin-top:16rpx;padding:24rpx;border-radius:20rpx;background:#EAF5F1}.answer-card.wrong{background:#FFF2EF}.answer-title{display:block;color:#245F52;font-size:27rpx;font-weight:780}.answer-card.wrong .answer-title{color:#A24E45}.answer-copy{display:block;margin-top:7rpx;color:#50645E;font-size:23rpx;line-height:1.6}.next-btn{width:100%;margin-top:18rpx}.finish-card{text-align:center}.finish-score{color:#183A36;font-size:100rpx;font-weight:850;line-height:1}.finish-unit{color:#60736E;font-size:25rpx}.finish-title{display:block;margin-top:15rpx;color:#183A36;font-size:32rpx;font-weight:780}.finish-desc{display:block;margin-top:8rpx;color:#667772;font-size:23rpx;line-height:1.6}
+.page{min-height:100vh;padding:0 24rpx 60rpx}.hero{margin:0 -24rpx 20rpx;padding:48rpx 34rpx 43rpx}.eyebrow{display:block;font-size:18rpx;font-weight:800}.hero-title{display:block;margin-top:8rpx;font-size:42rpx;font-weight:800}.hero-sub{display:block;margin-top:7rpx;font-size:23rpx}.progress-note{display:flex;justify-content:space-between;margin:0 5rpx 15rpx;font-size:21rpx}.topic-card{width:100%;display:flex;align-items:flex-start;gap:16rpx;margin:0 0 14rpx;padding:23rpx;text-align:left}.topic-card:active{transform:scale(.98)}.topic-index{flex:none;font-size:22rpx;font-weight:800}.topic-copy{flex:1;min-width:0}.chapter{display:block;font-size:19rpx}.topic-title{display:block;margin-top:3rpx;font-size:29rpx;font-weight:760}.topic-desc{display:-webkit-box;overflow:hidden;margin-top:5rpx;font-size:21rpx;line-height:1.5;-webkit-line-clamp:2;-webkit-box-orient:vertical}.topic-score{width:76rpx;flex:none;text-align:right}.topic-score text{display:block;font-size:18rpx}.topic-score text:first-child{font-size:30rpx;font-weight:800}.knowledge-card,.finish-card{padding:34rpx 28rpx}.knowledge-kicker{font-size:20rpx;font-weight:800}.knowledge-title{display:block;margin-top:9rpx;font-size:36rpx;font-weight:800}.knowledge-copy{display:block;margin-top:20rpx;padding:24rpx;font-size:27rpx;line-height:1.75}.start-btn,.next-btn{min-height:86rpx;margin:26rpx 0 0;font-size:26rpx;font-weight:740}.back-link{min-height:62rpx;margin:10rpx 0 0;font-size:22rpx}.quiz-progress{height:10rpx;margin:4rpx 0 18rpx;overflow:hidden}.quiz-progress view{height:100%}.question-card{padding:28rpx}.question-count{font-size:21rpx;font-weight:760}.question-stem{display:block;margin:18rpx 0 24rpx;font-size:30rpx;font-weight:650;line-height:1.65}.option{width:100%;min-height:84rpx;display:flex;align-items:center;gap:15rpx;margin:12rpx 0 0;padding:13rpx 16rpx;text-align:left;font-size:24rpx}.option-key{width:50rpx;height:50rpx;display:flex;align-items:center;justify-content:center;flex:none;font-weight:800}.answer-card{margin-top:16rpx;padding:24rpx}.answer-title{display:block;font-size:27rpx;font-weight:780}.answer-copy{display:block;margin-top:7rpx;font-size:23rpx;line-height:1.6}.next-btn{width:100%;margin-top:18rpx}.finish-card{text-align:center}.finish-score{font-size:100rpx;font-weight:850;line-height:1}.finish-unit{font-size:25rpx}.finish-title{display:block;margin-top:15rpx;font-size:32rpx;font-weight:780}.finish-desc{display:block;margin-top:8rpx;font-size:23rpx;line-height:1.6}
 .knowledge-copy,.question-stem,.option-copy,.answer-copy{display:flex}.option-copy{flex:1;min-width:0}
 
 /* mei: light educational paper system */
@@ -54,12 +54,6 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
   position:relative;
   padding-bottom:88rpx;
   overflow-x:hidden;
-  background:
-    linear-gradient(rgba(82,124,201,.045) 1rpx,transparent 1rpx),
-    linear-gradient(90deg,rgba(82,124,201,.045) 1rpx,transparent 1rpx),
-    var(--page-bg);
-  background-size:32rpx 32rpx;
-  color:var(--ink);
 }
 .page::before{
   position:fixed;
@@ -67,8 +61,6 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
   right:-54rpx;
   width:180rpx;
   height:180rpx;
-  border-radius:50%;
-  background:var(--accent-soft);
   content:"";
   opacity:.7;
   pointer-events:none;
@@ -78,12 +70,6 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
   margin-bottom:26rpx;
   padding:52rpx 34rpx 46rpx;
   overflow:hidden;
-  border-bottom:1rpx solid rgba(82,124,201,.16);
-  background:
-    radial-gradient(circle at 88% 28%,rgba(244,199,91,.36) 0 48rpx,transparent 49rpx),
-    linear-gradient(145deg,#F7FAFF 0%,#EDF5FF 58%,#FFF7DC 100%);
-  color:var(--ink);
-  box-shadow:0 16rpx 34rpx rgba(49,94,168,.09);
 }
 .hero::after{
   position:absolute;
@@ -91,18 +77,12 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
   bottom:0;
   width:116rpx;
   height:10rpx;
-  border-radius:999rpx 999rpx 0 0;
-  background:var(--gold);
   content:"";
 }
-.eyebrow{color:var(--primary-strong)}
-.hero-title{color:var(--ink)}
-.hero-sub{color:var(--text-secondary)}
 .progress-note{
   position:relative;
   z-index:1;
   margin-bottom:18rpx;
-  color:var(--text-secondary);
 }
 .topic-card{
   position:relative;
@@ -110,47 +90,21 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
   min-height:132rpx;
   margin-bottom:16rpx;
   padding:24rpx;
-  border-color:var(--border);
-  border-radius:var(--radius-lg);
-  background:rgba(255,255,255,.96);
-  box-shadow:var(--shadow-sm);
-  transition:transform var(--motion-fast),opacity var(--motion-fast);
-  animation:knowledgeRise var(--motion-slow) both;
 }
-.topic-card:nth-of-type(2){animation-delay:45ms}
-.topic-card:nth-of-type(3){animation-delay:90ms}
-.topic-card:nth-of-type(4){animation-delay:135ms}
 .topic-card:active{transform:translateY(2rpx) scale(.985)}
 .topic-index{
   min-width:50rpx;
   padding:7rpx 8rpx;
-  border-radius:11rpx;
-  background:var(--gold-soft,var(--warning-soft));
-  color:#9B6D10;
   text-align:center;
 }
-.chapter{color:var(--primary)}
-.topic-title{color:var(--ink)}
-.topic-desc{color:var(--text-secondary)}
-.topic-score text{color:var(--text-muted)}
-.topic-score text:first-child{color:var(--primary-strong)}
 .topic-score.mastered{
   padding:8rpx;
-  border-radius:12rpx;
-  background:var(--success-soft);
 }
-.topic-score.mastered text,
-.topic-score.mastered text:first-child{color:var(--success)}
 .knowledge-card,
 .question-card,
 .finish-card{
   position:relative;
   z-index:1;
-  border-color:var(--border);
-  border-radius:var(--radius-xl);
-  background:rgba(255,255,255,.97);
-  box-shadow:var(--shadow-md);
-  animation:knowledgeRise var(--motion-slow) both;
 }
 .knowledge-card{overflow:hidden}
 .knowledge-card::before,
@@ -160,122 +114,400 @@ async function backToCatalog(){attempt.value=null;selectedTopic.value=null;finis
   left:28rpx;
   width:118rpx;
   height:9rpx;
-  border-radius:0 0 999rpx 999rpx;
-  background:var(--gold);
   content:"";
-}
-.knowledge-kicker{color:#9B6D10}
-.knowledge-title,
-.finish-title{color:var(--ink)}
-.knowledge-copy{
-  border:1rpx solid #F3E3AA;
-  background:linear-gradient(145deg,#FFF9E8,#FFF4CE);
-  color:var(--ink);
 }
 .start-btn,
 .next-btn{
   min-height:112rpx;
-  border-radius:var(--radius-md);
-  background:linear-gradient(135deg,var(--primary),var(--primary-strong));
-  color:#fff;
-  box-shadow:0 12rpx 24rpx rgba(49,94,168,.2);
-  transition:transform var(--motion-fast),opacity var(--motion-fast);
 }
 .start-btn:active,
 .next-btn:active{transform:translateY(2rpx) scale(.985);opacity:.94}
 .start-btn[disabled]{opacity:.56}
 .back-link{
   min-height:88rpx;
-  color:var(--primary-strong);
-  transition:transform var(--motion-fast),opacity var(--motion-fast);
 }
 .back-link:active{transform:scale(.985);opacity:.7}
 .quiz-progress{
   position:relative;
   z-index:1;
   height:12rpx;
-  background:#E7EEF8;
 }
-.quiz-progress view{
-  background:linear-gradient(90deg,var(--gold),#F7D97D);
-  transition:none;
-}
-.question-count{color:var(--primary-strong)}
-.question-stem{color:var(--ink)}
 .option{
   min-height:104rpx;
-  border-color:var(--border);
-  border-radius:var(--radius-md);
-  background:#F9FBFF;
-  color:var(--ink);
-  transition:transform var(--motion-fast),opacity var(--motion-fast);
 }
 .option:active{transform:translateY(2rpx) scale(.988)}
-.option-key{
-  background:var(--primary-soft);
-  color:var(--primary-strong);
-}
-.option.selected{
-  border-color:var(--primary);
-  background:var(--primary-soft);
-}
-.option.selected .option-key{
-  background:var(--primary);
-  color:#fff;
-}
-.option.correct{
-  border-color:var(--success);
-  background:var(--success-soft);
-}
-.option.correct .option-key{
-  background:var(--success);
-  color:#fff;
-}
-.option.wrong{
-  border-color:var(--coral);
-  background:var(--coral-soft);
-}
-.option.wrong .option-key{
-  background:var(--coral);
-  color:#fff;
-}
 .answer-card{
   position:relative;
   z-index:1;
-  border:1rpx solid rgba(101,191,168,.28);
-  border-radius:var(--radius-lg);
-  background:var(--success-soft);
-  animation:knowledgeRise var(--motion-base) both;
 }
-.answer-card.wrong{
-  border-color:rgba(233,133,119,.3);
-  background:var(--coral-soft);
-}
-.answer-title{color:var(--success)}
-.answer-card.wrong .answer-title{color:#B85D51}
-.answer-copy{color:var(--text-secondary)}
 .finish-card{
   overflow:hidden;
   padding-top:62rpx;
-  background:
-    radial-gradient(circle at 82% 14%,rgba(244,199,91,.28) 0 72rpx,transparent 73rpx),
-    linear-gradient(155deg,#FFFFFF,#EFFAF7);
 }
-.finish-score{color:var(--primary-strong)}
-.finish-unit,
-.finish-desc{color:var(--text-secondary)}
-@keyframes knowledgeRise{
-  from{transform:translateY(18rpx);opacity:0}
-  to{transform:translateY(0);opacity:1}
+
+/* Student challenge theme v3: warm paper and one energetic teaching green. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --accent: #20B486;
+  --accent-strong: #15946D;
+  --accent-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  --hairline: #E4EFE9;
+  --r: 16rpx;
+  --r-sm: 14rpx;
+  --r-xs: 10rpx;
+  --r-lg: 16rpx;
+  --shadow-sm: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+  --shadow: 0 10rpx 28rpx rgba(38, 53, 47, .08);
+  padding-bottom: 72rpx;
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 55rpx,
+    rgba(32, 180, 134, .045) 56rpx 57rpx
+  );
+  background-size: auto;
+  color: var(--ink);
 }
-@media (prefers-reduced-motion:reduce){
-  .topic-card,
-  .knowledge-card,
-  .question-card,
-  .answer-card,
-  .finish-card{
-    animation:none!important;
-    transition:none!important;
+
+.student-challenge-page::before {
+  display: none;
+}
+
+.student-challenge-page .hero {
+  min-height: 0;
+  margin: 0 -24rpx 18rpx;
+  padding: 34rpx 30rpx 28rpx;
+  border-bottom: 7rpx solid var(--primary);
+  border-radius: 0;
+  background-color: var(--surface);
+  box-shadow: none;
+}
+
+.student-challenge-page .hero::after {
+  top: 0;
+  right: 34rpx;
+  bottom: auto;
+  width: 94rpx;
+  height: 10rpx;
+  border-radius: 0 0 4rpx 4rpx;
+  background: var(--primary);
+}
+
+.student-challenge-page .eyebrow {
+  color: var(--primary-strong);
+  font-size: 18rpx;
+  letter-spacing: 0;
+}
+
+.student-challenge-page .hero-title {
+  margin-top: 10rpx;
+  color: var(--ink);
+  font-size: 44rpx;
+}
+
+.student-challenge-page .hero-sub {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .progress-note {
+  z-index: auto;
+  margin: 0 4rpx 16rpx;
+  padding: 14rpx 16rpx;
+  border: 1rpx solid #BFE4D4;
+  border-left: 6rpx solid var(--primary);
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .topic-card {
+  z-index: auto;
+  min-height: 0;
+  margin-bottom: 14rpx;
+  padding: 22rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-challenge-page .topic-index {
+  min-width: 50rpx;
+  padding: 7rpx 8rpx;
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: #15946D;
+  text-align: center;
+}
+
+.student-challenge-page .chapter {
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .topic-title {
+  color: var(--ink);
+}
+
+.student-challenge-page .topic-desc {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .topic-score {
+  width: 82rpx;
+  padding: 7rpx 0;
+}
+
+.student-challenge-page .topic-score text {
+  color: var(--text-muted);
+}
+
+.student-challenge-page .topic-score text:first-child {
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .topic-score.mastered {
+  border-radius: var(--r-xs);
+  background: var(--accent-soft);
+}
+
+.student-challenge-page .topic-score.mastered text,
+.student-challenge-page .topic-score.mastered text:first-child {
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .knowledge-card,
+.student-challenge-page .question-card,
+.student-challenge-page .finish-card {
+  z-index: auto;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-challenge-page .knowledge-card,
+.student-challenge-page .finish-card {
+  padding: 32rpx 28rpx;
+  border-top: 7rpx solid var(--primary);
+}
+
+.student-challenge-page .knowledge-card::before,
+.student-challenge-page .finish-card::before {
+  display: none;
+}
+
+.student-challenge-page .knowledge-kicker {
+  color: #15946D;
+  letter-spacing: 0;
+}
+
+.student-challenge-page .knowledge-title,
+.student-challenge-page .finish-title {
+  color: var(--ink);
+}
+
+.student-challenge-page .knowledge-copy {
+  margin-top: 18rpx;
+  padding: 22rpx;
+  border: 1rpx solid #CBEADF;
+  border-left: 6rpx solid var(--primary);
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+
+.student-challenge-page .start-btn,
+.student-challenge-page .next-btn {
+  min-height: 96rpx;
+  border-radius: var(--r-sm);
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+.student-challenge-page .back-link {
+  min-height: 82rpx;
+  border: 0;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .back-link::after {
+  border: 0;
+}
+
+.student-challenge-page .quiz-progress {
+  z-index: auto;
+  height: 12rpx;
+  border-radius: 5rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .quiz-progress view {
+  border-radius: 5rpx;
+  background: var(--primary);
+}
+
+.student-challenge-page .question-card {
+  padding: 26rpx;
+  border-top: 7rpx solid var(--primary);
+}
+
+.student-challenge-page .question-count {
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .question-stem {
+  color: var(--ink);
+}
+
+.student-challenge-page .option {
+  min-height: 96rpx;
+  border: 2rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.student-challenge-page .option-key {
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .option.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .option.selected .option-key {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .option.correct {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.student-challenge-page .option.correct .option-key {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .option.wrong {
+  border-color: var(--coral);
+  background: var(--coral-soft);
+}
+
+.student-challenge-page .option.wrong .option-key {
+  background: var(--coral);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .answer-card {
+  z-index: auto;
+  border: 1rpx solid #CBEADF;
+  border-left: 7rpx solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+}
+
+.student-challenge-page .answer-card.wrong {
+  border-color: #F3C8C2;
+  border-left-color: var(--coral);
+  background: var(--coral-soft);
+}
+
+.student-challenge-page .answer-title {
+  color: var(--accent-strong);
+}
+
+.student-challenge-page .answer-card.wrong .answer-title {
+  color: #D94B45;
+}
+
+.student-challenge-page .answer-copy {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .finish-card {
+  padding-top: 48rpx;
+  background: var(--surface);
+}
+
+.student-challenge-page .finish-score {
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .finish-unit,
+.student-challenge-page .finish-desc {
+  color: var(--text-secondary);
+}
+
+.student-challenge-page .hero-mark {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  width: 70rpx;
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #BFE4D4;
+  border-radius: 14rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .progress-title,
+.student-challenge-page .knowledge-kicker-row,
+.student-challenge-page .question-count-row,
+.student-challenge-page .answer-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.student-challenge-page .finish-icon {
+  width: 76rpx;
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12rpx;
+  border: 1rpx solid #FFD2CD;
+  border-radius: 16rpx;
+  background: var(--coral-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-challenge-page .topic-card,
+  .student-challenge-page .start-btn,
+  .student-challenge-page .next-btn,
+  .student-challenge-page .back-link,
+  .student-challenge-page .option {
+    transition: none;
+  }
+
+  .student-challenge-page .topic-card:active,
+  .student-challenge-page .start-btn:active,
+  .student-challenge-page .next-btn:active,
+  .student-challenge-page .back-link:active,
+  .student-challenge-page .option:active {
+    transform: none;
   }
 }
 </style>

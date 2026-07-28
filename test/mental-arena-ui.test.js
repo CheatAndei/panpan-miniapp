@@ -67,3 +67,13 @@ test('动画结束自动生成口算王专属海报，并提供关闭、保存�
   assert.match(poster, /1440/);
   assert.match(achievement, /challenge_id:Number\(row\.id\)/);
 });
+
+test('口算王海报使用明亮青绿大色面、暖白纸面与珊瑚点睛', () => {
+  const poster = read('utils/mental-arena-poster.js');
+  assert.match(poster, /page:\s*'#F8FCF9'/);
+  assert.match(poster, /green:\s*'#20B486'/);
+  assert.match(poster, /coral:\s*'#FF7468'/);
+  assert.match(poster, /fillRect\(0,\s*0,\s*750,\s*430\)/);
+  assert.doesNotMatch(poster, /#(?:102D27|0B211D|071714|E7C365|F2ECDD)/i);
+  assert.doesNotMatch(poster, /createLinearGradient/);
+});

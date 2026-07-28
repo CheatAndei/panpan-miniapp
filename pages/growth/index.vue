@@ -1,6 +1,7 @@
 <template>
-  <view class="page page-bottom-safe">
+  <view class="page page-bottom-safe student-challenge-page">
     <view class="page-hero growth-hero">
+      <view class="hero-mark"><pp-icon name="target" :size="42" motion="bob" :delay="80" /></view>
       <text class="eyebrow">GROWTH RECORD</text>
       <text class="hero-title">成长记录</text>
       <text class="hero-sub">看见坚持、进步和下一步重点</text>
@@ -17,17 +18,20 @@
 
     <template v-if="summary">
       <view class="streak-card">
-        <view>
-          <text class="streak-label">连续学习</text>
-          <text class="streak-value"><text class="num">{{ summary.metrics.streak_days }}</text> 天</text>
-          <text class="streak-copy">今天完成一项任务，就能延续学习节奏</text>
+        <view class="streak-main">
+          <view class="streak-icon"><pp-icon name="trophy" :size="36" motion="shine" :delay="180" /></view>
+          <view>
+            <text class="streak-label">连续学习</text>
+            <text class="streak-value"><text class="num">{{ summary.metrics.streak_days }}</text> 天</text>
+            <text class="streak-copy">今天完成一项任务，就能延续学习节奏</text>
+          </view>
         </view>
         <view class="streak-seal">坚持</view>
       </view>
 
       <view class="card calendar-card">
         <view class="card-heading">
-          <text class="card-title">近 14 天</text>
+          <view class="card-title-row"><pp-icon name="calendar" :size="30" motion="pop" :delay="260" /><text class="card-title">近 14 天</text></view>
           <text class="card-note">有学习记录即点亮</text>
         </view>
         <view class="calendar-grid">
@@ -38,14 +42,13 @@
       </view>
 
       <view class="section-heading">
-        <text class="section-kicker">本周概览</text>
-        <text class="section-title">稳步积累的每一次</text>
+        <view class="section-title-row"><pp-icon name="report" :size="30" motion="pop" :delay="340" /><view><text class="section-kicker">本周概览</text><text class="section-title">稳步积累的每一次</text></view></view>
       </view>
       <view class="metrics-grid">
-        <view class="metric"><text class="metric-value num">{{ summary.metrics.active_days }}</text><text class="metric-label">学习天数</text></view>
-        <view class="metric"><text class="metric-value num">{{ summary.metrics.completed_tasks }}</text><text class="metric-label">完成任务</text></view>
-        <view class="metric"><text class="metric-value num">{{ accuracyLabel }}</text><text class="metric-label">综合正确率</text></view>
-        <view class="metric"><text class="metric-value num">{{ summary.metrics.learning_minutes }}</text><text class="metric-label">自主练习分钟</text></view>
+        <view class="metric"><pp-icon name="calendar" :size="28" /><text class="metric-value num">{{ summary.metrics.active_days }}</text><text class="metric-label">学习天数</text></view>
+        <view class="metric"><pp-icon name="check" :size="28" /><text class="metric-value num">{{ summary.metrics.completed_tasks }}</text><text class="metric-label">完成任务</text></view>
+        <view class="metric"><pp-icon name="target" :size="28" /><text class="metric-value num">{{ accuracyLabel }}</text><text class="metric-label">综合正确率</text></view>
+        <view class="metric"><pp-icon name="history" :size="28" /><text class="metric-value num">{{ summary.metrics.learning_minutes }}</text><text class="metric-label">自主练习分钟</text></view>
       </view>
 
       <view class="card wrong-card">
@@ -65,8 +68,7 @@
       </view>
 
       <view class="section-heading badges-heading">
-        <text class="section-kicker">成长徽章</text>
-        <text class="section-title">把努力变成看得见的里程碑</text>
+        <view class="section-title-row"><pp-icon name="trophy" :size="30" motion="ring" :delay="420" /><view><text class="section-kicker">成长徽章</text><text class="section-title">把努力变成看得见的里程碑</text></view></view>
       </view>
       <view class="badges-grid">
         <view v-for="badge in summary.badges" :key="badge.code" :class="['badge-card',{unlocked:badge.unlocked}]">
@@ -130,16 +132,19 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 </script>
 
 <style scoped>
-.growth-hero{padding-bottom:44rpx}.hero-title{display:block;margin-top:8rpx;color:var(--ink);font-size:44rpx;font-weight:780;letter-spacing:-1rpx}.hero-sub{display:block;margin-top:8rpx;color:var(--text-secondary);font-size:25rpx}.section-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin:20rpx 24rpx 0;padding:8rpx;border:1rpx solid var(--border);border-radius:18rpx;background:#fff}.nav-item{min-height:78rpx;border-radius:13rpx;background:transparent;color:var(--text-muted);font-size:27rpx;font-weight:650}.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.14)}.streak-card{display:flex;align-items:center;justify-content:space-between;margin:20rpx 24rpx 0;padding:32rpx;border-radius:26rpx;background:linear-gradient(140deg,#183A36,#2F6E61);color:#fff;box-shadow:0 18rpx 40rpx rgba(24,58,54,.16)}.streak-label{display:block;color:#B8DDD3;font-size:21rpx;font-weight:750;letter-spacing:2rpx}.streak-value{display:block;margin-top:2rpx;font-size:30rpx;font-weight:700}.streak-value .num{font-size:62rpx;font-weight:820;line-height:1.1}.streak-copy{display:block;margin-top:7rpx;color:#D7EBE5;font-size:22rpx}.streak-seal{width:96rpx;height:96rpx;display:flex;align-items:center;justify-content:center;border:2rpx solid rgba(255,255,255,.45);border-radius:50%;color:#fff;font-size:24rpx;font-weight:780;letter-spacing:3rpx}.calendar-card{padding-bottom:26rpx}.card-heading{display:flex;align-items:center;justify-content:space-between}.card-title{font-size:29rpx;font-weight:740}.card-note{color:var(--text-muted);font-size:21rpx}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:14rpx 10rpx;margin-top:22rpx}.day-dot{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface-muted);color:var(--faint);font-size:21rpx}.day-dot.on{background:var(--accent);color:#fff;font-weight:750;box-shadow:0 5rpx 12rpx rgba(47,125,107,.18)}.day-dot.today{outline:3rpx solid #A9CEC4;outline-offset:3rpx}.section-heading{margin:40rpx 28rpx 16rpx}.section-kicker{display:block;color:var(--accent-strong);font-size:20rpx;font-weight:750;letter-spacing:2rpx}.section-title{display:block;margin-top:3rpx;font-size:32rpx;font-weight:760}.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin:0 24rpx}.metric{min-height:140rpx;padding:22rpx;border:1rpx solid var(--border);border-radius:20rpx;background:#fff;box-shadow:var(--shadow-sm)}.metric-value{display:block;color:var(--ink);font-size:42rpx;font-weight:790}.metric-label{display:block;margin-top:2rpx;color:var(--text-muted);font-size:22rpx}.mastered{color:var(--accent-strong);font-size:23rpx;font-weight:700}.mastered .num{font-size:30rpx}.topic-list{margin-top:18rpx}.topic-row{display:flex;align-items:center;gap:14rpx;min-height:72rpx;border-bottom:1rpx solid var(--hairline)}.topic-rank{color:#A8B6B2;font-size:20rpx;font-weight:780}.topic-name{flex:1;color:var(--ink);font-size:26rpx;font-weight:650}.topic-errors{color:var(--warning);font-size:21rpx}.empty-copy{padding:30rpx 0;color:var(--text-muted);font-size:24rpx;line-height:1.65;text-align:center}.wrong-action{min-height:82rpx;margin-top:20rpx;border-radius:14rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:26rpx;font-weight:720}.badges-heading{margin-top:44rpx}.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12rpx;margin:0 24rpx}.badge-card{min-height:190rpx;padding:18rpx 12rpx;border:1rpx dashed #C9D5D1;border-radius:18rpx;background:#F4F7F6;text-align:center;opacity:.66}.badge-card.unlocked{border-style:solid;border-color:#BFD7D0;background:#fff;opacity:1;box-shadow:var(--shadow-sm)}.badge-mark{width:54rpx;height:54rpx;margin:0 auto 10rpx;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#E2E9E6;color:#8A9994;font-size:28rpx;font-weight:800}.unlocked .badge-mark{background:var(--accent);color:#fff}.badge-title{display:block;color:var(--ink);font-size:23rpx;font-weight:720}.badge-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:19rpx;line-height:1.45}.report-card{margin-top:36rpx;background:linear-gradient(145deg,#FFFFFF,#F3F8F6)}.report-label{color:var(--accent-strong);font-size:20rpx;font-weight:760;letter-spacing:2rpx}.report-title{display:block;margin-top:8rpx;color:var(--ink);font-size:31rpx;font-weight:760}.report-copy{display:block;margin-top:12rpx;color:var(--text-secondary);font-size:25rpx;line-height:1.8}.share-card{margin:22rpx 24rpx 0;padding:32rpx;border-radius:24rpx;background:#183A36;color:#fff}.share-eyebrow{display:block;color:#A8D2C6;font-size:20rpx;font-weight:750;letter-spacing:2rpx}.share-title{display:block;margin-top:8rpx;font-size:34rpx;font-weight:760}.share-note{display:block;margin-top:7rpx;color:#CFE4DE;font-size:22rpx}.share-btn{min-height:84rpx;margin-top:24rpx;border-radius:14rpx;background:#fff;color:#183A36;font-size:26rpx;font-weight:720}
+.growth-hero{padding-bottom:44rpx}.hero-title{display:block;margin-top:8rpx;color:var(--ink);font-size:44rpx;font-weight:780;letter-spacing: 0}.hero-sub{display:block;margin-top:8rpx;color:var(--text-secondary);font-size:25rpx}.section-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin:20rpx 24rpx 0;padding:8rpx;border:1rpx solid var(--border);border-radius:18rpx;background:#fff}.nav-item{min-height:78rpx;border-radius:13rpx;background:transparent;color:var(--text-muted);font-size:27rpx;font-weight:650}.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.14)}.streak-card{display:flex;align-items:center;justify-content:space-between;margin:20rpx 24rpx 0;padding:32rpx;border-radius:26rpx;background:#FFFFFF;color:#fff;box-shadow:0 18rpx 40rpx rgba(24,58,54,.16)}.streak-label{display:block;color:#B8DDD3;font-size:21rpx;font-weight:750;letter-spacing: 0}.streak-value{display:block;margin-top:2rpx;font-size:30rpx;font-weight:700}.streak-value .num{font-size:62rpx;font-weight:820;line-height:1.1}.streak-copy{display:block;margin-top:7rpx;color:#D7EBE5;font-size:22rpx}.streak-seal{width:96rpx;height:96rpx;display:flex;align-items:center;justify-content:center;border:2rpx solid rgba(255,255,255,.45);border-radius:50%;color:#fff;font-size:24rpx;font-weight:780;letter-spacing: 0}.calendar-card{padding-bottom:26rpx}.card-heading{display:flex;align-items:center;justify-content:space-between}.card-title{font-size:29rpx;font-weight:740}.card-note{color:var(--text-muted);font-size:21rpx}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:14rpx 10rpx;margin-top:22rpx}.day-dot{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface-muted);color:var(--faint);font-size:21rpx}.day-dot.on{background:var(--accent);color:#fff;font-weight:750;box-shadow:0 5rpx 12rpx rgba(47,125,107,.18)}.day-dot.today{outline:3rpx solid #A9CEC4;outline-offset:3rpx}.section-heading{margin:40rpx 28rpx 16rpx}.section-kicker{display:block;color:var(--accent-strong);font-size:20rpx;font-weight:750;letter-spacing: 0}.section-title{display:block;margin-top:3rpx;font-size:32rpx;font-weight:760}.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin:0 24rpx}.metric{min-height:140rpx;padding:22rpx;border:1rpx solid var(--border);border-radius:20rpx;background:#fff;box-shadow:var(--shadow-sm)}.metric-value{display:block;color:var(--ink);font-size:42rpx;font-weight:790}.metric-label{display:block;margin-top:2rpx;color:var(--text-muted);font-size:22rpx}.mastered{color:var(--accent-strong);font-size:23rpx;font-weight:700}.mastered .num{font-size:30rpx}.topic-list{margin-top:18rpx}.topic-row{display:flex;align-items:center;gap:14rpx;min-height:72rpx;border-bottom:1rpx solid var(--hairline)}.topic-rank{color:#A8B6B2;font-size:20rpx;font-weight:780}.topic-name{flex:1;color:var(--ink);font-size:26rpx;font-weight:650}.topic-errors{color:var(--warning);font-size:21rpx}.empty-copy{padding:30rpx 0;color:var(--text-muted);font-size:24rpx;line-height:1.65;text-align:center}.wrong-action{min-height:82rpx;margin-top:20rpx;border-radius:14rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:26rpx;font-weight:720}.badges-heading{margin-top:44rpx}.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12rpx;margin:0 24rpx}.badge-card{min-height:190rpx;padding:18rpx 12rpx;border:1rpx dashed #C9D5D1;border-radius:18rpx;background:#F4F7F6;text-align:center;opacity:.66}.badge-card.unlocked{border-style:solid;border-color:#BFD7D0;background:#fff;opacity:1;box-shadow:var(--shadow-sm)}.badge-mark{width:54rpx;height:54rpx;margin:0 auto 10rpx;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#E2E9E6;color:#8A9994;font-size:28rpx;font-weight:800}.unlocked .badge-mark{background:var(--accent);color:#fff}.badge-title{display:block;color:var(--ink);font-size:23rpx;font-weight:720}.badge-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:19rpx;line-height:1.45}.report-card{margin-top:36rpx;background:linear-gradient(145deg,#FFFFFF,#F3F8F6)}.report-label{color:var(--accent-strong);font-size:20rpx;font-weight:760;letter-spacing: 0}.report-title{display:block;margin-top:8rpx;color:var(--ink);font-size:31rpx;font-weight:760}.report-copy{display:block;margin-top:12rpx;color:var(--text-secondary);font-size:25rpx;line-height:1.8}.share-card{margin:22rpx 24rpx 0;padding:32rpx;border-radius:24rpx;background:#20B486;color:#fff}.share-eyebrow{display:block;color:#A8D2C6;font-size:20rpx;font-weight:750;letter-spacing: 0}.share-title{display:block;margin-top:8rpx;font-size:34rpx;font-weight:760}.share-note{display:block;margin-top:7rpx;color:#CFE4DE;font-size:22rpx}.share-btn{min-height:84rpx;margin-top:24rpx;border-radius:14rpx;background:#fff;color:#26352F;font-size:26rpx;font-weight:720}
 .achievement-btn{min-height:84rpx;margin-top:12rpx;border:1rpx solid rgba(255,255,255,.4);border-radius:14rpx;background:transparent;color:#fff;font-size:26rpx;font-weight:720}.achievement-btn::after{border:0}
 
 /* 家长成长页：浅色学习档案，不使用整块深色成绩卡。 */
 .page {
   min-height: 100vh;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 92% 4%, rgba(244, 199, 91, .18), transparent 24%),
-    var(--page-bg);
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 63rpx,
+    rgba(32, 180, 134, .028) 64rpx 65rpx
+  );
 }
 
 .growth-hero {
@@ -149,7 +154,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   overflow: hidden;
   border-bottom: 1rpx solid var(--border);
   background:
-    linear-gradient(rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(32, 180, 134, .045) 1rpx, transparent 1rpx),
     linear-gradient(145deg, #FFFFFF, var(--primary-soft));
   background-size: 42rpx 42rpx, auto;
 }
@@ -162,7 +167,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   width: 104rpx;
   height: 18rpx;
   border-radius: 4rpx;
-  background: var(--gold);
+  background: var(--primary);
   opacity: .78;
   transform: rotate(2deg);
 }
@@ -172,10 +177,10 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   color: var(--accent-strong);
   font-size: 19rpx;
   font-weight: 780;
-  letter-spacing: 3rpx;
+  letter-spacing: 0;
 }
 
-.hero-title { color: var(--ink); }
+.hero-title { color: var(--ink); letter-spacing: 0; }
 .hero-sub { color: var(--text-secondary); }
 
 .section-nav {
@@ -202,12 +207,12 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 .streak-card {
   position: relative;
   overflow: hidden;
-  border: 1rpx solid #E6CF88;
-  border-left: 8rpx solid var(--gold);
+  border: 1rpx solid #BFE4D4;
+  border-left: 8rpx solid var(--primary);
   border-radius: var(--r);
   background:
-    linear-gradient(rgba(244, 199, 91, .08) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, var(--warning-soft));
+    linear-gradient(rgba(255, 116, 104, .07) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
   background-size: 100% 42rpx, auto;
   color: var(--ink);
   box-shadow: var(--shadow-sm);
@@ -219,7 +224,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 .streak-copy { color: var(--text-secondary); }
 
 .streak-seal {
-  border-color: #E6CF88;
+  border-color: #BFE4D4;
   border-radius: 18rpx;
   background: #FFFFFF;
   color: var(--warning);
@@ -265,7 +270,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 
 .wrong-action {
   min-height: 112rpx;
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #BFE4D4;
   border-radius: var(--r-sm);
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -279,11 +284,11 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 }
 
 .badge-card.unlocked {
-  border-top: 5rpx solid var(--gold);
+  border-top: 5rpx solid var(--primary);
 }
 
 .badge-mark { background: var(--primary-soft); color: var(--primary); }
-.unlocked .badge-mark { background: var(--warning-soft); color: var(--warning); }
+.unlocked .badge-mark { background: var(--primary-soft); color: var(--warning); }
 
 .report-card {
   border-left: 7rpx solid var(--accent);
@@ -295,11 +300,11 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 
 .share-card {
   margin-bottom: 24rpx;
-  border: 1rpx solid #C7D9F2;
+  border: 1rpx solid #D5E6DE;
   border-top: 7rpx solid var(--primary);
   border-radius: var(--r);
   background:
-    linear-gradient(90deg, rgba(82, 124, 201, .055) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(32, 180, 134, .055) 1rpx, transparent 1rpx),
     var(--surface);
   background-size: 44rpx 100%, auto;
   color: var(--ink);
@@ -323,9 +328,9 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 }
 
 .achievement-btn {
-  border-color: #E6CF88;
-  background: var(--warning-soft);
-  color: #765410;
+  border-color: #BFE4D4;
+  background: var(--primary-soft);
+  color: #15946D;
 }
 
 .share-btn::after,
@@ -374,5 +379,145 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   .share-btn:active,
   .achievement-btn:active,
   .wrong-action:active { transform: none; }
+}
+
+/* Student challenge theme v3: progress feels lively through rhythm, not a color collage. */
+.student-challenge-page {
+  --page-bg: #F8FCF9;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F8F4;
+  --ink: #26352F;
+  --text-secondary: #5A6A62;
+  --text-muted: #6D7C74;
+  --primary: #20B486;
+  --primary-strong: #15946D;
+  --primary-soft: #E8F5EF;
+  --coral: #FF7468;
+  --coral-soft: #FFF0EE;
+  --danger: #D94B45;
+  --border: #D5E6DE;
+  min-height: 100vh;
+  background-color: var(--page-bg);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(32, 180, 134, .05) 56rpx 57rpx);
+  color: var(--ink);
+}
+.student-challenge-page .growth-hero {
+  min-height: 0;
+  padding: 34rpx 30rpx 28rpx;
+  border: 0;
+  border-bottom: 6rpx solid var(--primary);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+}
+.student-challenge-page .growth-hero::after { display: none; }
+.student-challenge-page .eyebrow,
+.student-challenge-page .section-kicker,
+.student-challenge-page .streak-label,
+.student-challenge-page .share-eyebrow,
+.student-challenge-page .report-label { color: var(--primary-strong); }
+.student-challenge-page .hero-title,
+.student-challenge-page .section-title,
+.student-challenge-page .card-title,
+.student-challenge-page .share-title,
+.student-challenge-page .report-title { color: var(--ink); }
+.student-challenge-page .hero-sub,
+.student-challenge-page .card-note,
+.student-challenge-page .share-note,
+.student-challenge-page .report-copy { color: var(--text-secondary); }
+.student-challenge-page .streak-card,
+.student-challenge-page .card,
+.student-challenge-page .metric,
+.student-challenge-page .badge-card,
+.student-challenge-page .share-card {
+  min-height: 0;
+  border-color: var(--border);
+  border-radius: 16rpx;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+}
+.student-challenge-page .metrics-grid,
+.student-challenge-page .badges-grid { align-items: start; }
+.student-challenge-page .streak-card,
+.student-challenge-page .report-card,
+.student-challenge-page .share-card { border-left: 6rpx solid var(--primary); }
+.student-challenge-page .streak-seal,
+.student-challenge-page .badge-mark,
+.student-challenge-page .day-dot.on,
+.student-challenge-page .unlocked .badge-mark {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.student-challenge-page .wrong-card,
+.student-challenge-page .topic-errors {
+  border-color: #FFD2CD;
+  background: var(--coral-soft);
+  color: var(--danger);
+}
+.student-challenge-page .share-btn,
+.student-challenge-page .achievement-btn {
+  min-height: 86rpx;
+  border-radius: 14rpx;
+  background: var(--primary);
+  color: #FFFFFF;
+}
+.student-challenge-page .wrong-action {
+  min-height: 80rpx;
+  border-radius: 14rpx;
+  background: var(--coral-soft);
+  color: var(--danger);
+}
+
+.student-challenge-page .growth-hero {
+  position: relative;
+}
+
+.student-challenge-page .hero-mark {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  width: 70rpx;
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #BFE4D4;
+  border-radius: 14rpx;
+  background: var(--primary-soft);
+}
+
+.student-challenge-page .streak-main,
+.student-challenge-page .card-title-row,
+.student-challenge-page .section-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.student-challenge-page .streak-main {
+  min-width: 0;
+  gap: 14rpx;
+}
+
+.student-challenge-page .streak-icon {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1rpx solid #FFD2CD;
+  border-radius: 14rpx;
+  background: var(--coral-soft);
+}
+
+.student-challenge-page .card-title-row,
+.student-challenge-page .section-title-row {
+  gap: 10rpx;
+}
+
+.student-challenge-page .metric .pp-icon {
+  margin-bottom: 8rpx;
 }
 </style>

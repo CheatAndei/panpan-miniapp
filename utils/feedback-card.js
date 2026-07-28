@@ -7,6 +7,23 @@ export const FEEDBACK_CARD_MAX_TEXT = 180;
 export const FEEDBACK_CARD_AVATAR = '/static/brand/panpan-feedback-color-v1.jpg';
 export const FEEDBACK_CARD_AVATAR_CACHE_VERSION = 'v3';
 
+const FEEDBACK_THEME = Object.freeze({
+  page: '#F8FCF9',
+  paper: '#FFFFFF',
+  ink: '#26352F',
+  text: '#5A6A62',
+  muted: '#7A8A82',
+  green: '#20B486',
+  greenDeep: '#15946D',
+  greenSoft: '#E7F8F1',
+  greenPale: '#F1FBF7',
+  greenLine: '#BFE8D8',
+  coral: '#FF7468',
+  coralDeep: '#D94B45',
+  coralSoft: '#FFF0EE',
+  coralLine: '#FFD0CB',
+});
+
 const FALLBACK_FEEDBACK_EMOJI = '🌟';
 
 function cleanLine(value) {
@@ -143,7 +160,7 @@ function drawCover(ctx, image, x, y, width, height, radius = 0) {
   ctx.restore();
 }
 
-function drawContain(ctx, image, x, y, width, height, radius = 0, background = '#EEE8DD') {
+function drawContain(ctx, image, x, y, width, height, radius = 0, background = FEEDBACK_THEME.greenPale) {
   fillRoundedRect(ctx, x, y, width, height, radius, background);
   if (!image?.path || !image.width || !image.height) return;
   const scale = Math.min(width / image.width, height / image.height);
@@ -239,11 +256,11 @@ function drawStudentPhotos(ctx, photos, layout) {
   const height = layout.mediaHeight;
   const gap = 12;
   if (!photos.length) {
-    fillRoundedRect(ctx, x, y, width, height, 22, '#EDE6D9');
-    ctx.setFillStyle('#C7933D');
+    fillRoundedRect(ctx, x, y, width, height, 22, FEEDBACK_THEME.greenSoft);
+    ctx.setFillStyle(FEEDBACK_THEME.coral);
     ctx.setFontSize(34);
     ctx.fillText('“', x + 26, y + 54);
-    ctx.setFillStyle('#776A59');
+    ctx.setFillStyle(FEEDBACK_THEME.text);
     ctx.setFontSize(23);
     ctx.setTextAlign('center');
     ctx.fillText('每一步认真思考，都值得被看见', x + width / 2, y + 134);
@@ -268,8 +285,8 @@ function drawStudentPhotos(ctx, photos, layout) {
 }
 
 function drawAvatarFallback(ctx, x, y, width, height) {
-  fillRoundedRect(ctx, x, y, width, height, 18, '#173A35');
-  ctx.setFillStyle('#E8C16C');
+  fillRoundedRect(ctx, x, y, width, height, 18, FEEDBACK_THEME.green);
+  ctx.setFillStyle(FEEDBACK_THEME.paper);
   ctx.setTextAlign('center');
   ctx.setFontSize(62);
   ctx.fillText('潘', x + width / 2, y + height / 2 + 19);
@@ -328,27 +345,27 @@ export async function renderFeedbackCard({
   ctx.setFontSize(28);
   const bodyLineCount = wrapText(ctx, body, 590, 28).length;
   const layout = studentCardLayout(bodyLineCount);
-  ctx.setFillStyle('#F5EFE4');
+  ctx.setFillStyle(FEEDBACK_THEME.page);
   ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, FEEDBACK_CARD_HEIGHT);
-  ctx.setFillStyle('#C89446');
+  ctx.setFillStyle(FEEDBACK_THEME.coral);
   ctx.fillRect(48, 48, 7, 118);
-  ctx.setFillStyle('#8B7654');
+  ctx.setFillStyle(FEEDBACK_THEME.greenDeep);
   ctx.setFontSize(19);
   ctx.fillText('PANPAN · STUDENT NOTE', 77, 71);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(48);
   ctx.fillText(name, 77, 127);
   ctx.setFontSize(27);
   ctx.fillText(`课堂反馈 ${feedbackEmoji}`, 77, 172);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#756F65');
+  ctx.setFillStyle(FEEDBACK_THEME.muted);
   ctx.setFontSize(19);
   ctx.fillText(cleanLine(classDate) || '课堂记录', 700, 76);
   ctx.fillText(ellipsis(ctx, [lesson, topic].map(cleanLine).filter(Boolean).join(' · ') || '数学课堂', 330, 19), 700, 108);
   ctx.setTextAlign('left');
 
-  fillRoundedRect(ctx, 48, 210, 654, layout.bodyHeight, 24, '#FFFCF7');
-  ctx.setFillStyle('#C89446');
+  fillRoundedRect(ctx, 48, 210, 654, layout.bodyHeight, 24, FEEDBACK_THEME.paper);
+  ctx.setFillStyle(FEEDBACK_THEME.coral);
   ctx.setFontSize(58);
   ctx.fillText('“', 69, 270);
   drawFittedText(ctx, body, {
@@ -357,27 +374,27 @@ export async function renderFeedbackCard({
     maxWidth:590,
     maxHeight:layout.bodyHeight - 118,
     fontSizes:[28, 26, 24, 22],
-    color:'#263B36',
+    color:FEEDBACK_THEME.ink,
   });
 
   drawStudentPhotos(ctx, photos, layout);
   const avatarY = layout.mediaY + Math.max(0, (layout.mediaHeight - 246) / 2);
-  fillRoundedRect(ctx, layout.avatarX, avatarY, layout.avatarWidth, 246, 20, '#FFFFFF');
-  if (avatar) drawContain(ctx, avatar, layout.avatarX + 8, avatarY + 8, layout.avatarWidth - 16, 190, 15, '#F3F0E9');
+  fillRoundedRect(ctx, layout.avatarX, avatarY, layout.avatarWidth, 246, 20, FEEDBACK_THEME.paper);
+  if (avatar) drawContain(ctx, avatar, layout.avatarX + 8, avatarY + 8, layout.avatarWidth - 16, 190, 15, FEEDBACK_THEME.greenPale);
   else drawAvatarFallback(ctx, layout.avatarX + 8, avatarY + 8, layout.avatarWidth - 16, 190);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.greenDeep);
   ctx.setTextAlign('center');
   ctx.setFontSize(19);
   ctx.fillText('潘潘老师', layout.avatarX + layout.avatarWidth / 2, avatarY + 229);
   ctx.setTextAlign('left');
 
-  ctx.setFillStyle('#D7CCBB');
+  ctx.setFillStyle(FEEDBACK_THEME.greenLine);
   ctx.fillRect(48, 928, 654, 1);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(20);
   ctx.fillText('潘潘老师 · 课堂观察', 48, 968);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#8A8174');
+  ctx.setFillStyle(FEEDBACK_THEME.muted);
   ctx.setFontSize(17);
   ctx.fillText('陪孩子看见每一次进步', 702, 968);
   ctx.setTextAlign('left');
@@ -398,39 +415,39 @@ export async function renderClassFeedbackCard({
   if (!body) throw new Error('请先填写学习小组总反馈');
 
   const ctx = uni.createCanvasContext(canvasId, page);
-  ctx.setFillStyle('#F7F2E8');
+  ctx.setFillStyle(FEEDBACK_THEME.page);
   ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, FEEDBACK_CARD_HEIGHT);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.green);
   ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, 226);
-  ctx.setFillStyle('#E1BC62');
+  ctx.setFillStyle(FEEDBACK_THEME.coral);
   ctx.fillRect(48, 52, 78, 5);
-  ctx.setFillStyle('#A9D0C5');
+  ctx.setFillStyle(FEEDBACK_THEME.greenPale);
   ctx.setFontSize(18);
   ctx.fillText('PANPAN · CLASS BRIEF', 48, 86);
-  ctx.setFillStyle('#F5EACF');
+  ctx.setFillStyle(FEEDBACK_THEME.paper);
   ctx.setFontSize(44);
   ctx.fillText('今日课堂简报', 48, 146);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#B9D5CE');
+  ctx.setFillStyle(FEEDBACK_THEME.greenPale);
   ctx.setFontSize(17);
   ctx.fillText(cleanLine(classDate) || '课堂记录', 702, 84);
   ctx.setTextAlign('left');
 
-  ctx.setFillStyle('#D9EEE8');
+  ctx.setFillStyle(FEEDBACK_THEME.greenPale);
   ctx.setFontSize(17);
   ctx.fillText('本次课程', 48, 183);
-  ctx.setFillStyle('#FFFFFF');
+  ctx.setFillStyle(FEEDBACK_THEME.paper);
   ctx.setFontSize(27);
   ctx.fillText(ellipsis(ctx, [lesson, topic].map(cleanLine).filter(Boolean).join(' · ') || cleanLine(className), 636, 27), 48, 215);
 
-  fillRoundedRect(ctx, 48, 258, 654, 602, 24, '#FFFCF7');
-  ctx.setFillStyle('#AD8232');
+  fillRoundedRect(ctx, 48, 258, 654, 602, 24, FEEDBACK_THEME.paper);
+  ctx.setFillStyle(FEEDBACK_THEME.coralDeep);
   ctx.setFontSize(17);
   ctx.fillText('课堂记录', 76, 306);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(27);
   ctx.fillText('重点 · 表现 · 下一步', 76, 346);
-  ctx.setFillStyle('#E4DDD0');
+  ctx.setFillStyle(FEEDBACK_THEME.greenLine);
   ctx.fillRect(76, 370, 598, 1);
   drawFittedText(ctx, body, {
     x:76,
@@ -438,17 +455,17 @@ export async function renderClassFeedbackCard({
     maxWidth:598,
     maxHeight:400,
     fontSizes:[27, 25, 23, 21, 19, 18],
-    color:'#2D423D',
+    color:FEEDBACK_THEME.ink,
     lineHeightRatio:1.48,
   });
 
-  ctx.setFillStyle('#D6C7AC');
+  ctx.setFillStyle(FEEDBACK_THEME.greenLine);
   ctx.fillRect(48, 902, 654, 1);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(20);
   ctx.fillText(cleanLine(className) || '数学课堂', 48, 945);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#8A7654');
+  ctx.setFillStyle(FEEDBACK_THEME.greenDeep);
   ctx.setFontSize(20);
   ctx.fillText('潘潘老师', 702, 945);
   ctx.setTextAlign('left');
@@ -468,60 +485,60 @@ export async function renderHomeworkCard({
   if (!body) throw new Error('请先填写课后作业');
 
   const ctx = uni.createCanvasContext(canvasId, page);
-  ctx.setFillStyle('#EEF1E8');
+  ctx.setFillStyle(FEEDBACK_THEME.page);
   ctx.fillRect(0, 0, FEEDBACK_CARD_WIDTH, FEEDBACK_CARD_HEIGHT);
-  ctx.setStrokeStyle('#D5DDD2');
+  ctx.setStrokeStyle(FEEDBACK_THEME.greenLine);
   ctx.setLineWidth(1);
   for (let x = 52; x <= 750; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1000); ctx.stroke(); }
   for (let y = 52; y <= 1000; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(750, y); ctx.stroke(); }
-  ctx.setFillStyle('#D35F4D');
+  ctx.setFillStyle(FEEDBACK_THEME.coral);
   ctx.fillRect(0, 0, 20, 1000);
 
-  ctx.setFillStyle('#263F59');
+  ctx.setFillStyle(FEEDBACK_THEME.greenDeep);
   ctx.setFontSize(18);
   ctx.fillText('PANPAN · AFTER CLASS', 58, 68);
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(57);
   ctx.fillText('课后任务单', 56, 145);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#73817B');
+  ctx.setFillStyle(FEEDBACK_THEME.muted);
   ctx.setFontSize(19);
   ctx.fillText(cleanLine(classDate) || '今日作业', 696, 70);
   ctx.fillText(ellipsis(ctx, [lesson, topic].map(cleanLine).filter(Boolean).join(' · ') || '数学课堂', 350, 19), 696, 106);
   ctx.setTextAlign('left');
 
-  fillRoundedRect(ctx, 55, 202, 640, 578, 18, '#FFFDF7');
-  strokeRoundedRect(ctx, 55, 202, 640, 578, 18, '#C9D0C6', 1);
-  ctx.setFillStyle('#D35F4D');
+  fillRoundedRect(ctx, 55, 202, 640, 578, 18, FEEDBACK_THEME.paper);
+  strokeRoundedRect(ctx, 55, 202, 640, 578, 18, FEEDBACK_THEME.greenLine, 1);
+  ctx.setFillStyle(FEEDBACK_THEME.coral);
   ctx.fillRect(55, 202, 10, 578);
-  ctx.setFillStyle('#D35F4D');
+  ctx.setFillStyle(FEEDBACK_THEME.coralDeep);
   ctx.setFontSize(18);
   ctx.fillText('TODAY’S ASSIGNMENT', 92, 258);
-  ctx.setFillStyle('#263F59');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(32);
   ctx.fillText('把今天的思路，写进明天的底气', 92, 304);
-  ctx.setFillStyle('#D9DDD5');
+  ctx.setFillStyle(FEEDBACK_THEME.greenLine);
   ctx.fillRect(92, 340, 558, 1);
 
-  fillRoundedRect(ctx, 91, 388, 39, 39, 6, '#F4EAE4');
-  strokeRoundedRect(ctx, 91, 388, 39, 39, 6, '#D35F4D', 2);
-  drawWrappedText(ctx, body, { x: 153, y: 419, maxWidth: 484, fontSize: 30, lineHeight: 48, maxLines: 6, color: '#243A35', weight: 'bold' });
+  fillRoundedRect(ctx, 91, 388, 39, 39, 6, FEEDBACK_THEME.coralSoft);
+  strokeRoundedRect(ctx, 91, 388, 39, 39, 6, FEEDBACK_THEME.coral, 2);
+  drawWrappedText(ctx, body, { x: 153, y: 419, maxWidth: 484, fontSize: 30, lineHeight: 48, maxLines: 6, color: FEEDBACK_THEME.ink, weight: 'bold' });
 
-  fillRoundedRect(ctx, 91, 690, 558, 56, 12, '#E9EFEA');
-  ctx.setFillStyle('#61736C');
+  fillRoundedRect(ctx, 91, 690, 558, 56, 12, FEEDBACK_THEME.greenSoft);
+  ctx.setFillStyle(FEEDBACK_THEME.greenDeep);
   ctx.setFontSize(19);
   ctx.fillText('□ 完成后检查步骤   □ 圈出还不确定的题', 113, 726);
 
-  ctx.setFillStyle('#173A35');
+  ctx.setFillStyle(FEEDBACK_THEME.ink);
   ctx.setFontSize(23);
   ctx.fillText('完成比完美更重要，步骤比答案更重要。', 58, 849);
-  ctx.setFillStyle('#D35F4D');
+  ctx.setFillStyle(FEEDBACK_THEME.coral);
   ctx.fillRect(58, 878, 122, 4);
-  ctx.setFillStyle('#6F7E78');
+  ctx.setFillStyle(FEEDBACK_THEME.muted);
   ctx.setFontSize(18);
   ctx.fillText('请家长协助提醒，作业由学生独立完成', 58, 926);
   ctx.setTextAlign('right');
-  ctx.setFillStyle('#263F59');
+  ctx.setFillStyle(FEEDBACK_THEME.greenDeep);
   ctx.setFontSize(22);
   ctx.fillText('潘潘老师', 696, 927);
   ctx.setTextAlign('left');

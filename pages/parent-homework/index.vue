@@ -2,8 +2,11 @@
   <view class="page">
     <view class="hero hero-navy">
       <view class="eyebrow">作业批改</view>
-      <view class="hero-title">{{ child ? child.name : '学习记录' }}</view>
-      <view class="hero-sub">积分余额 {{ pointBalance }}</view>
+      <view class="hero-title-row">
+        <view class="title-icon tone-green"><pp-icon name="clipboard" :size="34" motion="pop" /></view>
+        <view class="hero-title">{{ child ? child.name : '学习记录' }}</view>
+      </view>
+      <view class="hero-sub"><pp-icon name="trophy" :size="24" /><text>积分余额 {{ pointBalance }}</text></view>
     </view>
 
     <pp-state v-if="loading && batches.length===0" type="loading" title="正在读取批改记录" />
@@ -13,14 +16,14 @@
     <view v-for="item in batches" :key="item.id" class="card batch-card" @tap="openBatch(item.id)">
       <view class="batch-top">
         <view>
-          <text class="batch-title">{{ item.title }}</text>
+          <view class="batch-title"><pp-icon name="book" :size="28" /><text>{{ item.title }}</text></view>
           <text class="batch-meta">{{ item.assigned_date }} · {{ item.subject || '作业' }}</text>
         </view>
-        <view class="score-pill">{{ item.correct_count }}/{{ item.question_count }}</view>
+        <view class="score-pill"><pp-icon name="check" :size="22" /><text>{{ item.correct_count }}/{{ item.question_count }}</text></view>
       </view>
       <view class="batch-foot">
         <text>本次积分 {{ signed(item.points_delta) }}</text>
-        <text class="detail-link">查看逐题结果 ›</text>
+        <view class="detail-link"><text>查看逐题结果</text><pp-icon name="arrow" :size="24" /></view>
       </view>
     </view>
 
@@ -38,7 +41,7 @@
           <view v-for="answer in detail.answers" :key="answer.question_no" class="answer-card">
             <view class="answer-head">
               <text class="question-no">第 {{ answer.question_no }} 题</text>
-              <text :class="['answer-status',answer.is_correct?'correct':'wrong']">{{ answer.is_correct ? '正确' : '需要订正' }}</text>
+              <view :class="['answer-status',answer.is_correct?'correct':'wrong']"><pp-icon :name="answer.is_correct?'check':'pencil'" :size="22" /><text>{{ answer.is_correct ? '正确' : '需要订正' }}</text></view>
             </view>
             <image v-if="questionImageSource(answer)" :src="questionImageSource(answer)" mode="widthFix" class="question-image" @tap="preview(answer)" />
             <view class="answer-line"><text class="label">学生答案</text><text>{{ answer.student_answer || '未填写' }}</text></view>
@@ -143,36 +146,49 @@ onPullDownRefresh(async () => {
 </script>
 
 <style scoped>
-.page { min-height: 100vh; box-sizing: border-box; padding: 24rpx 24rpx 60rpx; background: var(--page-bg); }
+.page {
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 18rpx 24rpx 54rpx;
+  background: var(--panpan-paper);
+}
 
 .hero {
-  position: relative;
-  margin-bottom: 22rpx;
-  padding: 40rpx 32rpx;
-  border: 1rpx solid var(--border);
-  border-radius: var(--r);
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 18rpx;
+  padding: 30rpx 28rpx;
+  border: 1rpx solid #CFE6D8;
+  border-top: 7rpx solid var(--panpan-sprout);
+  border-radius: 16rpx;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .05) 48rpx 49rpx),
+    #FFFFFF;
+  box-shadow: 0 9rpx 22rpx rgba(36, 48, 41, .06);
   animation: homework-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.hero::after {
-  content: '';
-  position: absolute;
-  right: 28rpx;
-  top: 28rpx;
-  width: 50rpx;
-  height: 66rpx;
-  border: 4rpx solid rgba(82, 124, 201, .22);
-  border-radius: 8rpx;
-  box-shadow: -10rpx 10rpx 0 rgba(244, 199, 91, .25);
-}
-
-.eyebrow { color: var(--primary-strong); font-size: 23rpx; font-weight: 680; }
-.hero-title { margin-top: 8rpx; color: var(--ink); font-size: 40rpx; font-weight: 760; }
-.hero-sub { margin-top: 8rpx; color: var(--text-muted); font-size: 25rpx; }
+.eyebrow { display: inline-flex; padding: 5rpx 12rpx; border-radius: 7rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 21rpx; font-weight: 700; letter-spacing: 0; }
+.hero-title-row { display: flex; align-items: center; gap: 12rpx; margin-top: 9rpx; }
+.title-icon { width: 50rpx; height: 50rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; }
+.title-icon.tone-green { background: #E7F8F1; }
+.hero-title { color: var(--panpan-ink); font-size: 39rpx; font-weight: 770; }
+.hero-sub { display: flex; align-items: center; gap: 7rpx; margin-top: 7rpx; color: #15946D; font-size: 24rpx; font-weight: 650; }
 
 .batch-card {
-  padding: 26rpx;
+  margin-bottom: 14rpx;
+  padding: 22rpx 24rpx;
+  border: 1rpx solid #CFE6D8;
+  border-left: 6rpx solid var(--panpan-green);
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
   animation: homework-card-enter var(--motion-slow) var(--ease-out) both;
   transition: transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
 }
@@ -182,29 +198,30 @@ onPullDownRefresh(async () => {
 .batch-foot,
 .answer-head,
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
-.batch-title { display: block; color: var(--ink); font-size: 30rpx; font-weight: 720; }
-.batch-meta { display: block; margin-top: 5rpx; color: var(--text-muted); font-size: 23rpx; }
-.score-pill { flex: none; padding: 8rpx 16rpx; border-radius: var(--r-xs); background: var(--success-soft); color: var(--success); font-weight: 720; }
-.batch-foot { margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid var(--hairline); color: var(--text-muted); font-size: 24rpx; }
-.detail-link { color: var(--primary-strong); font-weight: 650; }
+.batch-title { display: flex; align-items: center; gap: 8rpx; color: var(--panpan-ink); font-size: 30rpx; font-weight: 720; }
+.batch-meta { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 23rpx; }
+.score-pill { display: flex; align-items: center; gap: 5rpx; flex: none; padding: 7rpx 14rpx; border: 1rpx solid rgba(32, 180, 134, .24); border-radius: 8rpx; background: #E7F8F1; color: #15946D; font-weight: 720; }
+.batch-foot { margin-top: 17rpx; padding-top: 15rpx; border-top: 1rpx solid #E0EEE5; color: var(--panpan-muted); font-size: 23rpx; }
+.batch-foot text:first-child { color: #15946D; font-weight: 650; }
+.detail-link { display: flex; align-items: center; gap: 4rpx; color: var(--panpan-green-strong); font-weight: 680; }
 
-.modal-mask { position: fixed; inset: 0; z-index: 99; display: flex; align-items: flex-end; background: rgba(36, 50, 74, .44); animation: homework-mask-in var(--motion-base) ease-out both; }
-.modal { width: 100%; max-height: 90vh; box-sizing: border-box; padding: 30rpx 26rpx calc(24rpx + env(safe-area-inset-bottom)); border-radius: 30rpx 30rpx 0 0; background: var(--surface); box-shadow: var(--shadow-lg); animation: homework-sheet-in var(--motion-slow) var(--ease-out) both; }
+.modal-mask { position: fixed; inset: 0; z-index: 99; display: flex; align-items: flex-end; background: rgba(36, 48, 41, .42); animation: homework-mask-in var(--motion-base) ease-out both; }
+.modal { width: 100%; max-height: 90vh; box-sizing: border-box; padding: 26rpx 24rpx calc(22rpx + env(safe-area-inset-bottom)); border-radius: 16rpx 16rpx 0 0; background: #FFFFFF; box-shadow: 0 -12rpx 30rpx rgba(36, 48, 41, .1); animation: homework-sheet-in var(--motion-slow) var(--ease-out) both; }
 .modal-head { align-items: flex-start; }
-.modal-title { display: block; color: var(--ink); font-size: 32rpx; font-weight: 740; }
-.modal-sub { display: block; margin-top: 5rpx; color: var(--text-muted); font-size: 23rpx; }
-.close { min-height: 64rpx; display: flex; align-items: center; color: var(--primary-strong); font-size: 25rpx; font-weight: 650; }
-.detail-scroll { max-height: 72vh; margin-top: 22rpx; }
-.summary { margin-bottom: 16rpx; padding: 20rpx; border-left: 6rpx solid var(--primary); border-radius: var(--r-sm); background: var(--primary-soft); color: var(--text-secondary); font-size: 26rpx; line-height: 1.7; }
-.answer-card { margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid var(--hairline); border-radius: var(--r-sm); background: var(--surface); }
-.question-no { color: var(--ink); font-size: 28rpx; font-weight: 700; }
-.answer-status { padding: 5rpx 12rpx; border-radius: var(--r-xs); font-size: 22rpx; font-weight: 650; }
-.answer-status.correct { color: var(--success); background: var(--success-soft); }
-.answer-status.wrong { color: var(--danger); background: var(--danger-soft); }
-.question-image { width: 100%; margin-top: 16rpx; border: 1rpx solid var(--hairline); border-radius: var(--r-sm); background: var(--surface-muted); }
-.answer-line { display: flex; gap: 16rpx; margin-top: 14rpx; color: var(--text-secondary); font-size: 25rpx; line-height: 1.6; }
-.label { flex-shrink: 0; color: var(--text-muted); }
-.comment { margin-top: 16rpx; padding: 16rpx; border-radius: var(--r-sm); background: var(--warning-soft); color: var(--warning); font-size: 25rpx; line-height: 1.6; }
+.modal-title { display: block; color: var(--panpan-ink); font-size: 31rpx; font-weight: 740; }
+.modal-sub { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 22rpx; }
+.close { min-height: 58rpx; display: flex; align-items: center; color: var(--panpan-green-strong); font-size: 24rpx; font-weight: 680; }
+.detail-scroll { max-height: 72vh; margin-top: 19rpx; }
+.summary { margin-bottom: 14rpx; padding: 17rpx; border: 1rpx solid rgba(32, 180, 134, .22); border-left: 6rpx solid var(--panpan-green); border-radius: 10rpx; background: #E7F8F1; color: #5A6A62; font-size: 25rpx; line-height: 1.66; }
+.answer-card { margin-bottom: 0; padding: 19rpx 0; border-bottom: 1rpx solid #E0EEE5; border-radius: 0; background: transparent; }
+.question-no { color: var(--panpan-ink); font-size: 27rpx; font-weight: 700; }
+.answer-status { display: flex; align-items: center; gap: 5rpx; padding: 5rpx 11rpx; border-radius: 8rpx; font-size: 21rpx; font-weight: 680; }
+.answer-status.correct { color: var(--panpan-green-strong); background: #E7F8F1; }
+.answer-status.wrong { color: #D94B45; background: #FFF0EE; }
+.question-image { width: 100%; margin-top: 14rpx; border: 1rpx solid #D4E9DC; border-radius: 10rpx; background: var(--panpan-paper); }
+.answer-line { display: flex; gap: 14rpx; margin-top: 12rpx; color: #5A6A62; font-size: 24rpx; line-height: 1.58; }
+.label { flex-shrink: 0; color: var(--panpan-muted); }
+.comment { margin-top: 14rpx; padding: 14rpx; border-left: 5rpx solid var(--panpan-coral); border-radius: 9rpx; background: #FFF2F0; color: #D94B45; font-size: 24rpx; line-height: 1.58; }
 
 @keyframes homework-enter {
   from { opacity: 0; transform: translateY(-10rpx); }

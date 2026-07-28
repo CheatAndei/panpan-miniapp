@@ -2,7 +2,10 @@
   <view class="page page-bottom-safe">
     <view class="exam-hero">
       <text class="eyebrow">GUANGZHOU PAPERS</text>
-      <text class="hero-title">{{ gradeCode==='g9'?'中考一模卷库':'广州真题大全' }}</text>
+      <view class="hero-title-row">
+        <view class="title-icon tone-green"><pp-icon name="exam" :size="34" motion="pop" /></view>
+        <text class="hero-title">{{ gradeCode==='g9'?'中考一模卷库':'广州真题大全' }}</text>
+      </view>
       <text class="hero-sub">{{ gradeCode==='g9'?'九年级七科原卷 · 按年份、学科和地区筛选':'七、八年级原卷 · 按考试类型和年份筛选' }}</text>
     </view>
 
@@ -35,12 +38,12 @@
       </view>
       <view class="search-row">
         <input v-model="keyword" class="search-input" placeholder="搜索学校或试卷名称" confirm-type="search" @confirm="search" />
-        <button class="search-btn" @tap="search">搜索</button>
+        <button class="search-btn" @tap="search"><pp-icon name="search" :size="26" /><text>搜索</text></button>
       </view>
     </view>
 
     <view v-if="isTeacher" class="teacher-summary" @tap="activityExpanded=!activityExpanded">
-      <view><text class="summary-title">家长下载与答案申请</text><text class="summary-desc">{{ activity.requests?.filter(item=>item.status==='pending').length || 0 }} 条待处理 · {{ activity.downloads?.length || 0 }} 条最近下载</text></view>
+      <view class="summary-copy"><view class="summary-title"><pp-icon name="report" :size="26" :motion="activity.requests?.some(item=>item.status==='pending') ? 'ring' : 'none'" /><text>家长下载与答案申请</text></view><text class="summary-desc">{{ activity.requests?.filter(item=>item.status==='pending').length || 0 }} 条待处理 · {{ activity.downloads?.length || 0 }} 条最近下载</text></view>
       <text class="summary-toggle">{{ activityExpanded?'收起':'展开' }}</text>
     </view>
     <view v-if="isTeacher && activityExpanded" class="activity-panel">
@@ -66,15 +69,15 @@
 
     <view v-for="paper in papers" :key="paper.id" class="paper-card">
       <view class="paper-tags"><text>{{ examLabel(paper.exam_type) }}</text><text>{{ paper.exam_year || '往年' }}</text><text v-if="paper.has_answer">含答案</text></view>
-      <text class="paper-title">{{ paper.display_title }}</text>
+      <view class="paper-title"><pp-icon name="book" :size="28" /><text>{{ paper.display_title }}</text></view>
       <text class="paper-meta">{{ subjectLabel(paper.subject_code) }} · {{ paper.district || paper.school_name || paper.grade }} · {{ paper.semester }}</text>
       <view class="paper-actions">
-        <button class="paper-primary" :disabled="busyId===paper.id" @tap="downloadPaper(paper,'paper')">{{ busyId===paper.id?'打开中…':'打开原卷' }}</button>
-        <button v-if="isTeacher && paper.has_answer" class="paper-secondary" @tap="downloadPaper(paper,'answer')">教师看答案</button>
-        <button v-else-if="!isTeacher" :class="['paper-secondary',{done:paper.answer_request_status==='pending',ready:paper.answer_request_status==='sent'}]" @tap="paper.answer_request_status==='sent'?downloadPaper(paper,'answer'):requestAnswer(paper)">{{ requestLabel(paper) }}</button>
+        <button class="paper-primary" :disabled="busyId===paper.id" @tap="downloadPaper(paper,'paper')"><pp-icon name="book" :size="26" /><text>{{ busyId===paper.id?'打开中…':'打开原卷' }}</text></button>
+        <button v-if="isTeacher && paper.has_answer" class="paper-secondary" @tap="downloadPaper(paper,'answer')"><pp-icon name="check" :size="26" /><text>教师看答案</text></button>
+        <button v-else-if="!isTeacher" :class="['paper-secondary',{done:paper.answer_request_status==='pending',ready:paper.answer_request_status==='sent'}]" @tap="paper.answer_request_status==='sent'?downloadPaper(paper,'answer'):requestAnswer(paper)"><pp-icon :name="paper.answer_request_status==='sent'?'check':'message'" :size="26" /><text>{{ requestLabel(paper) }}</text></button>
       </view>
     </view>
-    <button v-if="page<pages" class="load-more" :disabled="loading" @tap="loadMore">{{ loading?'加载中…':'加载更多' }}</button>
+    <button v-if="page<pages" class="load-more" :disabled="loading" @tap="loadMore"><pp-icon name="plus" :size="26" /><text>{{ loading?'加载中…':'加载更多' }}</text></button>
     <view class="privacy-note">原卷仅向已绑定家长开放；答案由老师按申请处理，下载行为会记录用于教学服务。</view>
   </view>
 </template>
@@ -200,61 +203,60 @@ async function approveAnswer(item){
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 0 24rpx 48rpx; background: var(--page-bg); }
+.page {
+  --panpan-green: #20B486;
+  --panpan-green-strong: #15946D;
+  --panpan-sprout: #20B486;
+  --panpan-coral: #FF7468;
+  --panpan-leaf: #15946D;
+  --panpan-paper: #F8FCF9;
+  --panpan-ink: #26352F;
+  --panpan-muted: #5A6A62;
+  min-height: 100vh;
+  padding: 0 24rpx 48rpx;
+  background: var(--panpan-paper);
+}
 
 .exam-hero {
-  position: relative;
-  overflow: hidden;
-  margin: 0 -24rpx 20rpx;
-  padding: 50rpx 34rpx 42rpx;
-  border-bottom: 1rpx solid var(--hairline);
+  margin: 0 -24rpx 17rpx;
+  padding: 40rpx 32rpx 32rpx;
+  border-bottom: 1rpx solid #D4E9DC;
   background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
-  background-size: 40rpx 40rpx, 40rpx 40rpx, auto;
-  color: var(--ink);
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .055) 48rpx 49rpx),
+    linear-gradient(135deg, #FFFFFF 0 72%, #E7F8F1 100%);
+  color: var(--panpan-ink);
   animation: exam-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.exam-hero::after {
-  content: '';
-  position: absolute;
-  right: 34rpx;
-  top: 34rpx;
-  width: 58rpx;
-  height: 76rpx;
-  border: 4rpx solid rgba(82, 124, 201, .22);
-  border-radius: 9rpx;
-  box-shadow: -12rpx 12rpx 0 rgba(244, 199, 91, .28);
-  transform: rotate(5deg);
-}
-
-.eyebrow { display: block; color: var(--primary-strong); font-size: 19rpx; font-weight: 800; letter-spacing: 3rpx; }
-.hero-title { display: block; max-width: 570rpx; margin-top: 8rpx; color: var(--ink); font-size: 42rpx; font-weight: 780; }
-.hero-sub { display: block; max-width: 590rpx; margin-top: 7rpx; color: var(--text-secondary); font-size: 23rpx; line-height: 1.55; }
+.eyebrow { display: inline-flex; padding: 5rpx 12rpx; border-radius: 7rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 19rpx; font-weight: 800; letter-spacing: 0; }
+.hero-title-row { display: flex; align-items: center; gap: 12rpx; margin-top: 9rpx; }
+.title-icon { width: 50rpx; height: 50rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; }
+.title-icon.tone-green { background: #E7F8F1; }
+.hero-title { max-width: 570rpx; color: var(--panpan-ink); font-size: 40rpx; font-weight: 790; }
+.hero-title-row::after { content: ''; width: 54rpx; height: 7rpx; flex: none; border-radius: 4rpx; background: var(--panpan-sprout); }
+.hero-sub { display: block; max-width: 590rpx; margin-top: 10rpx; color: var(--panpan-muted); font-size: 22rpx; line-height: 1.52; }
 
 .filter-card,
 .activity-panel {
-  margin-bottom: 18rpx;
-  padding: 22rpx;
-  border: 1rpx solid var(--border);
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 15rpx;
+  padding: 19rpx;
+  border: 1rpx solid #CFE6D8;
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
 }
 
-.filter-card { animation: exam-panel-enter var(--motion-slow) 40ms var(--ease-out) both; }
-.grade-switch { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8rpx; margin-bottom: 18rpx; padding: 7rpx; border-radius: var(--r-sm); background: var(--surface-muted); }
+.filter-card { border-top: 6rpx solid var(--panpan-green); animation: exam-panel-enter var(--motion-slow) 40ms var(--ease-out) both; }
+.grade-switch { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6rpx; margin-bottom: 15rpx; padding: 6rpx; border-radius: 11rpx; background: #EEF7F1; }
 
 .grade-tab {
-  min-height: 82rpx;
+  min-height: 74rpx;
   margin: 0;
-  padding: 0 10rpx;
-  border-radius: 11rpx;
+  padding: 0 8rpx;
+  border-radius: 9rpx;
   background: transparent;
-  color: var(--text-muted);
-  font-size: 23rpx;
+  color: var(--panpan-muted);
+  font-size: 22rpx;
   font-weight: 700;
   transition: transform var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out);
 }
@@ -265,7 +267,7 @@ async function approveAnswer(item){
 .paper-actions button::after,
 .mini-btn::after,
 .load-more::after { border: 0; }
-.grade-tab.on { background: var(--surface); color: var(--primary-strong); box-shadow: 0 5rpx 14rpx rgba(49, 94, 168, .12); }
+.grade-tab.on { background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 6rpx 12rpx rgba(21, 148, 109, .18); }
 .grade-tab:active,
 .chip:active,
 .search-btn:active,
@@ -273,113 +275,113 @@ async function approveAnswer(item){
 .paper-actions button:active,
 .load-more:active { transform: scale(var(--tap-scale)); }
 
-.filter-row {
-  display: flex;
-  gap: 10rpx;
-  overflow-x: auto;
-  margin-bottom: 12rpx;
-  padding-bottom: 2rpx;
-  white-space: nowrap;
-}
+.filter-row { display: flex; gap: 8rpx; overflow-x: auto; margin-bottom: 10rpx; padding-bottom: 2rpx; white-space: nowrap; }
 
 .chip {
-  min-height: 62rpx;
+  min-height: 56rpx;
   flex: none;
   margin: 0;
-  padding: 0 20rpx;
+  padding: 0 16rpx;
   border: 1rpx solid transparent;
-  border-radius: var(--r-xs);
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  font-size: 22rpx;
+  border-radius: 8rpx;
+  background: #F2F7F3;
+  color: var(--panpan-muted);
+  font-size: 21rpx;
   transition: transform var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out);
 }
 
-.chip.on { border-color: #C5D6EE; background: var(--primary-soft); color: var(--primary-strong); font-weight: 680; }
-.search-row { display: flex; gap: 12rpx; }
-.search-input { flex: 1; height: 82rpx; box-sizing: border-box; padding: 0 18rpx; border: 1rpx solid #D6E2F1; border-radius: var(--r-sm); background: var(--surface-muted); color: var(--ink); font-size: 24rpx; }
-.search-btn { width: 128rpx; min-height: 82rpx; margin: 0; border-radius: var(--r-sm); background: var(--primary-strong); color: #FFFFFF; font-size: 24rpx; font-weight: 680; transition: transform var(--motion-fast) var(--ease-out); }
+.chip.on { border-color: rgba(32, 180, 134, .28); background: #E7F8F1; color: var(--panpan-green-strong); font-weight: 700; }
+.search-row { display: flex; gap: 10rpx; }
+.search-input { flex: 1; height: 78rpx; box-sizing: border-box; padding: 0 16rpx; border: 1rpx solid #CFE6D8; border-radius: 10rpx; background: #F8FCF9; color: var(--panpan-ink); font-size: 23rpx; }
+.search-btn { width: 118rpx; min-height: 78rpx; display: flex; align-items: center; justify-content: center; gap: 5rpx; margin: 0; border-radius: 10rpx; background: var(--panpan-green-strong); color: #FFFFFF; font-size: 23rpx; font-weight: 700; transition: transform var(--motion-fast) var(--ease-out); }
 
 .teacher-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18rpx;
-  margin-bottom: 16rpx;
-  padding: 22rpx 24rpx;
-  border: 1rpx solid #E8D28A;
-  border-radius: var(--r-sm);
-  background: var(--warning-soft);
+  gap: 16rpx;
+  margin-bottom: 14rpx;
+  padding: 17rpx 20rpx;
+  border: 1rpx solid rgba(32, 180, 134, .45);
+  border-left: 5rpx solid var(--panpan-sprout);
+  border-radius: 10rpx;
+  background: #E7F8F1;
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
 .teacher-summary:active { transform: scale(var(--tap-scale)); }
+.summary-copy { flex: 1; min-width: 0; }
 .summary-title,
-.panel-title { display: block; color: var(--ink); font-size: 27rpx; font-weight: 750; }
-.summary-desc { display: block; margin-top: 4rpx; color: var(--warning); font-size: 21rpx; line-height: 1.5; }
-.summary-toggle { flex: none; color: var(--primary-strong); font-size: 22rpx; font-weight: 700; }
-.activity-panel { animation: exam-panel-enter var(--motion-slow) var(--ease-out) both; }
-.panel-title { margin-bottom: 10rpx; }
-.downloads-title { margin-top: 24rpx; }
-.activity-row { min-height: 92rpx; display: flex; align-items: center; gap: 12rpx; padding: 15rpx 0; border-bottom: 1rpx solid var(--hairline); }
+.panel-title { display: block; color: var(--panpan-ink); font-size: 26rpx; font-weight: 750; }
+.summary-title { display: flex; align-items: center; gap: 7rpx; }
+.summary-desc { display: block; margin-top: 4rpx; color: #15946D; font-size: 20rpx; line-height: 1.48; }
+.summary-toggle { flex: none; color: var(--panpan-green-strong); font-size: 21rpx; font-weight: 700; }
+.activity-panel { border-top: 5rpx solid var(--panpan-leaf); animation: exam-panel-enter var(--motion-slow) var(--ease-out) both; }
+.panel-title { margin-bottom: 9rpx; }
+.downloads-title { margin-top: 20rpx; }
+.activity-row { min-height: 78rpx; display: flex; align-items: center; gap: 10rpx; padding: 11rpx 0; border-bottom: 1rpx solid #E0EEE5; }
 .activity-copy { flex: 1; min-width: 0; }
-.activity-name { display: block; color: var(--ink); font-size: 23rpx; font-weight: 680; line-height: 1.5; }
-.activity-meta { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 20rpx; }
-.activity-actions { display: flex; flex-direction: column; gap: 8rpx; }
+.activity-name { display: block; color: var(--panpan-ink); font-size: 22rpx; font-weight: 680; line-height: 1.48; }
+.activity-meta { display: block; margin-top: 3rpx; color: var(--panpan-muted); font-size: 19rpx; }
+.activity-actions { display: flex; flex-direction: column; gap: 7rpx; }
 
 .mini-btn {
-  min-height: 62rpx;
+  min-height: 56rpx;
   flex: none;
-  max-width: 220rpx;
+  max-width: 210rpx;
   margin: 0;
-  padding: 7rpx 14rpx;
-  border-radius: var(--r-xs);
-  background: var(--primary-strong);
+  padding: 5rpx 12rpx;
+  border-radius: 8rpx;
+  background: var(--panpan-green-strong);
   color: #FFFFFF;
-  font-size: 20rpx;
+  font-size: 19rpx;
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
-.mini-btn.secondary { border: 1rpx solid #BFD0EC; background: var(--surface); color: var(--primary-strong); }
-.download-log { min-height: 60rpx; display: flex; justify-content: space-between; gap: 18rpx; padding: 12rpx 0; border-bottom: 1rpx solid var(--hairline); color: var(--text-muted); font-size: 20rpx; }
-.download-log text:first-child { flex: 1; color: var(--ink); }
+.mini-btn.secondary { border: 1rpx solid rgba(32, 180, 134, .28); background: #E7F8F1; color: #15946D; }
+.download-log { min-height: 56rpx; display: flex; justify-content: space-between; gap: 16rpx; padding: 10rpx 0; border-bottom: 1rpx solid #E0EEE5; color: var(--panpan-muted); font-size: 19rpx; }
+.download-log text:first-child { flex: 1; color: var(--panpan-ink); }
 
 .paper-card {
-  position: relative;
-  overflow: hidden;
-  margin-bottom: 16rpx;
-  padding: 25rpx;
-  border: 1rpx solid var(--border);
-  border-left: 6rpx solid var(--primary);
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 13rpx;
+  padding: 21rpx 22rpx;
+  border: 1rpx solid #CFE6D8;
+  border-left: 6rpx solid var(--panpan-green);
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
   animation: exam-card-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.paper-tags { display: flex; flex-wrap: wrap; gap: 8rpx; }
-.paper-tags text { padding: 5rpx 11rpx; border-radius: var(--r-xs); background: var(--primary-soft); color: var(--primary-strong); font-size: 19rpx; font-weight: 700; }
-.paper-tags text:last-child { background: var(--success-soft); color: var(--success); }
-.paper-title { display: block; margin-top: 13rpx; color: var(--ink); font-size: 28rpx; font-weight: 730; line-height: 1.5; }
-.paper-meta { display: block; margin-top: 6rpx; color: var(--text-muted); font-size: 21rpx; line-height: 1.5; }
-.paper-actions { display: flex; gap: 12rpx; margin-top: 20rpx; }
+.paper-tags { display: flex; flex-wrap: wrap; gap: 7rpx; }
+.paper-tags text { padding: 5rpx 10rpx; border-radius: 7rpx; background: #E7F8F1; color: #15946D; font-size: 18rpx; font-weight: 700; }
+.paper-tags text:nth-child(2) { background: #E7F8F1; color: #15946D; }
+.paper-tags text:last-child { background: #E7F8F1; color: var(--panpan-green-strong); }
+.paper-title { display: flex; align-items: flex-start; gap: 8rpx; margin-top: 11rpx; color: var(--panpan-ink); font-size: 27rpx; font-weight: 730; line-height: 1.48; }
+.paper-title text { flex: 1; min-width: 0; }
+.paper-meta { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 20rpx; line-height: 1.48; }
+.paper-actions { display: flex; gap: 10rpx; margin-top: 16rpx; }
 
 .paper-actions button {
-  min-height: 82rpx;
+  min-height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
   flex: 1;
   margin: 0;
-  border-radius: var(--r-sm);
-  font-size: 23rpx;
+  border-radius: 10rpx;
+  font-size: 22rpx;
   font-weight: 700;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
-.paper-primary { background: var(--primary-strong); color: #FFFFFF; }
-.paper-secondary { border: 1rpx solid #BFD0EC; background: var(--primary-soft); color: var(--primary-strong); }
-.paper-secondary.done { border-color: var(--hairline); background: var(--surface-muted); color: var(--text-muted); }
-.paper-secondary.ready { border-color: #CBEADF; background: var(--success-soft); color: var(--success); }
-.load-more { min-height: 88rpx; margin: 22rpx 0; border: 1rpx solid #BFD0EC; border-radius: var(--r-sm); background: var(--surface); color: var(--primary-strong); font-size: 24rpx; font-weight: 680; transition: transform var(--motion-fast) var(--ease-out); }
-.privacy-note { padding: 24rpx 12rpx; color: var(--text-muted); font-size: 20rpx; line-height: 1.6; text-align: center; }
+.paper-primary { background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 7rpx 14rpx rgba(21, 148, 109, .17); }
+.paper-secondary { border: 1rpx solid rgba(32, 180, 134, .28); background: #E7F8F1; color: #15946D; }
+.paper-secondary.done { border-color: #D4E9DC; background: #F2F7F3; color: var(--panpan-muted); }
+.paper-secondary.ready { border-color: rgba(32, 180, 134, .28); background: #E7F8F1; color: var(--panpan-green-strong); }
+.load-more { min-height: 82rpx; display: flex; align-items: center; justify-content: center; gap: 6rpx; margin: 18rpx 0; border: 1rpx solid #CFE6D8; border-radius: 10rpx; background: #FFFFFF; color: var(--panpan-green-strong); font-size: 23rpx; font-weight: 700; transition: transform var(--motion-fast) var(--ease-out); }
+.privacy-note { padding: 20rpx 10rpx; color: var(--panpan-muted); font-size: 19rpx; line-height: 1.55; text-align: center; }
 
 @keyframes exam-enter {
   from { opacity: 0; transform: translateY(-10rpx); }

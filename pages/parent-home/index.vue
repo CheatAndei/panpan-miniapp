@@ -4,6 +4,7 @@
   <view v-else-if="error && !child" class="state-card"><pp-state type="error" title="暂时无法加载" :description="error" action-text="重新加载" @action="loadData" /></view>
   <!-- 孩子卡片 -->
   <view class="hero hero-navy" v-if="child">
+    <view class="hero-mark" aria-hidden="true"><pp-icon name="home" :size="34" motion="bob" decorative /></view>
     <view class="greeting">{{ greeting }}，{{ child.name }}家长</view>
     <pp-avatar :name="child.name" :size="128" class="avatar" />
     <text class="child-name">{{ child.name }}</text>
@@ -13,17 +14,17 @@
   <!-- 签到 -->
   <view class="card" v-if="todayCheckin">
     <view :class="['checkin-badge', checkinBadgeClass(todayCheckin)]">
-      <view :class="['i-dot',todayCheckin.checkedIn?'green':'amber']"></view>
+      <pp-icon :name="todayCheckin.checkedIn ? 'check' : 'calendar'" :size="27" :motion="todayCheckin.checkedIn ? 'pop' : 'breathe'" decorative />
       {{ checkinText(todayCheckin) }}
     </view>
     <view v-if="todayCheckin.checkOutNote" class="checkin-note">{{ todayCheckin.checkOutNote }}</view>
-    <button class="notify-btn" @tap="requestSubscribe">开启全部学习提醒</button>
+    <button class="notify-btn" @tap="requestSubscribe"><pp-icon name="bell" :size="27" motion="ring" decorative />开启全部学习提醒</button>
   </view>
 
   <!-- 学习小组详情入口 -->
   <view class="card" @tap="nav('/pages/parent-schedule/index')">
     <view class="card-head">
-      <text class="card-title">学习小组详情</text>
+      <view class="card-title-group"><pp-icon name="calendar" :size="28" motion="pop" decorative /><text class="card-title">学习小组详情</text></view>
       <text class="card-arrow">查看完整课表</text>
     </view>
     <view v-if="schedules.length===0" class="empty-sm">暂无学习安排</view>
@@ -37,7 +38,7 @@
   <!-- 最新反馈 -->
   <view class="card" @tap="nav('/pages/parent-feedback/index')" v-if="feedback">
     <view class="card-head">
-      <text class="card-title">最新反馈</text>
+      <view class="card-title-group"><pp-icon name="message" :size="28" motion="ring" decorative /><text class="card-title">最新反馈</text></view>
       <text class="card-arrow">查看全部</text>
     </view>
     <text class="fb-date">{{ feedback.class_date }}</text>
@@ -48,18 +49,18 @@
       <view v-if="fbImages.length>4" class="img-more">+{{ fbImages.length-4 }}</view>
     </view>
     <text v-if="feedback.homework" class="fb-hw">作业：{{ feedback.homework }}</text>
-    <button v-if="feedback.notes_pdf_url" class="pdf-btn" @tap.stop="openPdf(feedback.notes_pdf_url)">打开学习笔记 PDF</button>
+    <button v-if="feedback.notes_pdf_url" class="pdf-btn" @tap.stop="openPdf(feedback.notes_pdf_url)"><pp-icon name="book" :size="27" decorative />打开学习笔记 PDF</button>
   </view>
 
   <view class="card" v-else>
-    <view class="card-title">最新反馈</view>
+    <view class="card-title-group"><pp-icon name="message" :size="28" decorative /><view class="card-title">最新反馈</view></view>
     <view class="empty-sm">暂无反馈</view>
   </view>
 
   <!-- 老师印象入口 -->
   <view class="card" @tap="nav('/pages/mine/index')">
     <view class="card-head">
-      <text class="card-title">在老师印象中的孩子</text>
+      <view class="card-title-group"><pp-icon name="target" :size="28" motion="shine" decorative /><text class="card-title">在老师印象中的孩子</text></view>
       <text class="card-arrow">查看详情</text>
     </view>
     <view v-if="profile" class="tags">
@@ -69,7 +70,7 @@
   </view>
 
   <view class="card">
-    <button class="btn-outline" @tap="nav('/pages/parent-leave/index')">请假申请</button>
+    <button class="btn-outline" @tap="nav('/pages/parent-leave/index')"><pp-icon name="report" :size="27" decorative />请假申请</button>
   </view>
 
   <view class="footer">番番记录 · 熟人老师共用版<br/>桂ICP备2026013218号-2</view>
@@ -223,8 +224,23 @@ export default {
   width: 54rpx;
   height: 8rpx;
   border-radius: 8rpx;
-  background: var(--gold);
-  box-shadow: 0 17rpx 0 rgba(82, 124, 201, .18);
+  background: var(--coral);
+  box-shadow: 0 17rpx 0 rgba(32, 180, 134, .16);
+}
+
+.hero-mark {
+  position: absolute;
+  top: 28rpx;
+  right: 30rpx;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #BCE8D9;
+  border-radius: 14rpx;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
 }
 
 .greeting { margin-bottom: 20rpx; color: var(--primary-strong); font-size: 30rpx; font-weight: 700; }
@@ -253,6 +269,7 @@ export default {
 .checkin-note { margin-top: 12rpx; color: var(--danger); font-size: 24rpx; line-height: 1.5; }
 
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-bottom: 14rpx; }
+.card-title-group { display: flex; align-items: center; gap: 10rpx; color: var(--primary-strong); }
 .card-title { color: var(--ink); font-size: 29rpx; font-weight: 720; }
 .card-arrow { flex: none; color: var(--primary-strong); font-size: 23rpx; font-weight: 650; }
 
@@ -294,15 +311,20 @@ export default {
 .btn-outline {
   width: 100%;
   min-height: 88rpx;
+  padding-block: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
   border-radius: var(--r-sm);
   font-size: 26rpx;
   font-weight: 650;
   transition: transform var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
 }
 
-.notify-btn { margin-top: 16rpx; border: 1rpx solid #BFD0EC; background: var(--primary-soft); color: var(--primary-strong); }
+.notify-btn { margin-top: 16rpx; border: 1rpx solid #FFD0CB; background: var(--coral-soft); color: var(--danger); }
 .pdf-btn { margin-top: 14rpx; border: none; background: var(--primary-strong); color: #FFFFFF; }
-.btn-outline { border: 1rpx solid #BFD0EC; background: var(--surface); color: var(--primary-strong); font-size: 28rpx; }
+.btn-outline { border: 1rpx solid #FFD0CB; background: var(--coral-soft); color: var(--danger); font-size: 28rpx; }
 .notify-btn:active,
 .pdf-btn:active,
 .btn-outline:active { transform: scale(var(--tap-scale)); }

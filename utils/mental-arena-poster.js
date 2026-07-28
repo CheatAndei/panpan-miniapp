@@ -3,6 +3,22 @@ import { isAlbumPermissionError, saveImageToAlbum } from './photo-album';
 export const MENTAL_POSTER_WIDTH = 750;
 export const MENTAL_POSTER_HEIGHT = 1000;
 
+const MENTAL_POSTER_THEME = Object.freeze({
+  page: '#F8FCF9',
+  paper: '#FFFFFF',
+  ink: '#26352F',
+  text: '#5A6A62',
+  muted: '#7A8A82',
+  green: '#20B486',
+  greenDeep: '#15946D',
+  greenSoft: '#E7F8F1',
+  greenPale: '#F1FBF7',
+  greenLine: '#BFE8D8',
+  coral: '#FF7468',
+  coralDeep: '#D94B45',
+  coralSoft: '#FFF0EE',
+});
+
 export function mentalArenaAward(accuracy) {
   const value = Number(accuracy || 0);
   if (value >= 100) return { kind: 'crown', symbol: '👑', label: '满分皇冠', headline: '二十题，全数拿下' };
@@ -141,93 +157,96 @@ export async function renderMentalArenaPoster({ page, result, codePath, canvasId
   const award = mentalArenaAward(accuracy);
   const ctx = uni.createCanvasContext(canvasId, page);
 
-  const background = ctx.createLinearGradient(0, 0, 750, 1000);
-  background.addColorStop(0, '#102D27');
-  background.addColorStop(0.58, '#0B211D');
-  background.addColorStop(1, '#071714');
-  ctx.setFillStyle(background);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.page);
   ctx.fillRect(0, 0, 750, 1000);
 
-  ctx.setFillStyle('rgba(236,201,104,0.07)');
-  for (let row = 0; row < 12; row += 1) {
-    for (let col = 0; col < 9; col += 1) {
-      if ((row + col) % 3 === 0) ctx.fillRect(38 + col * 86, 34 + row * 83, 3, 3);
-    }
+  ctx.setFillStyle(MENTAL_POSTER_THEME.green);
+  ctx.fillRect(0, 0, 750, 430);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.coral);
+  ctx.fillRect(0, 0, 16, 430);
+  ctx.fillRect(52, 50, 78, 6);
+  ctx.setFillStyle('rgba(255,255,255,0.14)');
+  for (let y = 118; y < 430; y += 62) {
+    ctx.fillRect(52, y, 646, 1);
   }
-  ctx.setFillStyle('#E7C365');
-  ctx.fillRect(0, 0, 14, 1000);
-  ctx.fillRect(52, 58, 76, 6);
 
   ctx.setTextAlign('left');
-  ctx.setFillStyle('#9FCBC0');
+  ctx.setFillStyle(MENTAL_POSTER_THEME.greenPale);
   ctx.setFontSize(19);
   ctx.fillText('PANPAN · MENTAL ARENA', 52, 100);
-  ctx.setFillStyle('#F6F1E4');
-  ctx.setFontSize(34);
-  ctx.fillText(result.display_name || '同学', 52, 155);
-  ctx.setFillStyle('#E7C365');
+  ctx.setFillStyle(MENTAL_POSTER_THEME.paper);
+  ctx.setFontSize(38);
+  ctx.fillText(result.display_name || '同学', 52, 158);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.greenPale);
   ctx.setFontSize(22);
-  ctx.fillText(`${result.battle_label || '口算挑战'} · ${award.label}`, 52, 194);
+  ctx.fillText(`${result.battle_label || '口算挑战'} · ${award.label}`, 52, 198);
 
-  ctx.setFillStyle('rgba(231,195,101,0.12)');
-  ctx.beginPath();
-  ctx.arc(590, 176, 126, 0, Math.PI * 2);
-  ctx.fill();
-  drawAward(ctx, award.kind, 512, 116, 1, '#E7C365');
+  roundRect(ctx, 516, 58, 182, 174, 26, MENTAL_POSTER_THEME.paper);
+  drawAward(ctx, award.kind, 545, 88, .78, MENTAL_POSTER_THEME.coral);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.coralDeep);
+  ctx.setTextAlign('center');
+  ctx.setFontSize(18);
+  ctx.fillText(award.label, 607, 210);
+  ctx.setTextAlign('left');
 
-  ctx.setFillStyle('#9FCBC0');
+  ctx.setFillStyle(MENTAL_POSTER_THEME.greenPale);
   ctx.setFontSize(22);
-  ctx.fillText('本局得分', 52, 286);
-  ctx.setFillStyle('#FFF8E8');
-  ctx.setFontSize(154);
-  ctx.fillText(String(result.score || 0), 42, 424);
-  ctx.setFillStyle('#E7C365');
-  ctx.setFontSize(31);
-  ctx.fillText(award.headline, 52, 472);
+  ctx.fillText('本局得分', 52, 270);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.paper);
+  ctx.setFontSize(124);
+  ctx.fillText(String(result.score || 0), 44, 382);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.paper);
+  ctx.setFontSize(29);
+  ctx.fillText(award.headline, 52, 414);
 
-  ctx.setStrokeStyle('rgba(159,203,192,0.22)');
-  ctx.setLineWidth(2);
-  ctx.beginPath();
-  ctx.moveTo(52, 520);
-  ctx.lineTo(698, 520);
-  ctx.stroke();
+  roundRect(ctx, 52, 458, 646, 176, 24, MENTAL_POSTER_THEME.paper);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.coral);
+  ctx.fillRect(52, 458, 646, 7);
   const metrics = [
     ['正确率', `${accuracy}%`],
     ['答对', `${correct}/${total}`],
     ['用时', `${Number(result.elapsed_seconds || 0)}秒`],
   ];
   metrics.forEach((metric, index) => {
-    const x = 52 + index * 218;
-    ctx.setFillStyle('#82AAA0');
+    const x = 82 + index * 202;
+    if (index > 0) {
+      ctx.setFillStyle(MENTAL_POSTER_THEME.greenLine);
+      ctx.fillRect(x - 24, 496, 1, 100);
+    }
+    ctx.setFillStyle(MENTAL_POSTER_THEME.muted);
     ctx.setFontSize(19);
-    ctx.fillText(metric[0], x, 568);
-    ctx.setFillStyle('#F7F1E1');
+    ctx.fillText(metric[0], x, 516);
+    ctx.setFillStyle(MENTAL_POSTER_THEME.ink);
     ctx.setFontSize(38);
-    ctx.fillText(metric[1], x, 618);
+    ctx.fillText(metric[1], x, 574);
   });
 
-  roundRect(ctx, 52, 670, 646, 244, 28, '#F2ECDD');
-  roundRect(ctx, 76, 694, 174, 174, 21, '#FFFFFF');
-  ctx.drawImage(code, 88, 706, 150, 150);
-  ctx.setFillStyle('#173B34');
+  roundRect(ctx, 52, 666, 646, 252, 24, MENTAL_POSTER_THEME.greenSoft);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.green);
+  ctx.fillRect(52, 666, 8, 252);
+  roundRect(ctx, 82, 700, 174, 174, 18, MENTAL_POSTER_THEME.paper);
+  ctx.drawImage(code, 94, 712, 150, 150);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.ink);
   ctx.setFontSize(31);
-  ctx.fillText('扫码来挑战', 286, 740);
-  ctx.setFillStyle('#526B64');
+  ctx.fillText('扫码来挑战', 294, 722);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.text);
   ctx.setFontSize(21);
-  ctx.fillText('20 道题，比正确，也比速度', 286, 784);
+  ctx.fillText('20 道题，比正确，也比速度', 294, 766);
   const rankText = result.rank
     ? `历史榜第 ${result.rank} 名${result.participant_count ? ` · 共 ${result.participant_count} 人` : ''}`
     : '完成一局，留下真实学习记录';
-  ctx.setFillStyle('#173B34');
+  ctx.setFillStyle(MENTAL_POSTER_THEME.greenDeep);
   ctx.setFontSize(22);
-  ctx.fillText(rankText, 286, 830);
-  ctx.setFillStyle('#8A806D');
+  ctx.fillText(rankText, 294, 814);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.muted);
   ctx.setFontSize(18);
-  ctx.fillText(`${resultDate(result.completed_at)} · 数据来自真实挑战`, 286, 870);
+  ctx.fillText(`${resultDate(result.completed_at)} · 数据来自真实挑战`, 294, 858);
 
-  ctx.setFillStyle('#75978F');
+  ctx.setFillStyle(MENTAL_POSTER_THEME.coral);
+  ctx.fillRect(52, 950, 94, 6);
+  ctx.setFillStyle(MENTAL_POSTER_THEME.text);
   ctx.setFontSize(18);
-  ctx.fillText('番番记录 · 公开海报不含全名、学校和班级', 52, 962);
+  ctx.fillText('番番记录 · 公开海报不含全名、学校和班级', 52, 982);
   await new Promise((resolve) => ctx.draw(false, () => setTimeout(resolve, 100)));
   return exportCanvas(canvasId, page);
 }

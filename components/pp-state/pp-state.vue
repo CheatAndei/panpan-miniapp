@@ -41,16 +41,16 @@ const iconName = computed(() => ({
   position: relative;
   box-sizing: border-box;
   width: 100%;
-  min-height: 300rpx;
   overflow: hidden;
-  padding: 54rpx 34rpx 48rpx;
+  padding: 30rpx 26rpx 28rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  border: 1rpx solid var(--border, #DDE7F2);
-  border-radius: 22rpx;
+  justify-content: center;
+  border: 1rpx solid var(--border, #D9E7DF);
+  border-radius: 16rpx;
   background: var(--surface, #FFFFFF);
-  box-shadow: 0 8rpx 24rpx rgba(49, 94, 168, .06);
+  box-shadow: 0 8rpx 22rpx rgba(36, 48, 41, .055);
   text-align: center;
 }
 
@@ -60,23 +60,23 @@ const iconName = computed(() => ({
   left: 0;
   width: 100%;
   height: 7rpx;
-  background: var(--primary, #527CC9);
+  background: var(--primary, #20B486);
 }
 
 .pp-state__mark {
-  width: 94rpx;
-  height: 94rpx;
-  margin-bottom: 22rpx;
+  width: 68rpx;
+  height: 68rpx;
+  margin-bottom: 14rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #D4E3FA;
-  border-radius: 24rpx;
-  background: var(--primary-soft, #EAF2FF);
+  border: 1rpx solid #BCE8D9;
+  border-radius: 14rpx;
+  background: var(--primary-soft, #E5F8F1);
 }
 
 .pp-state__title {
-  color: var(--ink, #24324A);
+  color: var(--ink, #243029);
   font-size: 29rpx;
   font-weight: 720;
   line-height: 1.45;
@@ -85,20 +85,20 @@ const iconName = computed(() => ({
 .pp-state__description {
   max-width: 500rpx;
   margin-top: 9rpx;
-  color: var(--text-secondary, #5C6C84);
+  color: var(--text-secondary, #53625B);
   font-size: 25rpx;
   line-height: 1.65;
 }
 
 .pp-state__action {
-  min-width: 232rpx;
-  min-height: 112rpx;
-  margin-top: 26rpx;
-  padding: 14rpx 32rpx;
-  border: 1rpx solid var(--primary-strong, #315EA8);
+  min-width: 208rpx;
+  min-height: 80rpx;
+  margin-top: 22rpx;
+  padding: 0 28rpx;
+  border: 1rpx solid var(--primary, #20B486);
   border-radius: 14rpx;
-  background: var(--primary-strong, #315EA8);
-  color: #FFFFFF;
+  background: var(--primary, #20B486);
+  color: #083F31;
   font-size: 26rpx;
   font-weight: 680;
   line-height: 1.4;
@@ -115,25 +115,25 @@ const iconName = computed(() => ({
 }
 
 .pp-state__action:focus-visible {
-  outline: 4rpx solid rgba(82, 124, 201, .28);
+  outline: 4rpx solid rgba(32, 180, 134, .24);
   outline-offset: 3rpx;
 }
 
 .pp-state__spinner {
   width: 42rpx;
   height: 42rpx;
-  border: 4rpx solid rgba(82, 124, 201, .18);
-  border-top-color: var(--primary-strong, #315EA8);
+  border: 4rpx solid rgba(32, 180, 134, .18);
+  border-top-color: var(--primary-strong, #15946D);
   border-radius: 50%;
   animation: pp-state-spin .75s linear infinite;
 }
 
 .pp-state--loading {
-  background: #F8FBFF;
+  background: #F7FCF9;
 }
 
 .pp-state--loading .pp-state__accent {
-  background: var(--primary-strong, #315EA8);
+  background: var(--primary, #20B486);
 }
 
 .pp-state--error {
@@ -142,7 +142,7 @@ const iconName = computed(() => ({
 }
 
 .pp-state--error .pp-state__accent {
-  background: var(--coral, #E98577);
+  background: var(--coral, #FF7468);
 }
 
 .pp-state--error .pp-state__mark {
@@ -156,17 +156,17 @@ const iconName = computed(() => ({
 }
 
 .pp-state--success {
-  border-color: #CFEAE3;
-  background: #F8FCFB;
+  border-color: #BCE8D9;
+  background: #F7FCF9;
 }
 
 .pp-state--success .pp-state__accent {
-  background: var(--accent, #65BFA8);
+  background: var(--primary, #20B486);
 }
 
 .pp-state--success .pp-state__mark {
-  border-color: #CBEADF;
-  background: var(--accent-soft, #E9F8F3);
+  border-color: #BCE8D9;
+  background: var(--primary-soft, #E5F8F1);
 }
 
 @keyframes pp-state-spin {

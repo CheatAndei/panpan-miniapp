@@ -22,13 +22,18 @@ test('手机批改台使用上下布局、横向滑选题卡并用单图原生�
   assert.match(review, /:scale-min="1"/);
   assert.match(review, /:scale-max="4"/);
   assert.match(review, /direction="all"/);
-  assert.match(review, /:inertia="false"/);
-  assert.match(review, /:animation="false"/);
+  assert.match(review, /:inertia="true"/);
+  assert.match(review, /:animation="true"/);
+  assert.match(review, /:out-of-bounds="true"/);
+  assert.match(review, /:x="activePhotoGesture\.x"/);
+  assert.match(review, /:y="activePhotoGesture\.y"/);
+  assert.match(review, /:scale-value="activePhotoGesture\.scale"/);
+  assert.match(review, /@change="onPhotoMove"/);
+  assert.match(review, /@scale="onPhotoScale"/);
   assert.match(review, /:key="activePhotoGestureKey"/);
   assert.match(review, /双指缩放 1×–4×/);
   assert.doesNotMatch(review, /<swiper|<swiper-item/);
-  assert.doesNotMatch(review, /@change="changePhotoPosition|@scale="changePhotoScale/);
-  assert.doesNotMatch(review, /_photoScales|_photoOffsets/);
+  assert.match(review, /_photoGestures/);
   assert.match(review, /class="photo-thumbs"/);
   assert.match(review, /点缩略图切换/);
   assert.match(review, /changePhotoBy/);
@@ -66,10 +71,10 @@ test('已批改打卡可从计划历史重新进入并查看或补存私密海�
   assert.match(review, /action-text="查看已批改记录"/);
 });
 
-test('批改台默认展示最近四份并允许展开、横滑、修改和重做海报', () => {
+test('批改台默认展示最近三份并允许展开、横滑、修改和重做海报', () => {
   assert.match(review, /\/practice\/reviews\/recent\?limit=20/);
-  assert.match(review, /recentReviews\.value\.slice\(0,\s*4\)/);
-  assert.match(review, /默认展示最近 4 份，可展开横向查看/);
+  assert.match(review, /recentReviews\.value\.slice\(0,\s*3\)/);
+  assert.match(review, /默认展示最近 3 份，可展开横向查看/);
   assert.match(review, /class="recent-scroll"[\s\S]*?scroll-x/u);
   assert.match(review, /查看 \/ 修改 \/ 海报/);
   assert.match(review, /beginReviewEdit/);
@@ -103,8 +108,10 @@ test('订正批改只展示上一轮错题并把轮次带入保存与海报', ()
   assert.match(review, /correctCount:\s*submission\.items\.filter/);
 });
 
-test('保存区明确私密用途并支持相册拒权后前往设置恢复', () => {
-  assert.match(review, /含姓名和作业照片，仅供私下发给家长/);
+test('保存区移除刻意隐私说明并支持相册拒权后前往设置恢复', () => {
+  assert.match(review, /鼓励文案会随机更新，预览满意后保存/);
+  assert.doesNotMatch(review, /含姓名和作业照片，仅供私下发给家长/);
+  assert.doesNotMatch(review, /私密批改记录/);
   assert.match(review, /isAlbumPermissionError/);
   assert.match(review, /需要相册权限/);
   assert.match(review, /uni\.openSetting/);
@@ -112,8 +119,24 @@ test('保存区明确私密用途并支持相册拒权后前往设置恢复', ()
   assert.match(review, /返回后会自动继续保存/);
   assert.match(review, /await savePracticeReviewPoster\(submission\._posterPath\)/);
   assert.doesNotMatch(review, /open-type="share"|二维码/);
-  assert.match(review, /min-height:\s*112rpx/);
+  assert.doesNotMatch(
+    review,
+    /\.queue-controls button,\s*\.photo-nav button,\s*\.footer-actions button\s*\{[\s\S]*?min-height:\s*112rpx/u,
+  );
+  assert.match(review, /\.photo-actions button\s*\{[\s\S]*?min-height:\s*88rpx/u);
   assert.match(review, /@media \(prefers-reduced-motion:\s*reduce\)/);
+});
+
+test('批改台和海报不再使用第一版深蓝主视觉', () => {
+  const poster = read('utils/practice-review-poster.js');
+  const visibleReviewSurface = `${review}\n${poster}`;
+
+  assert.match(visibleReviewSurface, /#20B486/);
+  assert.match(visibleReviewSurface, /#15946D/);
+  assert.match(visibleReviewSurface, /#FF7468/);
+  assert.match(visibleReviewSurface, /#F8FCF9/);
+  assert.match(visibleReviewSurface, /#26352F/);
+  assert.doesNotMatch(visibleReviewSurface, /#3268D6|#1E4EA8|#315EA8|#527CC9|#24324A|#5B9DF7|#337BD8|#FFC94A|#B27600/iu);
 });
 
 test('批改和私密海报异步处理中锁住学生上下文并提供持久错误重试', () => {
