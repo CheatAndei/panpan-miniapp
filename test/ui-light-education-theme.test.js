@@ -13,32 +13,32 @@ const listVueFiles = (directory) => fs.readdirSync(path.join(root, directory), {
     return entry.isFile() && entry.name.endsWith('.vue') ? [relative] : [];
   });
 
-test('global theme uses the coherent green-coral Panpan learning palette', () => {
+test('global theme uses the restored blue-mint Panpan learning palette', () => {
   const app = read('App.vue');
   const main = read('main.js');
   const pages = read('pages.json');
   const ui = read('utils/ui.js');
 
   for (const token of [
-    '--primary: #20B486',
-    '--primary-strong: #15946D',
-    '--accent: #20B486',
-    '--gold: #FF7468',
-    '--coral: #FF7468',
-    '--bg: #F8FCF9',
+    '--primary: #527CC9',
+    '--primary-strong: #315EA8',
+    '--accent: #65BFA8',
+    '--gold: #F4C75B',
+    '--coral: #E98577',
+    '--bg: #F6FAFF',
     '--page-bg: var(--bg)',
     '--motion-fast: 120ms',
   ]) {
     assert.match(app, new RegExp(escapeRegExp(token)));
   }
 
-  assert.doesNotMatch(app, /--primary:\s*#(?:183A36|3268D6|1E4EA8)/i);
-  assert.match(main, /primary:\s*'#20B486'/);
-  assert.match(main, /accent:\s*'#FF7468'/);
-  assert.match(pages, /"selectedColor":\s*"#15946D"/);
-  assert.match(pages, /"backgroundColor":\s*"#F8FCF9"/);
-  assert.doesNotMatch(app + main, /#(?:5B9DF7|337BD8|FFC94A|B27600|FFF4C2|EAF3FF)/i);
-  assert.match(ui, /confirmColor:\s*danger\s*\?\s*'#D94B45'\s*:\s*'#15946D'/);
+  assert.doesNotMatch(app, /--primary:\s*#(?:183A36|20B486|15946D)/i);
+  assert.match(main, /primary:\s*'#527CC9'/);
+  assert.match(main, /accent:\s*'#65BFA8'/);
+  assert.match(pages, /"selectedColor":\s*"#315EA8"/);
+  assert.match(pages, /"backgroundColor":\s*"#F6FAFF"/);
+  assert.doesNotMatch(app + main, /#(?:20B486|15946D|FF7468|F8FCF9|26352F)/i);
+  assert.match(ui, /confirmColor:\s*danger\s*\?\s*'#D66D62'\s*:\s*'#315EA8'/);
 });
 
 test('global box model prevents native button whitespace and width overflow regressions', () => {
@@ -87,9 +87,9 @@ test('education icons stay local and state feedback respects reduced motion', ()
     .map((file) => fs.readFileSync(path.join(svgIconDir, file), 'utf8'))
     .join('\n');
 
-  assert.doesNotMatch(svgIcons, /#(?:527CC9|315EA8|3268D6|1E4EA8|337BD8|5B9DF7|B27600|FFC94A|FFF4C2)/i);
-  assert.match(svgIcons, /#15946D/i);
-  assert.match(svgIcons, /#D94B45/i);
+  assert.match(svgIcons, /#315EA8/i);
+  assert.match(svgIcons, /#D66D62/i);
+  assert.doesNotMatch(svgIcons, /#(?:20B486|15946D|FF7468|F8FCF9)/i);
 
   const icon = read('components/pp-icon/pp-icon.vue');
   const tabIconBuild = read('scripts/build-tab-icons.js');
@@ -99,17 +99,17 @@ test('education icons stay local and state feedback respects reduced motion', ()
   assert.match(icon, /motion:\s*\{/);
   assert.match(icon, /pp-icon--motion-(?:pop|ring|shine)/);
   assert.match(icon, /prefers-reduced-motion:\s*reduce/);
-  assert.match(tabIconBuild, /home-tab-active\.png', color: '#15946D'/);
-  assert.match(tabIconBuild, /user-tab-active\.png', color: '#15946D'/);
-  assert.doesNotMatch(tabIconBuild, /#(?:527CC9|315EA8|3268D6|1E4EA8)/i);
+  assert.match(tabIconBuild, /home-tab-active\.png', color: '#315EA8'/);
+  assert.match(tabIconBuild, /user-tab-active\.png', color: '#315EA8'/);
+  assert.doesNotMatch(tabIconBuild, /#(?:20B486|15946D|3268D6|1E4EA8)/i);
   assert.match(state, /prefers-reduced-motion:\s*reduce/);
   assert.match(state, /pp-state--error/);
   assert.match(state, /pp-state--success/);
-  assert.match(state, /var\(--primary,\s*#20B486\)/);
+  assert.match(state, /var\(--primary,\s*#527CC9\)/);
   assert.match(state, /\.pp-state__action[\s\S]*?min-height:\s*80rpx/);
   assert.match(state, /\.pp-state__action[\s\S]*?padding:\s*0 28rpx/);
   assert.doesNotMatch(state, /\.pp-state\s*\{[\s\S]*?min-height:\s*236rpx/);
-  assert.doesNotMatch(state, /#(?:527CC9|315EA8|3268D6|1E4EA8)/i);
+  assert.doesNotMatch(state, /#(?:20B486|15946D|3268D6|1E4EA8)/i);
 });
 
 test('pilot pages keep every business entry and remove the old deep green theme', () => {
@@ -138,5 +138,5 @@ test('pilot pages keep every business entry and remove the old deep green theme'
   assert.match(learning, /\.pp-state__action[\s\S]*?background:\s*#FFFFFF/);
   assert.match(learning, /\.student-challenge-page \.nav-item\s*\{[\s\S]*?min-height:\s*76rpx/);
   assert.match(learning, /\.student-challenge-page \.grade-tab\s*\{[\s\S]*?min-height:\s*76rpx/);
-  assert.doesNotMatch(learning, /rgba\(49,\s*94,\s*168/);
+  assert.doesNotMatch(learning, /rgba\(32,\s*180,\s*134/);
 });

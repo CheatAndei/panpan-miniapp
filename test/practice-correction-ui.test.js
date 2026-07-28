@@ -127,16 +127,17 @@ test('保存区移除刻意隐私说明并支持相册拒权后前往设置恢�
   assert.match(review, /@media \(prefers-reduced-motion:\s*reduce\)/);
 });
 
-test('批改台和海报不再使用第一版深蓝主视觉', () => {
+test('批改台和海报恢复浅蓝主视觉并保留珊瑚状态色', () => {
   const poster = read('utils/practice-review-poster.js');
   const visibleReviewSurface = `${review}\n${poster}`;
 
-  assert.match(visibleReviewSurface, /#20B486/);
-  assert.match(visibleReviewSurface, /#15946D/);
-  assert.match(visibleReviewSurface, /#FF7468/);
-  assert.match(visibleReviewSurface, /#F8FCF9/);
-  assert.match(visibleReviewSurface, /#26352F/);
-  assert.doesNotMatch(visibleReviewSurface, /#3268D6|#1E4EA8|#315EA8|#527CC9|#24324A|#5B9DF7|#337BD8|#FFC94A|#B27600/iu);
+  assert.match(visibleReviewSurface, /#527CC9/);
+  assert.match(visibleReviewSurface, /#315EA8/);
+  assert.match(visibleReviewSurface, /#EAF2FF/);
+  assert.match(visibleReviewSurface, /#F6FAFF/);
+  assert.match(visibleReviewSurface, /#24324A/);
+  assert.match(visibleReviewSurface, /#D66D62/);
+  assert.doesNotMatch(visibleReviewSurface, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F/iu);
 });
 
 test('批改和私密海报异步处理中锁住学生上下文并提供持久错误重试', () => {

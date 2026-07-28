@@ -181,7 +181,7 @@ export default {
 .char-img {
   margin: 6rpx auto 10rpx;
   border: 4rpx solid #FFFFFF;
-  box-shadow: 0 4rpx 12rpx rgba(38, 53, 47, .1);
+  box-shadow: 0 4rpx 12rpx rgba(36, 50, 74, .1);
 }
 .hero-title {
   display: block;
@@ -269,7 +269,7 @@ export default {
   overflow: hidden;
   height: 8rpx;
   border-radius: 4rpx;
-  background: #E6F0EA;
+  background: #E9F0F8;
 }
 .bind-fill {
   height: 100%;
@@ -284,7 +284,7 @@ export default {
 }
 .parent-chip {
   padding: 5rpx 10rpx;
-  border: 1rpx solid #B8DDCD;
+  border: 1rpx solid #BFD0EC;
   border-radius: 7rpx;
   background: var(--success-soft);
   color: var(--success);
@@ -304,7 +304,7 @@ export default {
 }
 .tag {
   padding: 6rpx 10rpx;
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   border-radius: 7rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -367,7 +367,7 @@ export default {
 .btn-ai {
   min-height: 60rpx;
   padding: 7rpx 16rpx;
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   border-radius: 8rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -386,7 +386,7 @@ export default {
   padding: 16rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--ink);
   font-size: 26rpx;
   line-height: 1.55;
@@ -436,34 +436,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E7F8F1;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --gold: #20B486;
-  --gold-soft: #E7F8F1;
-  --warning: #15946D;
-  --warning-soft: #E7F8F1;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #20B486;
-  --info-soft: #E7F8F1;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #5A6A62;
-  --page-bg: #F8FCF9;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EAF2FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EAF2FF;
+  --success: #315EA8;
+  --success-soft: #EAF2FF;
+  --gold: #527CC9;
+  --gold-soft: #EAF2FF;
+  --warning: #315EA8;
+  --warning-soft: #EAF2FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #5C6C84;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --border: #D7E7DE;
-  --hairline: #E6F0EA;
-  background-color: #F8FCF9;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx);
+  --surface-muted: #F8FBFF;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  background-color: #F6FAFF;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -481,10 +481,10 @@ export default {
   align-items: center;
   padding: 26rpx 28rpx 24rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #D7E7DE;
-  border-left: 8rpx solid #20B486;
+  border-bottom: 1rpx solid #DDE7F2;
+  border-left: 8rpx solid #527CC9;
   background: #FFFFFF !important;
-  color: #26352F;
+  color: #24324A;
   text-align: left;
 }
 .hero.hero-navy::after {
@@ -492,13 +492,13 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #20B486;
+  background: #527CC9;
 }
 .char-img {
   grid-area: avatar;
   margin: 0;
-  border-color: #E7F8F1;
-  box-shadow: 0 5rpx 14rpx rgba(21, 148, 109, .1);
+  border-color: #EAF2FF;
+  box-shadow: 0 5rpx 14rpx rgba(49, 94, 168, .1);
 }
 .dossier-kicker {
   grid-area: kicker;
@@ -507,42 +507,42 @@ export default {
   gap: 8rpx;
 }
 .eyebrow {
-  color: #15946D;
+  color: #315EA8;
 }
 .hero-title {
   grid-area: title;
-  color: #26352F;
+  color: #24324A;
 }
 .hero-sub {
   grid-area: sub;
-  color: #5A6A62;
+  color: #5C6C84;
 }
 .parent-status {
   grid-area: status;
   width: fit-content;
 }
 .parent-status.on {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .parent-status.off {
-  background: #FFF0EE;
-  color: #D94B45;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 .state-card,
 .page > .card {
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
 .page > .card:not(.bind-card) {
-  border-top: 4rpx solid #20B486;
+  border-top: 4rpx solid #527CC9;
 }
 .page > .card:last-child {
-  border-top-color: #20B486;
+  border-top-color: #527CC9;
 }
 .bind-card {
-  border-left-color: #15946D;
+  border-left-color: #315EA8;
 }
 .bind-head,
 .s-hd,
@@ -551,32 +551,32 @@ export default {
 }
 .bind-count.on,
 .parent-chip {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .bind-count.off {
-  background: #FFF0EE;
-  color: #D94B45;
+  background: #FFF0ED;
+  color: #D66D62;
 }
-.bind-meter { background: #D7E7DE; }
-.bind-fill { background: #20B486; }
+.bind-meter { background: #DDE7F2; }
+.bind-fill { background: #527CC9; }
 .tag {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .cat-head {
-  background: #F1F8F4;
+  background: #F8FBFF;
 }
 .trait-btn {
   min-height: 0;
   padding: 8rpx 12rpx;
 }
 .trait-btn.on {
-  border-color: #20B486;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #527CC9;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .btn-ai {
   height: 58rpx;
@@ -586,14 +586,14 @@ export default {
   justify-content: center;
   gap: 8rpx;
   padding: 0 16rpx;
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
   line-height: 58rpx;
 }
 .textarea {
-  border-color: #D7E7DE;
-  background: #F8FCF9;
+  border-color: #DDE7F2;
+  background: #F6FAFF;
 }
 .btn-primary {
   height: 80rpx;
@@ -603,7 +603,7 @@ export default {
   justify-content: center;
   gap: 8rpx;
   padding: 0 18rpx;
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
   line-height: 80rpx;
 }

@@ -536,15 +536,15 @@ function scheduleLabel(schedule) {
   position: relative;
   overflow: hidden;
   padding: 46rpx 30rpx 28rpx 36rpx;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 16rpx;
   background-color: #FFFFFF;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 51rpx,
-    rgba(32, 180, 134, .09) 52rpx,
-    rgba(32, 180, 134, .09) 53rpx
+    rgba(82, 124, 201, .09) 52rpx,
+    rgba(82, 124, 201, .09) 53rpx
   );
   box-shadow: var(--shadow);
   animation: parent-enter var(--motion-slow) var(--ease-out) both;
@@ -557,7 +557,7 @@ function scheduleLabel(schedule) {
   bottom: 0;
   left: 24rpx;
   width: 2rpx;
-  background: rgba(255, 116, 104, .42);
+  background: rgba(233, 133, 119, .42);
 }
 
 .hero-tab {
@@ -567,7 +567,7 @@ function scheduleLabel(schedule) {
   padding: 9rpx 17rpx 11rpx;
   border-radius: 0 0 10rpx 10rpx;
   background: var(--coral-soft);
-  color: #A9433B;
+  color: #A94F48;
   font-size: 19rpx;
   font-weight: 750;
 }
@@ -625,7 +625,7 @@ function scheduleLabel(schedule) {
   border-radius: 14rpx;
   background: #EAF9F3;
   text-align: left;
-  box-shadow: 0 10rpx 24rpx rgba(21, 148, 109, .08);
+  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .08);
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
@@ -729,7 +729,7 @@ function scheduleLabel(schedule) {
 .guest-home {
   margin-top: 20rpx;
   padding: 32rpx;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow);
@@ -776,11 +776,11 @@ function scheduleLabel(schedule) {
 .guest-primary {
   background: var(--primary-strong);
   color: #FFFFFF;
-  box-shadow: 0 8rpx 0 #BCE8D9;
+  box-shadow: 0 8rpx 0 #C9DAF0;
 }
 
 .guest-bind {
-  border: 1rpx solid #9FDCC8;
+  border: 1rpx solid #AFC5E7;
   background: #FFFFFF;
   color: var(--primary-strong);
 }
@@ -801,7 +801,7 @@ function scheduleLabel(schedule) {
   min-height: 74rpx;
   margin: 12rpx 0 0;
   padding: 0 22rpx;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 12rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -812,7 +812,7 @@ function scheduleLabel(schedule) {
 .today-learning-card {
   margin-top: 20rpx;
   overflow: hidden;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow);
@@ -866,7 +866,7 @@ function scheduleLabel(schedule) {
   justify-content: center;
   flex: none;
   padding-top: 17rpx;
-  border: 2rpx solid #8BD5BC;
+  border: 2rpx solid #AFC5E7;
   background: #FFFFFF;
   border-radius: 50%;
   box-sizing: border-box;
@@ -883,7 +883,7 @@ function scheduleLabel(schedule) {
   position: relative;
   height: 8rpx;
   overflow: hidden;
-  background: #E2F4EC;
+  background: #EDF5FF;
 }
 
 .today-progress-fill {
@@ -963,7 +963,7 @@ function scheduleLabel(schedule) {
 
 .task-position.pending {
   background: #FFF0ED;
-  color: #B84E45;
+  color: #B85D51;
 }
 
 .task-copy {
@@ -995,14 +995,14 @@ function scheduleLabel(schedule) {
 
 .task-state.completed { color: var(--primary-strong); }
 .task-state.pending_review,
-.task-state.correction_required { color: #B84E45; }
+.task-state.correction_required { color: #B85D51; }
 
 .today-footer {
   display: flex;
   justify-content: space-between;
   gap: 12rpx;
   padding: 18rpx 22rpx 20rpx;
-  background: #F7FCF9;
+  background: #F8FBFF;
   color: var(--text-muted);
   font-size: 19rpx;
 }
@@ -1082,17 +1082,17 @@ function scheduleLabel(schedule) {
 }
 
 .status-badge.out {
-  color: #B0574D;
+  color: #B85D51;
 }
 
 .status-badge.leave {
-  color: #B0574D;
+  color: #B85D51;
 }
 
 .status-note {
   display: block;
   margin-top: 6rpx;
-  color: #B0574D;
+  color: #B85D51;
   font-size: 22rpx;
 }
 
@@ -1165,25 +1165,25 @@ function scheduleLabel(schedule) {
 }
 
 .card-title-icon.mint {
-  border-color: #BCE8D9;
+  border-color: #C9DAF0;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 
 .card-title-icon.yellow {
-  border-color: #BCE8D9;
+  border-color: #C9DAF0;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 
 .card-title-icon.coral {
-  border-color: #FFD0CB;
+  border-color: #FCEEEB;
   background: var(--coral-soft);
   color: var(--danger);
 }
 
 .card-title-icon.sky {
-  border-color: #BCE8D9;
+  border-color: #C9DAF0;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -1253,9 +1253,9 @@ function scheduleLabel(schedule) {
   display: block;
   margin: 0 0 12rpx;
   padding: 19rpx;
-  border: 1rpx solid #CBEADD;
+  border: 1rpx solid #DDEEFF;
   border-radius: 14rpx;
-  background: #F7FCF9;
+  background: #F8FBFF;
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
@@ -1313,7 +1313,7 @@ function scheduleLabel(schedule) {
   padding: 5rpx 12rpx;
   border-radius: 8rpx;
   background: var(--coral-soft);
-  color: #A9433B;
+  color: #A94F48;
   font-size: 20rpx;
   font-weight: 700;
 }
@@ -1369,9 +1369,9 @@ function scheduleLabel(schedule) {
   justify-content: center;
   margin: 0;
   padding: 16rpx;
-  border: 1rpx solid #CBEADD;
+  border: 1rpx solid #DDEEFF;
   border-radius: 15rpx;
-  background: #F7FCF9;
+  background: #F8FBFF;
   color: var(--ink);
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
@@ -1427,9 +1427,9 @@ function scheduleLabel(schedule) {
 
 .leave-date { color: var(--text-secondary); }
 .leave-status { color: var(--text-muted); }
-.leave-status.pending { color: #B0574D; }
+.leave-status.pending { color: #B85D51; }
 .leave-status.approved { color: var(--accent-strong); }
-.leave-status.rejected { color: #B0574D; }
+.leave-status.rejected { color: #B85D51; }
 
 .modal-mask {
   position: fixed;
@@ -1481,7 +1481,7 @@ function scheduleLabel(schedule) {
   margin: 18rpx 0 0;
   border-radius: 14rpx;
   background: var(--primary);
-  color: #083F31;
+  color: #243E70;
   font-size: 27rpx;
   font-weight: 720;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
@@ -1504,7 +1504,7 @@ function scheduleLabel(schedule) {
   width: 100%;
   min-height: 160rpx;
   padding: 18rpx;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 14rpx;
   background: #FBFEFC;
   box-sizing: border-box;

@@ -32,12 +32,12 @@ export default {
       name: BRAND,
       teacher: DEFAULT_TEACHER_NAME,
       colors: {
-        primary: '#20B486',
-        accent: '#FF7468',
-        text: '#26352F',
-        bg: '#F8FCF9',
-        success: '#15946D',
-        warning: '#D94B45'
+        primary: '#527CC9',
+        accent: '#65BFA8',
+        text: '#24324A',
+        bg: '#F6FAFF',
+        success: '#4FA98F',
+        warning: '#C48A20'
       }
     }
   }
@@ -46,45 +46,45 @@ export default {
 
 <style>
 page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-light: #52CEAA;
-  --primary-soft: #E7F8F1;
-  --navy: #15946D;
-  --navy-2: #20B486;
-  --navy-deep: #116B51;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --gold: #FF7468;
-  --gold-soft: #FFF0EE;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-light: #7398D8;
+  --primary-soft: #EAF2FF;
+  --navy: #315EA8;
+  --navy-2: #527CC9;
+  --navy-deep: #243E70;
+  --accent: #65BFA8;
+  --accent-strong: #358E7D;
+  --accent-soft: #E9F8F3;
+  --gold: #F4C75B;
+  --gold-soft: #FFF0B5;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
 
-  --text: #26352F;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #718078;
-  --muted: #718078;
-  --faint: #97A39D;
+  --text: #24324A;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #6E7D91;
+  --muted: #6E7D91;
+  --faint: #9AA8B8;
 
-  --border: #D9E7DF;
-  --hairline: #EAF1ED;
-  --bg: #F8FCF9;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  --bg: #F6FAFF;
   --page-bg: var(--bg);
   --card: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F7F3;
-  --tint: #F1F7F3;
+  --surface-muted: #F9FBFF;
+  --tint: #F9FBFF;
 
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --warning: #D45B50;
-  --warning-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #15946D;
-  --info-soft: #E7F8F1;
+  --success: #4FA98F;
+  --success-soft: #E9F8F3;
+  --warning: #C48A20;
+  --warning-soft: #FFF5D7;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
 
   --r-xs: 8rpx;
   --r-sm: 12rpx;
@@ -99,10 +99,10 @@ page {
   --space-4: 24rpx;
   --space-5: 32rpx;
   --space-6: 40rpx;
-  --shadow-sm: 0 4rpx 12rpx rgba(36, 48, 41, .045);
-  --shadow: 0 12rpx 30rpx rgba(36, 48, 41, .075);
-  --shadow-md: 0 12rpx 30rpx rgba(36, 48, 41, .075);
-  --shadow-lg: 0 24rpx 56rpx rgba(36, 48, 41, .14);
+  --shadow-sm: 0 4rpx 12rpx rgba(49, 94, 168, .045);
+  --shadow: 0 12rpx 30rpx rgba(49, 94, 168, .075);
+  --shadow-md: 0 12rpx 30rpx rgba(49, 94, 168, .075);
+  --shadow-lg: 0 24rpx 56rpx rgba(36, 62, 112, .14);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --tap-scale: .975;
   --motion-fast: 120ms;
@@ -129,7 +129,8 @@ textarea {
   box-sizing: border-box;
 }
 
-button {
+page button,
+uni-page-body uni-button {
   margin: 0;
   min-width: 0;
   display: flex;
@@ -141,9 +142,11 @@ button {
   line-height: 1.35;
 }
 
-button::after { border: none; }
+page button::after,
+uni-page-body uni-button::after { border: none; }
 
-button[disabled],
+page button[disabled],
+uni-page-body uni-button[disabled],
 .is-disabled {
   opacity: .46;
   pointer-events: none;
@@ -152,7 +155,7 @@ button[disabled],
 .btn-primary[disabled],
 .btn-accent[disabled],
 .btn-publish[disabled] {
-  background: #CFDAD4 !important;
+  background: #CDD7E5 !important;
   color: #FFFFFF !important;
   box-shadow: none !important;
   opacity: .72;
@@ -167,8 +170,8 @@ button[disabled],
     0deg,
     transparent 0,
     transparent 63rpx,
-    rgba(32, 180, 134, .032) 64rpx,
-    rgba(32, 180, 134, .032) 65rpx
+    rgba(82, 124, 201, .032) 64rpx,
+    rgba(82, 124, 201, .032) 65rpx
   );
 }
 
@@ -191,7 +194,7 @@ button[disabled],
   position: relative;
   overflow: hidden;
   background:
-    repeating-linear-gradient(0deg, transparent 0 45rpx, rgba(32, 180, 134, .055) 46rpx 47rpx),
+    repeating-linear-gradient(0deg, transparent 0 45rpx, rgba(82, 124, 201, .055) 46rpx 47rpx),
     #FFFFFF;
   color: var(--ink);
   padding: 48rpx 34rpx 38rpx;
@@ -206,7 +209,7 @@ uni-page-body .page-shell > .hero {
   overflow: hidden;
   border-bottom: 5rpx solid var(--primary);
   background:
-    repeating-linear-gradient(0deg, transparent 0 45rpx, rgba(32, 180, 134, .055) 46rpx 47rpx),
+    repeating-linear-gradient(0deg, transparent 0 45rpx, rgba(82, 124, 201, .055) 46rpx 47rpx),
     #FFFFFF !important;
   background-size: auto !important;
   color: var(--ink) !important;
@@ -291,7 +294,7 @@ uni-page-body .page-shell > .hero .hero-sub {
   border: none;
   font-weight: 650;
   letter-spacing: 0;
-  box-shadow: 0 10rpx 22rpx rgba(21, 148, 109, .18);
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .18);
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-fast) var(--ease-out);
 }
 
@@ -313,7 +316,7 @@ uni-page-body .page-shell > .hero .hero-sub {
   justify-content: center;
   background: var(--surface);
   color: var(--primary-strong);
-  border: 1rpx solid #9EDAC6;
+  border: 1rpx solid #BFD0EC;
   border-radius: var(--r-sm);
   padding: 18rpx 26rpx;
   font-size: 28rpx;
@@ -361,9 +364,9 @@ uni-page-body .page-shell > .hero .hero-sub {
 .textarea,
 .result-area {
   width: 100%;
-  border: 1rpx solid #CFE3D8;
+  border: 1rpx solid #D6E2F1;
   border-radius: var(--r-sm);
-  background: #F5FAF7;
+  background: #FBFDFF;
   color: var(--ink);
   box-sizing: border-box;
   min-height: 88rpx;
@@ -385,7 +388,7 @@ uni-page-body .page-shell > .hero .hero-sub {
 .result-area:focus {
   border-color: var(--primary);
   background: #FFFFFF;
-  box-shadow: 0 0 0 5rpx rgba(32, 180, 134, .13);
+  box-shadow: 0 0 0 5rpx rgba(82, 124, 201, .13);
 }
 
 .tag {
@@ -463,7 +466,7 @@ uni-page-body .page-shell > .hero .hero-sub {
   width: 44rpx;
   height: 44rpx;
   margin: 0 auto 18rpx;
-  border: 4rpx solid rgba(32, 180, 134, .16);
+  border: 4rpx solid rgba(82, 124, 201, .16);
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: pp-spin .75s linear infinite;
@@ -486,7 +489,7 @@ uni-page-body .page-shell > .hero .hero-sub {
   z-index: 100;
   display: flex;
   align-items: flex-end;
-  background: rgba(36, 48, 41, .46);
+  background: rgba(36, 50, 74, .46);
   animation: pp-fade-in .18s ease-out both;
 }
 

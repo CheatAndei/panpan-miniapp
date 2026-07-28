@@ -1,7 +1,7 @@
 {
   "pages": [
     { "path": "pages/index/index", "style": { "navigationBarTitleText": "番番记录", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
-    { "path": "pages/maintenance/index", "style": { "navigationBarTitleText": "系统维护", "navigationBarBackgroundColor": "#F8FCF9", "navigationBarTextStyle": "black", "disableScroll": true } },
+    { "path": "pages/maintenance/index", "style": { "navigationBarTitleText": "系统维护", "navigationBarBackgroundColor": "#F6FAFF", "navigationBarTextStyle": "black", "disableScroll": true } },
     { "path": "pages/bind/bind", "style": { "navigationBarTitleText": "绑定孩子" } },
     { "path": "pages/guest-experience/index", "style": { "navigationBarTitleText": "免费体验" } },
     { "path": "pages/parent-home/index", "style": { "navigationBarTitleText": "学习动态" } },
@@ -45,12 +45,12 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "番番记录",
-    "navigationBarBackgroundColor": "#F8FCF9",
-    "backgroundColor": "#F8FCF9"
+    "navigationBarBackgroundColor": "#F6FAFF",
+    "backgroundColor": "#F6FAFF"
   },
   "tabBar": {
     "color": "#7A879B",
-    "selectedColor": "#15946D",
+    "selectedColor": "#315EA8",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "list": [

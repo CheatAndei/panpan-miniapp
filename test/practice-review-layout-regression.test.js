@@ -99,11 +99,11 @@ test('学生前后切换使用可收缩两列网格且按钮不会横向溢出',
   assert.match(buttonDeclarations, /box-sizing:\s*border-box;/u);
 });
 
-test('批改台使用青绿珊瑚双色教学色板且无旧蓝黄、大圆角或装饰光斑', () => {
-  for (const color of ['#20B486', '#15946D', '#FF7468', '#F8FCF9', '#26352F']) {
+test('批改台恢复浅蓝珊瑚教学色板，同时保持紧凑圆角与无装饰光斑', () => {
+  for (const color of ['#527CC9', '#315EA8', '#E98577', '#F6FAFF', '#24324A']) {
     assert.match(style, new RegExp(color, 'u'));
   }
-  assert.doesNotMatch(style, /#3268D6|#1E4EA8|#315EA8|#527CC9|#24324A|#5B9DF7|#337BD8|#FFC94A|#B27600/iu);
+  assert.doesNotMatch(style, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F/iu);
   assert.doesNotMatch(style, /radial-gradient/iu);
 
   const radii = [...style.matchAll(/border-radius:\s*([0-9.]+)rpx/gu)]

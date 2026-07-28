@@ -225,7 +225,7 @@ export default {
   height: 8rpx;
   border-radius: 8rpx;
   background: var(--coral);
-  box-shadow: 0 17rpx 0 rgba(32, 180, 134, .16);
+  box-shadow: 0 17rpx 0 rgba(82, 124, 201, .16);
 }
 
 .hero-mark {
@@ -237,7 +237,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 14rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -322,9 +322,9 @@ export default {
   transition: transform var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
 }
 
-.notify-btn { margin-top: 16rpx; border: 1rpx solid #FFD0CB; background: var(--coral-soft); color: var(--danger); }
+.notify-btn { margin-top: 16rpx; border: 1rpx solid #FCEEEB; background: var(--coral-soft); color: var(--danger); }
 .pdf-btn { margin-top: 14rpx; border: none; background: var(--primary-strong); color: #FFFFFF; }
-.btn-outline { border: 1rpx solid #FFD0CB; background: var(--coral-soft); color: var(--danger); font-size: 28rpx; }
+.btn-outline { border: 1rpx solid #FCEEEB; background: var(--coral-soft); color: var(--danger); font-size: 28rpx; }
 .notify-btn:active,
 .pdf-btn:active,
 .btn-outline:active { transform: scale(var(--tap-scale)); }

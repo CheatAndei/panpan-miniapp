@@ -5,9 +5,9 @@
 
 ## 本轮视觉决策
 
-**暖白作业纸 × 潘潘老师数学记录 × 明亮学习活力**
+**浅蓝作业纸 × 潘潘老师数学记录 × 明亮学习活力**
 
-- 主界面收敛为暖白作业纸、明亮青绿和少量珊瑚红：青绿承担品牌、主行动、进度与学习数据，珊瑚只承担提醒、纠错、老师反馈和少数高价值亮点；蓝色与黄色退出大卡底色、主按钮、主图标和装饰条。
+- 主界面恢复为浅蓝作业纸、清亮学习蓝和少量薄荷绿/珊瑚红：蓝色承担品牌、主行动、进度与学习数据，薄荷绿只承担正确/完成，珊瑚只承担提醒、纠错和老师反馈；黄色仅在旧版海报主题中保留，不与蓝绿红同时争抢主界面层级。
 - 视觉主体不是通用教育后台，而是“潘潘老师正在记录、批改并陪学生练数学”：练习纸横线、批改记号、题号、进度与老师签名成为跨页面识别线索。
 - 教师端先呈现高频动作和待办，信息密度高但层级清楚。
 - 家长端围绕“孩子今天怎么样、接下来做什么、最近有何进步”组织连续阅读，减少后台感。
@@ -46,8 +46,8 @@
 | CTA.gallery | 每个阶段保留明确主行动；预览、保存、重试、确认修改分层；失败不伪装为空状态 | `pages/practice-review/index.vue`、`pages/practice-parent/index.vue`、`components/pp-state/pp-state.vue` |
 | Tubik / Abuk | 同一套浅色教育品牌贯穿身份入口、教师、家长和共用组件；图标本地化、文字优先可读 | `App.vue`、`components/home/HomeWelcome.vue`、`components/pp-avatar/pp-avatar.vue`、`components/pp-question-reader/pp-question-reader.vue` |
 | Tubik / Evergreen Nexus University | 教师运营页保持友好但功能型，以扫描效率而非装饰为先 | `pages/teacher-classes/index.vue`、`pages/teacher-feedback/index.vue`、`pages/teacher-schedule/index.vue`、`pages/teacher-checkin/index.vue`、`pages/student-detail/index.vue` |
-| Recent / Aave Auto Saver Flow | 学生挑战页和保存反馈使用浅底、清楚进度、短促状态过渡；色彩收敛到青绿与珊瑚，不使用沉重暗底、四色拼贴或幼儿化装饰 | `pages/choice-king*`、`pages/mental-arena/*`、`pages/learning-session/index.vue`、`pages/weekly-challenge/index.vue`、`pages/knowledge-challenge/index.vue` |
-| 本轮用户实拍反馈 | 全局统一 `border-box` 与原生按钮垂直居中，修复按钮/答案卡/状态卡/空照片区被固定高度撑出的白块；批改图保留独立缩放位移并启用惯性回弹；蓝黄退出可见主色与 Canvas 输出；功能图标加入语义动效 | `App.vue`、`components/pp-state/pp-state.vue`、`components/pp-icon/pp-icon.vue`、`components/home/ParentHomeView.vue`、`components/home/TeacherHomeView.vue`、`pages/learning-center/index.vue`、`pages/practice-review/index.vue`、`utils/practice-review-poster.js`、`utils/mental-arena-poster.js`、`utils/promotion-poster.js`、`utils/achievement-poster.js`、`utils/feedback-card.js` |
+| Recent / Aave Auto Saver Flow | 学生挑战页和保存反馈使用浅底、清楚进度、短促状态过渡；主界面收敛到学习蓝、薄荷绿与珊瑚，不使用四色拼贴或幼儿化装饰 | `pages/choice-king*`、`pages/mental-arena/*`、`pages/learning-session/index.vue`、`pages/weekly-challenge/index.vue`、`pages/knowledge-challenge/index.vue` |
+| 本轮用户实拍反馈 | 全局统一 `border-box` 与原生按钮垂直居中，修复按钮/答案卡/状态卡/空照片区被固定高度撑出的白块；批改图保留独立缩放位移并启用惯性回弹；全项目恢复浅蓝主视觉；口算、压轴和打卡海报恢复指定旧版界面，其中打卡海报仅回退表现层并保留随机文案与署名逻辑 | `App.vue`、`components/pp-state/pp-state.vue`、`components/pp-icon/pp-icon.vue`、`components/home/ParentHomeView.vue`、`components/home/TeacherHomeView.vue`、`pages/learning-center/index.vue`、`pages/practice-review/index.vue`、`utils/practice-review-poster.js`、`utils/mental-arena-poster.js`、`utils/promotion-poster.js` |
 
 ## 角色与页面映射
 
@@ -73,7 +73,7 @@
 
 - 页面：学习会话、练习、成长、成就、口算竞技、选择题王、周挑战、知识点闯关及结果/排行页。
 - 采用：Mobbin 的进度与结果流程 + Recent 的轻量状态动效 + Tubik 的教育可读性。
-- 重点：题目、输入和反馈高对比；青绿承担学习进度，珊瑚承担纠错和结果提醒；庆祝为一次性且支持 reduced-motion；排行和结果页移除大面积深色底与蓝黄拼色卡。
+- 重点：题目、输入和反馈高对比；蓝色承担学习进度，薄荷绿承担正确/完成，珊瑚承担纠错和结果提醒；庆祝为一次性且支持 reduced-motion。
 
 ### 海报与保存工作台
 
@@ -83,16 +83,16 @@
 
 ## 组件翻译规则
 
-- 顶部：暖白或极浅绿作业纸页头，短标题 + 当前对象/上下文；避免大块深色品牌 Hero。
+- 顶部：白色或极浅蓝作业纸页头，短标题 + 当前对象/上下文；避免大块深色品牌 Hero。
 - 卡片：按“任务、记录、提醒、结果”区分结构，不把所有内容做成同一种圆角卡。
-- 主行动：每个视口原则上只有一个青绿主按钮；完成、数据与链接使用青绿，警告、纠错与老师消息使用珊瑚；黄色和蓝色不再承担界面层级。
+- 主行动：每个视口原则上只有一个蓝色主按钮；完成使用薄荷绿，警告、纠错与老师消息使用珊瑚；黄色只允许作为旧版口算/压轴海报的受控主题色。
 - 列表：重要状态靠左或靠标题，次要时间/标签后置；行高满足触控，长内容支持展开。
 - 弹窗：标题先说明影响，正文说明不可逆/联动结果，主次按钮位置和文案一致。
 - 动效：120–600ms 的按压、切换、弹层和结果反馈；`pp-icon` 的 `pop/ring/shine/breathe/bob` 只绑定完成、提醒、奖励、目标和当前任务，避免所有卡片同时循环；支持 reduced-motion。
 
 ## 验收
 
-- 41 个注册页面均使用全局浅色教育 tokens，主流程不存在大面积深蓝、黄色奖励卡或蓝黄绿拼贴。
+- 41 个注册页面均使用全局浅蓝教育 tokens，主流程不存在黄绿蓝黑拼贴；口算、压轴与打卡海报按用户指定保留各自旧版视觉。
 - 家长、教师、学生三个角色有明显但一致的节奏差异。
 - 教师首页快捷工作置顶并新增“学生记录”；批改台最近三份可展开并横向滑动。
 - 作业照片在真机可自然缩放、拖动、复位和多图切换，不与页面/轮播手势冲突。

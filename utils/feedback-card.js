@@ -8,20 +8,20 @@ export const FEEDBACK_CARD_AVATAR = '/static/brand/panpan-feedback-color-v1.jpg'
 export const FEEDBACK_CARD_AVATAR_CACHE_VERSION = 'v3';
 
 const FEEDBACK_THEME = Object.freeze({
-  page: '#F8FCF9',
+  page: '#F6FAFF',
   paper: '#FFFFFF',
-  ink: '#26352F',
-  text: '#5A6A62',
-  muted: '#7A8A82',
-  green: '#20B486',
-  greenDeep: '#15946D',
-  greenSoft: '#E7F8F1',
-  greenPale: '#F1FBF7',
-  greenLine: '#BFE8D8',
-  coral: '#FF7468',
-  coralDeep: '#D94B45',
-  coralSoft: '#FFF0EE',
-  coralLine: '#FFD0CB',
+  ink: '#24324A',
+  text: '#5C6C84',
+  muted: '#7C8C91',
+  green: '#527CC9',
+  greenDeep: '#315EA8',
+  greenSoft: '#EAF2FF',
+  greenPale: '#F8FBFF',
+  greenLine: '#C9DAF0',
+  coral: '#E98577',
+  coralDeep: '#D66D62',
+  coralSoft: '#FFF0ED',
+  coralLine: '#FCEEEB',
 });
 
 const FALLBACK_FEEDBACK_EMOJI = '🌟';

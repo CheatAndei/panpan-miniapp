@@ -121,7 +121,7 @@ async function openAttachment(url) {
 .page {
   min-height: 100vh;
   overflow-x: hidden;
-  background: var(--page-bg, #F8FCF9);
+  background: var(--page-bg, #F6FAFF);
 }
 
 .archive-hero {
@@ -129,12 +129,12 @@ async function openAttachment(url) {
   margin: 24rpx 24rpx 0;
   padding: 34rpx 32rpx 30rpx;
   overflow: hidden;
-  border: 1rpx solid #D7E7DE;
-  border-left: 7rpx solid var(--primary, #20B486);
+  border: 1rpx solid #DDE7F2;
+  border-left: 7rpx solid var(--primary, #527CC9);
   border-radius: 16rpx;
   background:
-    linear-gradient(rgba(32, 180, 134, .045) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(32, 180, 134, .045) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
     #FFFFFF;
   background-size: 38rpx 38rpx, 38rpx 38rpx, auto;
   box-shadow: var(--shadow-sm);
@@ -149,7 +149,7 @@ async function openAttachment(url) {
   width: 116rpx;
   height: 20rpx;
   border-radius: 4rpx;
-  background: var(--gold, #20B486);
+  background: var(--gold, #527CC9);
   opacity: .7;
   transform: rotate(2deg);
 }
@@ -168,7 +168,7 @@ async function openAttachment(url) {
 .section-kicker,
 .history-kicker {
   display: block;
-  color: var(--primary-strong, #15946D);
+  color: var(--primary-strong, #315EA8);
   font-size: 19rpx;
   font-weight: 760;
   letter-spacing: 0;
@@ -178,10 +178,10 @@ async function openAttachment(url) {
   position: relative;
   z-index: 1;
   padding: 6rpx 12rpx;
-  border: 1rpx solid #B8DDCD;
+  border: 1rpx solid #BFD0EC;
   border-radius: 8rpx;
-  background: var(--warning-soft, #E7F8F1);
-  color: #15946D;
+  background: var(--warning-soft, #EAF2FF);
+  color: #315EA8;
   font-size: 18rpx;
   font-weight: 700;
 }
@@ -189,7 +189,7 @@ async function openAttachment(url) {
 .hero-title {
   display: block;
   margin-top: 12rpx;
-  color: var(--ink, #26352F);
+  color: var(--ink, #24324A);
   font-size: 42rpx;
   font-weight: 800;
   line-height: 1.28;
@@ -199,7 +199,7 @@ async function openAttachment(url) {
   display: block;
   max-width: 590rpx;
   margin-top: 9rpx;
-  color: var(--text-secondary, #5A6A62);
+  color: var(--text-secondary, #5C6C84);
   font-size: 23rpx;
   line-height: 1.55;
 }
@@ -209,7 +209,7 @@ async function openAttachment(url) {
   height: 5rpx;
   margin-top: 22rpx;
   border-radius: 3rpx;
-  background: var(--gold, #20B486);
+  background: var(--gold, #527CC9);
 }
 
 .summary-block {
@@ -222,7 +222,7 @@ async function openAttachment(url) {
 .history-title {
   display: block;
   margin-top: 4rpx;
-  color: var(--ink, #26352F);
+  color: var(--ink, #24324A);
   font-size: 30rpx;
   font-weight: 780;
   line-height: 1.35;
@@ -232,7 +232,7 @@ async function openAttachment(url) {
 .section-note,
 .history-total {
   flex: none;
-  color: var(--text-muted, #5A6A62);
+  color: var(--text-muted, #5C6C84);
   font-size: 20rpx;
 }
 
@@ -250,22 +250,22 @@ async function openAttachment(url) {
   align-items: flex-start;
   justify-content: center;
   padding: 15rpx 17rpx;
-  border: 1rpx solid var(--border, #D7E7DE);
-  border-top: 5rpx solid var(--primary, #20B486);
+  border: 1rpx solid var(--border, #DDE7F2);
+  border-top: 5rpx solid var(--primary, #527CC9);
   border-radius: 14rpx;
   background: #FFFFFF;
-  color: var(--text-muted, #5A6A62);
+  color: var(--text-muted, #5C6C84);
   font-size: 19rpx;
   box-sizing: border-box;
 }
 
-.summary-cell.tone-mint { border-top-color: var(--accent, #20B486); }
-.summary-cell.tone-yellow { border-top-color: var(--gold, #20B486); }
+.summary-cell.tone-mint { border-top-color: var(--accent, #527CC9); }
+.summary-cell.tone-yellow { border-top-color: var(--gold, #527CC9); }
 
 .summary-number {
   display: block;
   margin-bottom: 2rpx;
-  color: var(--ink, #26352F);
+  color: var(--ink, #24324A);
   font-size: 37rpx;
   font-weight: 820;
   line-height: 1.2;
@@ -287,10 +287,10 @@ async function openAttachment(url) {
 
 .student-chip {
   padding: 9rpx 15rpx;
-  border: 1rpx solid #B8DDCD;
+  border: 1rpx solid #BFD0EC;
   border-radius: 9rpx;
-  background: var(--accent-soft, #E7F8F1);
-  color: var(--accent-strong, #15946D);
+  background: var(--accent-soft, #EAF2FF);
+  color: var(--accent-strong, #315EA8);
   font-size: 22rpx;
   font-weight: 680;
 }
@@ -298,7 +298,7 @@ async function openAttachment(url) {
 .empty-copy {
   display: block;
   margin-top: 15rpx;
-  color: var(--text-muted, #5A6A62);
+  color: var(--text-muted, #5C6C84);
   font-size: 22rpx;
 }
 
@@ -318,7 +318,7 @@ async function openAttachment(url) {
   bottom: 34rpx;
   left: 56rpx;
   width: 2rpx;
-  background: repeating-linear-gradient(180deg, #D7E7DE 0 10rpx, transparent 10rpx 17rpx);
+  background: repeating-linear-gradient(180deg, #DDE7F2 0 10rpx, transparent 10rpx 17rpx);
 }
 
 .history-item {
@@ -342,28 +342,28 @@ async function openAttachment(url) {
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 5rpx solid var(--page-bg, #F8FCF9);
+  border: 5rpx solid var(--page-bg, #F6FAFF);
   border-radius: 16rpx;
-  background: var(--primary-soft, #E7F8F1);
-  color: var(--primary-strong, #15946D);
+  background: var(--primary-soft, #EAF2FF);
+  color: var(--primary-strong, #315EA8);
   box-sizing: border-box;
 }
 
 .history-mark.type-feedback {
-  background: var(--accent-soft, #E7F8F1);
-  color: var(--accent-strong, #15946D);
+  background: var(--accent-soft, #EAF2FF);
+  color: var(--accent-strong, #315EA8);
 }
 
 .history-mark.type-transfer {
-  background: var(--warning-soft, #E7F8F1);
-  color: #15946D;
+  background: var(--warning-soft, #EAF2FF);
+  color: #315EA8;
 }
 
 .history-copy {
   min-width: 0;
   flex: 1;
   padding: 21rpx 22rpx;
-  border: 1rpx solid var(--border, #D7E7DE);
+  border: 1rpx solid var(--border, #DDE7F2);
   border-radius: 15rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow-sm);
@@ -378,7 +378,7 @@ async function openAttachment(url) {
 
 .item-title {
   min-width: 0;
-  color: var(--ink, #26352F);
+  color: var(--ink, #24324A);
   font-size: 26rpx;
   font-weight: 740;
   line-height: 1.4;
@@ -386,14 +386,14 @@ async function openAttachment(url) {
 
 .item-date {
   flex: none;
-  color: var(--text-muted, #5A6A62);
+  color: var(--text-muted, #5C6C84);
   font-size: 19rpx;
 }
 
 .item-summary {
   display: block;
   margin-top: 7rpx;
-  color: var(--text-secondary, #5A6A62);
+  color: var(--text-secondary, #5C6C84);
   font-size: 22rpx;
   line-height: 1.62;
   white-space: pre-wrap;
@@ -402,10 +402,10 @@ async function openAttachment(url) {
 .homework-box {
   margin-top: 13rpx;
   padding: 14rpx 16rpx;
-  border-left: 5rpx solid var(--gold, #20B486);
+  border-left: 5rpx solid var(--gold, #527CC9);
   border-radius: 9rpx;
-  background: var(--warning-soft, #E7F8F1);
-  color: #5A6A62;
+  background: var(--warning-soft, #EAF2FF);
+  color: #5C6C84;
   font-size: 22rpx;
   line-height: 1.6;
 }
@@ -413,7 +413,7 @@ async function openAttachment(url) {
 .homework-label {
   display: block;
   margin-bottom: 2rpx;
-  color: #15946D;
+  color: #315EA8;
   font-size: 18rpx;
   font-weight: 760;
 }
@@ -429,7 +429,7 @@ async function openAttachment(url) {
   margin: 15rpx 0 0;
   padding: 0 22rpx;
   border-radius: 12rpx;
-  background: var(--primary, #20B486);
+  background: var(--primary, #527CC9);
   color: #FFFFFF;
   font-size: 22rpx;
   font-weight: 720;
@@ -438,10 +438,10 @@ async function openAttachment(url) {
 .load-more {
   min-height: 88rpx;
   margin: 20rpx 24rpx 0;
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   border-radius: 13rpx;
   background: #FFFFFF;
-  color: var(--primary-strong, #15946D);
+  color: var(--primary-strong, #315EA8);
   font-size: 24rpx;
   font-weight: 720;
 }
@@ -456,14 +456,14 @@ async function openAttachment(url) {
 .state-shell {
   margin: 24rpx;
   overflow: hidden;
-  border: 1rpx solid var(--border, #D7E7DE);
-  border-top: 5rpx solid var(--primary, #20B486);
+  border: 1rpx solid var(--border, #DDE7F2);
+  border-top: 5rpx solid var(--primary, #527CC9);
   border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow-sm);
 }
 
-.state-shell.compact { border-top-color: var(--accent, #20B486); }
+.state-shell.compact { border-top-color: var(--accent, #527CC9); }
 
 .inline-error {
   min-height: 106rpx;
@@ -473,16 +473,16 @@ async function openAttachment(url) {
   gap: 16rpx;
   margin: 20rpx 24rpx 0;
   padding: 15rpx 18rpx;
-  border: 1rpx solid #F2C4C0;
-  border-left: 5rpx solid var(--danger, #D94B45);
+  border: 1rpx solid #EFC9C2;
+  border-left: 5rpx solid var(--danger, #D66D62);
   border-radius: 13rpx;
-  background: var(--danger-soft, #FFF0EE);
+  background: var(--danger-soft, #FFF0ED);
   box-sizing: border-box;
 }
 
 .inline-error-title {
   display: block;
-  color: #D94B45;
+  color: #D66D62;
   font-size: 22rpx;
   font-weight: 740;
 }
@@ -490,7 +490,7 @@ async function openAttachment(url) {
 .inline-error-copy {
   display: block;
   margin-top: 2rpx;
-  color: var(--text-secondary, #5A6A62);
+  color: var(--text-secondary, #5C6C84);
   font-size: 19rpx;
 }
 
@@ -499,10 +499,10 @@ async function openAttachment(url) {
   min-height: 88rpx;
   flex: none;
   margin: 0;
-  border: 1rpx solid #F2C4C0;
+  border: 1rpx solid #EFC9C2;
   border-radius: 10rpx;
   background: #FFFFFF;
-  color: #D94B45;
+  color: #D66D62;
   font-size: 21rpx;
   font-weight: 700;
 }
@@ -560,34 +560,34 @@ async function openAttachment(url) {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E7F8F1;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --gold: #20B486;
-  --gold-soft: #E7F8F1;
-  --warning: #15946D;
-  --warning-soft: #E7F8F1;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #20B486;
-  --info-soft: #E7F8F1;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #5A6A62;
-  --page-bg: #F8FCF9;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EAF2FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EAF2FF;
+  --success: #315EA8;
+  --success-soft: #EAF2FF;
+  --gold: #527CC9;
+  --gold-soft: #EAF2FF;
+  --warning: #315EA8;
+  --warning-soft: #EAF2FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #5C6C84;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --border: #D7E7DE;
-  --hairline: #E6F0EA;
-  background-color: #F8FCF9;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx);
+  --surface-muted: #F8FBFF;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  background-color: #F6FAFF;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -597,11 +597,11 @@ async function openAttachment(url) {
   margin: 0;
   padding: 30rpx 28rpx 25rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #D7E7DE;
-  border-left: 8rpx solid #20B486;
+  border-bottom: 1rpx solid #DDE7F2;
+  border-left: 8rpx solid #527CC9;
   border-radius: 0;
   background:
-    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .045) 48rpx 49rpx),
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(82, 124, 201, .045) 48rpx 49rpx),
     #FFFFFF;
   box-shadow: none;
 }
@@ -611,7 +611,7 @@ async function openAttachment(url) {
   width: 112rpx;
   height: 8rpx;
   border-radius: 0 0 4rpx 4rpx;
-  background: #20B486;
+  background: #527CC9;
   opacity: 1;
   transform: none;
 }
@@ -623,17 +623,17 @@ async function openAttachment(url) {
 }
 .eyebrow,
 .section-kicker,
-.history-kicker { color: #15946D; }
+.history-kicker { color: #315EA8; }
 .hero-title,
 .section-heading,
 .student-title,
-.history-title { color: #26352F; }
+.history-title { color: #24324A; }
 .hero-title { margin-top: 0; }
-.hero-sub { color: #5A6A62; }
+.hero-sub { color: #5C6C84; }
 .record-chip {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .summary-grid {
   align-items: start;
@@ -641,56 +641,56 @@ async function openAttachment(url) {
 .summary-cell {
   min-height: 0;
   padding: 14rpx 16rpx;
-  border-color: #D7E7DE;
-  border-top-color: #B8DDCD;
+  border-color: #DDE7F2;
+  border-top-color: #BFD0EC;
   border-radius: 12rpx;
   background: #FFFFFF;
-  color: #5A6A62;
+  color: #5C6C84;
 }
-.summary-cell.tone-mint { border-top-color: #20B486; }
-.summary-cell.tone-practice { border-top-color: #15946D; }
-.summary-number { color: #26352F; }
+.summary-cell.tone-mint { border-top-color: #527CC9; }
+.summary-cell.tone-practice { border-top-color: #315EA8; }
+.summary-number { color: #24324A; }
 .student-card {
-  border: 1rpx solid #D7E7DE;
-  border-left: 5rpx solid #20B486;
+  border: 1rpx solid #DDE7F2;
+  border-left: 5rpx solid #527CC9;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
 .student-chip {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .history-stream::before {
-  background: repeating-linear-gradient(180deg, #B8DDCD 0 10rpx, transparent 10rpx 17rpx);
+  background: repeating-linear-gradient(180deg, #BFD0EC 0 10rpx, transparent 10rpx 17rpx);
 }
 .history-item {
   align-items: flex-start;
 }
 .history-mark {
-  border-color: #F8FCF9;
+  border-color: #F6FAFF;
   border-radius: 14rpx;
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .history-mark.type-feedback {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .history-mark.type-transfer {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .history-copy {
   padding: 18rpx 19rpx;
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 14rpx;
   background: #FFFFFF;
-  box-shadow: 0 5rpx 15rpx rgba(38, 53, 47, .045);
+  box-shadow: 0 5rpx 15rpx rgba(36, 50, 74, .045);
 }
 .homework-box {
-  border-left-color: #20B486;
-  background: #E7F8F1;
+  border-left-color: #527CC9;
+  background: #EAF2FF;
 }
 .attachment-btn,
 .load-more {
@@ -700,26 +700,26 @@ async function openAttachment(url) {
   line-height: 70rpx;
 }
 .attachment-btn {
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
 }
 .load-more {
-  border-color: #B8DDCD;
+  border-color: #BFD0EC;
   background: #FFFFFF;
-  color: #15946D;
+  color: #315EA8;
 }
 .state-shell {
-  border-color: #D7E7DE;
-  border-top-color: #20B486;
+  border-color: #DDE7F2;
+  border-top-color: #527CC9;
   border-radius: 14rpx;
 }
-.state-shell.compact { border-top-color: #15946D; }
+.state-shell.compact { border-top-color: #315EA8; }
 .inline-error {
   min-height: 0;
   align-items: flex-start;
   padding: 14rpx 16rpx;
   border-radius: 12rpx;
-  background: #FFF0EE;
+  background: #FFF0ED;
 }
 .inline-error button {
   height: 58rpx;

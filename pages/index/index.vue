@@ -606,7 +606,7 @@ async function loadParentData(childId) {
 .page {
   min-height: 100vh;
   padding-bottom: calc(44rpx + env(safe-area-inset-bottom));
-  background: var(--page-bg, #F7FBF7);
+  background: var(--page-bg, #F8FBFF);
 }
 
 .footer {

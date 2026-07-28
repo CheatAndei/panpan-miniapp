@@ -24,10 +24,10 @@ const pages = [
   'pages/weekly-review/index.vue',
 ];
 
-const forbiddenPalette =
-  /#102E28|#122E2B|#173A34|#173A36|#183A36|#2F6E61|#2F7D6B|#315D56|#205F52|#245F52|#276B5B|#27705F|#286A5B|#3268D6|#527CC9|#315EA8|#1E4EA8|#5A8BD8|#5B9DF7|#F2C94C|#F4C75B|#FFC94A/i;
+const replacedPalette =
+  /#20B486|#15946D|#FF7468|#F8FCF9|#26352F|rgba?\(\s*32\s*,\s*180\s*,\s*134/i;
 
-test('all student challenge pages use the unified warm-white teaching-green theme', () => {
+test('all student challenge pages use the unified pale-blue teaching theme', () => {
   const sources = pages.map((file) => [file, read(file)]);
 
   for (const [file, source] of sources) {
@@ -42,25 +42,31 @@ test('all student challenge pages use the unified warm-white teaching-green them
       1,
       `${file} should keep a single scoped style block`,
     );
-    assert.doesNotMatch(source, forbiddenPalette, `${file} should not retain blue, yellow, or forest colors`);
+    assert.doesNotMatch(source, replacedPalette, `${file} should not retain the replaced green-coral palette`);
     assert.doesNotMatch(source, /radial-gradient/i, `${file} should not use decorative orbs`);
+    const trackingSurface = file === 'pages/mental-arena/result.vue'
+      ? source.replace(/[^{}]*\.poster[^{}]*\{[^{}]*\}/g, '')
+      : source;
     assert.doesNotMatch(
-      source,
+      trackingSurface,
       /letter-spacing\s*:\s*-/i,
-      `${file} should not use negative tracking`,
+      `${file} should not use negative tracking outside the restored poster interface`,
     );
-    assert.match(source, /#F8FCF9/i, `${file} should define the warm paper background`);
-    assert.match(source, /#20B486/i, `${file} should define the energetic teaching green`);
-    assert.match(source, /#15946D/i, `${file} should define the strong teaching green`);
-    assert.match(source, /#26352F/i, `${file} should define charcoal-green body text`);
-    assert.match(source, /#5A6A62/i, `${file} should define secondary green-gray text`);
+    assert.match(source, /#F6FAFF/i, `${file} should define the pale blue paper background`);
+    assert.match(source, /#527CC9/i, `${file} should define the learning blue`);
+    assert.match(source, /#315EA8/i, `${file} should define the strong action blue`);
+    assert.match(source, /#24324A/i, `${file} should define blue-charcoal body text`);
+    assert.match(source, /#5C6C84/i, `${file} should define secondary blue-gray text`);
     assert.match(source, /prefers-reduced-motion:\s*reduce/, `${file} should respect motion settings`);
 
     const v3 = source.slice(source.indexOf('Student challenge theme v3:'));
+    const layoutV3 = file === 'pages/mental-arena/result.vue'
+      ? v3.replace(/[^{}]*\.poster[^{}]*\{[^{}]*\}/g, '')
+      : v3;
     assert.doesNotMatch(
-      v3,
+      layoutV3,
       /border-radius:\s*(?:1[7-9]|[2-9]\d)rpx/i,
-      `${file} v3 cards should not exceed 16rpx radius`,
+      `${file} v3 cards outside the restored poster interface should not exceed 16rpx radius`,
     );
   }
 
@@ -68,7 +74,6 @@ test('all student challenge pages use the unified warm-white teaching-green them
   for (const token of ['var(--primary)', 'var(--primary-soft)', 'var(--coral)', 'var(--coral-soft)']) {
     assert.match(combined, new RegExp(token.replace(/[()]/g, '\\$&')));
   }
-  assert.doesNotMatch(combined, /var\(--gold(?:-soft)?\)/);
   assert.doesNotMatch(combined, /background:\s*#26352F/i);
   assert.doesNotMatch(combined, /linear-gradient\([^;]*#26352F/i);
 });

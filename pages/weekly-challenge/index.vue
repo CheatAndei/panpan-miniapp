@@ -167,34 +167,34 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 
 /* Student challenge theme v3: warm paper and one energetic teaching green. */
 .student-challenge-page {
-  --page-bg: #F8FCF9;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #6D7C74;
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E8F5EF;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E8F5EF;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --border: #D5E6DE;
-  --hairline: #E4EFE9;
+  --surface-muted: #F8FBFF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #6E7D91;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EDF5FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EDF5FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
   --r: 16rpx;
   --r-sm: 14rpx;
   --r-xs: 10rpx;
   --r-lg: 16rpx;
-  --shadow-sm: 0 6rpx 18rpx rgba(38, 53, 47, .06);
-  --shadow: 0 10rpx 28rpx rgba(38, 53, 47, .08);
+  --shadow-sm: 0 6rpx 18rpx rgba(36, 50, 74, .06);
+  --shadow: 0 10rpx 28rpx rgba(36, 50, 74, .08);
   background-color: var(--page-bg);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 55rpx,
-    rgba(32, 180, 134, .045) 56rpx 57rpx
+    rgba(82, 124, 201, .045) 56rpx 57rpx
   );
   color: var(--ink);
 }
@@ -295,7 +295,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 
 .student-challenge-page .type-mark.fill {
   background: var(--primary-soft);
-  color: #15946D;
+  color: #315EA8;
 }
 
 .student-challenge-page .type-mark.subjective {
@@ -306,12 +306,12 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 .student-challenge-page .type-pill {
   border-radius: var(--r-xs);
   background: var(--primary-soft);
-  color: #15946D;
+  color: #315EA8;
 }
 
 .student-challenge-page .change-btn {
   min-height: 84rpx;
-  border: 1rpx solid #BFE4D4;
+  border: 1rpx solid #CADCF2;
   border-radius: var(--r-sm);
   background: var(--surface);
   color: var(--primary-strong);
@@ -340,23 +340,23 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 }
 
 .student-challenge-page .poster-btn {
-  border: 1rpx solid #CBEADF;
+  border: 1rpx solid #DDEEFF;
   background: var(--primary-soft);
-  color: #15946D;
+  color: #315EA8;
 }
 
 .student-challenge-page .review-state {
   padding: 18rpx;
-  border: 1rpx solid #CBEADF;
+  border: 1rpx solid #DDEEFF;
   border-left: 7rpx solid var(--primary);
   border-radius: var(--r-sm);
   background: var(--primary-soft);
-  color: #15946D;
+  color: #315EA8;
 }
 
 .student-challenge-page .review-state.reviewed,
 .student-challenge-page .review-state.passed {
-  border-color: #CBEADF;
+  border-color: #DDEEFF;
   border-left-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-strong);
@@ -364,10 +364,10 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 
 .student-challenge-page .review-state.reviewed_wrong,
 .student-challenge-page .review-state.rejected {
-  border-color: #F3C8C2;
+  border-color: #EFC9C2;
   border-left-color: var(--coral);
   background: var(--coral-soft);
-  color: #D94B45;
+  color: #D66D62;
 }
 
 .student-challenge-page .review-note {
@@ -375,7 +375,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 }
 
 .student-challenge-page .passed-card {
-  border-color: #CBEADF;
+  border-color: #DDEEFF;
   border-top: 7rpx solid var(--accent);
   background: var(--surface);
 }
@@ -405,7 +405,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #BFE4D4;
+  border: 1rpx solid #CADCF2;
   border-radius: 14rpx;
   background: var(--primary-soft);
 }
@@ -426,7 +426,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 1rpx solid #BFE4D4;
+  border: 1rpx solid #CADCF2;
   border-radius: 12rpx;
   background: var(--primary-soft);
 }

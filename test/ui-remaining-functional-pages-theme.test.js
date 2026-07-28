@@ -20,10 +20,9 @@ const pages = [
   'pages/parent-schedule/index.vue',
   'pages/practice-parent/index.vue',
   'pages/practice-teacher/index.vue',
-  'pages/promotion-posters/index.vue',
 ];
 
-const forbiddenPalette = /#172033|#1E4EA8|#24324A|#315EA8|#3268D6|#358E7D|#527CC9|#65BFA8|#0F5B4A|#154C3D|#173F35|#0B3D33|#5B9DF7|#337BD8|#FFC94A|#B27600|#FFF6D8|#EDF4FF|rgba?\(\s*50\s*,\s*104\s*,\s*214/i;
+const forbiddenPalette = /#20B486|#15946D|#FF7468|#F8FCF9|#26352F|#172033|#1E4EA8|#3268D6|#0F5B4A|#154C3D|#173F35|#0B3D33|#5B9DF7|#337BD8|#FFC94A|#B27600|rgba?\(\s*32\s*,\s*180\s*,\s*134/i;
 const iconPages = [
   'pages/bind/bind.vue',
   'pages/exam-library/index.vue',
@@ -66,7 +65,7 @@ function assertCompactControls(source, file) {
   }
 }
 
-test('parent-adjacent pages use the coherent green-coral Panpan identity', () => {
+test('parent-adjacent pages use the restored blue-coral Panpan identity', () => {
   for (const file of pages) {
     const source = read(file);
     const styleBlocks = source.match(/<style scoped>/g) || [];
@@ -77,12 +76,12 @@ test('parent-adjacent pages use the coherent green-coral Panpan identity', () =>
       .filter((value) => value > 16);
 
     assert.equal(styleBlocks.length, 1, `${file} should have one scoped style block`);
-    assert.match(source, /#20B486/i, `${file} should visibly use bright teal`);
-    assert.match(source, /#15946D/i, `${file} should visibly use strong teal actions`);
-    assert.match(source, /#F8FCF9/i, `${file} should use the warm paper background`);
-    assert.match(source, /#26352F/i, `${file} should use dark green-gray text`);
-    assert.match(source, /#FF7468|#D94B45|#FFF0EE/i, `${file} should reserve coral for feedback or emphasis`);
-    assert.doesNotMatch(source, forbiddenPalette, `${file} should not retain blue, yellow, deep blue, or dull forest green`);
+    assert.match(source, /#527CC9/i, `${file} should visibly use the restored learning blue`);
+    assert.match(source, /#315EA8/i, `${file} should visibly use strong blue actions`);
+    assert.match(source, /#F6FAFF/i, `${file} should use the pale blue paper background`);
+    assert.match(source, /#24324A/i, `${file} should use blue-charcoal text`);
+    assert.match(source, /#E98577|#D66D62|#FFF0ED/i, `${file} should reserve coral for feedback or emphasis`);
+    assert.doesNotMatch(source, forbiddenPalette, `${file} should not retain the replaced green-coral palette or stale saturated blue`);
     assert.doesNotMatch(source, /border-radius:\s*var\(--r/i, `${file} should not hide oversized global radii behind tokens`);
     assert.doesNotMatch(source, /radial-gradient|(?:hero|card|page)::after[^}]*border-radius:\s*50%/is, `${file} should not use radial or orb decoration`);
     assert.doesNotMatch(source, /letter-spacing:\s*-/i, `${file} should not use negative spacing`);

@@ -44,12 +44,12 @@ test('课堂反馈、学生反馈、作业是三套独立主题分享卡并都�
   assert.match(renderer, /今日课堂简报/u);
   assert.match(renderer, /课后任务单/u);
   assert.match(renderer, /drawFittedText/);
-  assert.match(renderer, /#F8FCF9/);
-  assert.match(renderer, /#20B486/);
-  assert.match(renderer, /#FF7468/);
+  assert.match(renderer, /#F6FAFF/);
+  assert.match(renderer, /#527CC9/);
+  assert.match(renderer, /#E98577/);
   assert.match(renderer, /FEEDBACK_THEME/);
   assert.doesNotMatch(renderer, /for \(let x = 0; x <= 750; x \+= 62\)/);
-  assert.doesNotMatch(renderer, /#173A35|#F7F2E8|#D35F4D|#E1BC62|#C89446|#263F59/i);
+  assert.doesNotMatch(renderer, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F|#173A35|#F7F2E8|#D35F4D|#E1BC62|#C89446|#263F59/i);
   for (const handler of ['previewClassFeedbackCard', 'saveClassFeedbackCard', 'previewHomeworkCard', 'saveHomeworkCard']) {
     assert.match(page, new RegExp(`${handler}\\(se\\)`));
   }

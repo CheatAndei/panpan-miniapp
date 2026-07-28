@@ -39,15 +39,15 @@ const textStyle = computed(() => ({ fontSize: Math.round(px.value * 0.42) + 'rpx
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid rgba(36, 48, 41, .08);
+  border: 1rpx solid rgba(36, 50, 74, .08);
   border-radius: 16rpx;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 6rpx 16rpx rgba(36, 48, 41, .08), inset 0 0 0 2rpx rgba(255, 255, 255, .78);
+  box-shadow: 0 6rpx 16rpx rgba(36, 50, 74, .08), inset 0 0 0 2rpx rgba(255, 255, 255, .78);
 }
 .pp-avatar__initial {
   font-weight: 750;
-  color: #243029;
+  color: #24324A;
   line-height: 1;
 }
 </style>

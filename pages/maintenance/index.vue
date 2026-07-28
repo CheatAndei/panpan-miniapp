@@ -51,14 +51,14 @@ export default {
 
 <style scoped>
 .maintenance-page {
-  --panpan-green: #20B486;
-  --panpan-green-strong: #15946D;
-  --panpan-sprout: #20B486;
-  --panpan-coral: #FF7468;
-  --panpan-leaf: #15946D;
-  --panpan-paper: #F8FCF9;
-  --panpan-ink: #26352F;
-  --panpan-muted: #5A6A62;
+  --panpan-green: #527CC9;
+  --panpan-green-strong: #315EA8;
+  --panpan-sprout: #527CC9;
+  --panpan-coral: #E98577;
+  --panpan-leaf: #315EA8;
+  --panpan-paper: #F6FAFF;
+  --panpan-ink: #24324A;
+  --panpan-muted: #5C6C84;
   min-height: 100vh;
   box-sizing: border-box;
   display: flex;
@@ -68,7 +68,7 @@ export default {
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(32, 180, 134, .055) 64rpx 65rpx
+    rgba(82, 124, 201, .055) 64rpx 65rpx
   );
 }
 
@@ -76,11 +76,11 @@ export default {
   width: 100%;
   box-sizing: border-box;
   padding: 34rpx 30rpx 30rpx;
-  border: 1rpx solid #CFE6D8;
+  border: 1rpx solid #D9E5F3;
   border-top: 7rpx solid var(--panpan-sprout);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: 0 14rpx 30rpx rgba(36, 48, 41, .08);
+  box-shadow: 0 14rpx 30rpx rgba(36, 50, 74, .08);
   text-align: center;
   animation: maintenance-enter var(--motion-slow) var(--ease-out) both;
 }
@@ -90,9 +90,9 @@ export default {
   align-items: center;
   gap: 6rpx;
   padding: 7rpx 16rpx;
-  border: 1rpx solid rgba(32, 180, 134, .3);
+  border: 1rpx solid rgba(82, 124, 201, .3);
   border-radius: 8rpx;
-  background: #E7F8F1;
+  background: #EAF2FF;
   color: var(--panpan-green-strong);
   font-size: 22rpx;
   font-weight: 700;
@@ -108,7 +108,7 @@ export default {
   margin: 24rpx auto 18rpx;
   border: 2rpx solid var(--panpan-green);
   border-radius: 14rpx;
-  background: #E7F8F1;
+  background: #EAF2FF;
 }
 
 .status-icon.checking {
@@ -140,14 +140,14 @@ export default {
   align-items: center;
   margin-top: 22rpx;
   padding: 16rpx 18rpx;
-  border: 1rpx solid rgba(32, 180, 134, .28);
+  border: 1rpx solid rgba(82, 124, 201, .28);
   border-left: 5rpx solid var(--panpan-leaf);
   border-radius: 10rpx;
-  background: #E7F8F1;
+  background: #EAF2FF;
 }
 
 .eta-label { display: flex; align-items: center; gap: 6rpx; color: var(--panpan-muted); font-size: 23rpx; }
-.eta-value { color: #15946D; font-size: 24rpx; font-weight: 700; }
+.eta-value { color: #315EA8; font-size: 24rpx; font-weight: 700; }
 
 .retry-btn {
   min-height: 88rpx;
@@ -161,12 +161,12 @@ export default {
   color: #FFFFFF;
   font-size: 27rpx;
   font-weight: 700;
-  box-shadow: 0 9rpx 20rpx rgba(21, 148, 109, .2);
+  box-shadow: 0 9rpx 20rpx rgba(49, 94, 168, .2);
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
 .retry-btn:active { transform: scale(var(--tap-scale)); }
-.retry-btn[disabled] { background: #BBDCCF; opacity: .7; box-shadow: none; }
+.retry-btn[disabled] { background: #C9DAF0; opacity: .7; box-shadow: none; }
 .retry-btn::after { border: 0; }
 .care { display: flex; align-items: center; justify-content: center; gap: 6rpx; margin-top: 18rpx; color: var(--panpan-muted); font-size: 22rpx; }
 

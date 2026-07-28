@@ -80,7 +80,7 @@ defineEmits(['login', 'repair']);
   box-sizing: border-box;
   overflow: hidden;
   background:
-    repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx),
+    repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx),
     var(--page-bg);
 }
 
@@ -122,7 +122,7 @@ defineEmits(['login', 'repair']);
   padding: 54rpx 38rpx 44rpx;
   overflow: hidden;
   box-sizing: border-box;
-  border-top: 1rpx solid #BCE8D9;
+  border-top: 1rpx solid #C9DAF0;
   border-bottom: 8rpx solid var(--primary);
   background: #FFFFFF;
   animation: welcome-enter var(--motion-slow) var(--ease-out) both;
@@ -195,10 +195,10 @@ defineEmits(['login', 'repair']);
   width: 188rpx;
   height: 220rpx;
   box-sizing: border-box;
-  border: 1rpx solid #9EDAC6;
+  border: 1rpx solid #BFD0EC;
   border-radius: 10rpx;
   background: #FFFFFF;
-  box-shadow: 0 12rpx 26rpx rgba(36, 48, 41, .1);
+  box-shadow: 0 12rpx 26rpx rgba(36, 50, 74, .1);
 }
 
 .sheet-back {
@@ -240,7 +240,7 @@ defineEmits(['login', 'repair']);
   background: var(--primary-soft);
   animation: sheet-mark-pop 420ms 430ms var(--ease-out) both;
 }
-.sheet-title { width: 76%; height: 10rpx; background: #9EDAC6; }
+.sheet-title { width: 76%; height: 10rpx; background: #BFD0EC; }
 .sheet-copy { width: 100%; margin-top: 14rpx; }
 .sheet-accent {
   position: absolute;
@@ -277,20 +277,20 @@ defineEmits(['login', 'repair']);
 }
 
 .signal-item:nth-child(1) {
-  border-color: #BCE8D9;
-  background: #F7FCF9;
+  border-color: #C9DAF0;
+  background: #F8FBFF;
   animation-delay: 220ms;
 }
 
 .signal-item:nth-child(2) {
-  border-color: #BCE8D9;
-  background: #F7FCF9;
+  border-color: #C9DAF0;
+  background: #F8FBFF;
   animation-delay: 280ms;
 }
 
 .signal-item:nth-child(3) {
-  border-color: #BCE8D9;
-  background: #F7FCF9;
+  border-color: #C9DAF0;
+  background: #F8FBFF;
   animation-delay: 340ms;
 }
 
@@ -328,13 +328,13 @@ defineEmits(['login', 'repair']);
   background: var(--primary-strong);
   color: #FFFFFF;
   font-size: 30rpx;
-  box-shadow: 0 12rpx 26rpx rgba(21, 148, 109, .18);
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .18);
 }
 
 .repair-login-btn {
   min-height: 78rpx;
   margin-top: 14rpx;
-  border: 1rpx solid #9EDAC6;
+  border: 1rpx solid #BFD0EC;
   background: #FFFFFF;
   color: var(--primary-strong);
   font-size: 26rpx;

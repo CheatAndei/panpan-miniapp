@@ -89,37 +89,37 @@ async function submitReport() {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(36, 48, 41, .4);
+  background: rgba(36, 50, 74, .4);
 }
 .report-sheet {
   box-sizing: border-box;
   width: 100%;
   padding: 30rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
-  border-top: 6rpx solid #20B486;
+  border-top: 6rpx solid #527CC9;
   border-radius: 16rpx 16rpx 0 0;
-  background: #F8FCF9;
+  background: #F6FAFF;
 }
 .report-title,
 .report-sub { display: block; }
 .report-heading { display: flex; align-items: center; gap: 12rpx; }
-.report-mark { width: 52rpx; height: 52rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 11rpx; background: #FFF0EE; }
-.report-title { color: #26352F; font-size: 31rpx; font-weight: 780; }
-.report-sub { margin-top: 5rpx; color: #5A6A62; font-size: 22rpx; }
+.report-mark { width: 52rpx; height: 52rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 11rpx; background: #FFF0ED; }
+.report-title { color: #24324A; font-size: 31rpx; font-weight: 780; }
+.report-sub { margin-top: 5rpx; color: #5C6C84; font-size: 22rpx; }
 .reason-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11rpx; margin-top: 22rpx; }
 .reason-button {
   min-height: 80rpx;
   margin: 0;
   padding: 0 10rpx;
-  border: 1rpx solid #D9E7DF;
+  border: 1rpx solid #DDE7F2;
   border-radius: 12rpx;
   background: #FFFFFF;
-  color: #5A6A62;
+  color: #5C6C84;
   font-size: 21rpx;
 }
 .reason-button.active {
-  border: 2rpx solid #20B486;
-  background: #E7F8F1;
-  color: #15946D;
+  border: 2rpx solid #527CC9;
+  background: #EAF2FF;
+  color: #315EA8;
   font-weight: 720;
 }
 .report-note {
@@ -128,16 +128,16 @@ async function submitReport() {
   height: 120rpx;
   margin-top: 14rpx;
   padding: 15rpx 17rpx;
-  border: 1rpx solid #D9E7DF;
+  border: 1rpx solid #DDE7F2;
   border-radius: 12rpx;
   background: #FFFFFF;
-  color: #26352F;
+  color: #24324A;
   font-size: 22rpx;
 }
 .report-actions { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12rpx; margin-top: 18rpx; }
 .cancel-report,
 .send-report { min-height: 88rpx; margin: 0; padding: 0 18rpx; border-radius: 12rpx; font-size: 24rpx; font-weight: 700; }
-.cancel-report { border: 1rpx solid #A9DCCA; background: #FFFFFF; color: #15946D; }
-.send-report { background: #FF7468; color: #FFFFFF; }
+.cancel-report { border: 1rpx solid #BFD0EC; background: #FFFFFF; color: #315EA8; }
+.send-report { background: #E98577; color: #FFFFFF; }
 button::after { border: 0; }
 </style>

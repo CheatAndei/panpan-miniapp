@@ -47,10 +47,10 @@ const iconName = computed(() => ({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid var(--border, #D9E7DF);
+  border: 1rpx solid var(--border, #DDE7F2);
   border-radius: 16rpx;
   background: var(--surface, #FFFFFF);
-  box-shadow: 0 8rpx 22rpx rgba(36, 48, 41, .055);
+  box-shadow: 0 8rpx 22rpx rgba(36, 50, 74, .055);
   text-align: center;
 }
 
@@ -60,7 +60,7 @@ const iconName = computed(() => ({
   left: 0;
   width: 100%;
   height: 7rpx;
-  background: var(--primary, #20B486);
+  background: var(--primary, #527CC9);
 }
 
 .pp-state__mark {
@@ -70,13 +70,13 @@ const iconName = computed(() => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #BCE8D9;
+  border: 1rpx solid #C9DAF0;
   border-radius: 14rpx;
-  background: var(--primary-soft, #E5F8F1);
+  background: var(--primary-soft, #EAF2FF);
 }
 
 .pp-state__title {
-  color: var(--ink, #243029);
+  color: var(--ink, #24324A);
   font-size: 29rpx;
   font-weight: 720;
   line-height: 1.45;
@@ -95,10 +95,10 @@ const iconName = computed(() => ({
   min-height: 80rpx;
   margin-top: 22rpx;
   padding: 0 28rpx;
-  border: 1rpx solid var(--primary, #20B486);
+  border: 1rpx solid var(--primary, #527CC9);
   border-radius: 14rpx;
-  background: var(--primary, #20B486);
-  color: #083F31;
+  background: var(--primary, #527CC9);
+  color: #243E70;
   font-size: 26rpx;
   font-weight: 680;
   line-height: 1.4;
@@ -115,34 +115,34 @@ const iconName = computed(() => ({
 }
 
 .pp-state__action:focus-visible {
-  outline: 4rpx solid rgba(32, 180, 134, .24);
+  outline: 4rpx solid rgba(82, 124, 201, .24);
   outline-offset: 3rpx;
 }
 
 .pp-state__spinner {
   width: 42rpx;
   height: 42rpx;
-  border: 4rpx solid rgba(32, 180, 134, .18);
-  border-top-color: var(--primary-strong, #15946D);
+  border: 4rpx solid rgba(82, 124, 201, .18);
+  border-top-color: var(--primary-strong, #315EA8);
   border-radius: 50%;
   animation: pp-state-spin .75s linear infinite;
 }
 
 .pp-state--loading {
-  background: #F7FCF9;
+  background: #F8FBFF;
 }
 
 .pp-state--loading .pp-state__accent {
-  background: var(--primary, #20B486);
+  background: var(--primary, #527CC9);
 }
 
 .pp-state--error {
   border-color: #F1D4CF;
-  background: #FFFAF9;
+  background: #FFF8F7;
 }
 
 .pp-state--error .pp-state__accent {
-  background: var(--coral, #FF7468);
+  background: var(--coral, #E98577);
 }
 
 .pp-state--error .pp-state__mark {
@@ -151,22 +151,22 @@ const iconName = computed(() => ({
 }
 
 .pp-state--error .pp-state__action {
-  border-color: #B95D52;
-  background: #B95D52;
+  border-color: #B85D51;
+  background: #B85D51;
 }
 
 .pp-state--success {
-  border-color: #BCE8D9;
-  background: #F7FCF9;
+  border-color: #C9DAF0;
+  background: #F8FBFF;
 }
 
 .pp-state--success .pp-state__accent {
-  background: var(--primary, #20B486);
+  background: var(--primary, #527CC9);
 }
 
 .pp-state--success .pp-state__mark {
-  border-color: #BCE8D9;
-  background: var(--primary-soft, #E5F8F1);
+  border-color: #C9DAF0;
+  background: var(--primary-soft, #EAF2FF);
 }
 
 @keyframes pp-state-spin {

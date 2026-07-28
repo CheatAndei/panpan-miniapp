@@ -79,7 +79,7 @@
             <text class="class-setting-title">本次有出门测</text>
             <text class="class-setting-hint">统一控制本班本次反馈，不按学生单独设置</text>
           </view>
-              <switch :checked="se._hasExitQuiz" @change="e=>se._hasExitQuiz=e.detail.value" color="#20B486" />
+              <switch :checked="se._hasExitQuiz" @change="e=>se._hasExitQuiz=e.detail.value" color="#527CC9" />
         </view>
         <text v-if="!se._hasExitQuiz" class="no-quiz-note">本次不使用出门测信息，反馈只写课堂表现。</text>
         <view class="feedback-style-switch" role="tablist" aria-label="反馈风格">
@@ -108,10 +108,10 @@
           <view v-if="s._leave" class="leave-note">该学生已请假，不会发布个人反馈。点击右上角可取消标记。</view>
           <template v-else>
           <text class="label">课堂表现 {{ s._performanceScore }}</text>
-                <slider :value="s._performanceScore" @change="e=>s._performanceScore=e.detail.value" min="1" max="10" block-size="20" activeColor="#15946D" />
+                <slider :value="s._performanceScore" @change="e=>s._performanceScore=e.detail.value" min="1" max="10" block-size="20" activeColor="#315EA8" />
           <view v-if="se._hasExitQuiz" class="quiz-score-block">
             <text class="label">出门测 {{ s._score }}</text>
-                <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#20B486" />
+                <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#527CC9" />
           </view>
           <input v-model="s._note" class="input big" placeholder="大致情况" />
           <textarea v-model="s._text" class="result-area" placeholder="可直接手动输入学生反馈" :maxlength="240" />
@@ -659,7 +659,7 @@ export default {
   padding: 4rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F1F8F4;
+  background: #F8FBFF;
 }
 .tab-btn {
   display: flex;
@@ -676,7 +676,7 @@ export default {
 .tab-btn.on {
   background: var(--surface);
   color: var(--primary-strong);
-  box-shadow: 0 2rpx 6rpx rgba(38, 53, 47, .08);
+  box-shadow: 0 2rpx 6rpx rgba(36, 50, 74, .08);
 }
 .block-card {
   margin: 0 0 18rpx;
@@ -708,7 +708,7 @@ export default {
   padding: 0 18rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--ink);
   font-size: 27rpx;
   line-height: 78rpx;
@@ -723,7 +723,7 @@ export default {
   padding: 18rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--ink);
   font-size: 26rpx;
   line-height: 1.55;
@@ -752,7 +752,7 @@ export default {
 .save-one-card[disabled] { opacity: .5; }
 .btn-primary,
 .btn-accent {
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -811,7 +811,7 @@ export default {
   padding: 4rpx;
   border: 1rpx solid var(--border);
   border-radius: 8rpx;
-  background: #F1F8F4;
+  background: #F8FBFF;
 }
 .style-choice {
   text-align: center;
@@ -824,7 +824,7 @@ export default {
 .style-choice.on {
   background: var(--surface);
   color: var(--primary-strong);
-  box-shadow: 0 2rpx 6rpx rgba(38, 53, 47, .08);
+  box-shadow: 0 2rpx 6rpx rgba(36, 50, 74, .08);
 }
 .style-hint {
   margin-bottom: 14rpx;
@@ -859,12 +859,12 @@ export default {
 }
 .retry-cards {
   margin-top: 8rpx;
-  border: 1rpx solid #B8DDCD;
+  border: 1rpx solid #BFD0EC;
   background: var(--gold-soft);
   color: var(--warning);
 }
 .preview-one-card {
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -919,7 +919,7 @@ export default {
   justify-content: center;
   width: 34rpx;
   height: 34rpx;
-  border: 2rpx solid #B8C8BF;
+  border: 2rpx solid #B8C8DC;
   border-radius: 7rpx;
 }
 .leave-box.on {
@@ -944,7 +944,7 @@ export default {
   width: 100%;
   min-height: 64rpx;
   margin-top: 8rpx;
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   border-radius: 8rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -994,7 +994,7 @@ export default {
   border-left: 5rpx solid var(--gold);
   border-radius: 6rpx;
   background:
-    repeating-linear-gradient(0deg, transparent 0 35rpx, rgba(32, 180, 134, .05) 36rpx 37rpx),
+    repeating-linear-gradient(0deg, transparent 0 35rpx, rgba(82, 124, 201, .05) 36rpx 37rpx),
     #FFFFFF;
   color: var(--ink);
   box-shadow: none;
@@ -1032,7 +1032,7 @@ export default {
 }
 .class-share-builder button:first-child,
 .homework-share-builder button:first-child {
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -1138,34 +1138,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E7F8F1;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --gold: #20B486;
-  --gold-soft: #E7F8F1;
-  --warning: #15946D;
-  --warning-soft: #E7F8F1;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #20B486;
-  --info-soft: #E7F8F1;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #5A6A62;
-  --page-bg: #F8FCF9;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EAF2FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EAF2FF;
+  --success: #315EA8;
+  --success-soft: #EAF2FF;
+  --gold: #527CC9;
+  --gold-soft: #EAF2FF;
+  --warning: #315EA8;
+  --warning-soft: #EAF2FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #5C6C84;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --border: #D7E7DE;
-  --hairline: #E6F0EA;
-  background-color: #F8FCF9;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx);
+  --surface-muted: #F8FBFF;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  background-color: #F6FAFF;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -1175,7 +1175,7 @@ export default {
   position: relative;
   padding: 28rpx 28rpx 22rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #D7E7DE;
+  border-bottom: 1rpx solid #DDE7F2;
   background: #FFFFFF !important;
 }
 .hero::before {
@@ -1185,7 +1185,7 @@ export default {
   left: 20rpx;
   width: 6rpx;
   border-radius: 3rpx;
-  background: #20B486;
+  background: #527CC9;
   content: "";
 }
 .hero::after {
@@ -1193,39 +1193,39 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #20B486;
+  background: #527CC9;
 }
-.hero .eyebrow { color: #15946D; }
+.hero .eyebrow { color: #315EA8; }
 .hero-title-line {
   display: flex;
   align-items: center;
   gap: 10rpx;
   margin-top: 6rpx;
 }
-.hero-title { margin-top: 0; color: #26352F; }
-.hero-sub { color: #5A6A62; }
+.hero-title { margin-top: 0; color: #24324A; }
+.hero-sub { color: #5C6C84; }
 .state-card,
 .se-card {
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
 .se-card {
   padding: 19rpx;
-  border-left: 5rpx solid #20B486;
+  border-left: 5rpx solid #527CC9;
 }
 .se-hd {
   min-height: 0;
   align-items: flex-start;
 }
 .tag-done {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .tab-row,
 .feedback-style-switch {
   align-items: flex-start;
-  background: #F1F8F4;
+  background: #F8FBFF;
 }
 .tab-btn {
   height: 58rpx;
@@ -1236,15 +1236,15 @@ export default {
 .tab-btn.on,
 .style-choice.on {
   background: #FFFFFF;
-  color: #15946D;
+  color: #315EA8;
 }
 .block-card {
-  border-top-color: #D7E7DE;
+  border-top-color: #DDE7F2;
 }
 .input,
 .result-area {
-  border-color: #D7E7DE;
-  background: #F8FCF9;
+  border-color: #DDE7F2;
+  background: #F6FAFF;
 }
 .btn-primary,
 .btn-accent,
@@ -1263,22 +1263,22 @@ export default {
 }
 .btn-primary,
 .btn-accent {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .btn-outline,
 .copy-feedback-btn,
 .preview-one-card {
-  border-color: #B8DDCD;
+  border-color: #BFD0EC;
   background: #FFFFFF;
-  color: #15946D;
+  color: #315EA8;
 }
 .btn-publish {
   height: 82rpx;
   min-height: 0;
   padding: 0 18rpx;
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
   line-height: 82rpx;
 }
@@ -1286,36 +1286,36 @@ export default {
   align-items: flex-start;
 }
 .no-quiz-note {
-  border-left-color: #20B486;
-  background: #E7F8F1;
-  color: #15946D;
+  border-left-color: #527CC9;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .leave-note {
-  border-left-color: #FF7468;
-  background: #FFF0EE;
-  color: #D94B45;
+  border-left-color: #E98577;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 .style-choice {
   min-height: 0;
   padding: 10rpx 14rpx;
 }
 .card-save-panel {
-  border-left-color: #20B486;
-  background: #E7F8F1;
+  border-left-color: #527CC9;
+  background: #EAF2FF;
 }
 .save-all-cards,
 .save-one-card {
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
 }
 .retry-cards {
-  border-color: #F2C4C0;
-  background: #FFF0EE;
-  color: #D94B45;
+  border-color: #EFC9C2;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 .stu-card {
   padding: 16rpx;
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 12rpx;
 }
 .stu-hd,
@@ -1325,30 +1325,30 @@ export default {
   align-items: flex-start;
 }
 .s-level {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .leave-box.on,
 .thumb-remove,
 .swipe-del {
-  background: #FF7468;
+  background: #E98577;
 }
 .share-card-builder {
-  border-left-color: #20B486;
+  border-left-color: #527CC9;
   background:
-    repeating-linear-gradient(0deg, transparent 0 35rpx, rgba(32, 180, 134, .05) 36rpx 37rpx),
+    repeating-linear-gradient(0deg, transparent 0 35rpx, rgba(82, 124, 201, .05) 36rpx 37rpx),
     #FFFFFF;
 }
-.share-builder-kicker { color: #15946D !important; }
+.share-builder-kicker { color: #315EA8 !important; }
 .class-share-builder button:first-child,
 .homework-share-builder button:first-child {
-  border-color: #B8DDCD;
+  border-color: #BFD0EC;
   background: #FFFFFF;
-  color: #15946D;
+  color: #315EA8;
 }
 .class-share-builder button:last-child,
 .homework-share-builder button:last-child {
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
 }
 </style>

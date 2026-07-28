@@ -29,19 +29,19 @@ async function load(){if(loading.value)return;loading.value=true;try{const [stud
 async function save(){const rank=Number(targetRank.value);if(!students.value[studentIndex.value])return;if(!Number.isInteger(rank)||rank<1||rank>100)return uni.showToast({title:'请输入 1-100 的目标排名',icon:'none'});saving.value=true;try{const data=await api.post('/mental-arena/goals',{student_id:students.value[studentIndex.value].id,battle:battle.value,target_rank:rank});uni.showModal({title:'目标已生成',content:`目标第 ${data.goal.target_rank} 名，需要达到 ${data.goal.target_score} 分。`,showCancel:false});await load();}catch(e){uni.showToast({title:e?.error||'创建失败',icon:'none'});}finally{saving.value=false;}}
 </script>
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 50rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 20rpx;padding:50rpx 34rpx 44rpx;border-radius:0 0 34rpx 34rpx;background:#FFFFFF;color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:19rpx;font-weight:800;letter-spacing: 0}.hero-title{display:block;margin-top:8rpx;font-size:41rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D7ECE6;font-size:23rpx}.goal-form{padding:27rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.section-title,.list-title{display:block;color:var(--ink);font-size:29rpx;font-weight:750}.picker-row,.rank-row{min-height:82rpx;display:flex;align-items:center;justify-content:space-between;margin-top:16rpx;padding:0 18rpx;border-radius:13rpx;background:var(--surface-muted);color:var(--ink);font-size:24rpx}.picker-row text:last-child{color:var(--accent-strong)}.battle-row{display:grid;grid-template-columns:1fr 1fr;gap:10rpx;margin-top:14rpx}.battle-row button{min-height:72rpx;margin:0;border-radius:12rpx;background:var(--surface-muted);color:var(--text-muted);font-size:23rpx}.battle-row button::after,.save-btn::after{border:0}.battle-row button.on{background:var(--primary);color:#fff}.rank-row input{width:180rpx;text-align:right;font-size:24rpx}.save-btn{min-height:86rpx;margin:18rpx 0 0;border-radius:14rpx;background:var(--primary);color:#fff;font-size:26rpx;font-weight:720}.form-note{display:block;margin-top:12rpx;color:var(--text-muted);font-size:20rpx;line-height:1.5}.list-title{margin:30rpx 4rpx 14rpx}.goal-card{position:relative;display:flex;align-items:center;gap:20rpx;margin-bottom:13rpx;padding:23rpx;border-radius:18rpx;background:#fff;border:1rpx solid var(--border)}.student{display:block;color:var(--ink);font-size:27rpx;font-weight:730}.meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:20rpx}.target{flex:1;text-align:right}.target text{display:block;color:var(--ink);font-size:23rpx;font-weight:680}.target text:last-child{margin-top:3rpx;color:var(--accent-strong);font-size:21rpx}.state{position:absolute;right:14rpx;top:10rpx;color:#15946D;font-size:18rpx}.state.expired{color:var(--text-muted)}.state.completed{color:var(--success)}
+.page{min-height:100vh;padding:0 24rpx 50rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 20rpx;padding:50rpx 34rpx 44rpx;border-radius:0 0 34rpx 34rpx;background:#FFFFFF;color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:19rpx;font-weight:800;letter-spacing: 0}.hero-title{display:block;margin-top:8rpx;font-size:41rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D7ECE6;font-size:23rpx}.goal-form{padding:27rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.section-title,.list-title{display:block;color:var(--ink);font-size:29rpx;font-weight:750}.picker-row,.rank-row{min-height:82rpx;display:flex;align-items:center;justify-content:space-between;margin-top:16rpx;padding:0 18rpx;border-radius:13rpx;background:var(--surface-muted);color:var(--ink);font-size:24rpx}.picker-row text:last-child{color:var(--accent-strong)}.battle-row{display:grid;grid-template-columns:1fr 1fr;gap:10rpx;margin-top:14rpx}.battle-row button{min-height:72rpx;margin:0;border-radius:12rpx;background:var(--surface-muted);color:var(--text-muted);font-size:23rpx}.battle-row button::after,.save-btn::after{border:0}.battle-row button.on{background:var(--primary);color:#fff}.rank-row input{width:180rpx;text-align:right;font-size:24rpx}.save-btn{min-height:86rpx;margin:18rpx 0 0;border-radius:14rpx;background:var(--primary);color:#fff;font-size:26rpx;font-weight:720}.form-note{display:block;margin-top:12rpx;color:var(--text-muted);font-size:20rpx;line-height:1.5}.list-title{margin:30rpx 4rpx 14rpx}.goal-card{position:relative;display:flex;align-items:center;gap:20rpx;margin-bottom:13rpx;padding:23rpx;border-radius:18rpx;background:#fff;border:1rpx solid var(--border)}.student{display:block;color:var(--ink);font-size:27rpx;font-weight:730}.meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:20rpx}.target{flex:1;text-align:right}.target text{display:block;color:var(--ink);font-size:23rpx;font-weight:680}.target text:last-child{margin-top:3rpx;color:var(--accent-strong);font-size:21rpx}.state{position:absolute;right:14rpx;top:10rpx;color:#315EA8;font-size:18rpx}.state.expired{color:var(--text-muted)}.state.completed{color:var(--success)}
 .page {
-  background-color: var(--page-bg, #F8FCF9);
+  background-color: var(--page-bg, #F6FAFF);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(32, 180, 134, .028) 64rpx 65rpx
+    rgba(82, 124, 201, .028) 64rpx 65rpx
   );
 }
 .hero { border-radius: 0 0 24rpx 24rpx; }
 .goal-form { border-radius: 18rpx; border-top: 5rpx solid var(--primary); }
 .picker-row,
-.rank-row { background: #F8FCF9; border: 1rpx solid var(--border); }
+.rank-row { background: #F6FAFF; border: 1rpx solid var(--border); }
 .picker-row text:last-child { color: var(--primary-strong); }
 .battle-row button.on { background: var(--primary-strong); color: #FFFFFF; }
 .save-btn { background: var(--primary-strong); color: #FFFFFF; }
@@ -78,20 +78,20 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(32, 180, 134, .028) 64rpx 65rpx
+    rgba(82, 124, 201, .028) 64rpx 65rpx
   );
 }
 .hero {
   position: relative;
   overflow: hidden;
-  border-bottom: 1rpx solid rgba(32, 180, 134, .16);
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
   background:
-    linear-gradient(rgba(32, 180, 134, .05) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(32, 180, 134, .05) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, #E8F5EF 72%, #EEF8F3);
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 72%, #EDF5FF);
   background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
   color: var(--ink);
-  box-shadow: 0 12rpx 28rpx rgba(38, 53, 47, .07);
+  box-shadow: 0 12rpx 28rpx rgba(36, 50, 74, .07);
   animation: goal-surface-in var(--motion-slow) var(--ease-out) both;
 }
 .hero::after {
@@ -117,17 +117,17 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
 .rank-row {
   min-height: 96rpx;
   border-color: var(--border);
-  background: #F8FCF9;
+  background: #F6FAFF;
 }
 .picker-row text:last-child { color: var(--primary-strong); }
 .battle-row button {
   min-height: 80rpx;
   border: 1rpx solid var(--border);
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--text-secondary);
 }
 .battle-row button.on {
-  border-color: #BFE4D4;
+  border-color: #CADCF2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -135,7 +135,7 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
   min-height: 104rpx;
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   color: #FFFFFF;
-  box-shadow: 0 12rpx 26rpx rgba(21, 148, 109, .18);
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .18);
 }
 .goal-card {
   border-color: var(--border);
@@ -147,7 +147,7 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
 .goal-card:active { transform: none; opacity: 1; }
 .target { padding-top: 18rpx; }
 .target text:last-child { color: var(--primary-strong); }
-.state { color: #15946D; }
+.state { color: #315EA8; }
 .state.completed {
   padding: 4rpx 9rpx;
   border-radius: 8rpx;
@@ -186,22 +186,22 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
 
 /* Student challenge theme v3: warm paper and one energetic teaching green. */
 .student-challenge-page {
-  --page-bg: #F8FCF9;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #6D7C74;
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E8F5EF;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --border: #D5E6DE;
+  --surface-muted: #F8FBFF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #6E7D91;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EDF5FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --border: #DDE7F2;
   min-height: 100vh;
   background-color: var(--page-bg);
-  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(32, 180, 134, .05) 56rpx 57rpx);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(82, 124, 201, .05) 56rpx 57rpx);
   color: var(--ink);
 }
 .student-challenge-page .hero {
@@ -225,7 +225,7 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
   border-color: var(--border);
   border-radius: 16rpx;
   background: var(--surface);
-  box-shadow: 0 6rpx 18rpx rgba(38, 53, 47, .06);
+  box-shadow: 0 6rpx 18rpx rgba(36, 50, 74, .06);
 }
 .student-challenge-page .picker-row,
 .student-challenge-page .rank-row,
@@ -262,7 +262,7 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #BFE4D4;
+  border: 1rpx solid #CADCF2;
   border-radius: 14rpx;
   background: var(--primary-soft);
 }

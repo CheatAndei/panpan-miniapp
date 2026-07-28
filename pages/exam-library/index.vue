@@ -204,14 +204,14 @@ async function approveAnswer(item){
 
 <style scoped>
 .page {
-  --panpan-green: #20B486;
-  --panpan-green-strong: #15946D;
-  --panpan-sprout: #20B486;
-  --panpan-coral: #FF7468;
-  --panpan-leaf: #15946D;
-  --panpan-paper: #F8FCF9;
-  --panpan-ink: #26352F;
-  --panpan-muted: #5A6A62;
+  --panpan-green: #527CC9;
+  --panpan-green-strong: #315EA8;
+  --panpan-sprout: #527CC9;
+  --panpan-coral: #E98577;
+  --panpan-leaf: #315EA8;
+  --panpan-paper: #F6FAFF;
+  --panpan-ink: #24324A;
+  --panpan-muted: #5C6C84;
   min-height: 100vh;
   padding: 0 24rpx 48rpx;
   background: var(--panpan-paper);
@@ -220,18 +220,18 @@ async function approveAnswer(item){
 .exam-hero {
   margin: 0 -24rpx 17rpx;
   padding: 40rpx 32rpx 32rpx;
-  border-bottom: 1rpx solid #D4E9DC;
+  border-bottom: 1rpx solid #DDE7F2;
   background:
-    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(32, 180, 134, .055) 48rpx 49rpx),
-    linear-gradient(135deg, #FFFFFF 0 72%, #E7F8F1 100%);
+    repeating-linear-gradient(0deg, transparent 0 47rpx, rgba(82, 124, 201, .055) 48rpx 49rpx),
+    linear-gradient(135deg, #FFFFFF 0 72%, #EAF2FF 100%);
   color: var(--panpan-ink);
   animation: exam-enter var(--motion-slow) var(--ease-out) both;
 }
 
-.eyebrow { display: inline-flex; padding: 5rpx 12rpx; border-radius: 7rpx; background: #E7F8F1; color: var(--panpan-green-strong); font-size: 19rpx; font-weight: 800; letter-spacing: 0; }
+.eyebrow { display: inline-flex; padding: 5rpx 12rpx; border-radius: 7rpx; background: #EAF2FF; color: var(--panpan-green-strong); font-size: 19rpx; font-weight: 800; letter-spacing: 0; }
 .hero-title-row { display: flex; align-items: center; gap: 12rpx; margin-top: 9rpx; }
 .title-icon { width: 50rpx; height: 50rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; }
-.title-icon.tone-green { background: #E7F8F1; }
+.title-icon.tone-green { background: #EAF2FF; }
 .hero-title { max-width: 570rpx; color: var(--panpan-ink); font-size: 40rpx; font-weight: 790; }
 .hero-title-row::after { content: ''; width: 54rpx; height: 7rpx; flex: none; border-radius: 4rpx; background: var(--panpan-sprout); }
 .hero-sub { display: block; max-width: 590rpx; margin-top: 10rpx; color: var(--panpan-muted); font-size: 22rpx; line-height: 1.52; }
@@ -240,10 +240,10 @@ async function approveAnswer(item){
 .activity-panel {
   margin-bottom: 15rpx;
   padding: 19rpx;
-  border: 1rpx solid #CFE6D8;
+  border: 1rpx solid #D9E5F3;
   border-radius: 14rpx;
   background: #FFFFFF;
-  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
+  box-shadow: 0 8rpx 20rpx rgba(36, 50, 74, .06);
 }
 
 .filter-card { border-top: 6rpx solid var(--panpan-green); animation: exam-panel-enter var(--motion-slow) 40ms var(--ease-out) both; }
@@ -267,7 +267,7 @@ async function approveAnswer(item){
 .paper-actions button::after,
 .mini-btn::after,
 .load-more::after { border: 0; }
-.grade-tab.on { background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 6rpx 12rpx rgba(21, 148, 109, .18); }
+.grade-tab.on { background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 6rpx 12rpx rgba(49, 94, 168, .18); }
 .grade-tab:active,
 .chip:active,
 .search-btn:active,
@@ -290,9 +290,9 @@ async function approveAnswer(item){
   transition: transform var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out);
 }
 
-.chip.on { border-color: rgba(32, 180, 134, .28); background: #E7F8F1; color: var(--panpan-green-strong); font-weight: 700; }
+.chip.on { border-color: rgba(82, 124, 201, .28); background: #EAF2FF; color: var(--panpan-green-strong); font-weight: 700; }
 .search-row { display: flex; gap: 10rpx; }
-.search-input { flex: 1; height: 78rpx; box-sizing: border-box; padding: 0 16rpx; border: 1rpx solid #CFE6D8; border-radius: 10rpx; background: #F8FCF9; color: var(--panpan-ink); font-size: 23rpx; }
+.search-input { flex: 1; height: 78rpx; box-sizing: border-box; padding: 0 16rpx; border: 1rpx solid #D9E5F3; border-radius: 10rpx; background: #F6FAFF; color: var(--panpan-ink); font-size: 23rpx; }
 .search-btn { width: 118rpx; min-height: 78rpx; display: flex; align-items: center; justify-content: center; gap: 5rpx; margin: 0; border-radius: 10rpx; background: var(--panpan-green-strong); color: #FFFFFF; font-size: 23rpx; font-weight: 700; transition: transform var(--motion-fast) var(--ease-out); }
 
 .teacher-summary {
@@ -302,10 +302,10 @@ async function approveAnswer(item){
   gap: 16rpx;
   margin-bottom: 14rpx;
   padding: 17rpx 20rpx;
-  border: 1rpx solid rgba(32, 180, 134, .45);
+  border: 1rpx solid rgba(82, 124, 201, .45);
   border-left: 5rpx solid var(--panpan-sprout);
   border-radius: 10rpx;
-  background: #E7F8F1;
+  background: #EAF2FF;
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
@@ -314,12 +314,12 @@ async function approveAnswer(item){
 .summary-title,
 .panel-title { display: block; color: var(--panpan-ink); font-size: 26rpx; font-weight: 750; }
 .summary-title { display: flex; align-items: center; gap: 7rpx; }
-.summary-desc { display: block; margin-top: 4rpx; color: #15946D; font-size: 20rpx; line-height: 1.48; }
+.summary-desc { display: block; margin-top: 4rpx; color: #315EA8; font-size: 20rpx; line-height: 1.48; }
 .summary-toggle { flex: none; color: var(--panpan-green-strong); font-size: 21rpx; font-weight: 700; }
 .activity-panel { border-top: 5rpx solid var(--panpan-leaf); animation: exam-panel-enter var(--motion-slow) var(--ease-out) both; }
 .panel-title { margin-bottom: 9rpx; }
 .downloads-title { margin-top: 20rpx; }
-.activity-row { min-height: 78rpx; display: flex; align-items: center; gap: 10rpx; padding: 11rpx 0; border-bottom: 1rpx solid #E0EEE5; }
+.activity-row { min-height: 78rpx; display: flex; align-items: center; gap: 10rpx; padding: 11rpx 0; border-bottom: 1rpx solid #E9F0F8; }
 .activity-copy { flex: 1; min-width: 0; }
 .activity-name { display: block; color: var(--panpan-ink); font-size: 22rpx; font-weight: 680; line-height: 1.48; }
 .activity-meta { display: block; margin-top: 3rpx; color: var(--panpan-muted); font-size: 19rpx; }
@@ -338,25 +338,25 @@ async function approveAnswer(item){
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
-.mini-btn.secondary { border: 1rpx solid rgba(32, 180, 134, .28); background: #E7F8F1; color: #15946D; }
-.download-log { min-height: 56rpx; display: flex; justify-content: space-between; gap: 16rpx; padding: 10rpx 0; border-bottom: 1rpx solid #E0EEE5; color: var(--panpan-muted); font-size: 19rpx; }
+.mini-btn.secondary { border: 1rpx solid rgba(82, 124, 201, .28); background: #EAF2FF; color: #315EA8; }
+.download-log { min-height: 56rpx; display: flex; justify-content: space-between; gap: 16rpx; padding: 10rpx 0; border-bottom: 1rpx solid #E9F0F8; color: var(--panpan-muted); font-size: 19rpx; }
 .download-log text:first-child { flex: 1; color: var(--panpan-ink); }
 
 .paper-card {
   margin-bottom: 13rpx;
   padding: 21rpx 22rpx;
-  border: 1rpx solid #CFE6D8;
+  border: 1rpx solid #D9E5F3;
   border-left: 6rpx solid var(--panpan-green);
   border-radius: 14rpx;
   background: #FFFFFF;
-  box-shadow: 0 8rpx 20rpx rgba(36, 48, 41, .06);
+  box-shadow: 0 8rpx 20rpx rgba(36, 50, 74, .06);
   animation: exam-card-enter var(--motion-slow) var(--ease-out) both;
 }
 
 .paper-tags { display: flex; flex-wrap: wrap; gap: 7rpx; }
-.paper-tags text { padding: 5rpx 10rpx; border-radius: 7rpx; background: #E7F8F1; color: #15946D; font-size: 18rpx; font-weight: 700; }
-.paper-tags text:nth-child(2) { background: #E7F8F1; color: #15946D; }
-.paper-tags text:last-child { background: #E7F8F1; color: var(--panpan-green-strong); }
+.paper-tags text { padding: 5rpx 10rpx; border-radius: 7rpx; background: #EAF2FF; color: #315EA8; font-size: 18rpx; font-weight: 700; }
+.paper-tags text:nth-child(2) { background: #EAF2FF; color: #315EA8; }
+.paper-tags text:last-child { background: #EAF2FF; color: var(--panpan-green-strong); }
 .paper-title { display: flex; align-items: flex-start; gap: 8rpx; margin-top: 11rpx; color: var(--panpan-ink); font-size: 27rpx; font-weight: 730; line-height: 1.48; }
 .paper-title text { flex: 1; min-width: 0; }
 .paper-meta { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 20rpx; line-height: 1.48; }
@@ -376,11 +376,11 @@ async function approveAnswer(item){
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
-.paper-primary { background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 7rpx 14rpx rgba(21, 148, 109, .17); }
-.paper-secondary { border: 1rpx solid rgba(32, 180, 134, .28); background: #E7F8F1; color: #15946D; }
-.paper-secondary.done { border-color: #D4E9DC; background: #F2F7F3; color: var(--panpan-muted); }
-.paper-secondary.ready { border-color: rgba(32, 180, 134, .28); background: #E7F8F1; color: var(--panpan-green-strong); }
-.load-more { min-height: 82rpx; display: flex; align-items: center; justify-content: center; gap: 6rpx; margin: 18rpx 0; border: 1rpx solid #CFE6D8; border-radius: 10rpx; background: #FFFFFF; color: var(--panpan-green-strong); font-size: 23rpx; font-weight: 700; transition: transform var(--motion-fast) var(--ease-out); }
+.paper-primary { background: var(--panpan-green-strong); color: #FFFFFF; box-shadow: 0 7rpx 14rpx rgba(49, 94, 168, .17); }
+.paper-secondary { border: 1rpx solid rgba(82, 124, 201, .28); background: #EAF2FF; color: #315EA8; }
+.paper-secondary.done { border-color: #DDE7F2; background: #F2F7F3; color: var(--panpan-muted); }
+.paper-secondary.ready { border-color: rgba(82, 124, 201, .28); background: #EAF2FF; color: var(--panpan-green-strong); }
+.load-more { min-height: 82rpx; display: flex; align-items: center; justify-content: center; gap: 6rpx; margin: 18rpx 0; border: 1rpx solid #D9E5F3; border-radius: 10rpx; background: #FFFFFF; color: var(--panpan-green-strong); font-size: 23rpx; font-weight: 700; transition: transform var(--motion-fast) var(--ease-out); }
 .privacy-note { padding: 20rpx 10rpx; color: var(--panpan-muted); font-size: 19rpx; line-height: 1.55; text-align: center; }
 
 @keyframes exam-enter {

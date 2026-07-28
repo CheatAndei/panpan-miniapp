@@ -5,10 +5,10 @@ const sharp = require('sharp');
 const root = path.resolve(__dirname, '..');
 const iconDir = path.join(root, 'static', 'icons');
 const variants = [
-  { source: 'home.svg', output: 'home-tab.png', color: '#7A8981' },
-  { source: 'home.svg', output: 'home-tab-active.png', color: '#15946D' },
-  { source: 'user.svg', output: 'user-tab.png', color: '#7A8981' },
-  { source: 'user.svg', output: 'user-tab-active.png', color: '#15946D' },
+  { source: 'home.svg', output: 'home-tab.png', color: '#7A879B' },
+  { source: 'home.svg', output: 'home-tab-active.png', color: '#315EA8' },
+  { source: 'user.svg', output: 'user-tab.png', color: '#7A879B' },
+  { source: 'user.svg', output: 'user-tab-active.png', color: '#315EA8' },
 ];
 
 function recolorSvg(source, color) {

@@ -561,12 +561,12 @@ export default {
 }
 .btn-xs.copy,
 .btn-xs.share {
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 .btn-xs.del {
-  border-color: #F2C4C0;
+  border-color: #EFC9C2;
   background: var(--coral-soft);
   color: var(--danger);
 }
@@ -595,13 +595,13 @@ export default {
 }
 .btn-transfer-stu[disabled] { opacity: .42; }
 .btn-add-stu {
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 .btn-transfer-stu {
   margin-bottom: 18rpx;
-  border: 1rpx solid #B8DDCD;
+  border: 1rpx solid #BFD0EC;
   background: var(--gold-soft);
   color: var(--warning);
 }
@@ -636,7 +636,7 @@ export default {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(38, 53, 47, .44);
+  background: rgba(36, 50, 74, .44);
 }
 .modal {
   width: 100%;
@@ -670,7 +670,7 @@ export default {
   padding: 0 20rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--ink);
   font-size: 28rpx;
   line-height: 82rpx;
@@ -846,34 +846,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E7F8F1;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --gold: #20B486;
-  --gold-soft: #E7F8F1;
-  --warning: #15946D;
-  --warning-soft: #E7F8F1;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #20B486;
-  --info-soft: #E7F8F1;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #5A6A62;
-  --page-bg: #F8FCF9;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EAF2FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EAF2FF;
+  --success: #315EA8;
+  --success-soft: #EAF2FF;
+  --gold: #527CC9;
+  --gold-soft: #EAF2FF;
+  --warning: #315EA8;
+  --warning-soft: #EAF2FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #5C6C84;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --border: #D7E7DE;
-  --hairline: #E6F0EA;
-  background-color: #F8FCF9;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx);
+  --surface-muted: #F8FBFF;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  background-color: #F6FAFF;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -883,7 +883,7 @@ export default {
   position: relative;
   padding: 28rpx 28rpx 22rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #D7E7DE;
+  border-bottom: 1rpx solid #DDE7F2;
   background: #FFFFFF !important;
 }
 .hero::before {
@@ -893,7 +893,7 @@ export default {
   left: 20rpx;
   width: 6rpx;
   border-radius: 3rpx;
-  background: #20B486;
+  background: #527CC9;
   content: "";
 }
 .hero::after {
@@ -901,31 +901,31 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #20B486;
+  background: #527CC9;
 }
-.hero .eyebrow { color: #15946D; }
+.hero .eyebrow { color: #315EA8; }
 .hero-title-line {
   display: flex;
   align-items: center;
   gap: 10rpx;
   margin-top: 6rpx;
 }
-.hero-title { margin-top: 0; color: #26352F; }
-.hero-sub { color: #5A6A62; }
+.hero-title { margin-top: 0; color: #24324A; }
+.hero-sub { color: #5C6C84; }
 .state-card,
 .class-card {
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
-.class-card::before { background: #20B486; }
+.class-card::before { background: #527CC9; }
 .c-header {
   min-height: 0;
   padding: 17rpx 18rpx 15rpx 24rpx;
   align-items: flex-start;
 }
-.c-toggle { color: #15946D; }
-.stu-list { border-top-color: #E6F0EA; }
+.c-toggle { color: #315EA8; }
+.stu-list { border-top-color: #E9F0F8; }
 .stu-row {
   min-height: 0;
   padding: 14rpx 0;
@@ -943,7 +943,7 @@ export default {
   order: -1;
   max-width: none;
   margin-right: auto;
-  color: #5A6A62;
+  color: #5C6C84;
 }
 .btn-xs,
 .share-btn {
@@ -954,14 +954,14 @@ export default {
 }
 .btn-xs.copy,
 .btn-xs.share {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .btn-xs.del {
-  border-color: #F2C4C0;
-  background: #FFF0EE;
-  color: #D94B45;
+  border-color: #EFC9C2;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 .btn-add-stu,
 .btn-transfer-stu {
@@ -971,14 +971,14 @@ export default {
   line-height: 68rpx;
 }
 .btn-add-stu {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .btn-transfer-stu {
-  border-color: #B8DDCD;
+  border-color: #BFD0EC;
   background: #FFFFFF;
-  color: #15946D;
+  color: #315EA8;
 }
 .create-wrap { background: rgba(248, 252, 249, .98); }
 .btn-create,
@@ -986,7 +986,7 @@ export default {
   height: 82rpx;
   min-height: 0;
   padding: 0 18rpx;
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
   line-height: 82rpx;
 }
@@ -995,8 +995,8 @@ export default {
   background: #FFFFFF;
 }
 .input {
-  background: #F8FCF9;
-  border-color: #D7E7DE;
+  background: #F6FAFF;
+  border-color: #DDE7F2;
 }
 .gender-btn,
 .lv-btn {
@@ -1007,13 +1007,13 @@ export default {
 .gender-btn.on,
 .lv-btn.on,
 .trait-tag.on {
-  border-color: #20B486;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #527CC9;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .cat-head {
   align-items: flex-start;
-  background: #F1F8F4;
+  background: #F8FBFF;
 }
 .btn-cancel {
   height: 64rpx;

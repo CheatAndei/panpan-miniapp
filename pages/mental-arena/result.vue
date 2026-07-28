@@ -389,36 +389,36 @@ async function savePoster() {
 
 /* Student challenge theme v3: warm paper and one energetic teaching green. */
 .student-challenge-page {
-  --page-bg: #F8FCF9;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #6D7C74;
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E8F5EF;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E8F5EF;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --border: #D5E6DE;
-  --hairline: #E4EFE9;
+  --surface-muted: #F8FBFF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #6E7D91;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EDF5FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EDF5FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
   --r: 16rpx;
   --r-sm: 14rpx;
   --r-xs: 10rpx;
   --r-lg: 16rpx;
-  --shadow-sm: 0 6rpx 18rpx rgba(38, 53, 47, .06);
-  --shadow: 0 10rpx 28rpx rgba(38, 53, 47, .08);
+  --shadow-sm: 0 6rpx 18rpx rgba(36, 50, 74, .06);
+  --shadow: 0 10rpx 28rpx rgba(36, 50, 74, .08);
   overflow-x: hidden;
   overflow-y: visible;
   background-color: var(--page-bg);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 55rpx,
-    rgba(32, 180, 134, .045) 56rpx 57rpx
+    rgba(82, 124, 201, .045) 56rpx 57rpx
   );
   color: var(--ink);
 }
@@ -448,7 +448,7 @@ async function savePoster() {
   align-items: center;
   justify-content: center;
   margin: 0 auto 12rpx;
-  border: 1rpx solid #FFD2CD;
+  border: 1rpx solid #FCEEEB;
   border-radius: 16rpx;
   background: var(--coral-soft);
 }
@@ -475,7 +475,7 @@ async function savePoster() {
   width: 112rpx;
   height: 112rpx;
   margin-top: 6rpx;
-  border: 1rpx solid #CBEADF;
+  border: 1rpx solid #DDEEFF;
   border-top: 7rpx solid var(--primary);
   border-radius: var(--r-sm);
   background: var(--primary-soft);
@@ -523,11 +523,11 @@ async function savePoster() {
 .student-challenge-page .fish-tag {
   margin-top: 13rpx;
   padding: 8rpx 12rpx;
-  border: 1rpx solid #F3C8C2;
+  border: 1rpx solid #EFC9C2;
   border-left: 5rpx solid var(--coral);
   border-radius: var(--r-xs);
   background: var(--coral-soft);
-  color: #D94B45;
+  color: #D66D62;
 }
 
 .student-challenge-page .motion-block {
@@ -608,7 +608,7 @@ async function savePoster() {
 }
 
 .student-challenge-page .rank-btn {
-  border: 1rpx solid #BFE4D4;
+  border: 1rpx solid #CADCF2;
   background: var(--surface);
   color: var(--primary-strong);
 }
@@ -619,13 +619,17 @@ async function savePoster() {
 }
 
 .student-challenge-page .poster-btn {
-  border: 1rpx solid #CBEADF;
-  background: var(--primary-soft);
-  color: #15946D;
+  min-height: 112rpx;
+  border: 1rpx solid #E6CF88;
+  border-radius: 14rpx;
+  background: #FFF5D7;
+  color: #765410;
+  box-shadow: none;
+  transition: transform 120ms cubic-bezier(.16, 1, .3, 1), opacity 120ms cubic-bezier(.16, 1, .3, 1);
 }
 
 .student-challenge-page .poster-spark {
-  color: var(--primary);
+  color: inherit;
 }
 
 .student-challenge-page .review-card {
@@ -655,7 +659,7 @@ async function savePoster() {
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 1rpx solid #BFE4D4;
+  border: 1rpx solid #CADCF2;
   border-radius: 12rpx;
   background: var(--primary-soft);
 }
@@ -674,7 +678,7 @@ async function savePoster() {
 .student-challenge-page .wrong-count {
   border-radius: var(--r-xs);
   background: var(--coral-soft);
-  color: #D94B45;
+  color: #D66D62;
 }
 
 .student-challenge-page .wrong-count.perfect {
@@ -685,7 +689,7 @@ async function savePoster() {
 .student-challenge-page .perfect-note {
   margin-bottom: 8rpx;
   padding: 22rpx;
-  border: 1rpx solid #CBEADF;
+  border: 1rpx solid #DDEEFF;
   border-left: 6rpx solid var(--primary);
   border-radius: var(--r-sm);
   background: var(--primary-soft);
@@ -718,7 +722,7 @@ async function savePoster() {
 .student-challenge-page .answer-no {
   border-radius: var(--r-xs);
   background: var(--coral-soft);
-  color: #D94B45;
+  color: #D66D62;
 }
 
 .student-challenge-page .answer-row.correct .answer-no {
@@ -732,7 +736,7 @@ async function savePoster() {
 
 .student-challenge-page .your-answer,
 .student-challenge-page .correct-answer {
-  color: #D94B45;
+  color: #D66D62;
 }
 
 .student-challenge-page .answer-row.correct .your-answer,
@@ -765,87 +769,89 @@ async function savePoster() {
 }
 
 .student-challenge-page .poster-overlay {
-  background: rgba(38, 53, 47, .56);
+  background: rgba(36, 50, 74, .56);
 }
 
 .student-challenge-page .poster-sheet {
-  padding: 30rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
-  border-radius: var(--r-lg) var(--r-lg) 0 0;
-  background: var(--page-bg);
-  box-shadow: var(--shadow-lg);
+  padding: 32rpx 24rpx calc(30rpx + env(safe-area-inset-bottom));
+  border-radius: 30rpx 30rpx 0 0;
+  background: #F6FAFF;
+  box-shadow: 0 -24rpx 60rpx rgba(36, 50, 74, .2);
 }
 
 .student-challenge-page .poster-close {
-  width: 60rpx;
-  height: 60rpx;
-  border: 1rpx solid var(--border);
-  border-radius: var(--r-xs);
-  background: var(--surface);
-  color: var(--ink);
-  line-height: 54rpx;
+  width: 88rpx;
+  height: 88rpx;
+  min-width: 88rpx;
+  min-height: 88rpx;
+  border: 1rpx solid #DDE7F2;
+  border-radius: 50%;
+  background: #FFFFFF;
+  color: #315EA8;
+  line-height: 82rpx;
 }
 
 .student-challenge-page .poster-eyebrow {
-  color: var(--primary-strong);
-  letter-spacing: 0;
+  color: #C48A20;
+  letter-spacing: 3rpx;
 }
 
 .student-challenge-page .poster-title {
-  color: var(--ink);
-  letter-spacing: 0;
+  color: #24324A;
+  letter-spacing: -1rpx;
 }
 
 .student-challenge-page .poster-sub,
 .student-challenge-page .share-note {
-  color: var(--text-secondary);
+  color: #6E7D91;
 }
 
 .student-challenge-page .poster-loading,
 .student-challenge-page .poster-error {
-  min-height: 360rpx;
-  border: 1rpx solid var(--border);
-  border-top: 7rpx solid var(--primary);
-  border-radius: var(--r);
-  background: var(--surface);
-  color: var(--text-secondary);
+  min-height: 520rpx;
+  border: 1rpx solid #DDE7F2;
+  border-radius: 18rpx;
+  background: #FFFFFF;
+  color: #5C6C84;
 }
 
 .student-challenge-page .loading-crown {
-  font-size: 78rpx;
+  font-size: 96rpx;
   animation: none;
 }
 
 .student-challenge-page .poster-error-title {
-  color: var(--ink);
+  color: #24324A;
 }
 
 .student-challenge-page .poster-error-copy {
-  color: var(--text-secondary);
+  color: #5C6C84;
 }
 
 .student-challenge-page .retry-poster,
 .student-challenge-page .save-poster,
 .student-challenge-page .share-poster {
-  min-height: 92rpx;
-  border-radius: var(--r-sm);
+  min-height: 112rpx;
+  border-radius: 14rpx;
+  transition: transform 120ms cubic-bezier(.16, 1, .3, 1), opacity 120ms cubic-bezier(.16, 1, .3, 1);
 }
 
 .student-challenge-page .retry-poster,
 .student-challenge-page .save-poster {
-  background: var(--primary);
-  color: #FFFFFF;
+  background: #F4C75B;
+  color: #493000;
 }
 
 .student-challenge-page .share-poster {
-  background: var(--primary);
+  background: #315EA8;
   color: #FFFFFF;
 }
 
 .student-challenge-page .poster-preview {
-  border: 1rpx solid var(--border);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  border: 0;
+  border-radius: 18rpx;
+  background: #F9FBFF;
+  box-shadow: 0 14rpx 38rpx rgba(49, 94, 168, .09);
 }
 
 @keyframes result-row-in {

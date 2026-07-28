@@ -58,30 +58,30 @@ test('学习记录页连接教师汇总与单生详情接口并覆盖加载、�
   assert.match(page, /onPullDownRefresh/);
 });
 
-test('学习记录页使用青绿与珊瑚双色教学系统并支持窄屏与减弱动效', () => {
+test('学习记录页使用蓝色与珊瑚双色教学系统并支持窄屏与减弱动效', () => {
   for (const token of [
-    '--primary: #20B486',
-    '--primary-strong: #15946D',
-    '--gold: #FF7468',
-    '--coral: #FF7468',
-    '--info: #15946D',
-    '--ink: #26352F',
-    '--page-bg: #F8FCF9',
+    '--primary: #527CC9',
+    '--primary-strong: #315EA8',
+    '--gold: #E98577',
+    '--coral: #E98577',
+    '--info: #315EA8',
+    '--ink: #24324A',
+    '--page-bg: #F6FAFF',
   ]) {
     assert.match(finalTheme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(finalTheme, /\.hero\s*\{[\s\S]*?background:\s*#FFFFFF !important/);
-  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(1\)[\s\S]*?#FFF0EE/);
-  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(2\)[\s\S]*?#F7FCF9/);
-  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(3\)[\s\S]*?#F7FCF9/);
-  assert.match(finalTheme, /\.channel-card\.tone-mint[\s\S]*?#20B486/);
-  assert.match(finalTheme, /\.channel-card\.tone-yellow[\s\S]*?#20B486/);
-  assert.match(finalTheme, /\.channel-card\.tone-coral[\s\S]*?#FF7468/);
+  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(1\)[\s\S]*?#FFF0ED/);
+  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(2\)[\s\S]*?#F8FBFF/);
+  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(3\)[\s\S]*?#F8FBFF/);
+  assert.match(finalTheme, /\.channel-card\.tone-mint[\s\S]*?#527CC9/);
+  assert.match(finalTheme, /\.channel-card\.tone-yellow[\s\S]*?#527CC9/);
+  assert.match(finalTheme, /\.channel-card\.tone-coral[\s\S]*?#E98577/);
   assert.match(page, /motion="pop"/);
   assert.match(finalTheme, /@keyframes learning-record-enter/);
   assert.match(page, /@media\(max-width:340px\)/);
   assert.match(page, /prefers-reduced-motion:reduce/);
-  assert.doesNotMatch(finalTheme, /#173A35|#183A36|#2F6E61|#3268D6|#1E4EA8|#315EA8|#527CC9|#5B9DF7|#337BD8|#FFC94A|#B27600|#FFF6D8|#EDF4FF/i);
+  assert.doesNotMatch(finalTheme, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F|#173A35|#183A36|#2F6E61|#3268D6|#1E4EA8|#5B9DF7|#337BD8|#FFC94A|#B27600/i);
   assert.doesNotMatch(finalTheme, /radial-gradient|orb|align-items:\s*stretch/i);
 
   const radii = [...finalTheme.matchAll(/border-radius:\s*(\d+)rpx/g)]

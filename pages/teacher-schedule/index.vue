@@ -197,7 +197,7 @@ export default {
       const msg=notify.ok
         ? `${title} ${res.count} 节并提醒家长${skipped}`
         : `${title} ${res.count} 节，提醒未送达${notifyReason?'：'+notifyReason:''}${skipped}`;
-    uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#15946D'});
+    uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#315EA8'});
     }
   }
 };
@@ -312,7 +312,7 @@ export default {
   min-height: 52rpx;
   padding: 4rpx 13rpx;
   gap: 3rpx;
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   border-radius: 8rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -344,7 +344,7 @@ export default {
   margin: 0 -8rpx;
   padding-right: 12rpx;
   padding-left: 12rpx;
-  border-top-color: #D7E7DE;
+  border-top-color: #DDE7F2;
   border-left: 5rpx solid var(--primary);
   background: var(--primary-soft);
 }
@@ -354,7 +354,7 @@ export default {
   justify-content: center;
   width: 36rpx;
   height: 36rpx;
-  border: 2rpx solid #B8C8BF;
+  border: 2rpx solid #B8C8DC;
   border-radius: 7rpx;
   background: var(--surface);
   color: #FFFFFF;
@@ -438,7 +438,7 @@ export default {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(38, 53, 47, .44);
+  background: rgba(36, 50, 74, .44);
 }
 .modal {
   width: 100%;
@@ -469,7 +469,7 @@ export default {
   padding: 0 18rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--ink);
   font-size: 27rpx;
   line-height: 80rpx;
@@ -543,34 +543,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E7F8F1;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --gold: #20B486;
-  --gold-soft: #E7F8F1;
-  --warning: #15946D;
-  --warning-soft: #E7F8F1;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #20B486;
-  --info-soft: #E7F8F1;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #5A6A62;
-  --page-bg: #F8FCF9;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EAF2FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EAF2FF;
+  --success: #315EA8;
+  --success-soft: #EAF2FF;
+  --gold: #527CC9;
+  --gold-soft: #EAF2FF;
+  --warning: #315EA8;
+  --warning-soft: #EAF2FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #5C6C84;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --border: #D7E7DE;
-  --hairline: #E6F0EA;
-  background-color: #F8FCF9;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx);
+  --surface-muted: #F8FBFF;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  background-color: #F6FAFF;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -580,7 +580,7 @@ export default {
   position: relative;
   padding: 28rpx 28rpx 22rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #D7E7DE;
+  border-bottom: 1rpx solid #DDE7F2;
   background: #FFFFFF !important;
 }
 .hero::before {
@@ -590,7 +590,7 @@ export default {
   left: 20rpx;
   width: 6rpx;
   border-radius: 3rpx;
-  background: #20B486;
+  background: #527CC9;
   content: "";
 }
 .hero::after {
@@ -598,14 +598,14 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #20B486;
+  background: #527CC9;
 }
-.hero .eyebrow { color: #15946D; }
-.hero-title { color: #26352F; }
-.hero-sub { color: #5A6A62; }
+.hero .eyebrow { color: #315EA8; }
+.hero-title { color: #24324A; }
+.hero-sub { color: #5C6C84; }
 .state-card,
 .page > .card {
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
@@ -613,11 +613,11 @@ export default {
   min-height: 0;
   padding: 15rpx 18rpx;
   align-items: flex-start;
-  border-left-color: #20B486;
+  border-left-color: #527CC9;
 }
 .special-icon {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .day-header {
   min-height: 0;
@@ -627,9 +627,9 @@ export default {
   height: 54rpx;
   min-height: 0;
   padding: 0 13rpx;
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
   line-height: 54rpx;
 }
 .sc-card {
@@ -637,33 +637,33 @@ export default {
   padding: 15rpx 4rpx;
 }
 .sc-card.selected {
-  border-top-color: #B8DDCD;
-  border-left-color: #20B486;
-  background: #E7F8F1;
+  border-top-color: #BFD0EC;
+  border-left-color: #527CC9;
+  background: #EAF2FF;
 }
 .checkbox.on {
-  border-color: #20B486;
-  background: #20B486;
+  border-color: #527CC9;
+  background: #527CC9;
 }
 .bg0,
 .bg5 {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .bg1,
 .bg4,
 .bg6,
 .bg9 {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .bg3 {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .bg8 {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .publish-dock { background: rgba(248, 252, 249, .98); }
 .publish-dock .btn-accent,
@@ -671,7 +671,7 @@ export default {
   height: 82rpx;
   min-height: 0;
   padding: 0 18rpx;
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
   line-height: 82rpx;
 }
@@ -680,8 +680,8 @@ export default {
   background: #FFFFFF;
 }
 .input {
-  border-color: #D7E7DE;
-  background: #F8FCF9;
+  border-color: #DDE7F2;
+  background: #F6FAFF;
 }
 .row {
   align-items: flex-start;

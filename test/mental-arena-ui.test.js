@@ -68,12 +68,18 @@ test('动画结束自动生成口算王专属海报，并提供关闭、保存�
   assert.match(achievement, /challenge_id:Number\(row\.id\)/);
 });
 
-test('口算王海报使用明亮青绿大色面、暖白纸面与珊瑚点睛', () => {
+test('口算王海报恢复 404baa8 的深色画布和蓝金弹层', () => {
+  const result = read('pages/mental-arena/result.vue');
   const poster = read('utils/mental-arena-poster.js');
-  assert.match(poster, /page:\s*'#F8FCF9'/);
-  assert.match(poster, /green:\s*'#20B486'/);
-  assert.match(poster, /coral:\s*'#FF7468'/);
-  assert.match(poster, /fillRect\(0,\s*0,\s*750,\s*430\)/);
-  assert.doesNotMatch(poster, /#(?:102D27|0B211D|071714|E7C365|F2ECDD)/i);
-  assert.doesNotMatch(poster, /createLinearGradient/);
+  assert.match(poster, /createLinearGradient\(0,\s*0,\s*750,\s*1000\)/);
+  assert.match(poster, /#102D27/);
+  assert.match(poster, /#0B211D/);
+  assert.match(poster, /#071714/);
+  assert.match(poster, /#E7C365/);
+  assert.match(poster, /#F2ECDD/);
+  assert.doesNotMatch(poster, /MENTAL_POSTER_THEME|#F8FCF9|#20B486|#FF7468/);
+  assert.match(result, /\.student-challenge-page \.poster-btn\s*\{[\s\S]*?background:\s*#FFF5D7;[\s\S]*?color:\s*#765410;/);
+  assert.match(result, /\.student-challenge-page \.poster-overlay\s*\{\s*background:\s*rgba\(36,\s*50,\s*74,\s*\.56\);/);
+  assert.match(result, /\.student-challenge-page \.save-poster\s*\{[\s\S]*?background:\s*#F4C75B;/);
+  assert.match(result, /\.student-challenge-page \.share-poster\s*\{[\s\S]*?background:\s*#315EA8;/);
 });

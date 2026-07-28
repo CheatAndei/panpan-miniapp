@@ -4,37 +4,37 @@ export const ACHIEVEMENT_POSTER_WIDTH = 750;
 export const ACHIEVEMENT_POSTER_HEIGHT = 1000;
 
 const COMMON_COLORS = Object.freeze({
-  background: '#F8FCF9',
+  background: '#F6FAFF',
   paper: '#FFFFFF',
-  ink: '#26352F',
-  secondary: '#5A6A62',
-  muted: '#7A8A82',
+  ink: '#24324A',
+  secondary: '#5C6C84',
+  muted: '#7C8C91',
   border: '#D7EAE2',
   rule: '#EAF4F0',
 });
 
 const CATEGORY_THEMES = Object.freeze({
   choice: Object.freeze({
-    primary: '#15946D',
-    soft: '#E7F8F1',
-    accent: '#FF7468',
-    accentSoft: '#FFF0EE',
+    primary: '#315EA8',
+    soft: '#EAF2FF',
+    accent: '#E98577',
+    accentSoft: '#FFF0ED',
     label: '选择刷题王',
     note: '稳稳积累，每一道题都算数',
   }),
   mental: Object.freeze({
-    primary: '#20B486',
-    soft: '#E7F8F1',
-    accent: '#D94B45',
-    accentSoft: '#FFF0EE',
+    primary: '#527CC9',
+    soft: '#EAF2FF',
+    accent: '#D66D62',
+    accentSoft: '#FFF0ED',
     label: '口算王',
     note: '又快又准，专注力正在发光',
   }),
   challenge: Object.freeze({
-    primary: '#D94B45',
-    soft: '#FFF0EE',
-    accent: '#20B486',
-    accentSoft: '#E7F8F1',
+    primary: '#D66D62',
+    soft: '#FFF0ED',
+    accent: '#527CC9',
+    accentSoft: '#EAF2FF',
     label: '压轴挑战',
     note: '敢啃难题，思路比答案更珍贵',
   }),

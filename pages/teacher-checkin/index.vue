@@ -327,7 +327,7 @@ export default {
   color: #FFFFFF;
 }
 .btn-special-main {
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -394,7 +394,7 @@ export default {
   color: #FFFFFF;
 }
 .btn-out {
-  border: 1rpx solid #D7E7DE;
+  border: 1rpx solid #DDE7F2;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -404,7 +404,7 @@ export default {
   color: var(--primary-strong);
 }
 .btn-leave {
-  border: 1rpx solid #B8DDCD;
+  border: 1rpx solid #BFD0EC;
   background: var(--gold-soft);
   color: var(--warning);
 }
@@ -466,34 +466,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #20B486;
-  --primary-strong: #15946D;
-  --primary-soft: #E7F8F1;
-  --accent: #20B486;
-  --accent-strong: #15946D;
-  --accent-soft: #E7F8F1;
-  --success: #15946D;
-  --success-soft: #E7F8F1;
-  --gold: #20B486;
-  --gold-soft: #E7F8F1;
-  --warning: #15946D;
-  --warning-soft: #E7F8F1;
-  --coral: #FF7468;
-  --coral-soft: #FFF0EE;
-  --danger: #D94B45;
-  --danger-soft: #FFF0EE;
-  --info: #20B486;
-  --info-soft: #E7F8F1;
-  --ink: #26352F;
-  --text-secondary: #5A6A62;
-  --text-muted: #5A6A62;
-  --page-bg: #F8FCF9;
+  --primary: #527CC9;
+  --primary-strong: #315EA8;
+  --primary-soft: #EAF2FF;
+  --accent: #527CC9;
+  --accent-strong: #315EA8;
+  --accent-soft: #EAF2FF;
+  --success: #315EA8;
+  --success-soft: #EAF2FF;
+  --gold: #527CC9;
+  --gold-soft: #EAF2FF;
+  --warning: #315EA8;
+  --warning-soft: #EAF2FF;
+  --coral: #E98577;
+  --coral-soft: #FFF0ED;
+  --danger: #D66D62;
+  --danger-soft: #FFF0ED;
+  --info: #527CC9;
+  --info-soft: #EAF2FF;
+  --ink: #24324A;
+  --text-secondary: #5C6C84;
+  --text-muted: #5C6C84;
+  --page-bg: #F6FAFF;
   --surface: #FFFFFF;
-  --surface-muted: #F1F8F4;
-  --border: #D7E7DE;
-  --hairline: #E6F0EA;
-  background-color: #F8FCF9;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(32, 180, 134, .035) 64rpx 65rpx);
+  --surface-muted: #F8FBFF;
+  --border: #DDE7F2;
+  --hairline: #E9F0F8;
+  background-color: #F6FAFF;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -503,7 +503,7 @@ export default {
   position: relative;
   padding: 28rpx 28rpx 22rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #D7E7DE;
+  border-bottom: 1rpx solid #DDE7F2;
   background: #FFFFFF !important;
 }
 .hero::before {
@@ -513,7 +513,7 @@ export default {
   left: 20rpx;
   width: 6rpx;
   border-radius: 3rpx;
-  background: #20B486;
+  background: #527CC9;
   content: "";
 }
 .hero::after {
@@ -521,24 +521,24 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #20B486;
+  background: #527CC9;
 }
-.hero .eyebrow { color: #15946D; }
+.hero .eyebrow { color: #315EA8; }
 .hero-title-line {
   display: flex;
   align-items: center;
   gap: 10rpx;
   margin-top: 6rpx;
 }
-.hero-title { margin-top: 0; color: #26352F; }
-.hero-date { color: #5A6A62; }
+.hero-title { margin-top: 0; color: #24324A; }
+.hero-date { color: #5C6C84; }
 .state-card,
 .session-card {
-  border-color: #D7E7DE;
+  border-color: #DDE7F2;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
-.session-card::before { background: #20B486; }
+.session-card::before { background: #527CC9; }
 .se-header {
   min-height: 0;
   padding: 17rpx 18rpx 15rpx 24rpx;
@@ -547,22 +547,22 @@ export default {
 .stats {
   align-items: flex-start;
   padding: 12rpx 18rpx 12rpx 24rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
 }
 .stat {
   padding: 7rpx 9rpx;
   border-radius: 7rpx;
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
   line-height: 1.25;
 }
 .stat.green {
-  background: #E7F8F1;
-  color: #15946D;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .stat.gray {
-  background: #FFF0EE;
-  color: #D94B45;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 .btn-accent,
 .btn-special-main {
@@ -572,13 +572,13 @@ export default {
   line-height: 72rpx;
 }
 .btn-accent {
-  background: #20B486;
+  background: #527CC9;
   color: #FFFFFF;
 }
 .btn-special-main {
-  border-color: #B8DDCD;
+  border-color: #BFD0EC;
   background: #FFFFFF;
-  color: #15946D;
+  color: #315EA8;
 }
 .stu-row {
   min-height: 0;
@@ -595,20 +595,20 @@ export default {
   padding: 0;
   line-height: 54rpx;
 }
-.btn-in { background: #20B486; }
+.btn-in { background: #527CC9; }
 .btn-out {
-  border-color: #B8DDCD;
-  background: #E7F8F1;
-  color: #15946D;
+  border-color: #BFD0EC;
+  background: #EAF2FF;
+  color: #315EA8;
 }
 .btn-remind {
-  border-color: #F2C4C0;
-  background: #FFF0EE;
-  color: #D94B45;
+  border-color: #EFC9C2;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 .btn-leave {
-  border-color: #F2C4C0;
-  background: #FFF0EE;
-  color: #D94B45;
+  border-color: #EFC9C2;
+  background: #FFF0ED;
+  color: #D66D62;
 }
 </style>

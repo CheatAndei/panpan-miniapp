@@ -85,15 +85,15 @@ export default {
 
 <style scoped>
 .page {
-  --panpan-green: #20B486;
-  --panpan-green-strong: #15946D;
-  --panpan-sprout: #20B486;
-  --panpan-coral: #FF7468;
-  --panpan-leaf: #15946D;
-  --panpan-paper: #F8FCF9;
-  --panpan-ink: #26352F;
-  --panpan-muted: #5A6A62;
-  --panpan-line: #CFE6D8;
+  --panpan-green: #527CC9;
+  --panpan-green-strong: #315EA8;
+  --panpan-sprout: #527CC9;
+  --panpan-coral: #E98577;
+  --panpan-leaf: #315EA8;
+  --panpan-paper: #F6FAFF;
+  --panpan-ink: #24324A;
+  --panpan-muted: #5C6C84;
+  --panpan-line: #D9E5F3;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -104,7 +104,7 @@ export default {
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(32, 180, 134, .055) 64rpx 65rpx
+    rgba(82, 124, 201, .055) 64rpx 65rpx
   );
 }
 
@@ -128,7 +128,7 @@ export default {
   border: 2rpx solid var(--panpan-ink);
   border-radius: 14rpx;
   background: var(--panpan-sprout);
-  box-shadow: 8rpx 8rpx 0 rgba(36, 48, 41, .08);
+  box-shadow: 8rpx 8rpx 0 rgba(36, 50, 74, .08);
 }
 
 .hero-title {
@@ -154,7 +154,7 @@ export default {
   border-top: 7rpx solid var(--panpan-green);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: 0 12rpx 28rpx rgba(36, 48, 41, .08);
+  box-shadow: 0 12rpx 28rpx rgba(36, 50, 74, .08);
   animation: bind-card-enter var(--motion-slow) 50ms var(--ease-out) both;
 }
 
@@ -164,11 +164,11 @@ export default {
   gap: 9rpx;
   margin-bottom: 22rpx;
   padding: 16rpx 18rpx;
-  border: 1rpx solid rgba(255, 116, 104, .42);
+  border: 1rpx solid rgba(233, 133, 119, .42);
   border-left: 6rpx solid var(--panpan-coral);
   border-radius: 10rpx;
-  background: #FFF2F0;
-  color: #D94B45;
+  background: #FFF0ED;
+  color: #D66D62;
   font-size: 24rpx;
   line-height: 1.58;
 }
@@ -183,7 +183,7 @@ export default {
   padding: 0 18rpx;
   border: 2rpx solid var(--panpan-line);
   border-radius: 12rpx;
-  background: #F8FCF9;
+  background: #F6FAFF;
   color: var(--panpan-ink);
   font-size: 34rpx;
   font-weight: 740;
@@ -197,7 +197,7 @@ export default {
 .code-input:focus {
   border-color: var(--panpan-green);
   background: #FFFFFF;
-  box-shadow: 0 0 0 5rpx rgba(32, 180, 134, .14);
+  box-shadow: 0 0 0 5rpx rgba(82, 124, 201, .14);
 }
 
 .code-hint { display: flex; align-items: center; justify-content: center; gap: 7rpx; margin-top: 12rpx; color: var(--panpan-muted); font-size: 22rpx; text-align: center; }
@@ -214,10 +214,10 @@ export default {
   color: #FFFFFF;
   font-size: 27rpx;
   font-weight: 720;
-  box-shadow: 0 9rpx 18rpx rgba(21, 148, 109, .2);
+  box-shadow: 0 9rpx 18rpx rgba(49, 94, 168, .2);
 }
 .btn-primary::after { border: 0; }
-.btn-primary[disabled] { background: #BBDCCF; box-shadow: none; }
+.btn-primary[disabled] { background: #C9DAF0; box-shadow: none; }
 .result-card { text-align: center; }
 .result-icon { display: flex; justify-content: center; margin-bottom: 20rpx; }
 
@@ -229,7 +229,7 @@ export default {
   justify-content: center;
   border: 2rpx solid var(--panpan-green);
   border-radius: 16rpx;
-  background: #E7F8F1;
+  background: #EAF2FF;
   color: var(--panpan-green-strong);
   animation: pop 260ms var(--ease-out);
 }

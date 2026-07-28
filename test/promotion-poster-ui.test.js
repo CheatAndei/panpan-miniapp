@@ -46,13 +46,13 @@ test('口算登顶与压轴通关使用两套主题，并生成高清可保存�
   assert.match(page, /score-aside-detail/);
   assert.match(page, /font-variant-numeric:tabular-nums/);
   assert.match(page, /Score dashboard/);
-  assert.match(poster, /#F8FCF9/);
-  assert.match(poster, /#20B486/);
-  assert.match(poster, /#15946D/);
-  assert.match(poster, /#FF7468/);
-  assert.match(poster, /#FFF0EE/);
-  assert.match(poster, /#E7F8F1/);
-  assert.doesNotMatch(poster, /#111C3D|#080F24|#3B241C|#C84E32|#4C8FD8|#6FA9E6|#F6D77A|#DDEEFF/);
+  assert.match(poster, /#FFF9EC/);
+  assert.match(poster, /#6FA9E6/);
+  assert.match(poster, /#DDEEFF/);
+  assert.match(poster, /#FFF8EE/);
+  assert.match(poster, /#F39A6B/);
+  assert.match(poster, /#FFE2D1/);
+  assert.doesNotMatch(poster, /#111C3D|#080F24|#3B241C|#C84E32/);
   assert.doesNotMatch(poster, /panpan-feedback-line|pantouxiang/);
 });
 

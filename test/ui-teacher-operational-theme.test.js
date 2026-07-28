@@ -50,24 +50,24 @@ function cssRules(css) {
   }));
 }
 
-test('teacher operational pages use the bright Panpan learning palette', () => {
+test('teacher operational pages use the restored blue Panpan learning palette', () => {
   for (const file of files) {
     const source = read(file);
     const theme = finalTheme(source, file);
 
     for (const token of [
-      '--primary: #20B486',
-      '--primary-strong: #15946D',
-      '--gold: #20B486',
-      '--coral: #FF7468',
-      '--info: #20B486',
-      '--ink: #26352F',
-      '--page-bg: #F8FCF9',
+      '--primary: #527CC9',
+      '--primary-strong: #315EA8',
+      '--gold: #527CC9',
+      '--coral: #E98577',
+      '--info: #527CC9',
+      '--ink: #24324A',
+      '--page-bg: #F6FAFF',
     ]) {
       assert.match(theme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${file} should define ${token}`);
     }
 
-    assert.doesNotMatch(theme, /#3268D6|#1E4EA8|#315EA8|#527CC9|#183A36|#173A35/i, `${file} final theme should not retain deep blue or deep green`);
+    assert.doesNotMatch(theme, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F|#183A36|#173A35/i, `${file} final theme should not retain the replaced green-coral palette or deep green`);
     assert.doesNotMatch(theme, /radial-gradient|orb/i, `${file} should not use decorative orbs`);
     assert.doesNotMatch(theme, /align-items:\s*stretch/i, `${file} should not stretch short content`);
 
@@ -81,7 +81,7 @@ test('teacher operational pages use the bright Panpan learning palette', () => {
 
     const hero = ruleBody(theme, heroSelectors[file]);
     assert.match(hero, /#FFFFFF/i, `${file} hero should be paper white`);
-    assert.doesNotMatch(hero, /#3268D6|#1E4EA8|#315EA8|#527CC9/i, `${file} hero should not be deep blue`);
+    assert.doesNotMatch(hero, /background:\s*#(?:315EA8|527CC9)/i, `${file} hero should stay paper white`);
   }
 });
 
@@ -108,18 +108,18 @@ test('single-line controls are compact and do not stack min-height with vertical
   }
 });
 
-test('teacher operation layouts use coherent green-coral roles', () => {
+test('teacher operation layouts use coherent blue-coral roles', () => {
   const checkin = finalTheme(read('pages/teacher-checkin/index.vue'), 'teacher-checkin');
   const tools = finalTheme(read('pages/teacher-tools/index.vue'), 'teacher-tools');
   const history = finalTheme(read('pages/class-history/index.vue'), 'class-history');
   const student = finalTheme(read('pages/student-detail/index.vue'), 'student-detail');
 
-  assert.match(checkin, /\.stat:nth-child|\.stat\.green[\s\S]*?#E7F8F1/);
-  assert.match(checkin, /\.stat\.gray[\s\S]*?#FFF0EE/);
-  assert.match(tools, /\.tool-card-2,[\s\S]*?\.tool-card-3,[\s\S]*?#20B486/);
-  assert.match(tools, /\.tool-card-4[\s\S]*?#FF7468/);
-  assert.match(history, /\.summary-cell\.tone-mint[\s\S]*?#20B486/);
-  assert.match(history, /\.summary-cell\.tone-practice[\s\S]*?#15946D/);
+  assert.match(checkin, /\.stat:nth-child|\.stat\.green[\s\S]*?#EAF2FF/);
+  assert.match(checkin, /\.stat\.gray[\s\S]*?#FFF0ED/);
+  assert.match(tools, /\.tool-card-2,[\s\S]*?\.tool-card-3,[\s\S]*?#527CC9/);
+  assert.match(tools, /\.tool-card-4[\s\S]*?#E98577/);
+  assert.match(history, /\.summary-cell\.tone-mint[\s\S]*?#527CC9/);
+  assert.match(history, /\.summary-cell\.tone-practice[\s\S]*?#315EA8/);
   assert.doesNotMatch(tools + history, /#5B9DF7|#FFC94A|#B27600/);
   assert.match(student, /grid-template-areas:[\s\S]*?"avatar status"/);
   assert.match(student, /\.hero\.hero-navy[\s\S]*?background:\s*#FFFFFF !important/);

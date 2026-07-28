@@ -44,6 +44,7 @@ function createPosterHarness() {
   const drawImages = [];
   const exportOptions = [];
   let currentFillStyle = '';
+  let currentFontSize = 16;
   const context = {
     setFillStyle(value) {
       currentFillStyle = value;
@@ -52,7 +53,7 @@ function createPosterHarness() {
     fillRect(x, y, width, height) {
       fillRects.push({ color: currentFillStyle, x, y, width, height });
     },
-    setFontSize() {},
+    setFontSize(value) { currentFontSize = Number(value) || currentFontSize; },
     fillText(value) { texts.push(String(value)); },
     save() {},
     beginPath() {},
@@ -67,7 +68,14 @@ function createPosterHarness() {
     setLineWidth() {},
     strokeRect() {},
     setShadow() {},
-    measureText(value) { return { width: String(value).length * 24 }; },
+    measureText(value) {
+      const width = [...String(value)].reduce((total, character) => {
+        if (/\s/.test(character)) return total + currentFontSize * 0.32;
+        if (/[\x00-\x7F]/.test(character)) return total + currentFontSize * 0.58;
+        return total + currentFontSize;
+      }, 0);
+      return { width };
+    },
     draw(_reserve, callback) { callback(); },
   };
   const uni = {
@@ -269,23 +277,23 @@ test('长姓名与长错题号会安全截断', async () => {
   assert.ok(!rendered.includes(completeWrongList));
 });
 
-test('海报使用暖白、青绿与少量珊瑚的统一配色并保持 750×1000 逻辑画布与 2 倍导出', async () => {
+test('海报恢复浅蓝、白纸与少量珊瑚的旧版配色并保持 750×1000 逻辑画布与 2 倍导出', async () => {
   const file = path.join(__dirname, '..', 'utils', 'practice-review-poster.js');
   const source = fs.readFileSync(file, 'utf8');
   const harness = await renderPoster();
   const options = harness.exportOptions[0];
 
-  assert.match(source, /#F8FCF9/);
-  assert.match(source, /#20B486/);
-  assert.match(source, /#15946D/);
-  assert.match(source, /#FF7468/);
-  assert.match(source, /#FFF0EE/);
-  assert.match(source, /#26352F/);
+  assert.match(source, /#F6FAFF/);
+  assert.match(source, /#527CC9/);
+  assert.match(source, /#315EA8/);
+  assert.match(source, /#F4C75B/);
+  assert.match(source, /#D66D62/);
+  assert.match(source, /#FFF0ED/);
+  assert.match(source, /#24324A/);
   assert.match(source, /#FFFFFF/);
   assert.match(source, /drawCover\([\s\S]*?'contain'/u);
   assert.doesNotMatch(source, /total === 1 \? 'cover'/);
-  assert.doesNotMatch(source, /#3268D6|#1E4EA8|#315EA8|#527CC9|#24324A/iu);
-  assert.doesNotMatch(source, /#FFC94A|#FFF4C2|#5B9DF7|#EAF3FF|#337BD8|#B27600/iu);
+  assert.doesNotMatch(source, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F/iu);
   assert.doesNotMatch(source, /#173A35|#E9D8BC|#F7F0E5/iu);
   assert.equal(options.width, 750);
   assert.equal(options.height, 1000);
@@ -293,31 +301,30 @@ test('海报使用暖白、青绿与少量珊瑚的统一配色并保持 750×10
   assert.equal(options.destHeight, 2000);
 });
 
-test('海报使用明显青绿大色面，珊瑚只承担状态与签名，并区分全对与有错', async () => {
+test('海报恢复旧版蓝色侧脊与白纸构图，并用绿红区分全对与有错', async () => {
   const allCorrect = await renderPoster({ totalCount: 10, correctCount: 10 });
   const needsWork = await renderPoster({
     totalCount: 10,
     correctCount: 8,
     wrongNumbers: [2, 7],
   });
-  const hasLargePanel = (harness, color, minimumArea = 20000) => harness.fillRects.some(
-    (rect) => rect.color === color && rect.width * rect.height >= minimumArea,
+  const hasRect = (harness, color, x, y, width, height) => harness.fillRects.some(
+    (rect) => rect.color === color
+      && rect.x === x
+      && rect.y === y
+      && rect.width === width
+      && rect.height === height,
   );
 
   for (const harness of [allCorrect, needsWork]) {
-    assert.ok(hasLargePanel(harness, '#20B486'));
-    assert.ok(hasLargePanel(harness, '#FF7468', 15000));
-    assert.equal(harness.fillRects.some((rect) => ['#FFC94A', '#5B9DF7'].includes(rect.color)), false);
+    assert.ok(hasRect(harness, '#527CC9', 0, 0, 14, 1000));
+    assert.ok(hasRect(harness, '#FFFFFF', 14, 0, 736, 165));
+    assert.ok(hasRect(harness, '#FFFFFF', 28, 182, 478, 728));
+    assert.ok(hasRect(harness, '#FFFFFF', 520, 182, 202, 728));
+    assert.ok(hasRect(harness, '#EAF2FF', 538, 306, 166, 120));
+    assert.ok(hasRect(harness, '#FFFFFF', 14, 928, 736, 72));
+    assert.equal(harness.fillRects.some((rect) => ['#20B486', '#15946D', '#FF7468'].includes(rect.color)), false);
   }
-  assert.ok(hasLargePanel(allCorrect, '#20B486', 24000));
-  assert.ok(hasLargePanel(allCorrect, '#E7F8F1', 100000));
-  assert.ok(hasLargePanel(needsWork, '#FF7468', 20000));
-  assert.equal(
-    allCorrect.fillRects.some((rect) => rect.color === '#FFF0EE' && rect.width === 202),
-    false,
-  );
-  assert.equal(
-    needsWork.fillRects.some((rect) => rect.color === '#FFF0EE' && rect.width === 202),
-    true,
-  );
+  assert.ok(hasRect(allCorrect, '#E9F8F3', 562, 40, 148, 88));
+  assert.ok(hasRect(needsWork, '#FFF0ED', 562, 40, 148, 88));
 });
