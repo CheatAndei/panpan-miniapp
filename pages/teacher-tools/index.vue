@@ -1,27 +1,567 @@
 <template>
   <view class="page page-bottom-safe">
-    <view class="hero"><text class="eyebrow">TEACHING TOOLS</text><text class="hero-title">教学工具</text><text class="hero-sub">不改变原生底栏，把新增能力集中放在这里</text></view>
+    <view class="hero">
+      <view class="paper-holes" aria-hidden="true">
+        <view class="paper-hole"></view>
+        <view class="paper-hole"></view>
+        <view class="paper-hole"></view>
+      </view>
+
+      <view class="hero-tab">
+        <text>快捷工作</text>
+      </view>
+
+      <view class="hero-content">
+        <view class="hero-meta">
+          <text class="course-chip">教师高频入口</text>
+          <text class="hero-count">共 {{ tools.length }} 项</text>
+        </view>
+        <text class="hero-title">今天先处理什么</text>
+        <text class="hero-sub">备课、批阅与管理集中在一页，直接进入今天的工作。</text>
+        <view class="hero-footer">
+          <view class="hero-rule" aria-hidden="true"></view>
+          <text class="hero-code">TEACHING DESK · 01</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-head">
+      <view>
+        <text class="section-kicker">工具总览</text>
+        <text class="section-title">备课、批阅与管理</text>
+      </view>
+      <view class="section-index" aria-hidden="true">
+        <text>06</text>
+      </view>
+    </view>
+
     <view class="tool-list">
-      <button v-for="item in tools" :key="item.url" class="tool-card" @tap="go(item.url)">
-        <view :class="['tool-mark',item.tone]"><pp-icon :name="item.icon" :size="40" /></view>
-        <view class="tool-copy"><text class="tool-title">{{ item.title }}</text><text class="tool-desc">{{ item.desc }}</text></view>
-        <pp-icon name="arrow" :size="32" />
+      <button
+        v-for="(item, index) in tools"
+        :key="item.url"
+        :class="['tool-card', `tool-card-${index + 1}`]"
+        :aria-label="`打开${item.title}：${item.desc}`"
+        @tap="go(item.url)"
+      >
+        <view class="tool-number" aria-hidden="true">
+          <text>0{{ index + 1 }}</text>
+        </view>
+        <view :class="['tool-mark', item.tone]" aria-hidden="true">
+          <pp-icon :name="item.icon" :size="40" />
+        </view>
+        <view class="tool-copy">
+          <view class="tool-title-line">
+            <text class="tool-title">{{ item.title }}</text>
+            <text v-if="index === 0" class="tool-priority">常用</text>
+          </view>
+          <text class="tool-desc">{{ item.desc }}</text>
+        </view>
+        <view class="tool-arrow" aria-hidden="true">
+          <pp-icon name="arrow" :size="26" />
+        </view>
       </button>
     </view>
-    <view class="fair-note"><text class="note-title">口算冲榜规则</text><text class="note-copy">目标依据真实排行榜生成，只告诉学生“还差多少分”；不会新增虚假成绩，也不会修改已有成绩。</text></view>
+
+    <view
+      class="fair-note"
+      role="note"
+      aria-label="口算冲榜规则：目标依据真实排行榜生成，不新增虚假成绩，也不修改已有成绩。"
+    >
+      <view class="note-tab"><text>数据原则</text></view>
+      <view class="note-heading">
+        <view class="note-mark" aria-hidden="true"></view>
+        <text class="note-title">口算冲榜规则</text>
+      </view>
+      <text class="note-copy">目标依据真实排行榜生成，只告诉学生“还差多少分”；不会新增虚假成绩，也不会修改已有成绩。</text>
+    </view>
   </view>
 </template>
+
 <script setup>
-const tools=[
-  {title:'每日打卡计划',desc:'四类初中计算题自由组合，发布并批改',icon:'clipboard',tone:'green',url:'/pages/practice-teacher/index'},
-  {title:'广州真题大全',desc:'查看原卷、答案、家长下载和答案申请',icon:'book',tone:'rose',url:'/pages/exam-library/index?grade=g9'},
-  {title:'压轴挑战批阅',desc:'核对填空、大题、标准答案和学生解题照片',icon:'check',tone:'gold',url:'/pages/weekly-review/index'},
-  {title:'题目报错处理',desc:'统一核对选择题、口算题和学习计算题',icon:'message',tone:'rose',url:'/pages/choice-reports/index'},
-  {title:'口算冲榜目标',desc:'给学生设置真实的周排名和分数目标',icon:'users',tone:'navy',url:'/pages/mental-goals/index'},
-  {title:'学习小组历史',desc:'查看现有小组历次发布、反馈与作业',icon:'calendar',tone:'blue',url:'/pages/teacher-classes/index'},
+const tools = [
+  { title: '每日打卡计划', desc: '四类初中计算题自由组合，发布并批改', icon: 'clipboard', tone: 'mint', url: '/pages/practice-teacher/index' },
+  { title: '广州真题大全', desc: '查看原卷、答案、家长下载和答案申请', icon: 'exam', tone: 'blue', url: '/pages/exam-library/index?grade=g9' },
+  { title: '压轴挑战批阅', desc: '核对填空、大题、标准答案和学生解题照片', icon: 'trophy', tone: 'yellow', url: '/pages/weekly-review/index' },
+  { title: '题目报错处理', desc: '统一核对选择题、口算题和学习计算题', icon: 'report', tone: 'coral', url: '/pages/choice-reports/index' },
+  { title: '口算冲榜目标', desc: '给学生设置真实的周排名和分数目标', icon: 'target', tone: 'blue', url: '/pages/mental-goals/index' },
+  { title: '学习小组历史', desc: '查看现有小组历次发布、反馈与作业', icon: 'history', tone: 'mint', url: '/pages/teacher-classes/index' },
 ];
-function go(url){uni.navigateTo({url});}
+
+function go(url) {
+  uni.navigateTo({ url });
+}
 </script>
+
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 50rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 24rpx;padding:52rpx 34rpx 46rpx;border-radius:0 0 34rpx 34rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:19rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;color:#D8EDE7;font-size:23rpx}.tool-list{display:flex;flex-direction:column;gap:14rpx}.tool-card{width:100%;min-height:126rpx;display:flex;align-items:center;gap:18rpx;margin:0;padding:22rpx;border-radius:20rpx;background:#fff;border:1rpx solid var(--border);text-align:left;box-shadow:var(--shadow-sm)}.tool-card::after{border:0}.tool-mark{width:72rpx;height:72rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:21rpx;background:var(--accent-soft)}.tool-mark.rose{background:#FCEEEB}.tool-mark.gold{background:#FFF1CE}.tool-mark.navy{background:#E7EFED}.tool-mark.blue{background:#EAF3F7}.tool-copy{flex:1}.tool-title{display:block;color:var(--ink);font-size:29rpx;font-weight:730}.tool-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:22rpx;line-height:1.45}.fair-note{margin-top:22rpx;padding:24rpx;border-radius:18rpx;background:#FFF8E7;border:1rpx solid #EACD83}.note-title{display:block;color:#5F4912;font-size:25rpx;font-weight:750}.note-copy{display:block;margin-top:7rpx;color:#846B2D;font-size:22rpx;line-height:1.6}
+.page {
+  min-height: 100vh;
+  padding: 28rpx 26rpx 56rpx;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  background: var(--page-bg, #F6FAFF);
+  color: var(--ink, #24324A);
+}
+
+.hero {
+  position: relative;
+  margin-top: 14rpx;
+  overflow: hidden;
+  border: 1rpx solid #cbdcf0;
+  border-radius: 24rpx 12rpx 24rpx 12rpx;
+  background-color: #ffffff;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 51rpx,
+    rgba(82, 124, 201, 0.09) 52rpx,
+    rgba(82, 124, 201, 0.09) 53rpx
+  );
+  box-shadow: 0 12rpx 30rpx rgba(49, 94, 168, 0.08);
+  animation: page-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 56rpx;
+  width: 2rpx;
+  background: rgba(233, 133, 119, 0.32);
+}
+
+.paper-holes {
+  position: absolute;
+  top: 42rpx;
+  bottom: 38rpx;
+  left: 18rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.paper-hole {
+  width: 16rpx;
+  height: 16rpx;
+  border: 1rpx solid #c8d8ea;
+  border-radius: 50%;
+  background: #f6faff;
+  box-shadow: inset 0 2rpx 3rpx rgba(49, 94, 168, 0.08);
+}
+
+.hero-tab {
+  position: absolute;
+  top: 0;
+  right: 28rpx;
+  min-width: 144rpx;
+  padding: 10rpx 20rpx 12rpx;
+  border-radius: 0 0 12rpx 12rpx;
+  background: var(--primary, #527CC9);
+  color: #ffffff;
+  text-align: center;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 64rpx 34rpx 32rpx 82rpx;
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.course-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #bfd2ed;
+  border-radius: 8rpx;
+  background: var(--primary-soft, #EAF2FF);
+  color: var(--primary-strong, #315EA8);
+  font-size: 20rpx;
+  font-weight: 750;
+  letter-spacing: 1rpx;
+}
+
+.hero-count {
+  color: var(--text-secondary, #5C6C84);
+  font-size: 21rpx;
+  font-weight: 600;
+}
+
+.hero-title {
+  display: block;
+  margin-top: 18rpx;
+  color: var(--ink, #24324A);
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -1rpx;
+}
+
+.hero-sub {
+  display: block;
+  max-width: 540rpx;
+  margin-top: 14rpx;
+  color: var(--text-secondary, #5C6C84);
+  font-size: 24rpx;
+  line-height: 1.65;
+}
+
+.hero-footer {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+
+.hero-rule {
+  width: 58rpx;
+  height: 5rpx;
+  border-radius: 2rpx;
+  background: var(--gold, #F4C75B);
+}
+
+.hero-code {
+  color: #7c8ca3;
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24rpx;
+  margin: 34rpx 4rpx 18rpx;
+  animation: page-rise 360ms 40ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.section-kicker {
+  display: block;
+  color: var(--primary, #527CC9);
+  font-size: 20rpx;
+  font-weight: 750;
+  letter-spacing: 2rpx;
+}
+
+.section-title {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--ink, #24324A);
+  font-size: 31rpx;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.section-index {
+  width: 56rpx;
+  height: 46rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-bottom: 5rpx solid var(--gold, #F4C75B);
+  color: var(--primary-strong, #315EA8);
+  font-size: 25rpx;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.tool-card {
+  width: 100%;
+  min-height: 132rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 0;
+  padding: 20rpx 18rpx 20rpx 16rpx;
+  border: 1rpx solid var(--border, #DDE7F2);
+  border-left: 6rpx solid var(--primary, #527CC9);
+  border-radius: 14rpx;
+  background: #ffffff;
+  color: var(--ink, #24324A);
+  text-align: left;
+  line-height: normal;
+  box-shadow: 0 7rpx 18rpx rgba(49, 94, 168, 0.055);
+  box-sizing: border-box;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease-out;
+  animation: card-rise 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.tool-card::after {
+  border: 0;
+}
+
+.tool-card:active {
+  transform: translateY(2rpx) scale(0.988);
+  opacity: 0.86;
+}
+
+.tool-card-2 { animation-delay: 35ms; }
+.tool-card-3 { animation-delay: 70ms; }
+.tool-card-4,
+.tool-card-5,
+.tool-card-6 { animation: none; }
+
+.tool-number {
+  width: 42rpx;
+  flex: none;
+  padding-right: 10rpx;
+  border-right: 1rpx solid var(--border, #DDE7F2);
+  color: #8aa2c2;
+  font-size: 20rpx;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1rpx;
+}
+
+.tool-mark {
+  width: 68rpx;
+  height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1rpx solid transparent;
+  border-radius: 14rpx;
+  background: var(--primary-soft, #EAF2FF);
+}
+
+.tool-mark.blue {
+  border-color: #cfdef4;
+  background: var(--primary-soft, #EAF2FF);
+}
+
+.tool-mark.mint {
+  border-color: #cdebe1;
+  background: var(--accent-soft, #E9F8F3);
+}
+
+.tool-mark.yellow {
+  border-color: #f0dda6;
+  background: var(--warning-soft, #FFF5D7);
+}
+
+.tool-mark.coral {
+  border-color: #f2d0ca;
+  background: var(--coral-soft, #FFF0ED);
+}
+
+.tool-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.tool-title-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.tool-title {
+  display: block;
+  color: var(--ink, #24324A);
+  font-size: 28rpx;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.tool-priority {
+  padding: 3rpx 9rpx;
+  border: 1rpx solid #D8C477;
+  border-radius: 7rpx;
+  background: var(--warning-soft, #FFF5D7);
+  color: #805A12;
+  font-size: 17rpx;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.tool-desc {
+  display: block;
+  margin-top: 7rpx;
+  color: var(--text-secondary, #5C6C84);
+  font-size: 22rpx;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.tool-arrow {
+  width: 36rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+  opacity: 0.72;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease-out;
+}
+
+.tool-card:active .tool-arrow {
+  transform: translateX(4rpx);
+  opacity: 1;
+}
+
+.fair-note {
+  position: relative;
+  margin-top: 24rpx;
+  padding: 30rpx 28rpx 26rpx;
+  overflow: hidden;
+  border: 1rpx solid #eddca9;
+  border-radius: 14rpx;
+  background-color: #fffdf5;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 47rpx,
+    rgba(244, 199, 91, 0.13) 48rpx,
+    rgba(244, 199, 91, 0.13) 49rpx
+  );
+  animation: card-rise 320ms 210ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.note-tab {
+  position: absolute;
+  top: 0;
+  right: 22rpx;
+  padding: 7rpx 14rpx 9rpx;
+  border-radius: 0 0 8rpx 8rpx;
+  background: var(--gold, #F4C75B);
+  color: #594311;
+  font-size: 18rpx;
+  font-weight: 750;
+  letter-spacing: 1rpx;
+}
+
+.note-heading {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding-right: 118rpx;
+}
+
+.note-mark {
+  width: 7rpx;
+  height: 28rpx;
+  flex: none;
+  border-radius: 2rpx;
+  background: var(--coral, #E98577);
+}
+
+.note-title {
+  color: var(--ink, #24324A);
+  font-size: 25rpx;
+  font-weight: 780;
+}
+
+.note-copy {
+  display: block;
+  margin-top: 13rpx;
+  color: #675c43;
+  font-size: 22rpx;
+  line-height: 1.65;
+}
+
+@keyframes page-rise {
+  from {
+    transform: translateY(14rpx);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes card-rise {
+  from {
+    transform: translateY(10rpx);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 340px) {
+  .page {
+    padding-right: 22rpx;
+    padding-left: 22rpx;
+  }
+
+  .hero-content {
+    padding-right: 24rpx;
+    padding-left: 76rpx;
+  }
+
+  .tool-card {
+    gap: 13rpx;
+    padding-right: 14rpx;
+    padding-left: 12rpx;
+  }
+
+  .tool-number {
+    width: 38rpx;
+    padding-right: 7rpx;
+  }
+
+  .tool-mark {
+    width: 64rpx;
+    height: 64rpx;
+  }
+
+  .tool-desc {
+    font-size: 21rpx;
+  }
+}
+
+@media (min-width: 420px) {
+  .page {
+    padding-right: 32rpx;
+    padding-left: 32rpx;
+  }
+
+  .hero-content {
+    padding-right: 42rpx;
+  }
+
+  .tool-card {
+    padding-right: 24rpx;
+    padding-left: 20rpx;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .section-head,
+  .tool-card,
+  .tool-arrow,
+  .fair-note {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tool-card:active,
+  .tool-card:active .tool-arrow {
+    transform: none;
+  }
+}
 </style>

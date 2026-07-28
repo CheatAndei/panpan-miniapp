@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('家长首页、学习中心和成长页构成三段式导航且没有学生模式', () => {
   const pages = read('pages.json');
-  const home = read('pages/index/index.vue');
+  const home = read('pages/index/index.vue') + read('components/home/ParentHomeView.vue');
   const learning = read('pages/learning-center/index.vue');
   const growth = read('pages/growth/index.vue');
   for (const page of ['pages/learning-center/index', 'pages/learning-session/index', 'pages/growth/index']) {
@@ -23,7 +23,7 @@ test('家长首页、学习中心和成长页构成三段式导航且没有学�
 });
 
 test('今日三任务、学习内容与错题两次掌握规则均有明确呈现', () => {
-  const home = read('pages/index/index.vue');
+  const home = read('pages/index/index.vue') + read('components/home/ParentHomeView.vue');
   const learning = read('pages/learning-center/index.vue');
   const learningService = read('backend/services/learning.js');
   const session = read('pages/learning-session/index.vue');

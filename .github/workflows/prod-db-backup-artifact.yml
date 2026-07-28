@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: panpan-production
+  cancel-in-progress: false
+
 jobs:
   backup:
     name: Back up and validate production DB
@@ -42,25 +46,47 @@ jobs:
           BACKUP_DIR="/opt/panpan-miniapp/backups/$BACKUP_ID"
           test ! -e "$BACKUP_DIR"
           install -d -m 700 "$BACKUP_DIR"
-          cp -a "$SOURCE" "$BACKUP_DIR/teach.db"
-          test "$(od -An -tx1 -N16 "$BACKUP_DIR/teach.db" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
-          BYTES="$(stat -c%s "$BACKUP_DIR/teach.db")"
-          SHA256="$(sha256sum "$BACKUP_DIR/teach.db" | awk '{print $1}')"
           IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          DB_TMP="$BACKUP_DIR/.teach.db.tmp"
+          MANIFEST_TMP="$BACKUP_DIR/.manifest.json.tmp"
+          cleanup_tmp() {
+            rm -f "$DB_TMP" "$MANIFEST_TMP"
+          }
+          trap cleanup_tmp EXIT
+          trap 'exit 129' HUP
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          cp -a "$SOURCE" "$DB_TMP"
+          test "$(od -An -tx1 -N16 "$DB_TMP" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
+          BYTES="$(stat -c%s "$DB_TMP")"
+          test "$BYTES" -gt 0
+          SHA256="$(sha256sum "$DB_TMP" | awk '{print $1}')"
           docker run --rm -i \
             -e BACKUP_ID="$BACKUP_ID" -e BACKUP_BYTES="$BYTES" -e BACKUP_SHA256="$SHA256" \
-            -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module - > "$BACKUP_DIR/manifest.json" <<'NODE'
+            -e BACKUP_DB=/backup/.teach.db.tmp \
+            -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module - > "$MANIFEST_TMP" <<'NODE'
           import fs from 'node:fs';
           import initSqlJs from 'sql.js';
-          const file='/backup/teach.db';
+          const file=process.env.BACKUP_DB;
           const SQL=await initSqlJs();
           const db=new SQL.Database(fs.readFileSync(file));
+          const integrity=db.exec('PRAGMA integrity_check')[0]?.values?.map((row)=>String(row[0]))||[];
+          if(integrity.length!==1||integrity[0]!=='ok') throw new Error(`SQLite integrity check failed: ${integrity.join(',')}`);
           const names=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")[0]?.values.flat()||[];
           const counts={};
           for(const name of names){const result=db.exec(`SELECT COUNT(*) FROM "${String(name).replaceAll('"','""')}"`);counts[name]=Number(result[0]?.values[0]?.[0]||0);}
-          console.log(JSON.stringify({backup_id:process.env.BACKUP_ID,bytes:Number(process.env.BACKUP_BYTES),sha256:process.env.BACKUP_SHA256,created_at:new Date().toISOString(),table_counts:counts},null,2));
+          console.log(JSON.stringify({backup_id:process.env.BACKUP_ID,bytes:Number(process.env.BACKUP_BYTES),sha256:process.env.BACKUP_SHA256,sqlite_integrity:'ok',created_at:new Date().toISOString(),table_counts:counts},null,2));
           NODE
+          docker run --rm \
+            -e EXPECTED_BYTES="$BYTES" -e EXPECTED_SHA256="$SHA256" \
+            -v "$BACKUP_DIR:/backup:ro" "$IMAGE" \
+            node -e "const fs=require('node:fs');const m=JSON.parse(fs.readFileSync('/backup/.manifest.json.tmp','utf8'));if(m.sqlite_integrity!=='ok'||m.bytes!==Number(process.env.EXPECTED_BYTES)||m.sha256!==process.env.EXPECTED_SHA256)process.exit(1)"
+          test "$(sha256sum "$DB_TMP" | awk '{print $1}')" = "$SHA256"
+          test "$(stat -c%s "$DB_TMP")" = "$BYTES"
+          mv "$DB_TMP" "$BACKUP_DIR/teach.db"
+          mv "$MANIFEST_TMP" "$BACKUP_DIR/manifest.json"
           chmod 600 "$BACKUP_DIR/teach.db" "$BACKUP_DIR/manifest.json"
+          trap - EXIT HUP INT TERM
           df -B1 "$DATA_DIR" | tail -1 | awk '{print "PROD_DISK_BYTES total=" $2 " used=" $3 " free=" $4}'
           free -b | awk '/^Mem:/{print "PROD_MEMORY_BYTES total=" $2 " used=" $3 " available=" $7}'
           printf 'BACKUP bytes=%s sha256=%s\n' "$BYTES" "$SHA256"
@@ -83,7 +109,7 @@ jobs:
           ACTUAL_BYTES="$(stat -c%s production-backup/teach.db)"
           EXPECTED_BYTES="$(node -p "require('./production-backup/manifest.json').bytes")"
           test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
-          node -e "const m=require('./production-backup/manifest.json');if(!m.table_counts.users||!m.table_counts.students)process.exit(1);console.log(JSON.stringify({bytes:m.bytes,sha256:m.sha256,tables:Object.keys(m.table_counts).length,users:m.table_counts.users,students:m.table_counts.students,bindings:m.table_counts.bindings}))"
+          node -e "const m=require('./production-backup/manifest.json');if(m.sqlite_integrity!=='ok'||!m.table_counts.users||!m.table_counts.students)process.exit(1);console.log(JSON.stringify({bytes:m.bytes,sha256:m.sha256,sqlite_integrity:m.sqlite_integrity,tables:Object.keys(m.table_counts).length,users:m.table_counts.users,students:m.table_counts.students,bindings:m.table_counts.bindings}))"
 
       - name: Upload protected backup artifact
         uses: actions/upload-artifact@v4

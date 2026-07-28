@@ -192,42 +192,143 @@ export default {
 </script>
 
 <style scoped>
-.page{padding-bottom:calc(44rpx + env(safe-area-inset-bottom))}
-.state-card{margin:22rpx 24rpx;background:#fff;border-radius:22rpx;border:1rpx solid var(--border)}
-.hero{display:flex;flex-direction:column;align-items:center;padding:46rpx 0 44rpx}
-.greeting{font-size:34rpx;font-weight:700;color:#183A36;margin-bottom:20rpx}
-.avatar{margin-bottom:8rpx}
-.child-name{font-size:36rpx;font-weight:700;color:#183A36;margin-top:14rpx}
-.child-class{font-size:24rpx;color:#697B76;margin-top:4rpx}
+.page {
+  min-height: 100vh;
+  padding-bottom: calc(44rpx + env(safe-area-inset-bottom));
+  background: var(--page-bg);
+}
 
-.checkin-badge{display:flex;align-items:center;gap:10rpx;padding:16rpx 20rpx;border-radius:10rpx;font-size:28rpx;font-weight:600}
-.checkin-badge.in{background:#E8F4F0;color:#2F735F}
-.checkin-badge.done{background:#EEF2F7;color:#425B76}
-.checkin-badge.out{background:#F4F2E8;color:#3F7167}
-.checkin-badge.leave{background:#FCEEEB;color:#A94F48}
-.checkin-note{margin-top:12rpx;color:#A94F48;font-size:24rpx;line-height:1.5}
+.state-card {
+  margin: 22rpx 24rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
 
-.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14rpx}
-.card-title{font-size:28rpx;font-weight:700;color:#183A36}
-.card-arrow{font-size:24rpx;color:#7C8C87}
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 24rpx 44rpx;
+  animation: parent-home-enter var(--motion-slow) var(--ease-out) both;
+}
 
-.sc-line{display:flex;gap:12rpx;padding:8rpx 0;font-size:26rpx;align-items:center}
-.sc-day{color:#2F7D6B;font-weight:600;min-width:96rpx;font-size:24rpx}
-.sc-time{color:#7C8C87;width:120rpx;font-size:24rpx}
-.sc-name{color:#536762}
+.hero::before {
+  content: '';
+  position: absolute;
+  left: 34rpx;
+  top: 34rpx;
+  width: 54rpx;
+  height: 8rpx;
+  border-radius: 8rpx;
+  background: var(--gold);
+  box-shadow: 0 17rpx 0 rgba(82, 124, 201, .18);
+}
 
-.fb-date{font-size:24rpx;color:#7C8C87;margin-bottom:8rpx}
-.fb-text{font-size:28rpx;color:#536762;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
-.fb-images{display:flex;gap:10rpx;margin-top:14rpx;flex-wrap:wrap}
-.fb-img{width:150rpx;height:150rpx;border-radius:8rpx;background:#E5EEEB}
-.img-more{width:150rpx;height:150rpx;border-radius:8rpx;background:#F7FAF8;display:flex;align-items:center;justify-content:center;font-size:36rpx;color:#7C8C87}
-.fb-hw{font-size:24rpx;color:#2F7D6B;margin-top:10rpx}
-.notify-btn{margin-top:16rpx;background:#EDF5F2;color:#183A36;border:1rpx solid #DDE8E4;border-radius:10rpx;padding:16rpx;font-size:26rpx;width:100%}
-.pdf-btn{margin-top:14rpx;background:#183A36;color:#fff;border:none;border-radius:10rpx;padding:18rpx;font-size:26rpx;width:100%}
+.greeting { margin-bottom: 20rpx; color: var(--primary-strong); font-size: 30rpx; font-weight: 700; }
+.avatar { margin-bottom: 8rpx; }
+.child-name { margin-top: 14rpx; color: var(--ink); font-size: 38rpx; font-weight: 760; }
+.child-class { margin-top: 4rpx; color: var(--text-muted); font-size: 24rpx; }
 
-.tags{display:flex;gap:10rpx;flex-wrap:wrap}
-.empty-sm{text-align:center;color:#A4B1AD;padding:24rpx;font-size:26rpx}
+.card {
+  animation: parent-card-enter var(--motion-slow) var(--ease-out) both;
+}
 
-.btn-outline{border:1px solid #183A36;color:#183A36;background:#fff;border-radius:10rpx;padding:20rpx;font-size:28rpx;width:100%;font-weight:600}
-.footer{text-align:center;color:#9AA9A5;font-size:24rpx;padding:40rpx 30rpx 30rpx;line-height:1.6}
+.checkin-badge {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 18rpx 20rpx;
+  border-radius: var(--r-sm);
+  font-size: 28rpx;
+  font-weight: 650;
+}
+
+.checkin-badge.in,
+.checkin-badge.done { background: var(--success-soft); color: var(--success); }
+.checkin-badge.out { background: var(--warning-soft); color: var(--warning); }
+.checkin-badge.leave { background: var(--danger-soft); color: var(--danger); }
+.checkin-note { margin-top: 12rpx; color: var(--danger); font-size: 24rpx; line-height: 1.5; }
+
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-bottom: 14rpx; }
+.card-title { color: var(--ink); font-size: 29rpx; font-weight: 720; }
+.card-arrow { flex: none; color: var(--primary-strong); font-size: 23rpx; font-weight: 650; }
+
+.sc-line {
+  min-height: 66rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 8rpx 0;
+  border-top: 1rpx solid var(--hairline);
+  font-size: 26rpx;
+}
+
+.sc-line:first-of-type { border-top: 0; }
+.sc-day { min-width: 104rpx; color: var(--primary-strong); font-size: 24rpx; font-weight: 700; }
+.sc-time { width: 128rpx; color: var(--text-muted); font-size: 24rpx; font-variant-numeric: tabular-nums; }
+.sc-name { flex: 1; min-width: 0; color: var(--text-secondary); }
+
+.fb-date { margin-bottom: 8rpx; color: var(--text-muted); font-size: 24rpx; }
+.fb-text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+  line-height: 1.7;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.fb-images { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 16rpx; }
+.fb-img,
+.img-more { width: 150rpx; height: 150rpx; border-radius: var(--r-xs); }
+.fb-img { background: var(--surface-muted); }
+.img-more { display: flex; align-items: center; justify-content: center; background: var(--primary-soft); color: var(--primary-strong); font-size: 32rpx; font-weight: 700; }
+.fb-hw { display: block; margin-top: 14rpx; padding: 14rpx 16rpx; border-radius: var(--r-xs); background: var(--warning-soft); color: var(--warning); font-size: 24rpx; line-height: 1.55; }
+
+.notify-btn,
+.pdf-btn,
+.btn-outline {
+  width: 100%;
+  min-height: 88rpx;
+  border-radius: var(--r-sm);
+  font-size: 26rpx;
+  font-weight: 650;
+  transition: transform var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+
+.notify-btn { margin-top: 16rpx; border: 1rpx solid #BFD0EC; background: var(--primary-soft); color: var(--primary-strong); }
+.pdf-btn { margin-top: 14rpx; border: none; background: var(--primary-strong); color: #FFFFFF; }
+.btn-outline { border: 1rpx solid #BFD0EC; background: var(--surface); color: var(--primary-strong); font-size: 28rpx; }
+.notify-btn:active,
+.pdf-btn:active,
+.btn-outline:active { transform: scale(var(--tap-scale)); }
+.notify-btn::after,
+.pdf-btn::after,
+.btn-outline::after { border: 0; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 10rpx; }
+.empty-sm { padding: 24rpx; color: var(--text-muted); font-size: 26rpx; text-align: center; }
+.footer { padding: 40rpx 30rpx 30rpx; color: var(--faint); font-size: 24rpx; line-height: 1.6; text-align: center; }
+
+@keyframes parent-home-enter {
+  from { opacity: 0; transform: translateY(-10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes parent-card-enter {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .card { animation: none; }
+  .notify-btn,
+  .pdf-btn,
+  .btn-outline { transition: none; }
+}
 </style>

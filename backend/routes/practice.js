@@ -5,7 +5,8 @@ const { teacherOwnsClass, parentBoundStudent } = require('../utils/scope');
 const {
   MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
   normalizeTopicKeys, questionTypesForTopics,
-  practiceDateAt, dateRange, generateAssignment, preGenerateDate, evaluateProgression, generatePlanPdf, generateStudentPlanPdf,
+  practiceDateAt, dateRange, generateAssignment, preGenerateDate, resolveStudentPracticePlan,
+  evaluateProgression, generatePlanPdf, generateStudentPlanPdf,
   practiceFocusItemIds, practiceVisibleItemIds, serializePracticeSubmission,
 } = require('../services/practice');
 const {
@@ -29,6 +30,136 @@ function validDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
   const parsed = new Date(`${text}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
+}
+
+function practiceItemRender(row) {
+  let payload = {};
+  try { payload = JSON.parse(row.snapshot_payload || '{}'); } catch {}
+  return payload.render ? { render: payload.render } : {};
+}
+
+function reviewPracticeItem(row) {
+  const { snapshot_payload: _snapshotPayload, ...item } = row;
+  let payload = {};
+  try { payload = JSON.parse(row.snapshot_payload || '{}'); } catch {}
+  return {
+    ...item,
+    ...(payload.render ? { render: payload.render } : {}),
+    ...(payload.answer_render ? { answer_render: payload.answer_render } : {}),
+  };
+}
+
+function publicPracticeItem(row) {
+  return {
+    id: row.id,
+    position: row.position,
+    stem: row.stem,
+    module: row.module,
+    question_type: row.question_type,
+    estimated_seconds: row.estimated_seconds,
+    ...practiceItemRender(row),
+  };
+}
+
+const REVIEW_REVISION_STATUSES = new Set(['reviewed', 'correction_required']);
+
+function reviewRoundNumber(submission) {
+  return Math.max(1, Number(submission?.current_round || 1));
+}
+
+function currentRoundReviewRows(db, submission) {
+  return db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
+      i.snapshot_payload,r.is_correct,r.teacher_note review_note,r.reviewed_at
+    FROM practice_review_rounds r
+    JOIN practice_assignment_items i ON i.id=r.assignment_item_id
+    WHERE r.submission_id=? AND r.round_no=?
+    ORDER BY i.position`, [submission.id, reviewRoundNumber(submission)])
+    .map(reviewPracticeItem);
+}
+
+function nextPracticeRoundStarted(db, submission) {
+  const roundNo = reviewRoundNumber(submission);
+  return Boolean(
+    db.get(`SELECT 1 started FROM practice_attachments
+      WHERE submission_id=? AND round_no>? LIMIT 1`, [submission.id, roundNo])
+    || db.get(`SELECT 1 started FROM practice_submission_rounds
+      WHERE submission_id=? AND round_no>? LIMIT 1`, [submission.id, roundNo])
+    || db.get(`SELECT 1 started FROM practice_review_rounds
+      WHERE submission_id=? AND round_no>? LIMIT 1`, [submission.id, roundNo]),
+  );
+}
+
+function reviewRevisionLockReason(db, submission, reviewRows = null) {
+  if (!REVIEW_REVISION_STATUSES.has(String(submission?.status || ''))) {
+    return '当前状态不可修订';
+  }
+  if (nextPracticeRoundStarted(db, submission)) {
+    return '家长已开始上传下一轮订正，不能再修改本轮批改';
+  }
+  const rows = reviewRows || currentRoundReviewRows(db, submission);
+  if (!rows.length) return '当前轮没有可修订的批改结果';
+  return '';
+}
+
+function reviewSummary(db, submission) {
+  const reviewRows = currentRoundReviewRows(db, submission);
+  const lockReason = reviewRevisionLockReason(db, submission, reviewRows);
+  const wrongPositions = reviewRows
+    .filter((item) => Number(item.is_correct) === 0)
+    .map((item) => Number(item.position));
+  return {
+    id: Number(submission.id),
+    submission_id: Number(submission.id),
+    plan_id: Number(submission.plan_id),
+    plan_title: submission.plan_title,
+    student_id: Number(submission.student_id),
+    student_name: submission.student_name,
+    practice_date: submission.practice_date,
+    status: submission.status,
+    current_round: reviewRoundNumber(submission),
+    correction_round: reviewRoundNumber(submission),
+    needs_correction: submission.status === 'correction_required'
+      || Boolean(Number(submission.needs_correction)),
+    reviewed_at: submission.reviewed_at,
+    completed_at: submission.completed_at,
+    review_revision: Number(submission.review_revision || 0),
+    wrong_positions: wrongPositions,
+    wrong_count: wrongPositions.length,
+    total_count: reviewRows.length,
+    can_revise: !lockReason,
+    revision_lock_reason: lockReason || null,
+  };
+}
+
+function revisionResults(body, reviewRows) {
+  const results = Array.isArray(body?.results) ? body.results : [];
+  const allowedIds = new Set(reviewRows.map((item) => Number(item.id)));
+  const byId = new Map();
+  for (const result of results) {
+    const itemId = Number(result?.item_id);
+    if (!Number.isInteger(itemId) || !allowedIds.has(itemId) || byId.has(itemId)) {
+      return { error: '修订结果包含重复或不属于当前轮的题目' };
+    }
+    if (![true, false, 0, 1].includes(result.is_correct)) {
+      return { error: '修订结果无效' };
+    }
+    const previous = reviewRows.find((item) => Number(item.id) === itemId);
+    byId.set(itemId, {
+      item_id: itemId,
+      position: Number(previous.position),
+      is_correct: Boolean(Number(result.is_correct)),
+      note: Object.prototype.hasOwnProperty.call(result, 'note')
+        ? String(result.note || '').slice(0, 240)
+        : String(previous.review_note || '').slice(0, 240),
+    });
+  }
+  if (byId.size !== reviewRows.length) {
+    return {
+      error: '请提交当前轮全部题目的修订结果',
+      item_ids: reviewRows.map((item) => Number(item.id)),
+    };
+  }
+  return { results: reviewRows.map((item) => byId.get(Number(item.id))) };
 }
 
 function validatePlan(db, teacherId, body) {
@@ -170,13 +301,13 @@ router.get('/plans', auth, teacherOnly, (req, res) => {
   const status = String(req.query.status || 'all');
   const today = practiceDateAt();
   if (status === 'current') {
-    clauses.push("p.status='published' AND p.start_date<=? AND p.end_date>=?");
+    clauses.push("p.status IN ('published','student_curriculum') AND p.start_date<=? AND p.end_date>=?");
     params.push(today, today);
   } else if (status === 'upcoming') {
-    clauses.push("p.status='published' AND p.start_date>?");
+    clauses.push("p.status IN ('published','student_curriculum') AND p.start_date>?");
     params.push(today);
   } else if (status === 'ended') {
-    clauses.push("(p.status!='published' OR p.end_date<?)");
+    clauses.push("(p.status NOT IN ('published','student_curriculum') OR p.end_date<?)");
     params.push(today);
   } else if (status !== 'all') {
     return res.status(400).json({ error: '计划状态无效' });
@@ -273,14 +404,16 @@ router.get('/today', auth, parentOnly, (req, res) => {
   const studentId = Number(req.query.student_id);
   if (!parentBoundStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权查看该学生' });
   const practiceDate = practiceDateAt();
-  const plan = db.get(`SELECT p.* FROM practice_plans p JOIN students s ON s.class_id=p.class_id
-    WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
-    ORDER BY p.created_at DESC LIMIT 1`, [studentId, practiceDate, practiceDate]);
+  const plan = resolveStudentPracticePlan(db, studentId, practiceDate)
+    || db.get(`SELECT p.* FROM practice_plans p JOIN students s ON s.class_id=p.class_id
+      WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
+      ORDER BY p.created_at DESC LIMIT 1`, [studentId, practiceDate, practiceDate]);
   if (!plan) return res.json({ practice_date: practiceDate, assignment: null });
   const assignment = generateAssignment(db, plan, studentId, practiceDate);
   if (!assignment.claimed_at) db.run('UPDATE practice_assignments SET claimed_at=CURRENT_TIMESTAMP WHERE id=?', [assignment.id]);
   const items = db.all(`SELECT id,position,snapshot_stem stem,snapshot_module module,snapshot_type question_type,
-    estimated_seconds FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignment.id]);
+    estimated_seconds,snapshot_payload FROM practice_assignment_items
+    WHERE assignment_id=? ORDER BY position`, [assignment.id]).map(publicPracticeItem);
   const submission = db.get('SELECT * FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
   res.json({
     practice_date: practiceDate,
@@ -419,6 +552,27 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
   res.status(201).json({ ok: true, attachment, submission: state });
 });
 
+router.get('/reviews/recent', auth, teacherOnly, (req, res) => {
+  const db = getDB();
+  const requestedLimit = Number.parseInt(req.query.limit || '4', 10);
+  const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 4));
+  const rows = db.all(`SELECT ps.*,a.student_id,a.practice_date,a.plan_id,
+      st.name student_name,p.title plan_title
+    FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN practice_plans p ON p.id=a.plan_id
+    JOIN students st ON st.id=a.student_id
+    WHERE p.teacher_id=? AND st.deleted_at IS NULL
+      AND ps.status IN ('reviewed','correction_required')
+      AND ps.reviewed_at IS NOT NULL
+    ORDER BY ps.reviewed_at DESC,ps.id DESC
+    LIMIT ?`, [req.user.id, limit]);
+  res.json({
+    reviews: rows.map((submission) => reviewSummary(db, submission)),
+    limit,
+  });
+});
+
 router.get('/submissions', auth, teacherOnly, (req, res) => {
   const db = getDB();
   const planId = Number(req.query.plan_id);
@@ -444,15 +598,27 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
     ORDER BY CASE WHEN ps.id=? THEN 0 ELSE 1 END,a.practice_date DESC,st.name LIMIT ? OFFSET ?`, [...params, preferredId, limit, offset]);
   for (let index = 0; index < submissions.length; index++) {
     const submission = serializePracticeSubmission(db, submissions[index]);
-    const visibleIds = new Set(practiceVisibleItemIds(db, submission));
-    submission.items = db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
-        r.is_correct,r.teacher_note review_note
-      FROM practice_assignment_items i
-      LEFT JOIN practice_review_rounds r ON r.assignment_item_id=i.id
-        AND r.submission_id=? AND r.round_no=?
-      WHERE i.assignment_id=? ORDER BY i.position`, [
-      submission.id, submission.correction_round, submission.assignment_id,
-    ]).filter((item) => visibleIds.has(Number(item.id)));
+    const isHistorical = REVIEW_REVISION_STATUSES.has(String(submission.status || ''));
+    if (isHistorical) {
+      submission.items = currentRoundReviewRows(db, submission);
+      const lockReason = reviewRevisionLockReason(db, submission, submission.items);
+      submission.can_revise = !lockReason;
+      submission.revision_lock_reason = lockReason || null;
+    } else {
+      const visibleIds = new Set(practiceVisibleItemIds(db, submission));
+      submission.items = db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
+          i.snapshot_payload,r.is_correct,r.teacher_note review_note
+        FROM practice_assignment_items i
+        LEFT JOIN practice_review_rounds r ON r.assignment_item_id=i.id
+          AND r.submission_id=? AND r.round_no=?
+        WHERE i.assignment_id=? ORDER BY i.position`, [
+        submission.id, submission.correction_round, submission.assignment_id,
+      ])
+        .filter((item) => visibleIds.has(Number(item.id)))
+        .map(reviewPracticeItem);
+      submission.can_revise = false;
+      submission.revision_lock_reason = '当前状态不可修订';
+    }
     submissions[index] = submission;
   }
   res.json({ submissions, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -534,7 +700,8 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
       ]);
       db.run(`UPDATE practice_submissions SET status=?,needs_correction=?,teacher_note=?,
         reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP,
-        completed_at=${needsCorrection ? 'NULL' : 'CURRENT_TIMESTAMP'} WHERE id=?`, [
+        completed_at=${needsCorrection ? 'NULL' : 'CURRENT_TIMESTAMP'},
+        review_revision=review_revision+1 WHERE id=?`, [
         nextStatus, needsCorrection ? 1 : 0, teacherNote, req.user.id, submission.id,
       ]);
       db.run(`UPDATE practice_assignments SET status=? WHERE id=?`, [
@@ -563,7 +730,199 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
     focus_item_ids: state.focus_item_ids,
     wrong_item_ids: wrongItemIds,
     completed_at: state.completed_at,
+    review_revision: Number(state.review_revision || 0),
     progression,
+  });
+});
+
+router.put('/submissions/:id/review/revision', auth, teacherOnly, (req, res, next) => {
+  const db = getDB();
+  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,
+      p.teacher_id plan_teacher_id
+    FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN practice_plans p ON p.id=a.plan_id
+    JOIN students st ON st.id=a.student_id
+    WHERE ps.id=? AND st.deleted_at IS NULL`, [req.params.id]);
+  if (!submission || Number(submission.plan_teacher_id) !== Number(req.user.id)) {
+    return res.status(404).json({ error: '提交不存在' });
+  }
+
+  const expectedRound = Number(req.body?.expected_round);
+  const expectedRevision = Number(req.body?.expected_revision);
+  if (!Number.isInteger(expectedRound) || expectedRound < 1
+      || !Number.isInteger(expectedRevision) || expectedRevision < 0) {
+    return res.status(400).json({ error: '请提供有效的 expected_round 和 expected_revision' });
+  }
+  if (expectedRound !== reviewRoundNumber(submission)
+      || expectedRevision !== Number(submission.review_revision || 0)) {
+    return res.status(409).json({
+      error: '批改记录已更新，请刷新后重试',
+      current_round: reviewRoundNumber(submission),
+      review_revision: Number(submission.review_revision || 0),
+    });
+  }
+
+  const reviewRows = currentRoundReviewRows(db, submission);
+  const lockReason = reviewRevisionLockReason(db, submission, reviewRows);
+  if (lockReason) return res.status(409).json({ error: lockReason });
+  const parsed = revisionResults(req.body, reviewRows);
+  if (parsed.error) {
+    return res.status(400).json({
+      error: parsed.error,
+      ...(parsed.item_ids ? { item_ids: parsed.item_ids } : {}),
+    });
+  }
+
+  const teacherNote = Object.prototype.hasOwnProperty.call(req.body || {}, 'teacher_note')
+    ? String(req.body.teacher_note || '').slice(0, 500)
+    : String(submission.teacher_note || '').slice(0, 500);
+  const wrongResults = parsed.results.filter((item) => !item.is_correct);
+  const nextStatus = wrongResults.length ? 'correction_required' : 'reviewed';
+  let outcome;
+  try {
+    outcome = db.transaction(() => {
+      const current = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,
+          p.teacher_id plan_teacher_id
+        FROM practice_submissions ps
+        JOIN practice_assignments a ON a.id=ps.assignment_id
+        JOIN practice_plans p ON p.id=a.plan_id
+        JOIN students st ON st.id=a.student_id
+        WHERE ps.id=? AND st.deleted_at IS NULL`, [submission.id]);
+      if (!current || Number(current.plan_teacher_id) !== Number(req.user.id)
+          || reviewRoundNumber(current) !== expectedRound
+          || Number(current.review_revision || 0) !== expectedRevision
+          || String(current.status) !== String(submission.status)) {
+        return { stale: true };
+      }
+      const currentRows = currentRoundReviewRows(db, current);
+      const currentLockReason = reviewRevisionLockReason(db, current, currentRows);
+      if (currentLockReason) return { locked: true, error: currentLockReason };
+      const currentIds = currentRows.map((item) => Number(item.id));
+      const requestedIds = parsed.results.map((item) => Number(item.item_id));
+      if (currentIds.length !== requestedIds.length
+          || currentIds.some((itemId, index) => itemId !== requestedIds[index])) {
+        return { stale: true };
+      }
+
+      const nextRevision = expectedRevision + 1;
+      const before = {
+        status: current.status,
+        needs_correction: Boolean(Number(current.needs_correction)),
+        teacher_note: current.teacher_note || '',
+        current_round: expectedRound,
+        review_revision: expectedRevision,
+        reviewed_at: current.reviewed_at,
+        completed_at: current.completed_at,
+        results: currentRows.map((item) => ({
+          item_id: Number(item.id),
+          position: Number(item.position),
+          is_correct: Boolean(Number(item.is_correct)),
+          note: item.review_note || '',
+        })),
+      };
+      const claimed = db.run(`UPDATE practice_submissions SET
+          status=?,needs_correction=?,teacher_note=?,reviewed_by=?,
+          reviewed_at=CURRENT_TIMESTAMP,
+          completed_at=${wrongResults.length ? 'NULL' : 'CURRENT_TIMESTAMP'},
+          review_revision=review_revision+1
+        WHERE id=? AND current_round=? AND review_revision=? AND status=?`, [
+        nextStatus, wrongResults.length ? 1 : 0, teacherNote, req.user.id,
+        current.id, expectedRound, expectedRevision, current.status,
+      ]);
+      if (Number(claimed.changes) !== 1) return { stale: true };
+
+      for (const result of parsed.results) {
+        const updated = db.run(`UPDATE practice_review_rounds SET
+            is_correct=?,teacher_note=?,reviewed_at=CURRENT_TIMESTAMP
+          WHERE submission_id=? AND round_no=? AND assignment_item_id=?`, [
+          result.is_correct ? 1 : 0, result.note,
+          current.id, expectedRound, result.item_id,
+        ]);
+        if (Number(updated.changes) !== 1) throw new Error('批改修订写入失败');
+        db.run(`INSERT INTO practice_reviews
+          (submission_id,assignment_item_id,is_correct,teacher_note,reviewed_at)
+          VALUES(?,?,?,?,CURRENT_TIMESTAMP)
+          ON CONFLICT(submission_id,assignment_item_id) DO UPDATE SET
+            is_correct=excluded.is_correct,teacher_note=excluded.teacher_note,
+            reviewed_at=CURRENT_TIMESTAMP`, [
+          current.id, result.item_id, result.is_correct ? 1 : 0, result.note,
+        ]);
+      }
+      const roundUpdated = db.run(`UPDATE practice_submission_rounds SET
+          status=?,teacher_note=?,reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP
+        WHERE submission_id=? AND round_no=?`, [
+        nextStatus, teacherNote, req.user.id, current.id, expectedRound,
+      ]);
+      if (Number(roundUpdated.changes) !== 1) throw new Error('批改轮次状态写入失败');
+      db.run('UPDATE practice_assignments SET status=? WHERE id=?', [
+        nextStatus, current.assignment_id,
+      ]);
+
+      const updatedSubmission = db.get(`SELECT reviewed_at,completed_at
+        FROM practice_submissions WHERE id=?`, [current.id]);
+      const after = {
+        status: nextStatus,
+        needs_correction: wrongResults.length > 0,
+        teacher_note: teacherNote,
+        current_round: expectedRound,
+        review_revision: nextRevision,
+        reviewed_at: updatedSubmission?.reviewed_at || null,
+        completed_at: updatedSubmission?.completed_at || null,
+        results: parsed.results.map((item) => ({
+          item_id: item.item_id,
+          position: item.position,
+          is_correct: item.is_correct,
+          note: item.note,
+        })),
+      };
+      db.run(`INSERT INTO operation_logs(actor_id,action,entity_type,entity_id,detail)
+        VALUES(?,?,?,?,?)`, [
+        req.user.id,
+        'practice_review_revised',
+        'practice_submission',
+        current.id,
+        JSON.stringify({ before, after }),
+      ]);
+      return { ok: true, nextRevision };
+    });
+  } catch (error) {
+    return next(error);
+  }
+  if (outcome?.stale) {
+    const latest = db.get('SELECT current_round,review_revision FROM practice_submissions WHERE id=?', [submission.id]);
+    return res.status(409).json({
+      error: '批改记录已更新，请刷新后重试',
+      current_round: reviewRoundNumber(latest),
+      review_revision: Number(latest?.review_revision || 0),
+    });
+  }
+  if (outcome?.locked) return res.status(409).json({ error: outcome.error });
+
+  const state = serializePracticeSubmission(db, {
+    ...submission,
+    ...db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]),
+  });
+  const updatedRows = currentRoundReviewRows(db, state);
+  const updatedLockReason = reviewRevisionLockReason(db, state, updatedRows);
+  res.json({
+    ok: true,
+    status: state.status,
+    current_round: state.current_round,
+    correction_round: state.correction_round,
+    is_correction: state.is_correction,
+    needs_correction: state.needs_correction,
+    focus_item_ids: state.focus_item_ids,
+    wrong_item_ids: updatedRows
+      .filter((item) => Number(item.is_correct) === 0)
+      .map((item) => Number(item.id)),
+    wrong_positions: updatedRows
+      .filter((item) => Number(item.is_correct) === 0)
+      .map((item) => Number(item.position)),
+    completed_at: state.completed_at,
+    review_revision: Number(state.review_revision || outcome.nextRevision || 0),
+    can_revise: !updatedLockReason,
+    revision_lock_reason: updatedLockReason || null,
   });
 });
 

@@ -110,4 +110,162 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 .page{min-height:100vh;padding:0 24rpx 48rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 22rpx;padding:50rpx 34rpx 44rpx;border-radius:0 0 34rpx 34rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:19rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;color:#D8EDE7;font-size:23rpx}.choose-card,.challenge-card,.submit-card{margin-bottom:18rpx;padding:28rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.section-title{display:block;color:var(--ink);font-size:30rpx;font-weight:750}.section-desc{display:block;margin-top:6rpx;color:var(--text-muted);font-size:22rpx;line-height:1.5}.type-card{width:100%;min-height:112rpx;display:flex;align-items:center;gap:17rpx;margin:18rpx 0 0;padding:17rpx;border-radius:17rpx;background:var(--surface-muted);text-align:left}.type-card::after,.upload-btn::after{border:0}.type-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:18rpx;background:#E1F0EB;color:#276B5C;font-size:28rpx;font-weight:850}.type-mark.fill{background:#FFF0D6;color:#8B5E08}.type-mark.subjective{background:#ECE9F7;color:#5A4B90}.type-copy{flex:1}.type-title{display:block;color:var(--ink);font-size:27rpx;font-weight:720}.type-desc{display:block;margin-top:3rpx;color:var(--text-muted);font-size:20rpx}.challenge-head,.submit-head{display:flex;justify-content:space-between;gap:18rpx}.type-pill{display:inline-block;padding:6rpx 13rpx;border-radius:999rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:20rpx;font-weight:720}.challenge-title{display:block;margin-top:10rpx;color:var(--ink);font-size:29rpx;font-weight:740}.week-label,.count{flex:none;color:var(--text-muted);font-size:20rpx}.source{display:block;margin-top:7rpx;color:var(--text-muted);font-size:21rpx}.question-image{width:100%;margin-top:22rpx;border-radius:14rpx;background:#F5F7F6}.upload-btn{min-height:88rpx;margin:22rpx 0 0;border-radius:15rpx;background:var(--primary);color:#fff;font-size:27rpx;font-weight:720}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:20rpx}.photo-grid image{width:100%;height:180rpx;border-radius:12rpx}.review-state{margin-top:18rpx;padding:18rpx;border-radius:14rpx;background:#FFF8E7;color:#84620C}.review-state.reviewed{background:#EAF5F1;color:#236756}.review-title{display:block;font-size:24rpx;font-weight:720}.review-note{display:block;margin-top:6rpx;color:var(--ink);font-size:23rpx;line-height:1.55}
 .change-btn{min-height:68rpx;margin:14rpx 0 0;border:1rpx solid #C7D9D4;border-radius:12rpx;background:#fff;color:#426D63;font-size:22rpx}.change-btn::after{border:0}.passed-card{margin-bottom:18rpx;padding:42rpx 28rpx;border:1rpx solid #C9DFD8;border-radius:24rpx;background:linear-gradient(145deg,#F7FCFA,#EAF5F1);text-align:center}.passed-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:22rpx;background:#2F7D6B;color:#fff;font-size:46rpx;font-weight:800}.passed-title{display:block;margin-top:18rpx;color:#183A36;font-size:34rpx;font-weight:800}.passed-desc{display:block;margin-top:6rpx;color:#60736E;font-size:23rpx;line-height:1.55}
 .poster-btn{min-height:76rpx;margin:20rpx 0 10rpx;border:1rpx solid #D2B55F;border-radius:13rpx;background:#FFF7D8;color:#6D500F;font-size:23rpx;font-weight:760}.poster-btn::after{border:0}
+
+/* 压轴挑战：浅色试卷页，珊瑚提示风险、薄荷表示通过。 */
+.page {
+  overflow-x: hidden;
+  background:
+    linear-gradient(rgba(82, 124, 201, .03) 1rpx, transparent 1rpx),
+    var(--page-bg);
+  background-size: 100% 58rpx, auto;
+  color: var(--ink);
+}
+
+.hero {
+  position: relative;
+  margin: 0 -24rpx 22rpx;
+  padding: 44rpx 34rpx 38rpx;
+  border-bottom: 1rpx solid var(--border);
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
+  background-size: 42rpx 42rpx, auto;
+  color: var(--ink);
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  right: 34rpx;
+  top: 28rpx;
+  width: 112rpx;
+  height: 18rpx;
+  border-radius: 4rpx;
+  background: var(--coral);
+  opacity: .78;
+  transform: rotate(2deg);
+}
+.eyebrow { color: var(--accent-strong); }
+.hero-title { color: var(--primary-strong); }
+.hero-sub { color: var(--text-secondary); }
+
+.choose-card,
+.challenge-card,
+.submit-card {
+  border-color: var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  animation: terminal-card-in var(--motion-slow) var(--ease-out) both;
+}
+.challenge-card { border-top: 7rpx solid var(--coral); }
+.submit-card { border-top: 7rpx solid var(--primary); }
+.section-title,
+.type-title,
+.challenge-title { color: var(--ink); }
+.section-desc,
+.type-desc,
+.week-label,
+.count,
+.source { color: var(--text-muted); }
+
+.type-card {
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.type-card:active { transform: scale(var(--tap-scale)); }
+.type-card[disabled] { opacity: .5; }
+.type-mark { background: var(--accent-soft); color: var(--accent-strong); }
+.type-mark.fill { background: var(--warning-soft); color: var(--warning); }
+.type-mark.subjective { background: var(--coral-soft); color: var(--danger); }
+.type-pill { background: var(--coral-soft); color: var(--danger); }
+
+.change-btn {
+  min-height: 88rpx;
+  border-color: var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--primary-strong);
+}
+
+.upload-btn,
+.poster-btn {
+  min-height: 112rpx;
+  border-radius: var(--r-sm);
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.upload-btn {
+  background: var(--primary-strong);
+  color: #FFFFFF;
+}
+.poster-btn {
+  border-color: #E6CF88;
+  background: var(--warning-soft);
+  color: #765410;
+}
+.upload-btn:active,
+.poster-btn:active,
+.change-btn:active { transform: scale(var(--tap-scale)); }
+.upload-btn[disabled],
+.poster-btn[disabled],
+.change-btn[disabled] { opacity: .5; }
+
+.photo-grid image {
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+}
+
+.review-state {
+  border-left: 6rpx solid var(--gold);
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.review-state.reviewed {
+  border-left-color: var(--accent);
+  background: var(--success-soft);
+  color: var(--success);
+}
+.review-note { color: var(--text-secondary); }
+
+.passed-card {
+  border-color: #BFE5D9;
+  border-top: 7rpx solid var(--accent);
+  border-radius: var(--r);
+  background: linear-gradient(145deg, #FFFFFF, var(--accent-soft));
+  box-shadow: var(--shadow-sm);
+  animation: terminal-card-in var(--motion-slow) var(--ease-out) both;
+}
+.passed-mark { background: var(--success); }
+.passed-title { color: var(--ink); }
+.passed-desc { color: var(--text-secondary); }
+
+@keyframes terminal-card-in {
+  from { opacity: 0; transform: translateY(16rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 360px) {
+  .challenge-head,
+  .submit-head { flex-direction: column; }
+  .week-label,
+  .count { align-self: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choose-card,
+  .challenge-card,
+  .submit-card,
+  .passed-card { animation: none; }
+  .type-card,
+  .upload-btn,
+  .poster-btn { transition: none; }
+  .type-card:active,
+  .upload-btn:active,
+  .poster-btn:active,
+  .change-btn:active { transform: none; }
+}
 </style>

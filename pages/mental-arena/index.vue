@@ -118,4 +118,165 @@ function openLeaderboard(battle) {
 
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx calc(54rpx + env(safe-area-inset-bottom));background:#F3F7F5}.hero{margin:0 -24rpx 22rpx;padding:52rpx 36rpx 48rpx;border-radius:0 0 36rpx 36rpx;background:linear-gradient(145deg,#122E2B,#265E54);color:#fff}.eyebrow{display:block;color:#A9D8CB;font-size:20rpx;font-weight:800;letter-spacing:4rpx}.hero-title{display:block;margin-top:12rpx;font-size:54rpx;font-weight:900;letter-spacing:4rpx}.hero-sub{display:block;margin-top:9rpx;color:#D4EAE4;font-size:25rpx}.card{padding:28rpx;border-radius:22rpx;background:#fff}.score-rule{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;padding:24rpx 20rpx;border:1rpx solid #D5E5DF;border-radius:20rpx;background:#fff;text-align:center}.score-big{display:block;color:#183A36;font-size:34rpx;font-weight:900}.score-label{display:block;margin-top:3rpx;color:#71817C;font-size:20rpx}.score-divider{width:1rpx;height:54rpx;background:#DDE8E4}.rule-note{display:block;margin:10rpx 0 22rpx;color:#52706A;font-size:20rpx;text-align:center}.battle{margin-bottom:20rpx;padding:28rpx;border-radius:24rpx;box-shadow:0 12rpx 28rpx rgba(24,58,54,.08)}.primary-battle{border:1rpx solid #EAC96F;background:linear-gradient(145deg,#FFF9E7,#FFFFFF)}.junior-battle{border:1rpx solid #335C57;background:linear-gradient(145deg,#173A36,#274F49);color:#fff}.battle-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx}.battle-kicker{display:block;color:#9C6A00;font-size:20rpx;font-weight:850;letter-spacing:3rpx}.junior-battle .battle-kicker{color:#A7D6CA}.battle-title{display:block;margin-top:6rpx;color:#2D2517;font-size:38rpx;font-weight:900}.junior-battle .battle-title{color:#fff}.battle-time{padding:9rpx 13rpx;border-radius:999rpx;background:#F8E4A8;color:#745108;font-size:20rpx;font-weight:700}.junior-battle .battle-time{background:#35685F;color:#D8EFE9}.battle-desc{display:block;margin-top:16rpx;color:#6C5A36;font-size:23rpx;line-height:1.6}.junior-battle .battle-desc{color:#C8DED8}.battle-actions{display:grid;grid-template-columns:.8fr 1.4fr;gap:12rpx;margin-top:24rpx}.rank-btn,.start-btn{min-height:88rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:15rpx;font-size:25rpx;font-weight:800}.rank-btn{border:1rpx solid #B88B27;background:#fff;color:#7B570A}.rank-btn.dark{border-color:#6B9990;background:transparent;color:#D8EFE9}.start-btn.primary{background:#F5B83D;color:#493000}.start-btn.junior{background:#E2F1ED;color:#183A36}button::after{border:0}.tip-card{padding:24rpx;border:1rpx solid #DCE8E4;border-radius:20rpx;background:#fff}.tip-title{display:block;color:#183A36;font-size:26rpx;font-weight:800}.tip-copy,.fish-note{display:block;margin-top:8rpx;color:#687A75;font-size:21rpx;line-height:1.6}.fish-note{padding:14rpx;border-radius:12rpx;background:#FFF0CE;color:#8C5A00;font-weight:700}
+
+/* 口算入口：阳光黄与薄荷绿区分战场，统一落在浅色教育底座。 */
+.page {
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 88% 4%, rgba(244, 199, 91, .18), transparent 24%),
+    var(--page-bg);
+  color: var(--ink);
+}
+
+.hero {
+  position: relative;
+  margin: 0 -24rpx 22rpx;
+  padding: 46rpx 36rpx 42rpx;
+  overflow: hidden;
+  border-bottom: 1rpx solid var(--border);
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
+  background-size: 42rpx 42rpx, auto;
+  color: var(--ink);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  right: 34rpx;
+  top: 30rpx;
+  width: 116rpx;
+  height: 20rpx;
+  border-radius: 4rpx;
+  background: var(--gold);
+  opacity: .8;
+  transform: rotate(2deg);
+}
+
+.eyebrow { color: var(--accent-strong); }
+.hero-title {
+  color: var(--primary-strong);
+  letter-spacing: 1rpx;
+}
+.hero-sub { color: var(--text-secondary); }
+
+.card,
+.score-rule,
+.tip-card {
+  border-color: var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.score-rule { border-top: 6rpx solid var(--gold); }
+.score-big { color: var(--primary-strong); }
+.score-label,
+.rule-note { color: var(--text-muted); }
+.score-divider { background: var(--border); }
+
+.battle {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  animation: arena-card-in var(--motion-slow) var(--ease-out) both;
+}
+
+.battle::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8rpx;
+  background: var(--gold);
+}
+
+.primary-battle {
+  border-color: #E6CF88;
+  background: linear-gradient(145deg, #FFFFFF, var(--warning-soft));
+}
+
+.junior-battle {
+  border-color: #BFE5D9;
+  background: linear-gradient(145deg, #FFFFFF, var(--accent-soft));
+  color: var(--ink);
+}
+
+.junior-battle::before { background: var(--accent); }
+.battle-kicker { color: var(--warning); }
+.junior-battle .battle-kicker { color: var(--accent-strong); }
+.battle-title,
+.junior-battle .battle-title { color: var(--ink); }
+.battle-desc,
+.junior-battle .battle-desc { color: var(--text-secondary); }
+
+.battle-time {
+  border-radius: 10rpx;
+  background: #FFFFFF;
+  color: var(--warning);
+}
+
+.junior-battle .battle-time {
+  background: #FFFFFF;
+  color: var(--accent-strong);
+}
+
+.rank-btn,
+.start-btn {
+  min-height: 112rpx;
+  border-radius: var(--r-sm);
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+
+.rank-btn,
+.rank-btn.dark {
+  border-color: var(--border);
+  background: #FFFFFF;
+  color: var(--primary-strong);
+}
+
+.start-btn.primary {
+  background: var(--gold);
+  color: #493000;
+}
+
+.start-btn.junior {
+  background: var(--primary-strong);
+  color: #FFFFFF;
+}
+
+.rank-btn:active,
+.start-btn:active { transform: scale(var(--tap-scale)); }
+.rank-btn[disabled],
+.start-btn[disabled] { opacity: .5; }
+
+.tip-title { color: var(--ink); }
+.tip-copy { color: var(--text-secondary); }
+.fish-note {
+  border-left: 5rpx solid var(--coral);
+  background: var(--coral-soft);
+  color: #9B4F46;
+}
+
+@keyframes arena-card-in {
+  from { opacity: 0; transform: translateY(18rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 360px) {
+  .hero-title { font-size: 48rpx; }
+  .battle-actions { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle { animation: none; }
+  .rank-btn,
+  .start-btn { transition: none; }
+  .rank-btn:active,
+  .start-btn:active { transform: none; }
+}
 </style>

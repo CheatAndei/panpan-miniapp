@@ -1,0 +1,545 @@
+name: Production Student Curriculum Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      manifest_path:
+        description: Manifest path inside backend image
+        required: true
+        default: resources/practice/curricula/feng-haoyuan-2026-07-28-v1.json
+      student_external_id:
+        description: Stable stu_ external id (never numeric student id)
+        required: true
+      confirmation:
+        description: Type APPLY_STUDENT_CURRICULUM
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panpan-production
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Back up, preflight, apply and verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout exact current main commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Validate guarded inputs
+        env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          STUDENT_EXTERNAL_ID: ${{ inputs.student_external_id }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          EXPECTED_GITHUB_SHA: ${{ github.sha }}
+          EXPECTED_GITHUB_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_GITHUB_SHA"
+          git fetch --no-tags --depth=1 origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_GITHUB_SHA"
+          test "$CONFIRMATION" = "APPLY_STUDENT_CURRICULUM"
+          case "$MANIFEST_PATH" in
+            resources/practice/curricula/*.json) ;;
+            *) echo "Manifest must stay in resources/practice/curricula"; exit 1 ;;
+          esac
+          case "$MANIFEST_PATH" in *..*) echo "Manifest path traversal rejected"; exit 1 ;; esac
+          printf '%s' "$MANIFEST_PATH" | grep -Eq '^[a-zA-Z0-9._/-]+$'
+          printf '%s' "$STUDENT_EXTERNAL_ID" | grep -Eq '^stu_[a-f0-9]{32}$'
+          test -f "backend/$MANIFEST_PATH"
+          RUNNER_MANIFEST_SHA256="$(sha256sum "backend/$MANIFEST_PATH" | awk '{print $1}')"
+          printf 'RUNNER_MANIFEST_SHA256=%s\n' "$RUNNER_MANIFEST_SHA256" >> "$GITHUB_ENV"
+          printf 'EXPECTED_GITHUB_SHA=%s\n' "$EXPECTED_GITHUB_SHA" >> "$GITHUB_ENV"
+
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Apply guarded production curriculum
+        env:
+          APPLY_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          STUDENT_EXTERNAL_ID: ${{ inputs.student_external_id }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            "APPLY_ID='$APPLY_ID' MANIFEST_PATH='$MANIFEST_PATH' STUDENT_EXTERNAL_ID='$STUDENT_EXTERNAL_ID' RUNNER_MANIFEST_SHA256='$RUNNER_MANIFEST_SHA256' EXPECTED_GITHUB_SHA='$EXPECTED_GITHUB_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$APPLY_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid apply id'; exit 1 ;; esac
+          case "$MANIFEST_PATH" in resources/practice/curricula/*.json) ;; *) exit 1 ;; esac
+          case "$MANIFEST_PATH" in *..*) exit 1 ;; esac
+          printf '%s' "$STUDENT_EXTERNAL_ID" | grep -Eq '^stu_[a-f0-9]{32}$'
+          printf '%s' "$RUNNER_MANIFEST_SHA256" | grep -Eq '^[a-f0-9]{64}$'
+          printf '%s' "$EXPECTED_GITHUB_SHA" | grep -Eq '^[a-f0-9]{40}$'
+
+          DEPLOY_DIR=/opt/panpan-miniapp
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          RUNNING_IMAGE_ID="$(docker inspect panpan-api --format '{{.Image}}')"
+          EXPECTED_IMAGE="rockchin/panpan-miniapp-backend:git-$EXPECTED_GITHUB_SHA"
+          test -n "$DATA_DIR"
+          test -n "$IMAGE"
+          test -f "$DATA_DIR/teach.db"
+          test "$IMAGE" = "$EXPECTED_IMAGE"
+          EXPECTED_IMAGE_ID="$(docker image inspect "$EXPECTED_IMAGE" --format '{{.Id}}')"
+          IMAGE_REVISION="$(docker image inspect "$RUNNING_IMAGE_ID" \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          test "$RUNNING_IMAGE_ID" = "$EXPECTED_IMAGE_ID"
+          test "$IMAGE_REVISION" = "$EXPECTED_GITHUB_SHA"
+          IMAGE_MANIFEST_SHA256="$(docker run --rm "$IMAGE" \
+            sha256sum "/app/$MANIFEST_PATH" | awk '{print $1}')"
+          test "$IMAGE_MANIFEST_SHA256" = "$RUNNER_MANIFEST_SHA256"
+
+          BACKUP_DIR="$DEPLOY_DIR/backups/student-curriculum-$APPLY_ID"
+          test ! -e "$BACKUP_DIR"
+          install -d -m 700 "$BACKUP_DIR"
+
+          sqlite_integrity() {
+            VERIFY_HOST_FILE="$1"
+            VERIFY_HOST_DIR="$(dirname "$VERIFY_HOST_FILE")"
+            VERIFY_FILE_NAME="$(basename "$VERIFY_HOST_FILE")"
+            docker run --rm -i \
+              -e VERIFY_DB="/verify/$VERIFY_FILE_NAME" \
+              -v "$VERIFY_HOST_DIR:/verify:ro" \
+              "$IMAGE" node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const initSqlJs = require('sql.js');
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync(process.env.VERIFY_DB));
+            const rows = db.exec('PRAGMA integrity_check')[0]?.values?.map((row) => String(row[0])) || [];
+            if (rows.length !== 1 || rows[0] !== 'ok') {
+              throw new Error(`SQLite integrity check failed: ${rows.join(',')}`);
+            }
+            db.exec('SELECT COUNT(*) FROM sqlite_master');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+          }
+
+          wait_for_health() {
+            for attempt in $(seq 1 60); do
+              if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null; then
+                return 0
+              fi
+              sleep 2
+            done
+            return 1
+          }
+
+          BACKUP_READY=0
+          API_STOPPED=0
+          SUCCESS=0
+          BACKUP_BYTES=
+          BACKUP_SHA256=
+          BACKUP_DB="$BACKUP_DIR/teach.db"
+
+          restore_and_restart() {
+            EXIT_STATUS="$1"
+            trap - EXIT HUP INT TERM
+            if [ "$SUCCESS" = "1" ] && [ "$EXIT_STATUS" = "0" ]; then
+              return 0
+            fi
+            set +e
+            echo "Curriculum apply failed (status=$EXIT_STATUS); entering guarded recovery"
+            RECOVERY_FAILED=0
+            if [ "$API_STOPPED" = "1" ]; then
+              (cd "$DEPLOY_DIR" && docker compose stop panpan-api) || RECOVERY_FAILED=1
+            fi
+            if [ "$BACKUP_READY" = "1" ]; then
+              ROLLBACK_TMP="$DATA_DIR/.teach.db.rollback-$APPLY_ID.tmp"
+              rm -f "$ROLLBACK_TMP"
+              cp -a "$BACKUP_DB" "$ROLLBACK_TMP" || RECOVERY_FAILED=1
+              if [ "$RECOVERY_FAILED" = "0" ]; then
+                test "$(od -An -tx1 -N16 "$ROLLBACK_TMP" | tr -d ' \n')" = \
+                  '53514c69746520666f726d6174203300' || RECOVERY_FAILED=1
+                test "$(stat -c%s "$ROLLBACK_TMP")" = "$BACKUP_BYTES" || RECOVERY_FAILED=1
+                test "$(sha256sum "$ROLLBACK_TMP" | awk '{print $1}')" = "$BACKUP_SHA256" \
+                  || RECOVERY_FAILED=1
+                sqlite_integrity "$ROLLBACK_TMP" || RECOVERY_FAILED=1
+              fi
+              if [ "$RECOVERY_FAILED" = "0" ]; then
+                mv -f "$ROLLBACK_TMP" "$DATA_DIR/teach.db" || RECOVERY_FAILED=1
+              fi
+              if [ "$RECOVERY_FAILED" = "0" ]; then
+                test "$(stat -c%s "$DATA_DIR/teach.db")" = "$BACKUP_BYTES" || RECOVERY_FAILED=1
+                test "$(sha256sum "$DATA_DIR/teach.db" | awk '{print $1}')" = "$BACKUP_SHA256" \
+                  || RECOVERY_FAILED=1
+                sqlite_integrity "$DATA_DIR/teach.db" || RECOVERY_FAILED=1
+              fi
+              rm -f "$ROLLBACK_TMP"
+            else
+              echo "BACKUP_READY is not 1; database rollback is intentionally skipped"
+            fi
+            if [ "$API_STOPPED" = "1" ]; then
+              (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api) \
+                || RECOVERY_FAILED=1
+              wait_for_health || RECOVERY_FAILED=1
+            fi
+            if [ "$RECOVERY_FAILED" != "0" ]; then
+              echo "Guarded recovery failed"
+              exit 1
+            fi
+            if [ "$EXIT_STATUS" = "0" ]; then EXIT_STATUS=1; fi
+            exit "$EXIT_STATUS"
+          }
+          trap 'restore_and_restart $?' EXIT
+          trap 'exit 129' HUP
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+
+          API_STOPPED=1
+          (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+          BACKUP_TMP="$BACKUP_DIR/.teach.db.tmp"
+          cp -a "$DATA_DIR/teach.db" "$BACKUP_TMP"
+          test "$(od -An -tx1 -N16 "$BACKUP_TMP" | tr -d ' \n')" = \
+            '53514c69746520666f726d6174203300'
+          BACKUP_BYTES="$(stat -c%s "$BACKUP_TMP")"
+          test "$BACKUP_BYTES" -gt 0
+          BACKUP_SHA256="$(sha256sum "$BACKUP_TMP" | awk '{print $1}')"
+          sqlite_integrity "$BACKUP_TMP"
+          test "$(stat -c%s "$BACKUP_TMP")" = "$BACKUP_BYTES"
+          test "$(sha256sum "$BACKUP_TMP" | awk '{print $1}')" = "$BACKUP_SHA256"
+          mv "$BACKUP_TMP" "$BACKUP_DB"
+          printf '%s  teach.db\n' "$BACKUP_SHA256" > "$BACKUP_DIR/.teach.db.sha256.tmp"
+          mv "$BACKUP_DIR/.teach.db.sha256.tmp" "$BACKUP_DIR/teach.db.sha256"
+          chmod 600 "$BACKUP_DB" "$BACKUP_DIR/teach.db.sha256"
+          test "$(od -An -tx1 -N16 "$BACKUP_DB" | tr -d ' \n')" = \
+            '53514c69746520666f726d6174203300'
+          test "$(stat -c%s "$BACKUP_DB")" = "$BACKUP_BYTES"
+          test "$(sha256sum "$BACKUP_DB" | awk '{print $1}')" = "$BACKUP_SHA256"
+          sqlite_integrity "$BACKUP_DB"
+          BACKUP_READY=1
+
+          cp -a "$BACKUP_DB" "$BACKUP_DIR/.preflight.db.tmp"
+          sqlite_integrity "$BACKUP_DIR/.preflight.db.tmp"
+          mv "$BACKUP_DIR/.preflight.db.tmp" "$BACKUP_DIR/preflight.db"
+
+          docker run --rm \
+            -v "$BACKUP_DIR:/app/backup:ro" \
+            "$IMAGE" node /app/scripts/fingerprint-practice-history.js \
+              --database /app/backup/teach.db \
+              --student-external-id "$STUDENT_EXTERNAL_ID" \
+              --date 2026-07-27 \
+            > "$BACKUP_DIR/history-2026-07-27-before.json"
+          cat "$BACKUP_DIR/history-2026-07-27-before.json"
+
+          docker run --rm -i \
+            -v "$BACKUP_DIR:/audit:ro" \
+            "$IMAGE" node --input-type=commonjs > "$BACKUP_DIR/.practice-plans-before.json.tmp" <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const initSqlJs = require('sql.js');
+          const stable = (value) => {
+            if (Array.isArray(value)) return value.map(stable);
+            if (value && typeof value === 'object') {
+              return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+            }
+            return value;
+          };
+          const digest = (value) => crypto.createHash('sha256')
+            .update(JSON.stringify(stable(value))).digest('hex');
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync('/audit/teach.db'));
+            const stmt = db.prepare('SELECT * FROM practice_plans ORDER BY id');
+            const plans = [];
+            while (stmt.step()) plans.push(stmt.getAsObject());
+            stmt.free();
+            const plan10 = plans.find((plan) => Number(plan.id) === 10);
+            if (!plan10 || plan10.status !== 'published' || String(plan10.end_date) < '2026-07-28') {
+              throw new Error('Plan 10 is not in the exact pre-retirement state');
+            }
+            const rows = Object.fromEntries(plans.map((plan) => [String(plan.id), plan]));
+            const fingerprints = Object.fromEntries(plans.map((plan) => [String(plan.id), digest(plan)]));
+            console.log(JSON.stringify({
+              plan_ids: plans.map((plan) => Number(plan.id)),
+              rows,
+              fingerprints,
+              all_plans_sha256: digest(plans),
+            }, null, 2));
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+          docker run --rm \
+            -v "$BACKUP_DIR:/audit:ro" "$IMAGE" \
+            node -e "const fs=require('node:fs');const a=JSON.parse(fs.readFileSync('/audit/.practice-plans-before.json.tmp','utf8'));if(!a.rows['10'])process.exit(1)"
+          mv "$BACKUP_DIR/.practice-plans-before.json.tmp" "$BACKUP_DIR/practice-plans-before.json"
+
+          docker run --rm \
+            -e NODE_ENV=production \
+            -v "$BACKUP_DIR:/app/preflight" \
+            "$IMAGE" npm run practice:curriculum -- \
+              --manifest "/app/$MANIFEST_PATH" \
+              --database /app/preflight/preflight.db \
+              --expect-student-external-id "$STUDENT_EXTERNAL_ID"
+
+          docker run --rm \
+            -e NODE_ENV=production -e DATABASE_PATH=/app/data/teach.db \
+            -v "$DATA_DIR:/app/data" \
+            "$IMAGE" npm run practice:curriculum -- \
+              --manifest "/app/$MANIFEST_PATH" \
+              --expect-student-external-id "$STUDENT_EXTERNAL_ID" \
+              --apply | tee "$BACKUP_DIR/apply-result.log"
+
+          docker run --rm \
+            -v "$DATA_DIR:/app/data:ro" \
+            "$IMAGE" node /app/scripts/fingerprint-practice-history.js \
+              --database /app/data/teach.db \
+              --student-external-id "$STUDENT_EXTERNAL_ID" \
+              --date 2026-07-27 \
+            > "$BACKUP_DIR/history-2026-07-27-after.json"
+          cmp -s "$BACKUP_DIR/history-2026-07-27-before.json" "$BACKUP_DIR/history-2026-07-27-after.json"
+          cat "$BACKUP_DIR/history-2026-07-27-after.json"
+
+          docker run --rm -i \
+            -e DATABASE_PATH=/app/data/teach.db \
+            -e AUDIT_PATH=/audit/practice-plans-before.json \
+            -e MANIFEST_PATH="/app/$MANIFEST_PATH" \
+            -e STUDENT_EXTERNAL_ID="$STUDENT_EXTERNAL_ID" \
+            -v "$DATA_DIR:/app/data:ro" \
+            -v "$BACKUP_DIR:/audit:ro" \
+            "$IMAGE" node --input-type=commonjs <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const initSqlJs = require('sql.js');
+          const {
+            validateStudentCurriculumManifest,
+          } = require('/app/services/student-practice-curriculum');
+          const stable = (value) => {
+            if (Array.isArray(value)) return value.map(stable);
+            if (value && typeof value === 'object') {
+              return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+            }
+            return value;
+          };
+          const stableJson = (value) => JSON.stringify(stable(value));
+          const digest = (value) => crypto.createHash('sha256').update(stableJson(value)).digest('hex');
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync(process.env.DATABASE_PATH));
+            const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.map((row) => String(row[0])) || [];
+            if (integrity.length !== 1 || integrity[0] !== 'ok') throw new Error('Live DB integrity check failed');
+            const one = (sql, params = []) => {
+              const stmt = db.prepare(sql);
+              stmt.bind(params);
+              const row = stmt.step() ? stmt.getAsObject() : null;
+              stmt.free();
+              return row;
+            };
+            const all = (sql, params = []) => {
+              const stmt = db.prepare(sql);
+              stmt.bind(params);
+              const rows = [];
+              while (stmt.step()) rows.push(stmt.getAsObject());
+              stmt.free();
+              return rows;
+            };
+            const rawManifest = JSON.parse(fs.readFileSync(process.env.MANIFEST_PATH, 'utf8'));
+            const expected = validateStudentCurriculumManifest(rawManifest);
+            if (!expected.ok) throw new Error(`Image manifest validation failed: ${expected.errors.join(';')}`);
+            if (expected.manifest.days.length !== 22) throw new Error('Manifest must contain exactly 22 days');
+            const student = one('SELECT id,name FROM students WHERE external_id=? AND deleted_at IS NULL', [
+              process.env.STUDENT_EXTERNAL_ID,
+            ]);
+            if (!student) throw new Error('Stable external id no longer resolves');
+            const curriculum = one(`SELECT * FROM practice_student_curricula
+              WHERE curriculum_key=? AND student_id=? AND status='active'`, [
+              expected.manifest.metadata.curriculum_key,
+              student.id,
+            ]);
+            if (!curriculum) throw new Error('Active student curriculum is missing');
+            if (curriculum.manifest_sha256 !== expected.manifest_sha256) {
+              throw new Error('Stored curriculum manifest_sha256 does not match normalized image manifest');
+            }
+            const storedDays = all(`SELECT * FROM practice_student_curriculum_days
+              WHERE curriculum_id=? ORDER BY day_index`, [curriculum.id]);
+            if (storedDays.length !== 22) throw new Error(`Expected 22 curriculum days, got ${storedDays.length}`);
+            for (let index = 0; index < expected.manifest.days.length; index += 1) {
+              const wanted = expected.manifest.days[index];
+              const actual = storedDays[index];
+              if (Number(actual.day_index) !== wanted.day_index
+                  || actual.practice_date !== wanted.date
+                  || Number(actual.source_page) !== wanted.source_page
+                  || actual.question_type_key !== wanted.question_type_key
+                  || actual.question_type_label !== wanted.question_type_label
+                  || Number(actual.question_count) !== 10
+                  || actual.content_sha256 !== wanted.content_sha256
+                  || stableJson(JSON.parse(actual.questions_json)) !== stableJson(wanted.questions)) {
+                throw new Error(`Curriculum day ${wanted.day_index} hash/content mismatch`);
+              }
+            }
+            const historic = one(`SELECT a.id,a.plan_id,s.id submission_id,s.status,p.end_date plan_end_date
+              FROM practice_assignments a
+              JOIN practice_submissions s ON s.assignment_id=a.id
+              JOIN practice_plans p ON p.id=a.plan_id
+              WHERE a.student_id=? AND a.practice_date='2026-07-27'`, [student.id]);
+            if (!historic) throw new Error('2026-07-27 history is missing');
+            const overlappingAdaptive = one(`SELECT COUNT(DISTINCT p.id) count
+              FROM practice_plans p
+              JOIN practice_student_settings pss ON pss.plan_id=p.id
+              WHERE pss.student_id=? AND p.status='published'
+                AND p.start_date<='2026-07-28' AND p.end_date>='2026-07-28'`, [student.id]);
+            const summary = one(`SELECT
+                COUNT(*) assignment_count,
+                MIN(a.practice_date) first_date,
+                MAX(a.practice_date) last_date,
+                SUM(CASE WHEN a.assignment_source='student_curriculum' THEN 0 ELSE 1 END) wrong_source,
+                SUM(CASE WHEN d.source_page=d.day_index+3 THEN 0 ELSE 1 END) wrong_page
+              FROM practice_assignments a
+              JOIN practice_student_curriculum_days d ON d.id=a.curriculum_day_id
+              WHERE a.student_id=? AND d.curriculum_id=?
+                AND a.practice_date BETWEEN '2026-07-28' AND '2026-08-18'`, [
+              student.id,
+              curriculum.id,
+            ]);
+            const badItems = one(`SELECT COUNT(*) count FROM (
+                SELECT a.id
+                FROM practice_assignments a
+                LEFT JOIN practice_assignment_items i ON i.assignment_id=a.id
+                WHERE a.student_id=? AND a.practice_date BETWEEN '2026-07-28' AND '2026-08-18'
+                GROUP BY a.id
+                HAVING COUNT(i.id)<>10 OR COUNT(DISTINCT i.snapshot_type)<>1
+              )`, [student.id]);
+            const snapshots = all(`SELECT a.practice_date,a.assignment_source,a.curriculum_day_id,
+                i.question_id,i.position,i.snapshot_stem,i.snapshot_answer,i.snapshot_module,
+                i.snapshot_type,i.snapshot_difficulty,i.estimated_seconds,i.signature,i.template_key,
+                i.snapshot_payload
+              FROM practice_assignments a
+              JOIN practice_student_curriculum_days d ON d.id=a.curriculum_day_id
+              JOIN practice_assignment_items i ON i.assignment_id=a.id
+              WHERE a.student_id=? AND d.curriculum_id=?
+              ORDER BY a.practice_date,i.position`, [student.id, curriculum.id]);
+            if (snapshots.length !== 220) throw new Error(`Expected 220 snapshots, got ${snapshots.length}`);
+            const expectedByDate = new Map(expected.manifest.days.map((day) => [day.date, day]));
+            for (const snapshot of snapshots) {
+              const day = expectedByDate.get(snapshot.practice_date);
+              const question = day?.questions[Number(snapshot.position) - 1];
+              if (!day || !question) throw new Error('Snapshot date/position is outside manifest');
+              const expectedPayload = {
+                render: question.render || null,
+                answer_render: question.answer_render || null,
+                source_page: Number(day.source_page),
+                question_type_key: day.question_type_key,
+              };
+              if (snapshot.assignment_source !== 'student_curriculum'
+                  || Number(snapshot.curriculum_day_id) !== Number(
+                    storedDays.find((stored) => stored.practice_date === day.date)?.id,
+                  )
+                  || snapshot.question_id !== null
+                  || Number(snapshot.position) !== question.position
+                  || snapshot.snapshot_stem !== question.stem
+                  || snapshot.snapshot_answer !== question.answer
+                  || snapshot.snapshot_module !== '专属计算'
+                  || snapshot.snapshot_type !== day.question_type_label
+                  || Number(snapshot.snapshot_difficulty) !== question.difficulty
+                  || Number(snapshot.estimated_seconds) !== question.estimated_seconds
+                  || snapshot.signature !== question.signature
+                  || snapshot.template_key !== question.template_key
+                  || stableJson(JSON.parse(snapshot.snapshot_payload)) !== stableJson(expectedPayload)) {
+                throw new Error(`Snapshot mismatch on ${day.date} position ${question.position}`);
+              }
+            }
+
+            const beforePlans = JSON.parse(fs.readFileSync(process.env.AUDIT_PATH, 'utf8'));
+            const afterPlans = all('SELECT * FROM practice_plans ORDER BY id');
+            const afterById = new Map(afterPlans.map((plan) => [Number(plan.id), plan]));
+            for (const planId of beforePlans.plan_ids) {
+              const before = beforePlans.rows[String(planId)];
+              const after = afterById.get(Number(planId));
+              if (!after) throw new Error(`Existing practice plan ${planId} was deleted`);
+              if (Number(planId) === 10) {
+                const expectedRetired = { ...before, end_date: '2026-07-27' };
+                if (digest(after) !== digest(expectedRetired)) {
+                  throw new Error('Plan 10 changed outside its guarded end_date retirement');
+                }
+              } else if (digest(after) !== beforePlans.fingerprints[String(planId)]) {
+                throw new Error(`Unrelated practice plan ${planId} fingerprint changed`);
+              }
+            }
+            const addedPlanIds = afterPlans
+              .map((plan) => Number(plan.id))
+              .filter((planId) => !beforePlans.plan_ids.includes(planId));
+            if (addedPlanIds.length !== 1 || addedPlanIds[0] !== Number(curriculum.plan_id)) {
+              throw new Error(`Unexpected new practice plans: ${addedPlanIds.join(',')}`);
+            }
+            const retirementLog = one(`SELECT detail FROM operation_logs
+              WHERE action='student_practice_curriculum_applied'
+                AND entity_type='practice_student_curriculum' AND entity_id=?
+              ORDER BY id DESC LIMIT 1`, [curriculum.id]);
+            const retirementDetail = JSON.parse(retirementLog?.detail || '{}');
+            const retiredPlans = retirementDetail.retired_plans;
+            const alreadyRetiredPlanIds = retirementDetail.already_retired_plan_ids;
+            if (!Array.isArray(retiredPlans)
+                || retiredPlans.length !== 1
+                || Number(retiredPlans[0]?.id) !== 10
+                || retiredPlans[0]?.previous_end_date !== '2026-07-29'
+                || retiredPlans[0]?.new_end_date !== '2026-07-27'
+                || !Array.isArray(alreadyRetiredPlanIds)
+                || alreadyRetiredPlanIds.length !== 0) {
+              throw new Error(`Only plan 10 may retire 2026-07-29 -> 2026-07-27; got ${JSON.stringify(retirementDetail)}`);
+            }
+            const result = {
+              student_name: student.name,
+              manifest_sha256: curriculum.manifest_sha256,
+              verified_day_hashes: storedDays.length,
+              verified_snapshots: snapshots.length,
+              retired_plans: retiredPlans,
+              unchanged_plan_fingerprints: beforePlans.plan_ids.length - 1,
+              historic_submission_id: Number(historic.submission_id),
+              historic_plan_end_date: historic.plan_end_date,
+              overlapping_adaptive_plans: Number(overlappingAdaptive.count),
+              assignment_count: Number(summary.assignment_count),
+              first_date: summary.first_date,
+              last_date: summary.last_date,
+              wrong_source: Number(summary.wrong_source),
+              wrong_page: Number(summary.wrong_page),
+              bad_item_days: Number(badItems.count),
+            };
+            console.log(JSON.stringify(result));
+            if (result.historic_plan_end_date !== '2026-07-27'
+                || result.overlapping_adaptive_plans !== 0
+                || result.assignment_count !== 22
+                || result.first_date !== '2026-07-28'
+                || result.last_date !== '2026-08-18'
+                || result.wrong_source !== 0
+                || result.wrong_page !== 0
+                || result.bad_item_days !== 0) {
+              throw new Error('Production curriculum verification failed');
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+          wait_for_health
+          API_STOPPED=0
+          SUCCESS=1
+          trap - EXIT HUP INT TERM
+          REMOTE

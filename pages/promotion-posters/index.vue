@@ -395,3 +395,189 @@ async function savePoster() {
 .mental-motto{top:59.2%;height:6.6%}
 .mental-cta{bottom:5.8%;height:24.2%;padding:4%}
 </style>
+
+<style scoped>
+.studio-page {
+  background:
+    radial-gradient(circle at 96% 0%, rgba(244, 199, 91, .18), transparent 22%),
+    linear-gradient(180deg, #F7FBFF, var(--page-bg, #F6FAFF));
+  color: var(--ink, #24324A);
+}
+
+.studio-hero {
+  border-color: #D6E3F2;
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #FFF8E9);
+  background-size: 42rpx 42rpx, 42rpx 42rpx, auto;
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  animation: studio-enter var(--motion-slow, 240ms) var(--ease-out, ease-out) both;
+}
+
+.poster-workspace {
+  border-color: var(--border, #DDE7F2);
+  background: #FFFFFF;
+  box-shadow: var(--shadow, 0 14rpx 38rpx rgba(49, 94, 168, .09));
+  animation: studio-enter var(--motion-slow, 240ms) var(--ease-out, ease-out) both;
+}
+
+.event-ticket,
+.poster-actions button,
+.generation-error button {
+  transition: transform var(--motion-fast, 120ms) var(--ease-out, ease-out), opacity var(--motion-fast, 120ms) var(--ease-out, ease-out);
+}
+
+.poster-actions button:active,
+.generation-error button:active {
+  transform: scale(var(--tap-scale, .975));
+  opacity: .9;
+}
+
+@keyframes studio-enter {
+  from { opacity: 0; transform: translateY(12rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-hero,
+  .poster-workspace,
+  .event-ticket,
+  .poster-actions button,
+  .generation-error button,
+  .generation-line {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .event-ticket:active,
+  .poster-actions button:active,
+  .generation-error button:active {
+    transform: none;
+  }
+}
+</style>
+
+<style scoped>
+/* mei final pass: light editing desk; poster artwork remains independently themed */
+.studio-page {
+  background:
+    radial-gradient(circle at 96% 3%, rgba(244, 199, 91, .18), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+  color: var(--ink);
+}
+.studio-hero {
+  border-color: var(--border);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    radial-gradient(circle at 86% 22%, var(--warning-soft) 0 90rpx, transparent 92rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+}
+.studio-kicker { color: var(--primary-strong); }
+.studio-title { color: var(--ink); }
+.studio-rule { background: var(--gold); }
+.studio-copy { color: var(--text-secondary); }
+.studio-serial { color: var(--coral); }
+.section-kicker,
+.workspace-label { color: var(--primary-strong); }
+.section-title,
+.workspace-title { color: var(--ink); }
+.event-ticket {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.event-ticket.active {
+  border-color: #AFC5E7;
+  background: var(--primary-soft);
+}
+.event-ticket.challenge_pass.active {
+  border-color: #F1B2A8;
+  background: var(--coral-soft);
+}
+.ticket-index { background: var(--primary-soft); color: var(--primary-strong); }
+.challenge_pass .ticket-index { background: var(--coral-soft); color: #B85D51; }
+.ticket-type { color: var(--primary-strong); }
+.challenge_pass .ticket-type { color: #B85D51; }
+.ticket-name { color: var(--ink); }
+.ticket-date { color: var(--text-muted); }
+.poster-workspace {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-md);
+}
+.privacy-stamp {
+  border-color: #AFC5E7;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.privacy-stamp.challenge_pass {
+  border-color: #F1B2A8;
+  background: var(--coral-soft);
+  color: #B85D51;
+}
+.generation-strip,
+.poster-ready {
+  border: 1rpx solid var(--border);
+  background: #F4F8FD;
+  color: var(--primary-strong);
+}
+.generation-line { background: var(--primary); }
+.generation-error {
+  border: 1rpx solid #F1B2A8;
+  background: var(--coral-soft);
+  color: #B85D51;
+}
+.generation-error button {
+  background: var(--danger);
+  color: #FFFFFF;
+}
+.poster-actions button { min-height: 104rpx; }
+.save-action {
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .18);
+}
+.share-action {
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.empty-archive {
+  border-left-color: var(--gold);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.empty-index { color: var(--primary); }
+.empty-title { color: var(--ink); }
+.empty-copy { color: var(--text-secondary); }
+.event-ticket,
+.poster-actions button,
+.generation-error button {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.event-ticket:active,
+.poster-actions button:active,
+.generation-error button:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-hero,
+  .poster-workspace,
+  .event-ticket,
+  .poster-actions button,
+  .generation-error button,
+  .generation-line {
+    animation: none !important;
+    transition: none !important;
+  }
+  .event-ticket:active,
+  .poster-actions button:active,
+  .generation-error button:active { transform: none; }
+}
+</style>

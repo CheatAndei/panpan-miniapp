@@ -170,7 +170,11 @@ function prepareLegacySchemaColumns() {
     ['practice_submissions', 'current_round', 'INTEGER NOT NULL DEFAULT 1'],
     ['practice_submissions', 'needs_correction', 'INTEGER NOT NULL DEFAULT 0'],
     ['practice_submissions', 'completed_at', 'DATETIME'],
+    ['practice_submissions', 'review_revision', 'INTEGER NOT NULL DEFAULT 0'],
     ['practice_attachments', 'round_no', 'INTEGER NOT NULL DEFAULT 1'],
+    ['practice_assignments', 'assignment_source', "TEXT NOT NULL DEFAULT 'adaptive'"],
+    ['practice_assignments', 'curriculum_day_id', 'INTEGER REFERENCES practice_student_curriculum_days(id)'],
+    ['practice_assignment_items', 'snapshot_payload', "TEXT NOT NULL DEFAULT '{}'"],
   ];
   for (const [table, column, definition] of bridges) {
     if (execOne("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name=?", [table])) {
@@ -321,7 +325,11 @@ function runMigrations() {
   ensureColumn('practice_submissions', 'current_round', 'INTEGER NOT NULL DEFAULT 1');
   ensureColumn('practice_submissions', 'needs_correction', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('practice_submissions', 'completed_at', 'DATETIME');
+  ensureColumn('practice_submissions', 'review_revision', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('practice_attachments', 'round_no', 'INTEGER NOT NULL DEFAULT 1');
+  ensureColumn('practice_assignments', 'assignment_source', "TEXT NOT NULL DEFAULT 'adaptive'");
+  ensureColumn('practice_assignments', 'curriculum_day_id', 'INTEGER REFERENCES practice_student_curriculum_days(id)');
+  ensureColumn('practice_assignment_items', 'snapshot_payload', "TEXT NOT NULL DEFAULT '{}'");
   _db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_challenge_source_key ON weekly_challenge_questions(source_key)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_classes_teacher_active ON classes(teacher_id, deleted_at)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_students_class_active ON students(class_id, deleted_at)');
@@ -346,6 +354,14 @@ function runMigrations() {
     ON choice_king_reports(status, created_at)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_attachment_round
     ON practice_attachments(submission_id, round_no, created_at)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_curriculum_student_dates
+    ON practice_student_curricula(student_id, status, start_date, end_date)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_curriculum_teacher
+    ON practice_student_curricula(teacher_id, status, updated_at)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_curriculum_day_date
+    ON practice_student_curriculum_days(student_id, practice_date)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_assignment_curriculum_day
+    ON practice_assignments(curriculum_day_id)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_teacher_alert_unread
     ON teacher_alerts(teacher_id, read_at, created_at)`);
   _db.run(`UPDATE practice_plans SET topic_keys='["rational_numbers","absolute_value","algebra","linear_equation"]'
@@ -433,6 +449,9 @@ function runMigrations() {
   _db.run(`UPDATE practice_submissions
     SET current_round=COALESCE(NULLIF(current_round,0),1),
       needs_correction=COALESCE(needs_correction,0),
+      review_revision=CASE
+        WHEN COALESCE(review_revision,0)=0 AND reviewed_at IS NOT NULL THEN 1
+        ELSE COALESCE(review_revision,0) END,
       completed_at=CASE
         WHEN status='reviewed' THEN COALESCE(completed_at,reviewed_at)
         ELSE completed_at END`);
@@ -447,6 +466,7 @@ async function initDB() {
   const SQL = await initSqlJs();
   ensureDir(DB_PATH);
   _db = fs.existsSync(DB_PATH) ? new SQL.Database(fs.readFileSync(DB_PATH)) : new SQL.Database();
+  _db.run('PRAGMA foreign_keys=ON');
   prepareLegacySchemaColumns();
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   _db.run(schema);

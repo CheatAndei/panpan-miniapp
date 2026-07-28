@@ -235,6 +235,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(reviewed.payload.correction_round, 1);
   assert.equal(reviewed.payload.is_correction, false);
   assert.equal(reviewed.payload.needs_correction, true);
+  assert.equal(reviewed.payload.review_revision, 1);
   assert.deepEqual(reviewed.payload.wrong_item_ids, submission.items.slice(0, 3).map((item) => Number(item.id)));
   assert.deepEqual(reviewed.payload.focus_item_ids, reviewed.payload.wrong_item_ids);
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0);
@@ -312,6 +313,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   });
   assert.equal(roundTwoReview.response.status, 200);
   assert.equal(roundTwoReview.payload.status, 'correction_required');
+  assert.equal(roundTwoReview.payload.review_revision, 2);
   assert.deepEqual(roundTwoReview.payload.wrong_item_ids, [Number(correctionSubmission.items[0].id)]);
   assert.equal(getDB().get(`SELECT COUNT(*) count FROM practice_review_rounds
     WHERE submission_id=?`, [submission.id]).count, submission.items.length + 3);
@@ -338,6 +340,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   const finalReview = finalReviewAttempts.find((item) => item.response.status === 200);
   assert.equal(finalReview.payload.status, 'reviewed');
   assert.equal(finalReview.payload.needs_correction, false);
+  assert.equal(finalReview.payload.review_revision, 3);
   assert.ok(finalReview.payload.completed_at);
   assert.deepEqual(finalReview.payload.focus_item_ids, []);
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0);

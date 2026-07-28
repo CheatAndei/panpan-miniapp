@@ -134,4 +134,128 @@ function goPractice() { uni.navigateBack({ delta: 1, fail: () => uni.redirectTo(
 
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx calc(54rpx + env(safe-area-inset-bottom));background:#F3F7F5}.hero{margin:0 -24rpx;padding:46rpx 34rpx 42rpx;background:linear-gradient(145deg,#173A36,#315D56);color:#fff}.eyebrow{display:block;color:#B5DDD3;font-size:19rpx;font-weight:760;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:44rpx;font-weight:820}.hero-sub{display:block;max-width:600rpx;margin-top:8rpx;color:#D4E9E3;font-size:22rpx;line-height:1.55}.period-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8rpx;margin-top:20rpx;padding:7rpx;border:1rpx solid #D8E5E1;border-radius:17rpx;background:#fff}.period-tab{min-height:72rpx;margin:0;border-radius:12rpx;background:transparent;color:#647570;font-size:23rpx;font-weight:700}.period-tab::after{border:0}.period-tab.active{background:#183A36;color:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.14)}.rank-skeleton,.state-card{margin-top:18rpx;padding:20rpx;border:1rpx solid #D8E5E1;border-radius:22rpx;background:#fff}.skeleton-row{min-height:96rpx;display:flex;align-items:center;gap:16rpx;border-bottom:1rpx solid #EDF2F0}.skeleton-row:last-child{border-bottom:0}.skeleton-place,.skeleton-name,.skeleton-score{background:linear-gradient(100deg,#EAF1EF 20%,#F9FBFA 40%,#EAF1EF 60%);background-size:200% 100%;animation:shimmer 1.2s linear infinite}.skeleton-place{width:46rpx;height:46rpx;border-radius:50%}.skeleton-name{width:240rpx;height:27rpx;border-radius:8rpx}.skeleton-score{width:70rpx;height:32rpx;margin-left:auto;border-radius:8rpx}@keyframes shimmer{to{background-position:-200% 0}}.my-rank{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-top:18rpx;padding:24rpx;border:1rpx solid #BFD9D1;border-radius:20rpx;background:linear-gradient(135deg,#EAF5F1,#fff)}.my-label,.my-name,.my-place,.my-score{display:block}.my-label{color:#2F7D6B;font-size:20rpx;font-weight:750}.my-name{margin-top:3rpx;color:#203A35;font-size:27rpx;font-weight:780}.my-result{text-align:right}.my-place{color:#205F52;font-size:26rpx;font-weight:800}.my-score{margin-top:2rpx;color:#60746E;font-size:20rpx}.rank-card{margin-top:18rpx;padding:14rpx 22rpx;border:1rpx solid #D8E5E1;border-radius:22rpx;background:#fff}.rank-head{display:flex;justify-content:space-between;padding:9rpx 0 14rpx;color:#82918D;font-size:20rpx}.rank-row{min-height:104rpx;display:flex;align-items:center;gap:14rpx;border-top:1rpx solid #E7EEEC}.rank-row.mine{margin:0 -10rpx;padding:0 10rpx;background:#F0F7F4}.place{width:46rpx;height:46rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:50%;background:#E9F0EE;color:#61716D;font-size:22rpx;font-weight:820}.place-1{background:#F2C95C;color:#513900}.place-2{background:#DDE5E2;color:#40534E}.place-3{background:#E8C6A0;color:#66451E}.student-copy{flex:1;min-width:0}.student-line{display:flex;align-items:center;gap:8rpx}.student-name{overflow:hidden;color:#183A36;font-size:25rpx;font-weight:730;text-overflow:ellipsis;white-space:nowrap}.mine-tag{padding:3rpx 9rpx;border-radius:8rpx;background:#DCEFE9;color:#276959;font-size:18rpx;font-weight:760}.result-meta{display:block;margin-top:4rpx;overflow:hidden;color:#71817C;font-size:19rpx;text-overflow:ellipsis;white-space:nowrap}.score-wrap{flex:none;color:#183A36}.score{font-size:31rpx;font-weight:850}.score-unit{margin-left:3rpx;font-size:19rpx}.rule-card{margin-top:18rpx;padding:22rpx;border-radius:18rpx;background:#E8F2EF}.rule-title,.rule-copy{display:block}.rule-title{color:#285F54;font-size:23rpx;font-weight:780}.rule-copy{margin-top:6rpx;color:#60736E;font-size:20rpx;line-height:1.65}@media(prefers-reduced-motion:reduce){.skeleton-place,.skeleton-name,.skeleton-score{animation:none}}
+
+/* 选择题榜：浅色成绩册式排行。 */
+.page {
+  overflow-x: hidden;
+  background: var(--page-bg);
+  color: var(--ink);
+}
+
+.hero {
+  position: relative;
+  margin: 0 -24rpx;
+  padding: 44rpx 34rpx 38rpx;
+  border-bottom: 1rpx solid var(--border);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
+  background-size: 42rpx 42rpx, auto;
+  color: var(--ink);
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  right: 32rpx;
+  top: 26rpx;
+  width: 108rpx;
+  height: 18rpx;
+  border-radius: 4rpx;
+  background: var(--gold);
+  transform: rotate(2deg);
+}
+.eyebrow { color: var(--accent-strong); }
+.hero-title { color: var(--primary-strong); }
+.hero-sub { color: var(--text-secondary); }
+
+.period-tabs {
+  border-color: var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.period-tab {
+  min-height: 88rpx;
+  color: var(--text-muted);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+.period-tab.active {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  box-shadow: none;
+}
+.period-tab:active { transform: scale(var(--tap-scale)); }
+
+.rank-skeleton,
+.state-card,
+.rank-card {
+  border-color: var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.skeleton-row { border-bottom-color: var(--hairline); }
+.skeleton-place,
+.skeleton-name,
+.skeleton-score {
+  background: var(--primary-soft);
+  animation: rank-skeleton-pulse 1.1s ease-in-out infinite alternate;
+}
+
+.my-rank {
+  border-color: #BFE5D9;
+  border-left: 7rpx solid var(--accent);
+  border-radius: var(--r);
+  background: linear-gradient(135deg, #FFFFFF, var(--accent-soft));
+  box-shadow: var(--shadow-sm);
+  animation: rank-summary-in var(--motion-slow) var(--ease-out) both;
+}
+.my-label { color: var(--accent-strong); }
+.my-name { color: var(--ink); }
+.my-place { color: var(--primary-strong); }
+.my-score { color: var(--text-secondary); }
+
+.rank-head { color: var(--text-muted); }
+.rank-row {
+  min-height: 112rpx;
+  border-top-color: var(--hairline);
+}
+.rank-row.mine {
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+}
+.place { background: var(--surface-muted); color: var(--text-muted); }
+.place-1 { background: var(--gold); color: #493000; }
+.place-2 { background: var(--primary-soft); color: var(--primary-strong); }
+.place-3 { background: var(--coral-soft); color: #9B4F46; }
+.student-name,
+.score-wrap { color: var(--ink); }
+.mine-tag { background: var(--accent-soft); color: var(--accent-strong); }
+.result-meta { color: var(--text-muted); }
+
+.rule-card {
+  border-left: 6rpx solid var(--gold);
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+}
+.rule-title { color: var(--warning); }
+.rule-copy { color: var(--text-secondary); }
+
+@keyframes rank-summary-in {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rank-skeleton-pulse {
+  from { opacity: .56; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-rank,
+  .skeleton-place,
+  .skeleton-name,
+  .skeleton-score { animation: none; }
+  .period-tab { transition: none; }
+  .period-tab:active { transform: none; }
+}
 </style>

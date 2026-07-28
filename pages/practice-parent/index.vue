@@ -33,7 +33,11 @@
         <view v-for="item in assignment.items" :key="item.id" class="question-row">
           <text class="question-no">{{ item.position }}</text>
           <view class="question-copy">
-            <pp-math-text class="question-text" :value="item.stem" />
+            <pp-math-text
+              class="question-text"
+              :value="item.stem"
+              :blocks="item.render && item.render.blocks"
+            />
             <text class="question-type">{{ item.question_type }}</text>
           </view>
         </view>
@@ -243,7 +247,7 @@ function historyStatusClass(item) {
 
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx calc(48rpx + env(safe-area-inset-bottom));background:var(--page-bg)}
-.practice-hero{margin:0 -24rpx 24rpx;padding:52rpx 36rpx 46rpx;background:linear-gradient(145deg,#163F39,#2F7D6B);color:#fff;border-radius:0 0 34rpx 34rpx}
+.practice-hero{margin:0 -24rpx 24rpx;padding:52rpx 36rpx 46rpx;background:linear-gradient(145deg,#FFFFFF,#EDF5FF);color:var(--ink);border-radius:0 0 34rpx 34rpx}
 .eyebrow{display:block;font-size:20rpx;letter-spacing:4rpx;color:#BEE2D8;font-weight:700}
 .hero-title{display:block;margin-top:12rpx;font-size:42rpx;line-height:1.3;font-weight:760}
 .hero-sub{display:block;margin-top:10rpx;font-size:25rpx;color:#D9EFE9}
@@ -263,7 +267,96 @@ function historyStatusClass(item) {
 .submit-note{margin-top:18rpx;padding:18rpx 20rpx;border-radius:14rpx;background:var(--surface-muted);color:var(--accent-strong);font-size:24rpx}.round-note{display:block;margin-top:6rpx;color:var(--text-muted);font-size:21rpx}.teacher-note{display:block;margin-top:8rpx;color:var(--ink);line-height:1.55}
 .history-row{min-height:76rpx;display:flex;align-items:center;justify-content:space-between;border-bottom:1rpx solid var(--hairline);color:var(--ink);font-size:25rpx}.history-row:last-child{border-bottom:0}
 .history-status{color:var(--warning)}.history-status.reviewed{color:var(--success)}.history-status.correction-required{color:#95680C;font-weight:700}
-.share-card{display:flex;align-items:center;gap:18rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFFBED,#FFFFFF)}.share-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:20rpx;background:#F5B83D;color:#493000;font-size:35rpx;font-weight:900}.share-copy{flex:1;min-width:0}.share-title{display:block;color:var(--ink);font-size:28rpx;font-weight:760}.share-desc{display:block;margin-top:4rpx;color:#6C572F;font-size:22rpx;line-height:1.45}.share-privacy{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx}.share-btn{flex:none;min-height:84rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:23rpx;font-weight:750}.share-btn::after{border:0}
+.share-card{display:flex;align-items:center;gap:18rpx;border-color:#E8C879;background:linear-gradient(135deg,#FFFBED,#FFFFFF)}.share-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:20rpx;background:#F5B83D;color:#493000;font-size:35rpx;font-weight:900}.share-copy{flex:1;min-width:0}.share-title{display:block;color:var(--ink);font-size:28rpx;font-weight:760}.share-desc{display:block;margin-top:4rpx;color:#6C572F;font-size:22rpx;line-height:1.45}.share-privacy{display:block;margin-top:5rpx;color:var(--text-muted);font-size:20rpx}.share-btn{flex:none;min-height:84rpx;display:flex;align-items:center;justify-content:center;margin:0;padding:0 18rpx;border-radius:14rpx;background:var(--primary-strong);color:#fff;font-size:23rpx;font-weight:750}.share-btn::after{border:0}
 @media (max-width:380px){.share-card{align-items:flex-start;flex-wrap:wrap}.share-copy{min-width:calc(100% - 90rpx)}.share-btn{width:100%}}
 .question-text{display:flex}
+</style>
+
+<style scoped>
+.page {
+  background:
+    radial-gradient(circle at 0 12%, rgba(101, 191, 168, .12), transparent 23%),
+    linear-gradient(180deg, #F7FBFF, var(--page-bg, #F6FAFF));
+}
+
+.practice-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid #CADBF1;
+  border-radius: 0 0 24rpx 24rpx;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 50rpx,
+      rgba(82, 124, 201, .07) 51rpx,
+      rgba(82, 124, 201, .07) 52rpx
+    ),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF);
+  color: var(--ink);
+  animation: parent-practice-enter var(--motion-slow) var(--ease-out) both;
+}
+
+.practice-hero::after {
+  content: '';
+  position: absolute;
+  right: 34rpx;
+  top: 34rpx;
+  width: 116rpx;
+  height: 22rpx;
+  border-radius: 5rpx;
+  background: rgba(244, 199, 91, .7);
+  transform: rotate(3deg);
+}
+
+.eyebrow { color: var(--accent-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+
+.card,
+.state-card,
+.correction-card {
+  border-radius: 18rpx;
+  animation: parent-practice-enter var(--motion-slow) var(--ease-out) both;
+}
+
+.plan-card { border-left: 7rpx solid var(--primary); }
+.question-card { border-top: 5rpx solid var(--accent); }
+.upload-card { border-top: 5rpx solid var(--gold); }
+.history-card { border-top: 5rpx solid var(--primary); }
+.share-card { border-radius: 16rpx 26rpx 16rpx 26rpx; }
+.share-btn { background: var(--primary-strong); }
+
+.primary-btn,
+.share-btn {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+
+.primary-btn:active,
+.share-btn:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+
+@keyframes parent-practice-enter {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .practice-hero,
+  .card,
+  .state-card,
+  .correction-card,
+  .primary-btn,
+  .share-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .primary-btn:active,
+  .share-btn:active {
+    transform: none;
+  }
+}
 </style>

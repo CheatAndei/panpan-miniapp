@@ -5,17 +5,19 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 const home = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8');
+const parentHome = fs.readFileSync(path.join(root, 'components', 'home', 'ParentHomeView.vue'), 'utf8');
 const component = fs.readFileSync(path.join(root, 'components', 'pp-homework-brief', 'pp-homework-brief.vue'), 'utf8');
 const feedbackRoute = fs.readFileSync(path.join(root, 'backend', 'routes', 'feedbacks.js'), 'utf8');
 const notifyRoute = fs.readFileSync(path.join(root, 'backend', 'routes', 'notify.js'), 'utf8');
 
 test('家长首页在最新反馈上方显示独立作业说明组件', () => {
-  const briefAt = home.indexOf('<pp-homework-brief');
-  const feedbackAt = home.indexOf('<!-- 最新反馈 -->');
+  assert.match(home, /<ParentHomeView/);
+  const briefAt = parentHome.indexOf('<pp-homework-brief');
+  const feedbackAt = parentHome.indexOf('class="home-card feedback-card"');
   assert.ok(briefAt > 0 && briefAt < feedbackAt);
-  assert.match(home, /:content="feedbackHomework\(latestFeedback\)"/);
-  assert.match(home, /feedbackSummaryWithoutHomework\(latestFeedback\.summary\)/);
-  assert.doesNotMatch(home, /class="hw-card"/);
+  assert.match(parentHome, /:content="feedbackHomework\(latestFeedback\)"/);
+  assert.match(parentHome, /feedbackSummaryWithoutHomework\(latestFeedback\.summary\)/);
+  assert.doesNotMatch(parentHome, /class="hw-card"/);
 });
 
 test('作业说明组件有个性化标题、空态和非点击式大字排版', () => {

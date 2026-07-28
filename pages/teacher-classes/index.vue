@@ -445,6 +445,246 @@ export default {
 </style>
 
 <style scoped>
+/* mei final pass: light teacher workspace */
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .18), transparent 22%),
+    linear-gradient(180deg, #F8FBFF 0%, var(--page-bg) 38%);
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EEF5FF 72%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: teacher-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 116rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.class-card {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--border);
+  background: rgba(255, 255, 255, .98);
+  box-shadow: var(--shadow-sm);
+}
+.class-card::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8rpx;
+  height: 92rpx;
+  border-radius: 0 999rpx 999rpx 0;
+  background: var(--primary);
+  content: "";
+}
+.c-toggle,
+.btn-xs.copy,
+.btn-xs.share,
+.s-code { color: var(--primary-strong); }
+.btn-xs.copy,
+.btn-xs.share {
+  background: var(--primary-soft);
+}
+.btn-add-stu {
+  min-height: 84rpx;
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.btn-transfer-stu {
+  min-height: 84rpx;
+  border-color: #EBD797;
+  background: var(--warning-soft);
+  color: #7B5A12;
+}
+.create-wrap {
+  border-top-color: rgba(221, 231, 242, .92);
+  background: rgba(246, 250, 255, .97);
+  backdrop-filter: none;
+}
+.btn-create {
+  min-height: 104rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .2);
+}
+.modal {
+  border: 1rpx solid var(--border);
+  background: #FFFFFF;
+  animation: teacher-sheet-in var(--motion-slow) var(--ease-out) both;
+}
+.input {
+  border-color: var(--border);
+  background: #F9FBFF;
+  color: var(--ink);
+}
+.cat-head { background: #F7FAFF; border-color: var(--border); }
+.gender-btn.on,
+.lv-btn.on,
+.trait-tag.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.stag { background: var(--primary-soft); color: var(--primary-strong); }
+.btn-primary {
+  min-height: 104rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .16);
+}
+.btn-cancel { min-height: 88rpx; color: var(--text-secondary); }
+.c-header,
+.stu-row,
+.btn-xs,
+.btn-add-stu,
+.btn-transfer-stu,
+.btn-create,
+.btn-primary,
+.btn-cancel,
+.gender-btn,
+.lv-btn,
+.trait-tag,
+.cat-head {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.c-header:active,
+.stu-row:active,
+.btn-xs:active,
+.btn-add-stu:active,
+.btn-transfer-stu:active,
+.btn-create:active,
+.btn-primary:active,
+.btn-cancel:active,
+.gender-btn:active,
+.lv-btn:active,
+.trait-tag:active,
+.cat-head:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes teacher-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes teacher-sheet-in {
+  from { transform: translateY(24rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .modal,
+  .c-header,
+  .stu-row,
+  .btn-xs,
+  .btn-add-stu,
+  .btn-transfer-stu,
+  .btn-create,
+  .btn-primary,
+  .btn-cancel,
+  .gender-btn,
+  .lv-btn,
+  .trait-tag,
+  .cat-head {
+    animation: none !important;
+    transition: none !important;
+  }
+  .c-header:active,
+  .stu-row:active,
+  .btn-xs:active,
+  .btn-add-stu:active,
+  .btn-transfer-stu:active,
+  .btn-create:active,
+  .btn-primary:active,
+  .btn-cancel:active,
+  .gender-btn:active,
+  .lv-btn:active,
+  .trait-tag:active,
+  .cat-head:active { transform: none; }
+}
+</style>
+
+<style scoped>
+.hero .gold-rule { background: var(--gold); }
+.hero-title,
+.c-name,
+.s-name,
+.modal-title,
+.cat-label { color: var(--ink); }
+.btn-primary { background: var(--primary-strong); }
+.btn-add-stu {
+  border-color: var(--border);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.lv-a,
+.lv-c,
+.stag { background: var(--primary-soft); color: var(--primary-strong); }
+.lv-btn.on,
+.gender-btn.on,
+.trait-tag.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.class-item,
+.student-row,
+.btn-add-stu,
+.btn-primary,
+.lv-btn,
+.gender-btn,
+.trait-tag {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.class-item:active,
+.student-row:active,
+.btn-add-stu:active,
+.btn-primary:active,
+.lv-btn:active,
+.gender-btn:active,
+.trait-tag:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .class-item,
+  .student-row,
+  .btn-add-stu,
+  .btn-primary,
+  .lv-btn,
+  .gender-btn,
+  .trait-tag {
+    transition: none !important;
+  }
+  .class-item:active,
+  .student-row:active,
+  .btn-add-stu:active,
+  .btn-primary:active,
+  .lv-btn:active,
+  .gender-btn:active,
+  .trait-tag:active { transform: none; }
+}
+</style>
+
+<style scoped>
 .page { padding-bottom: calc(120rpx + env(safe-area-inset-bottom)); }
 .hero { padding: 46rpx 34rpx 36rpx; background: linear-gradient(150deg,#F9FCFB,#EEF6F3); }
 .hero .gold-rule { display:none; }
@@ -476,4 +716,81 @@ export default {
 .gender-btn.on,.lv-btn.on,.trait-tag.on { border-color:var(--accent); background:var(--accent-soft); color:var(--accent-strong); }
 .cat-head { border-radius:14rpx; background:var(--surface-muted); border-color:var(--hairline); }
 .stag { border-radius:9rpx; background:var(--accent-soft); color:var(--accent-strong); }
+</style>
+
+<style scoped>
+/* final cascade after legacy page blocks */
+.hero {
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EEF5FF 72%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+}
+.eyebrow,
+.c-toggle,
+.btn-xs.copy,
+.btn-xs.share,
+.s-code { color: var(--primary-strong); }
+.btn-xs.copy,
+.btn-xs.share { background: var(--primary-soft); }
+.btn-add-stu {
+  min-height: 84rpx;
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.create-wrap {
+  border-top-color: rgba(221, 231, 242, .92);
+  background: rgba(246, 250, 255, .97);
+  backdrop-filter: none;
+}
+.btn-create {
+  min-height: 104rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .2);
+}
+.input { border-color: var(--border); background: #F9FBFF; color: var(--ink); }
+.gender-btn.on,
+.lv-btn.on,
+.trait-tag.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.stag { background: var(--primary-soft); color: var(--primary-strong); }
+.c-header,
+.stu-row,
+.btn-xs,
+.btn-add-stu,
+.btn-transfer-stu,
+.btn-create,
+.btn-primary,
+.btn-cancel,
+.gender-btn,
+.lv-btn,
+.trait-tag,
+.cat-head {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .modal,
+  .c-header,
+  .stu-row,
+  .btn-xs,
+  .btn-add-stu,
+  .btn-transfer-stu,
+  .btn-create,
+  .btn-primary,
+  .btn-cancel,
+  .gender-btn,
+  .lv-btn,
+  .trait-tag,
+  .cat-head {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 </style>
