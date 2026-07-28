@@ -30,7 +30,8 @@ test('三类成就共用匿名海报，小程序码与保存相册链路完整',
 
 test('连续压轴挑战已去掉每周限制并使用 V2 接口',()=>{
   const parent=read('pages/weekly-challenge/index.vue');const teacher=read('pages/weekly-review/index.vue');
-  assert.match(parent,/连续闯关/);assert.match(parent,/\/weekly-challenge\/v2\/current/);assert.match(parent,/手动领取下一题/);
+  assert.match(parent,/连续闯关/);assert.match(parent,/\/weekly-challenge\/v2\/current/);assert.match(parent,/下一题将切换为/);
+  assert.match(parent,/next_question_type/);
   assert.match(teacher,/\/weekly-challenge\/v2\/teacher\/submissions/);assert.match(teacher,/异常题跳过/);
   assert.doesNotMatch(parent,/本周只能|每周一次/);
 });

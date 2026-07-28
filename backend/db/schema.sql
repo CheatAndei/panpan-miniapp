@@ -826,6 +826,7 @@ CREATE TABLE IF NOT EXISTS challenge_assignments_v2 (
   question_type TEXT NOT NULL CHECK(question_type IN ('fill','subjective')),
   status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','submitted','reviewed_wrong','passed','replaced','skipped')),
   assigned_on DATE NOT NULL,
+  passed_on DATE,
   replaced_by_id INTEGER REFERENCES challenge_assignments_v2(id),
   legacy_assignment_id INTEGER UNIQUE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -1092,6 +1093,8 @@ CREATE INDEX IF NOT EXISTS idx_exam_download_teacher
   ON exam_download_events(teacher_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_weekly_challenge_teacher_queue
   ON weekly_challenge_submissions(status, submitted_at);
+-- Startup migration cleans legacy duplicates, then replaces this compatibility
+-- index with one current assignment across both challenge types.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_v2_one_current
   ON challenge_assignments_v2(student_id,grade_code,subject_code,question_type)
   WHERE status IN ('active','submitted','reviewed_wrong');

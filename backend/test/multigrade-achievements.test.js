@@ -73,8 +73,8 @@ test('连续压轴挑战支持拍照、批改通过、进度累计与手动下�
   const db=getDB();
   const asset=db.run(`INSERT INTO exam_assets(asset_kind,storage_key,original_name,mime_type,byte_size,sha256)
     VALUES('question','test/q.png','q.png','image/png',10,?)`,['a'.repeat(64)]);
-  for(let i=1;i<=2;i++)db.run(`INSERT INTO weekly_challenge_questions(source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
-    VALUES(?,?,?,?,?,'g8','math',1)`,[`mg-fill-${i}`,'fill',`八上压轴${i}`,asset.lastInsertRowid,'原创测试']);
+  for(const type of ['fill','subjective'])for(let i=1;i<=2;i++)db.run(`INSERT INTO weekly_challenge_questions(source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
+    VALUES(?,?,?,?,?,'g8','math',1)`,[`mg-${type}-${i}`,type,`八上压轴${i}`,asset.lastInsertRowid,'原创测试']);
   const claimed=await request('POST','/weekly-challenge/v2/assignments',parentToken,{student_id:studentId,grade:'g8',subject:'math',question_type:'fill'});
   assert.equal(claimed.response.status,201);assert.equal(claimed.payload.assignment.status,'active');
   const image=await sharp({create:{width:20,height:20,channels:3,background:'#ffffff'}}).jpeg().toBuffer();
@@ -85,6 +85,12 @@ test('连续压轴挑战支持拍照、批改通过、进度累计与手动下�
   const reviewed=await request('PUT',`/weekly-challenge/v2/teacher/submissions/${queue.payload.submissions[0].submission.id}/review`,teacherToken,{is_correct:true,teacher_note:'步骤完整'});
   assert.equal(reviewed.response.status,200);assert.equal(reviewed.payload.is_correct,true);
   assert.equal(reviewed.payload.promotion.event_type,'challenge_pass');
+  const passedOn=db.get('SELECT passed_on FROM challenge_assignments_v2 WHERE id=?',[claimed.payload.assignment.id]).passed_on;
+  const replayed=await request('PUT',`/weekly-challenge/v2/teacher/submissions/${queue.payload.submissions[0].submission.id}/review`,teacherToken,{is_correct:true,teacher_note:'重复请求'});
+  assert.equal(replayed.response.status,200);assert.equal(replayed.payload.idempotent,true);assert.equal(replayed.payload.promotion,null);
+  assert.equal(db.get('SELECT passed_on FROM challenge_assignments_v2 WHERE id=?',[claimed.payload.assignment.id]).passed_on,passedOn);
+  const overwritten=await request('PUT',`/weekly-challenge/v2/teacher/submissions/${queue.payload.submissions[0].submission.id}/review`,teacherToken,{is_correct:false});
+  assert.equal(overwritten.response.status,409);
   assert.equal(reviewed.payload.promotion.student_name,'欧阳同学');
   assert.match(reviewed.payload.promotion.question_url,/^\/api\/weekly-challenge\/assets\//);
   const promotions=await request('GET','/promotions?unseen=1',teacherToken);
@@ -95,6 +101,9 @@ test('连续压轴挑战支持拍照、批改通过、进度累计与手动下�
   assert.equal((await request('GET','/promotions?unseen=1',teacherToken)).payload.unseen,0);
   const current=await request('GET',`/weekly-challenge/v2/current?student_id=${studentId}&grade=g8&subject=math`,parentToken);
   assert.equal(current.payload.assignment,null);assert.equal(current.payload.progress.fill,1);assert.equal(current.payload.last_passed.status,'passed');
+  assert.equal(current.payload.next_question_type,'subjective');
+  const next=await request('POST','/weekly-challenge/v2/assignments',parentToken,{student_id:studentId,grade:'g8',subject:'math',question_type:'fill'});
+  assert.equal(next.payload.assignment.question_type,'subjective');
 });
 
 test('三类成就只取真实记录，公开姓名为姓加同学且里程碑可配置',async()=>{

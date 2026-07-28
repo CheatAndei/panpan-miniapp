@@ -5,6 +5,25 @@ const ACTIVE_STATUSES = ['active', 'submitted', 'reviewed_wrong'];
 const TYPES = new Set(['fill', 'subjective']);
 
 function fileUrl(token) { return token ? `/api/private-files/${token}` : null; }
+function oppositeType(questionType) { return questionType === 'fill' ? 'subjective' : 'fill'; }
+
+function lastPassedOn(db, { studentId, gradeCode, subjectCode, logicalDate }) {
+  const grade = normalizeGradeCode(gradeCode);
+  const subject = normalizeSubjectCode(subjectCode);
+  return db.get(`SELECT id,question_type FROM challenge_assignments_v2
+    WHERE student_id=? AND grade_code=? AND subject_code=? AND status='passed'
+      AND passed_on=?
+    ORDER BY id DESC LIMIT 1`, [studentId, grade, subject, logicalDate]);
+}
+
+// The learning day uses Shanghai time with a 01:00 cutoff, which is UTC +7 in SQLite.
+function changedCountOn(db, { studentId, gradeCode, subjectCode, logicalDate }) {
+  const grade = normalizeGradeCode(gradeCode);
+  const subject = normalizeSubjectCode(subjectCode);
+  return Number(db.get(`SELECT COUNT(*) count FROM challenge_assignments_v2
+    WHERE student_id=? AND grade_code=? AND subject_code=? AND status='replaced'
+      AND date(updated_at,'+7 hours')=?`, [studentId, grade, subject, logicalDate])?.count || 0);
+}
 
 function assignmentRow(db, assignmentId) {
   return db.get(`SELECT a.*,q.title,q.question_asset_id,q.answer_asset_id,q.answer_text,q.source_label,
@@ -71,14 +90,15 @@ function currentState(db,{studentId,gradeCode='g7',subjectCode='math'}){
   const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
   const current=currentAssignment(db,{studentId,gradeCode:grade,subjectCode:subject});
   const lastPassed=db.get(`SELECT id FROM challenge_assignments_v2 WHERE student_id=? AND grade_code=? AND subject_code=?
-    AND status='passed' ORDER BY updated_at DESC,id DESC LIMIT 1`,[studentId,grade,subject]);
+    AND status='passed' ORDER BY passed_on DESC,id DESC LIMIT 1`,[studentId,grade,subject]);
   const today=practiceDateAt(new Date());
-  const changedToday=Number(db.get(`SELECT COUNT(*) count FROM challenge_assignments_v2 WHERE student_id=? AND grade_code=?
-    AND subject_code=? AND status='replaced' AND assigned_on=?`,[studentId,grade,subject,today])?.count||0);
+  const passedToday=lastPassedOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
+  const changedToday=changedCountOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
   const serialized=current?serializeAssignment(db,assignmentRow(db,current.id),'parent'):null;
   return {
     grade_code:grade,subject_code:subject,assignment:serialized,
     last_passed:!serialized&&lastPassed?serializeAssignment(db,assignmentRow(db,lastPassed.id),'parent'):null,
+    next_question_type:!serialized&&passedToday?oppositeType(passedToday.question_type):null,
     available:availableCounts(db,{studentId,gradeCode:grade,subjectCode:subject}),
     progress:progress(db,{studentId,gradeCode:grade,subjectCode:subject}),
     can_change:Boolean(serialized&&serialized.status==='active'&&!serialized.submission&&changedToday<1),
@@ -96,14 +116,21 @@ function pickQuestion(db,{studentId,grade,subject,questionType,excludeId=0}){
 function createAssignment(db,{studentId,gradeCode='g7',subjectCode='math',questionType}){
   const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
   if(!TYPES.has(questionType))throw new Error('压轴挑战只可选择填空题或解答题');
-  const existing=currentAssignment(db,{studentId,gradeCode:grade,subjectCode:subject,questionType});
-  if(existing)return serializeAssignment(db,assignmentRow(db,existing.id),'parent');
-  const question=pickQuestion(db,{studentId,grade,subject,questionType});
-  if(!question)throw new Error('该题型已全部通关，等待老师补充新题');
-  const created=db.run(`INSERT INTO challenge_assignments_v2
-    (student_id,question_id,grade_code,subject_code,question_type,status,assigned_on)
-    VALUES(?,?,?,?,?,'active',?)`,[studentId,question.id,grade,subject,questionType,practiceDateAt(new Date())]);
-  return serializeAssignment(db,assignmentRow(db,created.lastInsertRowid),'parent');
+  const today=practiceDateAt(new Date());
+  let assignmentId=0;
+  db.transaction(()=>{
+    const existing=currentAssignment(db,{studentId,gradeCode:grade,subjectCode:subject});
+    if(existing){assignmentId=existing.id;return;}
+    const passedToday=lastPassedOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
+    const resolvedType=passedToday?oppositeType(passedToday.question_type):questionType;
+    const question=pickQuestion(db,{studentId,grade,subject,questionType:resolvedType});
+    if(!question)throw new Error('该题型已全部通关，等待老师补充新题');
+    const created=db.run(`INSERT INTO challenge_assignments_v2
+      (student_id,question_id,grade_code,subject_code,question_type,status,assigned_on)
+      VALUES(?,?,?,?,?,'active',?)`,[studentId,question.id,grade,subject,resolvedType,today]);
+    assignmentId=created.lastInsertRowid;
+  });
+  return serializeAssignment(db,assignmentRow(db,assignmentId),'parent');
 }
 
 function changeAssignment(db,{studentId,assignmentId}){
@@ -111,8 +138,7 @@ function changeAssignment(db,{studentId,assignmentId}){
   if(!current||Number(current.student_id)!==Number(studentId))throw new Error('挑战不存在');
   if(current.status!=='active'||submissionsForAssignment(db,current.id).length)throw new Error('提交后不能更换题目');
   const today=practiceDateAt(new Date());
-  const changed=Number(db.get(`SELECT COUNT(*) count FROM challenge_assignments_v2 WHERE student_id=? AND grade_code=?
-    AND subject_code=? AND status='replaced' AND assigned_on=?`,[studentId,current.grade_code,current.subject_code,today])?.count||0);
+  const changed=changedCountOn(db,{studentId,gradeCode:current.grade_code,subjectCode:current.subject_code,logicalDate:today});
   if(changed>=1)throw new Error('今天已经更换过 1 次题目');
   const question=pickQuestion(db,{studentId,grade:current.grade_code,subject:current.subject_code,questionType:current.question_type,excludeId:current.question_id});
   if(!question)throw new Error('没有其他可更换的题目');
@@ -139,9 +165,12 @@ function refreshProgress(db,assignment){
 
 function teacherQueue(db,{teacherId,status='submitted',limit=100}){
   const clause=status==='all'?'':` AND sub.status='${status==='reviewed'?'reviewed':'submitted'}'`;
+  const currentClause=status==='reviewed'?'':` AND (sub.status='reviewed' OR (
+    a.status='submitted' AND sub.id=(SELECT latest.id FROM challenge_submissions_v2 latest
+      WHERE latest.assignment_id=a.id ORDER BY latest.attempt_no DESC,latest.id DESC LIMIT 1)))`;
   const ids=db.all(`SELECT sub.id FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}
+    WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}${currentClause}
     ORDER BY CASE sub.status WHEN 'submitted' THEN 0 ELSE 1 END,sub.submitted_at ASC,sub.id ASC LIMIT ?`,[teacherId,Math.max(1,Math.min(100,Number(limit)||100))]);
   return ids.map(({id})=>{
     const submission=db.get('SELECT assignment_id FROM challenge_submissions_v2 WHERE id=?',[id]);
@@ -153,28 +182,55 @@ function teacherQueue(db,{teacherId,status='submitted',limit=100}){
 
 function teacherQueueCount(db,{teacherId,status='submitted'}){
   const clause=status==='all'?'':` AND sub.status='${status==='reviewed'?'reviewed':'submitted'}'`;
+  const currentClause=status==='reviewed'?'':` AND (sub.status='reviewed' OR (
+    a.status='submitted' AND sub.id=(SELECT latest.id FROM challenge_submissions_v2 latest
+      WHERE latest.assignment_id=a.id ORDER BY latest.attempt_no DESC,latest.id DESC LIMIT 1)))`;
   return Number(db.get(`SELECT COUNT(*) count FROM challenge_submissions_v2 sub
     JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-    WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}`,
+    WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}${currentClause}`,
   [teacherId])?.count||0);
 }
 
 function reviewSubmission(db,{teacherId,submissionId,isCorrect,teacherNote}){
-  const submission=db.get(`SELECT sub.*,a.student_id,a.grade_code,a.subject_code,a.question_type,a.id assignment_id
+  const submission=db.get(`SELECT sub.*,a.student_id,a.grade_code,a.subject_code,a.question_type,
+      a.id assignment_id,a.status assignment_status,a.passed_on
     FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id WHERE sub.id=?`,[submissionId]);
   if(!submission)return null;
   const owner=db.get(`SELECT s.id FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
     WHERE s.id=? AND s.deleted_at IS NULL
       AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?`,[submission.student_id,teacherId]);
   if(!owner)return null;
+  const latest=db.get(`SELECT id FROM challenge_submissions_v2 WHERE assignment_id=?
+    ORDER BY attempt_no DESC,id DESC LIMIT 1`,[submission.assignment_id]);
+  if(Number(latest?.id)!==Number(submission.id)){
+    const error=new Error('该提交已有更新版本，请刷新后批改');
+    error.statusCode=409;
+    throw error;
+  }
+  if(submission.status==='reviewed'){
+    if(Boolean(submission.is_correct)!==Boolean(isCorrect)){
+      const error=new Error('该提交已完成批改，不能覆盖原结果');
+      error.statusCode=409;
+      throw error;
+    }
+    return {assignment_id:Number(submission.assignment_id),is_correct:Boolean(submission.is_correct),idempotent:true};
+  }
+  if(submission.assignment_status!=='submitted'){
+    const error=new Error('当前挑战状态已变化，请刷新后重试');
+    error.statusCode=409;
+    throw error;
+  }
   db.transaction(()=>{
     db.run(`UPDATE challenge_submissions_v2 SET status='reviewed',is_correct=?,teacher_note=?,reviewed_by=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?`,
       [isCorrect?1:0,String(teacherNote||'').trim().slice(0,500),teacherId,submission.id]);
-    db.run(`UPDATE challenge_assignments_v2 SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,[isCorrect?'passed':'reviewed_wrong',submission.assignment_id]);
+    db.run(`UPDATE challenge_assignments_v2 SET status=?,passed_on=CASE WHEN ? THEN COALESCE(passed_on,?) ELSE passed_on END,
+      updated_at=CURRENT_TIMESTAMP WHERE id=?`,[
+      isCorrect?'passed':'reviewed_wrong',isCorrect?1:0,practiceDateAt(new Date()),submission.assignment_id,
+    ]);
     refreshProgress(db,submission);
   });
-  return {assignment_id:Number(submission.assignment_id),is_correct:Boolean(isCorrect)};
+  return {assignment_id:Number(submission.assignment_id),is_correct:Boolean(isCorrect),idempotent:false};
 }
 
 module.exports={

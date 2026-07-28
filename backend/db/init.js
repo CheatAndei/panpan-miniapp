@@ -287,6 +287,35 @@ function migrateLegacyChallengesToV2() {
       passed_count=excluded.passed_count,updated_at=CURRENT_TIMESTAMP`);
 }
 
+function migrateChallengeStateV2() {
+  _db.run(`UPDATE challenge_assignments_v2
+    SET passed_on=date(updated_at,'+7 hours')
+    WHERE status='passed' AND passed_on IS NULL`);
+
+  const duplicateGroups = execSQL(`SELECT student_id,grade_code,subject_code
+    FROM challenge_assignments_v2
+    WHERE status IN ('active','submitted','reviewed_wrong')
+    GROUP BY student_id,grade_code,subject_code HAVING COUNT(*)>1`);
+  for (const group of duplicateGroups) {
+    const rows = execSQL(`SELECT id FROM challenge_assignments_v2
+      WHERE student_id=? AND grade_code=? AND subject_code=?
+        AND status IN ('active','submitted','reviewed_wrong')
+      ORDER BY CASE status WHEN 'submitted' THEN 0 WHEN 'reviewed_wrong' THEN 1 ELSE 2 END,id DESC`, [
+      group.student_id,
+      group.grade_code,
+      group.subject_code,
+    ]);
+    for (const stale of rows.slice(1)) {
+      _db.run("UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP WHERE id=?", [stale.id]);
+    }
+  }
+
+  _db.run('DROP INDEX IF EXISTS idx_challenge_v2_one_current');
+  _db.run(`CREATE UNIQUE INDEX idx_challenge_v2_one_current
+    ON challenge_assignments_v2(student_id,grade_code,subject_code)
+    WHERE status IN ('active','submitted','reviewed_wrong')`);
+}
+
 function runMigrations() {
   migrateExamPapersV2();
   migrateLearningAttemptsV2();
@@ -315,6 +344,7 @@ function runMigrations() {
   ensureColumn('weekly_challenge_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'");
   ensureColumn('weekly_challenge_questions', 'topic_key', 'TEXT');
   ensureColumn('weekly_challenge_questions', 'difficulty', 'INTEGER NOT NULL DEFAULT 3');
+  ensureColumn('challenge_assignments_v2', 'passed_on', 'DATE');
   ensureColumn('choice_king_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'");
   ensureColumn('choice_king_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'");
   ensureColumn('choice_king_questions', 'topic_key', 'TEXT');
@@ -456,6 +486,7 @@ function runMigrations() {
         WHEN status='reviewed' THEN COALESCE(completed_at,reviewed_at)
         ELSE completed_at END`);
   migrateLegacyChallengesToV2();
+  migrateChallengeStateV2();
   // 作业批改表由 schema.sql 以 CREATE TABLE IF NOT EXISTS 创建。
   // 这里保留可向后兼容的增量字段迁移位置。
 }

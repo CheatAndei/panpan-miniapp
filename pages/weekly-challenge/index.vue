@@ -4,14 +4,14 @@
       <view class="hero-mark"><pp-icon name="target" :size="42" motion="bob" :delay="80" /></view>
       <text class="eyebrow">TERMINAL CHALLENGE</text>
       <text class="hero-title">压轴挑战</text>
-      <text class="hero-sub">连续闯关 · 答错重交同题 · 答对后手动领取下一题</text>
+      <text class="hero-sub">连续闯关 · 答错重交同题 · 答对后填空与解答交替</text>
     </view>
     <pp-state v-if="loading && !assignment" type="loading" title="正在准备本周压轴题" />
     <pp-state v-else-if="error && !assignment" type="error" title="挑战加载失败" :description="error" action-text="重试" @action="loadCurrent" />
 
-    <view v-if="!loading && !assignment && !error" class="choose-card">
+    <view v-if="!loading && !assignment && !error && !nextQuestionType" class="choose-card">
       <view class="section-title-row"><pp-icon name="book" :size="30" motion="pop" :delay="180" /><text class="section-title">想挑战哪类压轴题？</text></view>
-      <text class="section-desc">从未通关题库随机领取；未提交前每天可更换 1 次。</text>
+      <text class="section-desc">每天首次可自选；通关后两类题交替，未提交前可换 1 次同类型题。</text>
       <button v-for="(item,index) in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
         <view class="type-icon"><pp-icon name="exam" :size="30" :motion="index === 0 ? 'pop' : 'none'" :delay="260" :stagger="70" :index="index" /></view>
         <view :class="['type-mark',item.value]">{{ item.short }}</view>
@@ -32,7 +32,7 @@
           @retry="loadImages"
           @image-error="questionImage=''"
         />
-        <button v-if="canChange" class="change-btn" :disabled="claiming" @tap="changeQuestion">换一道题 · 今日剩余 {{ changeRemaining }} 次</button>
+        <button v-if="canChange" class="change-btn" :disabled="claiming" @tap="changeQuestion">换一道同类型题 · 今日剩余 {{ changeRemaining }} 次</button>
       </view>
 
       <view class="submit-card">
@@ -46,12 +46,12 @@
       </view>
     </template>
 
-    <view v-if="!assignment&&lastPassed" class="passed-card">
+    <view v-if="!loading&&!assignment&&lastPassed&&nextQuestionType" class="passed-card">
       <view class="passed-mark"><pp-icon name="check" :size="42" motion="pop" :delay="100" /></view>
       <text class="passed-title">挑战通过</text>
-      <text class="passed-desc">{{ lastPassed.title }} 已计入通关记录。</text>
+      <text class="passed-desc">{{ lastPassed.title }} 已计入通关记录，下一题将切换为{{ typeLabel(nextQuestionType) }}。</text>
       <button class="poster-btn" @tap="openAchievements">生成通关成就海报</button>
-      <button class="upload-btn" :disabled="claiming" @tap="claim(lastPassed.question_type)">{{ claiming?'领取中…':'手动领取下一题' }}</button>
+      <button class="upload-btn" :disabled="claiming || !available[nextQuestionType]" @tap="claim(nextQuestionType)">{{ claiming?'领取中…':available[nextQuestionType]?`领取${typeLabel(nextQuestionType)}`:`${typeLabel(nextQuestionType)}题库待补充` }}</button>
     </view>
   </view>
 </template>
@@ -63,8 +63,8 @@ import { api } from '@/utils/api';
 
 const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(false),imageLoading=ref(false);
 const error=ref(''),uploadProgress=ref(''),assignment=ref(null),lastPassed=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
-const gradeCode=ref('g7'),progress=ref({}),canChange=ref(false),changeRemaining=ref(0);
-let allowBack=false;
+const gradeCode=ref('g7'),progress=ref({}),canChange=ref(false),changeRemaining=ref(0),nextQuestionType=ref(null);
+let allowBack=false,loadPromise=null,reloadCurrent=false;
 const types=[
   {value:'fill',short:'填',label:'填空题',desc:'原卷最后一道填空，准确计算并规范作答'},
   {value:'subjective',short:'解',label:'解答题',desc:'原卷最后两道大题，完整表达推理过程'},
@@ -78,10 +78,20 @@ onBackPress(()=>{
   uni.showModal({title:'暂存并退出挑战？',content:'这道压轴题会保留，下次进入可继续拍照提交。',confirmText:'暂存退出',cancelText:'继续完成',success:(res)=>{if(res.confirm){allowBack=true;uni.navigateBack();}}});
   return true;
 });
-async function loadCurrent(){
-  if(loading.value)return;loading.value=true;error.value='';
-  try{const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value)await loadImages();else{questionImage.value='';localPhotos.value=[];}}
-  catch(e){error.value=e?.error||'请检查网络后重试';}finally{loading.value=false;}
+async function runCurrentLoads(){
+  loading.value=true;
+  try{
+    do{
+      reloadCurrent=false;error.value='';
+      try{const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value)await loadImages();else{questionImage.value='';localPhotos.value=[];}}
+      catch(e){error.value=e?.error||'请检查网络后重试';}
+    }while(reloadCurrent);
+  }finally{loading.value=false;}
+}
+function loadCurrent(){
+  if(loadPromise){reloadCurrent=true;return loadPromise;}
+  loadPromise=runCurrentLoads().finally(()=>{loadPromise=null;});
+  return loadPromise;
 }
 async function loadImages(){
   imageLoading.value=true;
@@ -90,7 +100,7 @@ async function loadImages(){
 }
 async function claim(type){
   if(claiming.value)return;claiming.value=true;
-  try{const data=await api.post('/weekly-challenge/v2/assignments',{student_id:studentId.value,grade:gradeCode.value,subject:'math',question_type:type});assignment.value=data.assignment;lastPassed.value=null;await loadCurrent();}
+  try{if(loadPromise)await loadPromise;const data=await api.post('/weekly-challenge/v2/assignments',{student_id:studentId.value,grade:gradeCode.value,subject:'math',question_type:type});assignment.value=data.assignment;lastPassed.value=null;await loadCurrent();}
   catch(e){uni.showToast({title:e?.error||'领取失败',icon:'none'});}finally{claiming.value=false;}
 }
 function chooseImages(){return new Promise((resolve,reject)=>{const count=Math.max(1,4-photoCount.value);if(uni.chooseMedia)uni.chooseMedia({count,mediaType:['image'],sourceType:['camera','album'],success:r=>resolve((r.tempFiles||[]).map(f=>f.tempFilePath)),fail:reject});else uni.chooseImage({count,sourceType:['camera','album'],success:r=>resolve(r.tempFilePaths||[]),fail:reject});});}

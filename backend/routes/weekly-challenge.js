@@ -108,6 +108,10 @@ router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => 
   let stored;
   try{
     const result=db.transaction(()=>{
+      const freshAssignment=assignmentRowV2(db,assignment.id);
+      if(!freshAssignment||!['active','submitted','reviewed_wrong'].includes(freshAssignment.status)){
+        return {staleStatus:true};
+      }
       let submission=db.get(`SELECT * FROM challenge_submissions_v2 WHERE assignment_id=? ORDER BY attempt_no DESC LIMIT 1`,[assignment.id]);
       if(!submission||submission.status==='reviewed'){
         const attemptNo=Number(submission?.attempt_no||0)+1;
@@ -127,6 +131,7 @@ router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => 
       db.run("UPDATE challenge_assignments_v2 SET status='submitted',updated_at=CURRENT_TIMESTAMP WHERE id=?",[assignment.id]);
       return {attachmentId:attachment.lastInsertRowid,submissionId:submission.id};
     });
+    if(result.staleStatus)return res.status(409).json({error:'当前挑战状态已变化，请刷新后重试'});
     if(result.wrongParent)return res.status(403).json({error:'该挑战已由另一位绑定家长提交'});
     if(result.tooMany)return res.status(400).json({error:'每次提交最多 4 张图片'});
     if(result.duplicate)return res.json({ok:true,idempotent:true,attachment:{...result.duplicate,url:fileUrl(result.duplicate.token)}});
@@ -149,10 +154,15 @@ router.get('/v2/teacher/submissions', auth, teacherOnly, (req, res) => {
 router.put('/v2/teacher/submissions/:id/review', auth, teacherOnly, (req, res) => {
   if(![true,false,0,1].includes(req.body?.is_correct))return res.status(400).json({error:'请选择批改结果'});
   const db=getDB();
-  const result=reviewSubmissionV2(db,{teacherId:req.user.id,submissionId:Number(req.params.id),
-    isCorrect:Boolean(req.body.is_correct),teacherNote:req.body?.teacher_note});
+  let result;
+  try{
+    result=reviewSubmissionV2(db,{teacherId:req.user.id,submissionId:Number(req.params.id),
+      isCorrect:Boolean(req.body.is_correct),teacherNote:req.body?.teacher_note});
+  }catch(error){
+    return res.status(Number(error.statusCode)||400).json({error:error.message||'批改失败'});
+  }
   if(!result)return res.status(404).json({error:'提交不存在'});
-  const event=result.is_correct?recordChallengePass(db,{assignmentId:result.assignment_id}):null;
+  const event=result.is_correct&&!result.idempotent?recordChallengePass(db,{assignmentId:result.assignment_id}):null;
   return res.json({ok:true,...result,promotion:event?serializeEvent(event):null});
 });
 
