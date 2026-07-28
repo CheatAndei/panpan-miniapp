@@ -15,12 +15,15 @@ test('家长端将每周挑战改为压轴挑战且只可领取填空和解答�
 });
 
 test('教师首页纳入压轴挑战待批阅数量、待办列表和直达入口', () => {
-  const home = read('pages/index/index.vue');
+  const homePage = read('pages/index/index.vue');
+  const teacherHome = read('components/home/TeacherHomeView.vue');
+  const home = homePage + teacherHome;
   assert.match(home, /pendingChallengeCount/);
   assert.match(home, /pendingChallengeTodos/);
   assert.match(home, /\/weekly-challenge\/v2\/teacher\/submissions\?status=submitted&limit=3/);
   assert.doesNotMatch(home, /api\.get\('\/weekly-challenge\/teacher\/submissions\?status=submitted&limit=3'\)/);
-  assert.match(home, /压轴挑战待批阅/);
+  assert.match(teacherHome, /压轴挑战/);
+  assert.match(teacherHome, /待批阅/);
   assert.match(home, /pages\/weekly-review\/index/);
   assert.match(home, /pendingLeaves\.value[\s\S]+pendingPracticeCount\.value[\s\S]+pendingChallengeCount\.value/);
 });

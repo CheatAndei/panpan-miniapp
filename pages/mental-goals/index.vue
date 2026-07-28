@@ -31,3 +31,156 @@ async function save(){const rank=Number(targetRank.value);if(!students.value[stu
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx 50rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 20rpx;padding:50rpx 34rpx 44rpx;border-radius:0 0 34rpx 34rpx;background:linear-gradient(145deg,#183A36,#2F6E61);color:#fff}.eyebrow{display:block;color:#B9DDD3;font-size:19rpx;font-weight:800;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:41rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D7ECE6;font-size:23rpx}.goal-form{padding:27rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.section-title,.list-title{display:block;color:var(--ink);font-size:29rpx;font-weight:750}.picker-row,.rank-row{min-height:82rpx;display:flex;align-items:center;justify-content:space-between;margin-top:16rpx;padding:0 18rpx;border-radius:13rpx;background:var(--surface-muted);color:var(--ink);font-size:24rpx}.picker-row text:last-child{color:var(--accent-strong)}.battle-row{display:grid;grid-template-columns:1fr 1fr;gap:10rpx;margin-top:14rpx}.battle-row button{min-height:72rpx;margin:0;border-radius:12rpx;background:var(--surface-muted);color:var(--text-muted);font-size:23rpx}.battle-row button::after,.save-btn::after{border:0}.battle-row button.on{background:var(--primary);color:#fff}.rank-row input{width:180rpx;text-align:right;font-size:24rpx}.save-btn{min-height:86rpx;margin:18rpx 0 0;border-radius:14rpx;background:var(--primary);color:#fff;font-size:26rpx;font-weight:720}.form-note{display:block;margin-top:12rpx;color:var(--text-muted);font-size:20rpx;line-height:1.5}.list-title{margin:30rpx 4rpx 14rpx}.goal-card{position:relative;display:flex;align-items:center;gap:20rpx;margin-bottom:13rpx;padding:23rpx;border-radius:18rpx;background:#fff;border:1rpx solid var(--border)}.student{display:block;color:var(--ink);font-size:27rpx;font-weight:730}.meta{display:block;margin-top:4rpx;color:var(--text-muted);font-size:20rpx}.target{flex:1;text-align:right}.target text{display:block;color:var(--ink);font-size:23rpx;font-weight:680}.target text:last-child{margin-top:3rpx;color:var(--accent-strong);font-size:21rpx}.state{position:absolute;right:14rpx;top:10rpx;color:#98700E;font-size:18rpx}.state.expired{color:var(--text-muted)}.state.completed{color:var(--success)}
 </style>
+
+<style scoped>
+.page {
+  background:
+    radial-gradient(circle at 96% 0%, rgba(244, 199, 91, .15), transparent 22%),
+    var(--page-bg, #F6FAFF);
+}
+.hero { border-radius: 0 0 24rpx 24rpx; }
+.goal-form { border-radius: 18rpx; border-top: 5rpx solid var(--primary); }
+.picker-row,
+.rank-row { background: #FBFDFF; border: 1rpx solid var(--border); }
+.picker-row text:last-child { color: var(--primary-strong); }
+.battle-row button.on { background: var(--primary-strong); color: #FFFFFF; }
+.save-btn { background: var(--primary-strong); color: #FFFFFF; }
+.goal-card { border-radius: 16rpx; }
+.target text:last-child { color: var(--primary-strong); }
+.picker-row,
+.rank-row,
+.battle-row button,
+.save-btn,
+.goal-card {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.battle-row button:active,
+.save-btn:active,
+.goal-card:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .picker-row,
+  .rank-row,
+  .battle-row button,
+  .save-btn,
+  .goal-card {
+    transition: none !important;
+  }
+  .battle-row button:active,
+  .save-btn:active,
+  .goal-card:active { transform: none; }
+}
+</style>
+
+<style scoped>
+/* mei final pass: real-goal planning board */
+.page {
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .18), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 72%, #FFF7DC);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: goal-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 116rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.goal-form {
+  border-color: var(--border);
+  border-top-color: var(--gold);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.picker-row,
+.rank-row {
+  min-height: 96rpx;
+  border-color: var(--border);
+  background: #F9FBFF;
+}
+.picker-row text:last-child { color: var(--primary-strong); }
+.battle-row button {
+  min-height: 80rpx;
+  border: 1rpx solid var(--border);
+  background: #F7FAFF;
+  color: var(--text-secondary);
+}
+.battle-row button.on {
+  border-color: #AFC5E7;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.save-btn {
+  min-height: 104rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .2);
+}
+.goal-card {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+  animation: goal-surface-in var(--motion-slow) var(--ease-out) both;
+  transition: none;
+}
+.goal-card:active { transform: none; opacity: 1; }
+.target { padding-top: 18rpx; }
+.target text:last-child { color: var(--primary-strong); }
+.state { color: #8B6819; }
+.state.completed {
+  padding: 4rpx 9rpx;
+  border-radius: 8rpx;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.state.expired { color: var(--text-muted); }
+.picker-row,
+.battle-row button,
+.save-btn {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.picker-row:active,
+.battle-row button:active,
+.save-btn:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes goal-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .goal-card,
+  .picker-row,
+  .battle-row button,
+  .save-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+  .picker-row:active,
+  .battle-row button:active,
+  .save-btn:active { transform: none; }
+}
+</style>

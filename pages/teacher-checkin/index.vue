@@ -228,6 +228,187 @@ export default {
 </style>
 
 <style scoped>
+/* mei final pass: attendance as a light operations desk */
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .17), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 74%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: checkin-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 112rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-date { color: var(--text-secondary); }
+.session-card {
+  position: relative;
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.session-card::before {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 8rpx;
+  height: 96rpx;
+  border-radius: 0 999rpx 999rpx 0;
+  background: var(--primary);
+  content: "";
+}
+.stats {
+  border: 1rpx solid var(--border);
+  background: #F7FAFF;
+}
+.btn-accent {
+  min-height: 88rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .16);
+}
+.btn-special-main {
+  min-height: 84rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  box-shadow: none;
+}
+.btn-in { background: var(--primary); color: #FFFFFF; }
+.btn-out {
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.btn-remind {
+  border-color: var(--border);
+  background: #FFFFFF;
+  color: var(--primary-strong);
+}
+.btn-leave { background: var(--warning-soft); color: #7B5A12; }
+.swipe-del { background: var(--danger); }
+.se-header,
+.btn-accent,
+.btn-special-main,
+.btn-in,
+.btn-out,
+.btn-remind,
+.btn-leave {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.se-header:active,
+.btn-accent:active,
+.btn-special-main:active,
+.btn-in:active,
+.btn-out:active,
+.btn-remind:active,
+.btn-leave:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes checkin-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .se-header,
+  .se-toggle,
+  .swiper-inner,
+  .swipe-del,
+  .btn-accent,
+  .btn-special-main,
+  .btn-in,
+  .btn-out,
+  .btn-remind,
+  .btn-leave {
+    animation: none !important;
+    transition: none !important;
+  }
+  .se-header:active,
+  .btn-accent:active,
+  .btn-special-main:active,
+  .btn-in:active,
+  .btn-out:active,
+  .btn-remind:active,
+  .btn-leave:active { transform: none; }
+}
+</style>
+
+<style scoped>
+.se-title { color: var(--ink); }
+.btn-accent,
+.btn-in { background: var(--primary); color: #FFFFFF; }
+.btn-special-main,
+.btn-out { background: var(--primary-strong); color: #FFFFFF; }
+.btn-leave { background: var(--warning-soft); color: var(--warning); }
+.btn-remind {
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.stat.green { color: var(--accent-strong); }
+.btn-accent,
+.btn-special-main,
+.btn-in,
+.btn-out,
+.btn-leave,
+.btn-remind,
+.student-row {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.btn-accent:active,
+.btn-special-main:active,
+.btn-in:active,
+.btn-out:active,
+.btn-leave:active,
+.btn-remind:active,
+.student-row:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-accent,
+  .btn-special-main,
+  .btn-in,
+  .btn-out,
+  .btn-leave,
+  .btn-remind,
+  .student-row {
+    transition: none !important;
+  }
+  .btn-accent:active,
+  .btn-special-main:active,
+  .btn-in:active,
+  .btn-out:active,
+  .btn-leave:active,
+  .btn-remind:active,
+  .student-row:active { transform: none; }
+}
+</style>
+
+<style scoped>
 .page{padding-bottom:calc(80rpx + env(safe-area-inset-bottom))}
 .hero{padding:46rpx 34rpx 36rpx;background:linear-gradient(150deg,#F9FCFB,#EEF6F3)}
 .hero .gold-rule{display:none}
@@ -250,4 +431,67 @@ export default {
 .stu-right .btn-sm{min-height:64rpx;border-radius:11rpx;font-weight:650}
 .btn-in{background:var(--accent);color:#fff}.btn-out{background:var(--info);color:#fff}.btn-leave{background:var(--warning-soft);color:var(--warning)}.btn-remind{background:var(--accent-soft);color:var(--accent-strong);border-color:#BFD2CC}
 .swipe-del{background:var(--danger)}
+</style>
+
+<style scoped>
+/* final cascade after legacy page blocks */
+.hero {
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 74%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+}
+.eyebrow { color: var(--primary-strong); }
+.stats { border: 1rpx solid var(--border); background: #F7FAFF; }
+.btn-accent {
+  min-height: 88rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .16);
+}
+.btn-special-main {
+  min-height: 84rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  box-shadow: none;
+}
+.btn-in { background: var(--primary); color: #FFFFFF; }
+.btn-out {
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.btn-remind {
+  border-color: var(--border);
+  background: #FFFFFF;
+  color: var(--primary-strong);
+}
+.btn-leave { background: var(--warning-soft); color: #7B5A12; }
+.se-header,
+.btn-accent,
+.btn-special-main,
+.btn-in,
+.btn-out,
+.btn-remind,
+.btn-leave {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .se-header,
+  .se-toggle,
+  .swiper-inner,
+  .swipe-del,
+  .btn-accent,
+  .btn-special-main,
+  .btn-in,
+  .btn-out,
+  .btn-remind,
+  .btn-leave {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 </style>

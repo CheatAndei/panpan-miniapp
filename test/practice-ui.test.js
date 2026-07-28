@@ -9,7 +9,11 @@ const pages = read('pages.json');
 const parent = read('pages/practice-parent/index.vue');
 const teacher = read('pages/practice-teacher/index.vue');
 const review = read('pages/practice-review/index.vue');
-const home = read('pages/index/index.vue');
+const homePage = read('pages/index/index.vue');
+const teacherHome = read('components/home/TeacherHomeView.vue');
+const parentHome = read('components/home/ParentHomeView.vue');
+const noticeDialog = read('components/home/HomeworkNoticeDialog.vue');
+const home = homePage + teacherHome + parentHome + noticeDialog;
 const api = read('utils/api.js');
 
 test('每日打卡家长教师页面已注册', () => {
@@ -25,10 +29,12 @@ test('首页按角色进入今日专属练习与打卡计划', () => {
   assert.match(home, /今日学习任务/);
   assert.match(home, /pages\/practice-teacher\/index/);
   assert.match(home, /打卡计划与复核/);
-  const parentBranch = home.indexOf('<!-- 家长端 -->');
-  assert.ok(home.indexOf("navTo('/pages/practice-teacher/index')") < parentBranch, '教师打卡入口必须位于教师分支');
-  assert.ok(home.indexOf("if (task.route === 'practice')") > parentBranch, '家长每日练习入口必须位于家长分支');
-  assert.match(home, /async function openHomeworkNotice/);
+  assert.match(homePage, /<TeacherHomeView[\s\S]*?<ParentHomeView/u);
+  assert.match(teacherHome, /navigate\('\/pages\/practice-teacher\/index'\)/);
+  assert.doesNotMatch(parentHome, /pages\/practice-teacher\/index/);
+  assert.match(homePage, /if \(task\.route === 'practice'\)/);
+  assert.match(parentHome, /@tap="\$emit\('open-today-task', task\)"/);
+  assert.match(homePage, /async function openHomeworkNotice/);
 });
 
 test('家长页领取结构化题目并上传照片', () => {
@@ -56,10 +62,12 @@ test('计划页使用四类可选初中计算题库，批改台独立且只处�
   assert.doesNotMatch(teacher, /changeSettingDifficulty/);
   assert.match(teacher, /搜索计划、班级或学生姓名/);
   assert.match(teacher, /reviewed&limit=50/);
+  assert.match(teacher, /correction_required&limit=50/);
+  assert.match(teacher, /\['published','student_curriculum'\]\.includes\(item\.status\)/);
   assert.match(teacher, /plans\/\$\{pdfPlan\.value\.id\}\/pdf\?student_id=/);
   assert.doesNotMatch(teacher, /api\.downloadPrivate/);
   assert.match(review, /status=submitted/);
-  assert.doesNotMatch(review, /status=all/);
+  assert.match(review, /status=all&limit=50&page=1&submission_id=/);
   assert.match(review, /photo-pane/);
   assert.match(review, /answer-pane/);
   assert.ok(review.indexOf('photo-pane') < review.indexOf('answer-pane'), '照片必须位于答案上方');
@@ -68,18 +76,19 @@ test('计划页使用四类可选初中计算题库，批改台独立且只处�
   assert.match(review, /toggleWrong/);
   assert.match(review, /item\._correct = item\._correct === false/);
   assert.match(review, /activeSubmission\._saved/);
-  assert.match(review, /activeSubmission\._saving \? '保存中…'/);
+  assert.match(review, /activeSubmission\._saving[\s\S]{0,80}\? '保存中…'/u);
   assert.match(review, /保存并打回/);
   assert.match(review, /保存通过/);
   assert.match(review, /'预览'/);
   assert.match(review, /保存相册/);
   assert.match(review, /下一位/);
   assert.match(review, /rotateCurrentPhoto/);
-  assert.match(review, /\.workbench\{display:flex;flex-direction:column/);
+  assert.match(review, /\.workbench\s*\{[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;/u);
   assert.doesNotMatch(review, />正确<\/button>/);
   assert.doesNotMatch(review, />需巩固<\/button>/);
   assert.match(review, /\/practice\/submissions\/\$\{submission\.id\}\/review/);
-  assert.match(home, /学生打卡待批改/);
+  assert.match(teacherHome, /学生打卡/);
+  assert.match(teacherHome, /待批改/);
   assert.match(home, /\/practice\/todos\?limit=3/);
   assert.match(home, /submission_id=\$\{item\.submission_id\}/);
 });
@@ -99,10 +108,28 @@ test('私有图片先带 Authorization 下载到临时路径再预览', () => {
 });
 
 test('教师首页工作概览展示三个可操作指标且不会被通用白卡覆盖', () => {
-  assert.match(home, /pendingPracticeCount[\s\S]*待批改/u);
-  assert.match(home, /pendingLeaves[\s\S]*待审批/u);
-  assert.match(home, /todaySessions\.length[\s\S]*今日课程/u);
-  assert.match(home, /\.page \.focus-card\s*\{/u);
-  assert.match(home, /linear-gradient\(145deg,#173A36,#315D56\)/u);
+  assert.match(teacherHome, /pendingPracticeCount[\s\S]*打卡批改/u);
+  assert.match(teacherHome, /pendingLeaves[\s\S]*待审批/u);
+  assert.match(teacherHome, /todaySessionCount[\s\S]*今日课程/u);
+  assert.match(teacherHome, /\.focus-card\s*\{/u);
+  assert.match(teacherHome, /border-left:\s*8rpx solid var\(--primary\)/u);
+  assert.match(teacherHome, /background:\s*#FFFFFF/u);
   assert.doesNotMatch(home, /totalStudents/u);
+});
+
+test('教师首页把快捷工作放在今日总览和高优先待办之前', () => {
+  const quickWork = teacherHome.indexOf('<text class="section-title">快捷工作</text>');
+  const overview = teacherHome.indexOf('<view class="focus-card">');
+  const priority = teacherHome.indexOf('<text class="section-title">高优先待办</text>');
+  assert.ok(quickWork >= 0, '应存在快捷工作区');
+  assert.ok(quickWork < overview, '快捷工作应在今日总览之前');
+  assert.ok(quickWork < priority, '快捷工作应在高优先待办之前');
+});
+
+test('教师首页初次加载和失败时不会误报待办已清', () => {
+  assert.match(teacherHome, /v-if="loading && classes\.length === 0"/);
+  assert.match(teacherHome, /v-else-if="error"/);
+  assert.match(teacherHome, /title="今日教务加载失败"/);
+  assert.match(teacherHome, /@action="\$emit\('reload'\)"/);
+  assert.match(teacherHome, /\.todo-row\s*\{[\s\S]*?min-height:\s*112rpx/u);
 });

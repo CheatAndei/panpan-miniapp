@@ -43,6 +43,19 @@ test('分式组件使用真实分数线并保留原字符串无障碍标签', ()
   assert.match(component, /:aria-label="source"/);
 });
 
+test('structured curriculum fractions render from numerator and denominator blocks', () => {
+  const component = fs.readFileSync(path.join(root, 'components/pp-math-text/pp-math-text.vue'), 'utf8');
+  assert.match(component, /blocks:\s*\{\s*type:\s*Array/);
+  assert.match(component, /block\.type === 'fraction'/);
+  assert.match(component, /structuredSegments\.value\.length/);
+
+  const parent = fs.readFileSync(path.join(root, 'pages/practice-parent/index.vue'), 'utf8');
+  const review = fs.readFileSync(path.join(root, 'pages/practice-review/index.vue'), 'utf8');
+  assert.match(parent, /:blocks="item\.render && item\.render\.blocks"/);
+  assert.match(review, /:blocks="item\.render && item\.render\.blocks"/);
+  assert.match(review, /:blocks="item\.answer_render && item\.answer_render\.blocks"/);
+});
+
 test('题目、答案和教师批改页统一使用分式组件，输入仍保留斜杠', () => {
   const pages = [
     'pages/mental-arena/challenge.vue',

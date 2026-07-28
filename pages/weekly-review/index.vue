@@ -48,3 +48,174 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
 .skip{background:#F1F3F2!important;color:#65736F!important}
 .answer-mask{position:fixed;z-index:30;inset:0;display:flex;align-items:flex-end;background:rgba(12,31,27,.48)}.answer-sheet{box-sizing:border-box;width:100%;padding:32rpx 28rpx calc(30rpx + env(safe-area-inset-bottom));border-radius:30rpx 30rpx 0 0;background:#fff}.answer-sheet-label{display:block;color:#A47429;font-size:18rpx;font-weight:800;letter-spacing:3rpx}.answer-sheet-title{display:block;margin-top:5rpx;color:#183A36;font-size:34rpx;font-weight:800}.answer-sheet-math{display:flex;min-height:180rpx;margin-top:22rpx;padding:28rpx;border-radius:18rpx;background:#F4F0E7;color:#263D38;font-size:38rpx;font-weight:720;line-height:1.55}.answer-sheet-close{min-height:84rpx;margin-top:20rpx;border-radius:14rpx;background:#183A36;color:#fff;font-size:26rpx;font-weight:740}.answer-sheet-close::after{border:0}
 </style>
+
+<style scoped>
+.page {
+  background:
+    radial-gradient(circle at 0 16%, rgba(101, 191, 168, .11), transparent 22%),
+    var(--page-bg, #F6FAFF);
+}
+.hero { border-radius: 0 0 24rpx 24rpx; }
+.tabs { box-shadow: var(--shadow-sm); }
+.tabs button.on { background: var(--primary-strong); }
+.review-card { border-radius: 18rpx; }
+.state.reviewed { background: var(--accent-soft); color: var(--accent-strong); }
+.asset-actions button { background: var(--primary-soft); color: var(--primary-strong); }
+.correct { background: var(--primary-strong); color: #FFFFFF; }
+.tabs button,
+.review-card,
+.asset-actions button,
+.result-actions button {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.tabs button:active,
+.review-card:active,
+.asset-actions button:active,
+.result-actions button:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tabs button,
+  .review-card,
+  .asset-actions button,
+  .result-actions button {
+    transition: none !important;
+  }
+  .tabs button:active,
+  .review-card:active,
+  .asset-actions button:active,
+  .result-actions button:active { transform: none; }
+}
+</style>
+
+<style scoped>
+/* mei final pass: terminal review desk */
+.page {
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .17), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 72%, #FFF7DC);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: review-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 116rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.tabs {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.tabs button { min-height: 80rpx; }
+.tabs button.on { background: var(--primary-strong); color: #FFFFFF; }
+.review-card {
+  border-color: var(--border);
+  border-radius: 18rpx;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+  animation: review-surface-in var(--motion-slow) var(--ease-out) both;
+  transition: none;
+}
+.review-card:active { transform: none; opacity: 1; }
+.state { background: var(--warning-soft); color: #7B5A12; }
+.state.reviewed { background: var(--success-soft); color: var(--success); }
+.asset-actions button {
+  min-height: 80rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.photo-row image {
+  border: 1rpx solid var(--border);
+  background: #F7FAFF;
+}
+.note {
+  border-color: var(--border);
+  background: #F9FBFF;
+  color: var(--ink);
+}
+.result-actions button { min-height: 88rpx; }
+.skip { background: #F1F4F8 !important; color: var(--text-secondary) !important; }
+.wrong { background: var(--coral-soft); color: #B85D51; }
+.correct {
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  box-shadow: 0 8rpx 18rpx rgba(49, 94, 168, .16);
+}
+.answer-mask { background: rgba(36, 50, 74, .48); }
+.answer-sheet {
+  border: 1rpx solid var(--border);
+  background: #FFFFFF;
+  animation: review-sheet-in var(--motion-slow) var(--ease-out) both;
+}
+.answer-sheet-label { color: #9B6D10; }
+.answer-sheet-title { color: var(--ink); }
+.answer-sheet-math {
+  border: 1rpx solid #F0DFA5;
+  background: var(--warning-soft);
+  color: var(--ink);
+}
+.answer-sheet-close {
+  min-height: 104rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+}
+.tabs button,
+.asset-actions button,
+.result-actions button,
+.answer-sheet-close {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.tabs button:active,
+.asset-actions button:active,
+.result-actions button:active,
+.answer-sheet-close:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes review-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes review-sheet-in {
+  from { transform: translateY(24rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .review-card,
+  .answer-sheet,
+  .tabs button,
+  .asset-actions button,
+  .result-actions button,
+  .answer-sheet-close {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tabs button:active,
+  .asset-actions button:active,
+  .result-actions button:active,
+  .answer-sheet-close:active { transform: none; }
+}
+</style>

@@ -5,12 +5,15 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 const home = fs.readFileSync(path.join(root, 'pages', 'index', 'index.vue'), 'utf8');
+const welcome = fs.readFileSync(path.join(root, 'components', 'home', 'HomeWelcome.vue'), 'utf8');
 const mine = fs.readFileSync(path.join(root, 'pages', 'mine', 'index.vue'), 'utf8');
 const auth = fs.readFileSync(path.join(root, 'utils', 'auth.js'), 'utf8');
 const bind = fs.readFileSync(path.join(root, 'pages', 'bind', 'bind.vue'), 'utf8');
 
 test('未登录首页提供登录失败修复并优先请求家长角色', () => {
-  assert.match(home, /切换身份 \/ 登录修复/);
+  assert.match(home, /<HomeWelcome/);
+  assert.match(home, /@repair="handleLoginRepair"/);
+  assert.match(welcome, /切换身份 \/ 登录修复/);
   assert.match(home, /handleLoginRepair/);
   assert.match(auth, /prefer_role:\s*options\.preferRole/);
   assert.match(home, /doLogin\(\{\s*preferRole:\s*'parent'/);

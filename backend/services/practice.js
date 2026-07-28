@@ -2,6 +2,11 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const {
+  ASSIGNMENT_SOURCE: STUDENT_CURRICULUM_SOURCE,
+  generateStudentCurriculumAssignment,
+  resolveStudentPracticePlan,
+} = require('./student-practice-curriculum');
 
 const FIXED_GRADE = '初中';
 const FIXED_MODULE = '综合计算';
@@ -83,7 +88,7 @@ function historyTemplates(db, studentId, practiceDate) {
     JOIN practice_assignment_items i ON i.id=r.assignment_item_id
     JOIN practice_assignments a ON a.id=i.assignment_id
     WHERE a.student_id=?
-    ORDER BY r.reviewed_at DESC,a.practice_date DESC LIMIT 240`, [studentId]);
+    ORDER BY a.practice_date DESC,r.reviewed_at DESC LIMIT 240`, [studentId]);
   const key = (row) => `${row.snapshot_module}|${row.template_key}`;
   const latest = new Map();
   for (const row of rows) if (!latest.has(key(row))) latest.set(key(row), row);
@@ -190,6 +195,8 @@ function ensureStudentSetting(db, plan, studentId) {
 }
 
 function generateAssignment(db, plan, studentId, practiceDate) {
+  const curriculumAssignment = generateStudentCurriculumAssignment(db, studentId, practiceDate);
+  if (curriculumAssignment) return curriculumAssignment;
   const existing = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, practiceDate]);
   if (existing) return existing;
   try {
@@ -224,17 +231,34 @@ function preGenerateDate(db, practiceDate) {
   const plans = db.all(`SELECT * FROM practice_plans
     WHERE status='published' AND start_date<=? AND end_date>=?`, [practiceDate, practiceDate]);
   let generated = 0;
+  let replaced = 0;
+  const curriculumStudents = new Set();
   db.transaction(() => {
+    const curriculumDays = db.all(`SELECT d.student_id,c.plan_id
+      FROM practice_student_curriculum_days d
+      JOIN practice_student_curricula c ON c.id=d.curriculum_id
+      WHERE d.practice_date=? AND c.status='active'
+      ORDER BY d.student_id`, [practiceDate]);
+    for (const day of curriculumDays) {
+      const before = db.get('SELECT id,assignment_source,curriculum_day_id FROM practice_assignments WHERE student_id=? AND practice_date=?', [
+        day.student_id, practiceDate,
+      ]);
+      generateStudentCurriculumAssignment(db, day.student_id, practiceDate);
+      curriculumStudents.add(Number(day.student_id));
+      if (!before) generated++;
+      else if (before.assignment_source !== STUDENT_CURRICULUM_SOURCE) replaced++;
+    }
     for (const plan of plans) {
       const students = db.all('SELECT id FROM students WHERE class_id=? AND deleted_at IS NULL', [plan.class_id]);
       for (const student of students) {
+        if (curriculumStudents.has(Number(student.id))) continue;
         const before = db.get('SELECT id FROM practice_assignments WHERE student_id=? AND practice_date=?', [student.id, practiceDate]);
         generateAssignment(db, plan, student.id, practiceDate);
         if (!before) generated++;
       }
     }
   });
-  return { plans: plans.length, generated };
+  return { plans: plans.length, curricula: curriculumStudents.size, generated, replaced };
 }
 
 function evaluateProgression(db, planId, studentId) {
@@ -601,6 +625,7 @@ module.exports = {
   questionTypesForTopics,
   generateAssignment,
   preGenerateDate,
+  resolveStudentPracticePlan,
   evaluateProgression,
   practiceFocusItemIds,
   practiceVisibleItemIds,

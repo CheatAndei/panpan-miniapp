@@ -83,4 +83,133 @@ function switchPeriod(value) { if (period.value !== value) { period.value = valu
 
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx calc(50rpx + env(safe-area-inset-bottom));background:#F3F7F5}.hero{margin:0 -24rpx 22rpx;padding:48rpx 36rpx 42rpx;border-radius:0 0 36rpx 36rpx;background:linear-gradient(145deg,#173A36,#315D56);color:#fff}.eyebrow{display:block;color:#B5DDD3;font-size:20rpx;font-weight:800;letter-spacing:4rpx}.hero-title{display:block;margin-top:10rpx;font-size:43rpx;font-weight:900}.hero-sub{display:block;margin-top:8rpx;color:#D4E9E3;font-size:22rpx}.battle-tabs,.period-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10rpx}.period-tabs{margin-top:10rpx}.battle-tab,.period-tab{min-height:78rpx;display:flex;align-items:center;justify-content:center;margin:0;border-radius:14rpx;background:#fff;color:#647570;font-size:24rpx;font-weight:700}.battle-tab.active{background:#183A36;color:#fff}.period-tab{min-height:68rpx;font-size:22rpx}.period-tab.active{border:2rpx solid #DCA525;background:#FFF3CD;color:#6C4900}button::after{border:0}.state{margin-top:18rpx;padding:28rpx;border-radius:22rpx;background:#fff}.my-rank{display:flex;align-items:center;justify-content:space-between;gap:18rpx;margin-top:18rpx;padding:24rpx;border:1rpx solid #E6C36B;border-radius:20rpx;background:linear-gradient(135deg,#FFF7DC,#fff)}.my-label{display:block;color:#946400;font-size:20rpx;font-weight:800}.my-name{display:block;margin-top:4rpx;color:#2E291F;font-size:27rpx;font-weight:800}.my-result{text-align:right}.my-place{display:block;color:#7D5500;font-size:25rpx;font-weight:850}.my-score{display:block;margin-top:3rpx;color:#183A36;font-size:22rpx}.rank-card{margin-top:18rpx;padding:16rpx 22rpx;border:1rpx solid #D8E5E1;border-radius:22rpx;background:#fff}.rank-head{display:flex;justify-content:space-between;padding:8rpx 0 15rpx;color:#81908C;font-size:20rpx}.rank-row{display:flex;align-items:center;gap:14rpx;min-height:104rpx;border-top:1rpx solid #E7EEEC}.rank-row.mine{margin:0 -10rpx;padding:0 10rpx;border-radius:14rpx;background:#F0F7F4}.place{width:46rpx;height:46rpx;display:flex;align-items:center;justify-content:center;flex:none;border-radius:50%;background:#E9F0EE;color:#61716D;font-size:22rpx;font-weight:850}.place-1{background:#F5B83D;color:#493000}.place-2{background:#DDE4E2;color:#43534F}.place-3{background:#ECD2AE;color:#6A4821}.student-copy{flex:1;min-width:0}.student-line{display:flex;align-items:center;gap:8rpx;min-width:0}.student-name{overflow:hidden;color:#183A36;font-size:26rpx;font-weight:750;text-overflow:ellipsis;white-space:nowrap}.fish-tag{flex:none;padding:5rpx 9rpx;border-radius:999rpx;background:#F5B83D;color:#493000;font-size:20rpx;font-weight:900}.result-meta{display:block;margin-top:5rpx;color:#647570;font-size:20rpx}.score{flex:none;color:#183A36;font-size:30rpx;font-weight:900}.rule-card{margin-top:18rpx;padding:22rpx;border-radius:18rpx;background:#E9F2EF}.rule-title{display:block;color:#285F54;font-size:23rpx;font-weight:800}.rule-copy{display:block;margin-top:6rpx;color:#60736E;font-size:20rpx;line-height:1.6}
+
+/* 排行榜使用浅色表格纸，名次奖励用黄/薄荷而非深色背景。 */
+.page {
+  overflow-x: hidden;
+  background: var(--page-bg);
+  color: var(--ink);
+}
+
+.hero {
+  position: relative;
+  margin: 0 -24rpx 22rpx;
+  padding: 44rpx 36rpx 38rpx;
+  border-bottom: 1rpx solid var(--border);
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, var(--primary-soft));
+  background-size: 42rpx 42rpx, auto;
+  color: var(--ink);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  right: 34rpx;
+  top: 28rpx;
+  width: 108rpx;
+  height: 18rpx;
+  border-radius: 4rpx;
+  background: var(--gold);
+  transform: rotate(2deg);
+}
+
+.eyebrow { color: var(--accent-strong); }
+.hero-title { color: var(--primary-strong); }
+.hero-sub { color: var(--text-secondary); }
+
+.battle-tabs,
+.period-tabs {
+  padding: 7rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.battle-tab,
+.period-tab {
+  min-height: 88rpx;
+  border-radius: 11rpx;
+  background: transparent;
+  color: var(--text-muted);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.battle-tab.active {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.period-tab.active {
+  border: 1rpx solid #E6CF88;
+  background: var(--warning-soft);
+  color: #765410;
+}
+
+.battle-tab:active,
+.period-tab:active { transform: scale(var(--tap-scale)); }
+
+.state,
+.rank-card {
+  border: 1rpx solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.my-rank {
+  border-color: #E6CF88;
+  border-left: 7rpx solid var(--gold);
+  border-radius: var(--r);
+  background: linear-gradient(135deg, #FFFFFF, var(--warning-soft));
+  box-shadow: var(--shadow-sm);
+  animation: board-row-in var(--motion-slow) var(--ease-out) both;
+}
+
+.my-label { color: var(--warning); }
+.my-name,
+.score { color: var(--ink); }
+.my-place { color: var(--primary-strong); }
+.my-score { color: var(--text-secondary); }
+
+.rank-head { color: var(--text-muted); }
+.rank-row {
+  min-height: 112rpx;
+  border-top-color: var(--hairline);
+}
+.rank-row.mine {
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+}
+
+.place { background: var(--surface-muted); color: var(--text-muted); }
+.place-1 { background: var(--gold); color: #493000; }
+.place-2 { background: var(--primary-soft); color: var(--primary-strong); }
+.place-3 { background: var(--coral-soft); color: #9B4F46; }
+.student-name { color: var(--ink); }
+.fish-tag { background: var(--warning-soft); color: var(--warning); }
+.result-meta { color: var(--text-muted); }
+
+.rule-card {
+  border-left: 6rpx solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+}
+.rule-title { color: var(--accent-strong); }
+.rule-copy { color: var(--text-secondary); }
+
+@keyframes board-row-in {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-rank { animation: none; }
+  .battle-tab,
+  .period-tab { transition: none; }
+  .battle-tab:active,
+  .period-tab:active { transform: none; }
+}
 </style>

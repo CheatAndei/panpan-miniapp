@@ -51,14 +51,58 @@ export default {
 </script>
 
 <style scoped>
-.page-shell{padding-bottom:calc(50rpx + env(safe-area-inset-bottom))}
-.page-hero{padding:48rpx 34rpx 38rpx}.hero-title{display:block;margin-top:9rpx;color:var(--ink);font-size:43rpx;font-weight:790}
-.hero-desc{display:block;margin-top:9rpx;color:var(--text-muted);font-size:25rpx}
-.timeline{padding:20rpx 24rpx}.record-card{margin-bottom:18rpx;padding:26rpx;border:1rpx solid var(--border);border-radius:22rpx;background:#fff;box-shadow:var(--shadow-sm)}
-.record-top{display:flex;align-items:center;justify-content:space-between;gap:16rpx}.status{padding:5rpx 13rpx;border-radius:9rpx;background:var(--warning-soft);color:var(--warning);font-size:21rpx;font-weight:700}
-.status.approved{background:var(--accent-soft);color:var(--accent-strong)}.status.rejected{background:var(--surface-muted);color:var(--text-muted)}
-.date{color:var(--faint);font-size:21rpx}.label{display:block;margin-top:18rpx;color:var(--text-muted);font-size:22rpx;font-weight:650}
-.content{display:block;margin-top:6rpx;color:var(--ink);font-size:28rpx;line-height:1.7}.reply{margin-top:20rpx;padding:18rpx;border-radius:15rpx;background:var(--accent-soft)}
-.reply-label{display:block;color:var(--accent-strong);font-size:22rpx;font-weight:750}.reply-content{display:block;margin-top:7rpx;color:#315A52;font-size:26rpx;line-height:1.65}
-.waiting{display:block;margin-top:17rpx;color:var(--faint);font-size:22rpx}
+.page-shell { min-height: 100vh; padding-bottom: calc(50rpx + env(safe-area-inset-bottom)); background: var(--page-bg); }
+.page-hero { padding: 48rpx 34rpx 38rpx; animation: opinions-enter var(--motion-slow) var(--ease-out) both; }
+.hero-title { display: block; margin-top: 9rpx; color: var(--ink); font-size: 43rpx; font-weight: 790; }
+.hero-desc { display: block; max-width: 590rpx; margin-top: 9rpx; color: var(--text-muted); font-size: 25rpx; line-height: 1.6; }
+.timeline { padding: 20rpx 24rpx; }
+
+.record-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 18rpx;
+  padding: 26rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  animation: opinion-card-enter var(--motion-slow) var(--ease-out) both;
+}
+
+.record-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6rpx;
+  background: var(--primary);
+}
+
+.record-top { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.status { padding: 5rpx 13rpx; border-radius: var(--r-xs); background: var(--warning-soft); color: var(--warning); font-size: 21rpx; font-weight: 700; }
+.status.approved { background: var(--success-soft); color: var(--success); }
+.status.rejected { background: var(--surface-muted); color: var(--text-muted); }
+.date { color: var(--faint); font-size: 21rpx; font-variant-numeric: tabular-nums; }
+.label { display: block; margin-top: 18rpx; color: var(--text-muted); font-size: 22rpx; font-weight: 650; }
+.content { display: block; margin-top: 6rpx; color: var(--ink); font-size: 28rpx; line-height: 1.7; }
+.reply { margin-top: 20rpx; padding: 18rpx; border: 1rpx solid #CBEADF; border-radius: var(--r-sm); background: var(--success-soft); }
+.reply-label { display: block; color: var(--success); font-size: 22rpx; font-weight: 750; }
+.reply-content { display: block; margin-top: 7rpx; color: var(--text-secondary); font-size: 26rpx; line-height: 1.65; }
+.waiting { display: block; margin-top: 17rpx; padding: 12rpx 14rpx; border-radius: var(--r-xs); background: var(--warning-soft); color: var(--warning); font-size: 22rpx; }
+
+@keyframes opinions-enter {
+  from { opacity: 0; transform: translateY(-10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes opinion-card-enter {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-hero,
+  .record-card { animation: none; }
+}
 </style>

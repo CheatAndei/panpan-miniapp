@@ -197,7 +197,7 @@ function askResolution(stopQuestion) {
       editable: true,
       placeholderText: stopQuestion ? '填写停用原因（选填）' : '填写处理说明（选填）',
       confirmText: stopQuestion ? '确认停用' : '确认完成',
-      confirmColor: stopQuestion ? '#A94F48' : '#2F7D6B',
+      confirmColor: stopQuestion ? '#D66D62' : '#315EA8',
       success: (result) => resolve(result.confirm ? String(result.content || '').trim() : null),
       fail: () => resolve(null),
     });
@@ -208,4 +208,198 @@ function askResolution(stopQuestion) {
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx calc(54rpx + env(safe-area-inset-bottom));background:#F3F7F5}.hero{margin:0 -24rpx;padding:46rpx 34rpx 42rpx;background:linear-gradient(145deg,#173A36,#315D56);color:#fff}.eyebrow{display:block;color:#B5DDD3;font-size:19rpx;font-weight:760;letter-spacing:3rpx}.hero-title{display:block;margin-top:8rpx;font-size:42rpx;font-weight:820}.hero-sub{display:block;margin-top:8rpx;color:#D4E9E3;font-size:22rpx;line-height:1.55}.source-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:9rpx;margin-top:20rpx}.source-tab{min-height:68rpx;margin:0;padding:8rpx;border:1rpx solid #D8E5E1;border-radius:13rpx;background:#fff;color:#697B76;font-size:21rpx;font-weight:680}.source-tab.active{border-color:#2F7D6B;background:#EAF4F1;color:#205F51}.source-tab::after{border:0}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin-top:12rpx;padding:7rpx;border:1rpx solid #D8E5E1;border-radius:17rpx;background:#fff}.tab{min-height:68rpx;margin:0;border-radius:12rpx;background:transparent;color:#697B76;font-size:22rpx;font-weight:680}.tab::after,.review-actions button::after{border:0}.tab.active{background:#183A36;color:#fff}.report-skeleton,.state-card{margin-top:18rpx}.skeleton-card{margin-bottom:16rpx;padding:24rpx;border:1rpx solid #DDE8E4;border-radius:22rpx;background:#fff}.skeleton-line,.skeleton-box{background:linear-gradient(100deg,#EAF1EF 20%,#F9FBFA 40%,#EAF1EF 60%);background-size:200% 100%;animation:shimmer 1.2s linear infinite}.skeleton-line{width:78%;height:26rpx;border-radius:8rpx}.skeleton-line.short{width:34%;margin-bottom:15rpx}.skeleton-box{height:150rpx;margin-top:22rpx;border-radius:14rpx}@keyframes shimmer{to{background-position:-200% 0}}.state-card{border:1rpx solid #DDE8E4;border-radius:22rpx;background:#fff}.report-card{margin-top:18rpx;padding:25rpx;border:1rpx solid #D9E6E2;border-radius:22rpx;background:#fff;box-shadow:0 8rpx 26rpx rgba(24,58,54,.055)}.report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx}.student-copy{min-width:0}.student-name,.report-meta{display:block}.student-name{color:#183A36;font-size:27rpx;font-weight:760}.report-meta{margin-top:3rpx;color:#758680;font-size:20rpx}.status-stack{display:flex;align-items:flex-end;flex-direction:column;gap:6rpx}.priority-tag{padding:6rpx 10rpx;border-radius:8rpx;background:#FCE9E5;color:#A7463F;font-size:18rpx;font-weight:760}.status-tag{flex:none;padding:7rpx 12rpx;border-radius:9rpx;background:#FFF1D8;color:#865B08;font-size:19rpx;font-weight:720}.status-tag.resolved{background:#E6F2EE;color:#29695A}.reason-box{margin-top:18rpx;padding:18rpx;border-radius:14rpx;background:#FFF7F0}.reason-label,.reason-title,.reason-note{display:block}.reason-label{color:#A35C3C;font-size:18rpx;font-weight:730}.reason-title{margin-top:3rpx;color:#613A28;font-size:24rpx;font-weight:720}.reason-note{margin-top:6rpx;color:#805F4F;font-size:21rpx;line-height:1.55}.question-box{margin-top:16rpx;padding:18rpx;border:1rpx solid #E0E9E6;border-radius:15rpx;background:#FAFCFB}.question-top{display:flex;justify-content:space-between;gap:14rpx}.question-id{color:#285F54;font-size:20rpx;font-weight:730}.question-source{overflow:hidden;color:#7B8B87;font-size:19rpx;text-overflow:ellipsis;white-space:nowrap}.question-image{width:100%;margin-top:14rpx;border-radius:11rpx;background:#fff}.question-stem{display:block;margin-top:13rpx;color:#263D38;font-size:23rpx;line-height:1.6}.answer-row{display:flex;justify-content:space-between;gap:14rpx;margin-top:14rpx;padding-top:13rpx;border-top:1rpx solid #E1EAE7;color:#536C66;font-size:20rpx}.review-actions{display:grid;grid-template-columns:1fr 1fr;gap:12rpx;margin-top:18rpx}.review-actions button{min-height:80rpx;margin:0;border-radius:14rpx;font-size:23rpx;font-weight:720}.no-issue{border:1rpx solid #BDD1CB;background:#fff;color:#49645D}.stop-question{background:#A94F48;color:#fff}.resolution-box{margin-top:18rpx;padding:16rpx 18rpx;border-radius:13rpx;background:#EAF4F1}.resolution-label,.resolution-copy{display:block}.resolution-label{color:#2F7D6B;font-size:19rpx;font-weight:730}.resolution-copy{margin-top:3rpx;color:#48645D;font-size:21rpx;line-height:1.5}@media(prefers-reduced-motion:reduce){.skeleton-line,.skeleton-box{animation:none}}
 .question-stem,.answer-math{display:flex;align-items:center;flex-wrap:wrap}.answer-inline{width:auto;flex:none}
+</style>
+
+<style scoped>
+.page {
+  background:
+    radial-gradient(circle at 96% 0%, rgba(244, 199, 91, .15), transparent 22%),
+    linear-gradient(180deg, #F7FBFF, var(--page-bg, #F6FAFF));
+}
+.source-tab { border-color: var(--border); color: var(--text-secondary); }
+.source-tab.active {
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.tabs { border-color: var(--border); }
+.tab.active { background: var(--primary-strong); color: #FFFFFF; }
+.report-card,
+.skeleton-card,
+.state-card {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.student-name { color: var(--ink); }
+.question-id { color: var(--primary-strong); }
+.status-tag.resolved,
+.resolution-box { background: var(--accent-soft); color: var(--accent-strong); }
+.resolution-label { color: var(--accent-strong); }
+.no-issue {
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.stop-question { background: var(--danger); color: #FFFFFF; }
+.source-tab,
+.tab,
+.report-card,
+.review-actions button {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.source-tab:active,
+.tab:active,
+.report-card:active,
+.review-actions button:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .source-tab,
+  .tab,
+  .report-card,
+  .review-actions button,
+  .skeleton-line,
+  .skeleton-box {
+    animation: none !important;
+    transition: none !important;
+  }
+  .source-tab:active,
+  .tab:active,
+  .report-card:active,
+  .review-actions button:active { transform: none; }
+}
+</style>
+
+<style scoped>
+/* mei final pass: question triage on light paper */
+.page {
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .17), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 72%, #FFF7DC);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: report-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 116rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.source-tabs,
+.tabs { position: relative; z-index: 1; }
+.source-tab,
+.tab { min-height: 80rpx; }
+.source-tab.active {
+  border-color: #AFC5E7;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.tabs {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.tab.active { background: var(--primary-strong); color: #FFFFFF; }
+.skeleton-card,
+.state-card,
+.report-card {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.skeleton-line,
+.skeleton-box {
+  background: #E7EEF8;
+  animation: report-skeleton-pulse 1s ease-in-out infinite alternate;
+}
+.report-card {
+  border-radius: 18rpx;
+  animation: report-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.reason-box {
+  border: 1rpx solid rgba(233, 133, 119, .24);
+  background: var(--coral-soft);
+}
+.reason-label { color: #B85D51; }
+.reason-title { color: var(--ink); }
+.reason-note { color: var(--text-secondary); }
+.question-box {
+  border-color: var(--border);
+  background:
+    linear-gradient(rgba(82, 124, 201, .04) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .04) 1rpx, transparent 1rpx),
+    #F9FBFF;
+  background-size: 30rpx 30rpx;
+}
+.question-stem { color: var(--ink); }
+.answer-row { border-color: var(--border); color: var(--text-secondary); }
+.status-tag.resolved,
+.resolution-box { background: var(--success-soft); color: var(--success); }
+.resolution-label { color: var(--success); }
+.no-issue {
+  min-height: 88rpx;
+  border-color: #CDE9E1;
+  background: var(--success-soft);
+  color: var(--success);
+}
+.stop-question {
+  min-height: 88rpx;
+  background: var(--danger);
+  color: #FFFFFF;
+}
+.source-tab,
+.tab,
+.review-actions button {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.report-card { transition: none; }
+.report-card:active { transform: none; opacity: 1; }
+.source-tab:active,
+.tab:active,
+.review-actions button:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes report-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes report-skeleton-pulse {
+  from { opacity: .48; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .report-card,
+  .skeleton-line,
+  .skeleton-box,
+  .source-tab,
+  .tab,
+  .review-actions button {
+    animation: none !important;
+    transition: none !important;
+  }
+  .source-tab:active,
+  .tab:active,
+  .review-actions button:active { transform: none; }
+}
 </style>

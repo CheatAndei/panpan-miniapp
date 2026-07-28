@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('口算王四个页面已注册且家长首页有入口', () => {
   const pages = read('pages.json');
-  const home = read('pages/index/index.vue');
+  const home = read('components/home/ParentHomeView.vue');
   for (const page of ['index', 'challenge', 'result', 'leaderboard']) {
     assert.match(pages, new RegExp(`pages/mental-arena/${page}`));
   }

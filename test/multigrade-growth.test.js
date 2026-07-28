@@ -12,7 +12,7 @@ test('学习中心提供七年级、八年级、冲刺中考三入口并保存�
 });
 
 test('游客为已登录未绑定状态，体验隔离且不开放试卷',()=>{
-  const home=read('pages/index/index.vue');const demo=read('pages/guest-experience/index.vue');const pages=read('pages.json');const brand=read('utils/brand.js');
+  const home=read('pages/index/index.vue')+read('components/home/ParentHomeView.vue');const demo=read('pages/guest-experience/index.vue');const pages=read('pages.json');const brand=read('utils/brand.js');
   assert.match(pages,/pages\/guest-experience\/index/);assert.match(home,/尚未绑定学生/);assert.match(home,/TEACHER_WECHAT/);assert.match(brand,/sysu0011203/);
   assert.match(brand,/customer_service/);
   assert.match(demo,/体验成绩只保存在当前页面/);assert.match(demo,/不限次数/);assert.match(demo,/不能打开或下载/);

@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: backend-production
+  group: panpan-production
   cancel-in-progress: false
 
 jobs:
@@ -203,11 +203,26 @@ jobs:
 
             PREVIOUS_IMAGE_ID="$(docker inspect panpan-api --format '{{.Image}}' 2>/dev/null || true)"
             PREVIOUS_OVERRIDE="$DEPLOY_DIR/docker-compose.override.yml.predeploy-$PANPAN_DEPLOY_SHA"
+            HAD_PREVIOUS_OVERRIDE=0
             if [ -f "$DEPLOY_DIR/docker-compose.override.yml" ]; then
               cp -a "$DEPLOY_DIR/docker-compose.override.yml" "$PREVIOUS_OVERRIDE"
+              HAD_PREVIOUS_OVERRIDE=1
             fi
+            DEPLOY_STARTED=0
+            DEPLOY_SUCCESS=0
+            ROLLBACK_DONE=0
+            DEPLOY_BACKUP_READY=0
+            DEPLOY_BACKUP_DB=
+            DEPLOY_BACKUP_BYTES=
+            DEPLOY_BACKUP_SHA256=
 
             docker pull "$DEPLOY_IMAGE"
+            PULLED_REVISION="$(docker image inspect "$DEPLOY_IMAGE" \
+              --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+            if [ "$PULLED_REVISION" != "$PANPAN_DEPLOY_SHA" ]; then
+              echo "Pulled image revision mismatch: expected=$PANPAN_DEPLOY_SHA actual=$PULLED_REVISION"
+              exit 1
+            fi
             docker run --rm -i \
               -v "$RESOURCE_DIR/choice-king:/app/resources/choice-king:ro" \
               -v "$RESOURCE_DIR/weekly-challenges:/app/resources/weekly-challenges:ro" \
@@ -270,11 +285,71 @@ jobs:
               panpan-exams:
             EOF
 
+            validate_deploy_db() {
+              VERIFY_HOST_FILE="$1"
+              VERIFY_HOST_DIR="$(dirname "$VERIFY_HOST_FILE")"
+              VERIFY_FILE_NAME="$(basename "$VERIFY_HOST_FILE")"
+              docker run --rm -i \
+                -e VERIFY_DB="/verify/$VERIFY_FILE_NAME" \
+                -v "$VERIFY_HOST_DIR:/verify:ro" \
+                "$DEPLOY_IMAGE" node --input-type=commonjs <<'NODE'
+            const fs = require('node:fs');
+            const initSqlJs = require('sql.js');
+            (async () => {
+              const SQL = await initSqlJs();
+              const db = new SQL.Database(fs.readFileSync(process.env.VERIFY_DB));
+              const rows = db.exec('PRAGMA integrity_check')[0]?.values?.map((row) => String(row[0])) || [];
+              if (rows.length !== 1 || rows[0] !== 'ok') {
+                throw new Error(`SQLite integrity check failed: ${rows.join(',')}`);
+              }
+              db.exec('SELECT COUNT(*) FROM sqlite_master');
+            })().catch((error) => {
+              console.error(error);
+              process.exit(1);
+            });
+            NODE
+            }
+
             rollback_deploy() {
+              if [ "$ROLLBACK_DONE" = "1" ]; then
+                return 0
+              fi
+              ROLLBACK_DONE=1
               set +e
               echo "Rolling back backend image and compose override"
-              if [ -f "$PREVIOUS_OVERRIDE" ]; then
+              ROLLBACK_FAILED=0
+              (cd "$DEPLOY_DIR" && docker compose stop panpan-api) || ROLLBACK_FAILED=1
+              if [ "$DEPLOY_BACKUP_READY" = "1" ] && [ "$ROLLBACK_FAILED" = "0" ]; then
+                DB_ROLLBACK_TMP="$DATA_DIR/.teach.db.rollback-$PANPAN_DEPLOY_SHA.tmp"
+                rm -f "$DB_ROLLBACK_TMP"
+                cp -a "$DEPLOY_BACKUP_DB" "$DB_ROLLBACK_TMP" || ROLLBACK_FAILED=1
+                if [ "$ROLLBACK_FAILED" = "0" ]; then
+                  test "$(od -An -tx1 -N16 "$DB_ROLLBACK_TMP" | tr -d ' \n')" = \
+                    '53514c69746520666f726d6174203300' || ROLLBACK_FAILED=1
+                  test "$(stat -c%s "$DB_ROLLBACK_TMP")" = "$DEPLOY_BACKUP_BYTES" \
+                    || ROLLBACK_FAILED=1
+                  test "$(sha256sum "$DB_ROLLBACK_TMP" | awk '{print $1}')" = \
+                    "$DEPLOY_BACKUP_SHA256" || ROLLBACK_FAILED=1
+                  validate_deploy_db "$DB_ROLLBACK_TMP" || ROLLBACK_FAILED=1
+                fi
+                if [ "$ROLLBACK_FAILED" = "0" ]; then
+                  mv -f "$DB_ROLLBACK_TMP" "$DATA_DIR/teach.db" || ROLLBACK_FAILED=1
+                fi
+                if [ "$ROLLBACK_FAILED" = "0" ]; then
+                  test "$(stat -c%s "$DATA_DIR/teach.db")" = "$DEPLOY_BACKUP_BYTES" \
+                    || ROLLBACK_FAILED=1
+                  test "$(sha256sum "$DATA_DIR/teach.db" | awk '{print $1}')" = \
+                    "$DEPLOY_BACKUP_SHA256" || ROLLBACK_FAILED=1
+                  validate_deploy_db "$DATA_DIR/teach.db" || ROLLBACK_FAILED=1
+                fi
+                rm -f "$DB_ROLLBACK_TMP"
+              else
+                echo "DEPLOY_BACKUP_READY is not 1; database rollback is intentionally skipped"
+              fi
+              if [ "$HAD_PREVIOUS_OVERRIDE" = "1" ] && [ -f "$PREVIOUS_OVERRIDE" ]; then
                 cp -a "$PREVIOUS_OVERRIDE" "$DEPLOY_DIR/docker-compose.override.yml"
+              else
+                rm -f "$DEPLOY_DIR/docker-compose.override.yml"
               fi
               if [ -n "$PREVIOUS_IMAGE_ID" ] && docker image inspect "$PREVIOUS_IMAGE_ID" >/dev/null 2>&1; then
                 docker tag "$PREVIOUS_IMAGE_ID" rockchin/panpan-miniapp-backend:main
@@ -290,13 +365,30 @@ jobs:
                 sleep 2
               done
               set -e
-              if [ "$ROLLBACK_HEALTHY" = "1" ]; then
+              if [ "$ROLLBACK_FAILED" = "0" ] && [ "$ROLLBACK_HEALTHY" = "1" ]; then
                 echo "Rollback health check passed"
                 return 0
               fi
               echo "Rollback health check failed"
               return 1
             }
+
+            on_deploy_exit() {
+              EXIT_STATUS="$1"
+              trap - EXIT HUP INT TERM
+              if [ "$DEPLOY_SUCCESS" = "1" ] && [ "$EXIT_STATUS" = "0" ]; then
+                return 0
+              fi
+              if [ "$DEPLOY_STARTED" = "1" ] && [ "$ROLLBACK_DONE" != "1" ]; then
+                rollback_deploy || EXIT_STATUS=1
+              fi
+              if [ "$EXIT_STATUS" = "0" ]; then EXIT_STATUS=1; fi
+              exit "$EXIT_STATUS"
+            }
+            trap 'on_deploy_exit $?' EXIT
+            trap 'exit 129' HUP
+            trap 'exit 130' INT
+            trap 'exit 143' TERM
 
             DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
             UPLOADS_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/uploads"}}{{.Source}}{{end}}{{end}}' 2>/dev/null || true)"
@@ -311,32 +403,6 @@ jobs:
               UPLOADS_DIR="$(docker volume inspect panpan-miniapp_panpan-uploads --format '{{.Mountpoint}}')"
             fi
             mkdir -p "$DATA_DIR" "$UPLOADS_DIR"
-            if [ -f "$DATA_DIR/teach.db" ]; then
-              cp -a "$DATA_DIR/teach.db" "$DEPLOY_DIR/backend/teach.predeploy-$PANPAN_DEPLOY_SHA.db"
-            fi
-
-            docker cp panpan-api:/app/db/teach.db "$DEPLOY_DIR/backend/teach.container-before-data-fix.db" 2>/dev/null || true
-            CURRENT_DB="$DATA_DIR/teach.db"
-            CURRENT_SIZE=0
-            [ -f "$CURRENT_DB" ] && CURRENT_SIZE="$(stat -c%s "$CURRENT_DB" 2>/dev/null || echo 0)"
-            BEST_DB=""
-            BEST_SIZE="$CURRENT_SIZE"
-            while read -r size file; do
-              case "$file" in
-                "$CURRENT_DB") continue ;;
-              esac
-              if [ "${size:-0}" -gt "${BEST_SIZE:-0}" ]; then
-                BEST_SIZE="$size"
-                BEST_DB="$file"
-              fi
-            done < <(find /opt /var/lib/docker/volumes -name teach.db -type f -printf '%s %p\n' 2>/dev/null || true)
-            if [ -n "$BEST_DB" ] && [ "$BEST_SIZE" -gt "$CURRENT_SIZE" ]; then
-              [ -f "$CURRENT_DB" ] && cp -a "$CURRENT_DB" "$CURRENT_DB.backup.$(date +%Y%m%d%H%M%S)"
-              cp -a "$BEST_DB" "$CURRENT_DB"
-              echo "Recovered DB from $BEST_DB ($BEST_SIZE bytes) to $CURRENT_DB"
-            else
-              echo "No larger DB candidate found. current=$CURRENT_SIZE best=$BEST_SIZE"
-            fi
 
             for VOLUME in $(docker volume ls --format '{{.Name}}' | grep -i upload || true); do
               SRC_UPLOADS="$(docker volume inspect "$VOLUME" --format '{{.Mountpoint}}' 2>/dev/null || true)"
@@ -347,6 +413,38 @@ jobs:
             done
 
             (cd "$DEPLOY_DIR" && docker compose -f docker-compose.yml -f "$NEW_OVERRIDE" config >/dev/null)
+            DEPLOY_STARTED=1
+            (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            if [ -f "$DATA_DIR/teach.db" ]; then
+              install -d -m 700 "$DEPLOY_DIR/backups"
+              DEPLOY_BACKUP_DIR="$(mktemp -d \
+                "$DEPLOY_DIR/backups/backend-deploy-$PANPAN_DEPLOY_SHA.XXXXXX")"
+              DEPLOY_BACKUP_TMP="$DEPLOY_BACKUP_DIR/.teach.db.tmp"
+              DEPLOY_BACKUP_DB="$DEPLOY_BACKUP_DIR/teach.db"
+              cp -a "$DATA_DIR/teach.db" "$DEPLOY_BACKUP_TMP"
+              test "$(od -An -tx1 -N16 "$DEPLOY_BACKUP_TMP" | tr -d ' \n')" = \
+                '53514c69746520666f726d6174203300'
+              DEPLOY_BACKUP_BYTES="$(stat -c%s "$DEPLOY_BACKUP_TMP")"
+              test "$DEPLOY_BACKUP_BYTES" -gt 0
+              DEPLOY_BACKUP_SHA256="$(sha256sum "$DEPLOY_BACKUP_TMP" | awk '{print $1}')"
+              validate_deploy_db "$DEPLOY_BACKUP_TMP"
+              test "$(stat -c%s "$DEPLOY_BACKUP_TMP")" = "$DEPLOY_BACKUP_BYTES"
+              test "$(sha256sum "$DEPLOY_BACKUP_TMP" | awk '{print $1}')" = \
+                "$DEPLOY_BACKUP_SHA256"
+              mv "$DEPLOY_BACKUP_TMP" "$DEPLOY_BACKUP_DB"
+              printf '%s  teach.db\n' "$DEPLOY_BACKUP_SHA256" \
+                > "$DEPLOY_BACKUP_DIR/.teach.db.sha256.tmp"
+              mv "$DEPLOY_BACKUP_DIR/.teach.db.sha256.tmp" \
+                "$DEPLOY_BACKUP_DIR/teach.db.sha256"
+              chmod 600 "$DEPLOY_BACKUP_DB" "$DEPLOY_BACKUP_DIR/teach.db.sha256"
+              test "$(od -An -tx1 -N16 "$DEPLOY_BACKUP_DB" | tr -d ' \n')" = \
+                '53514c69746520666f726d6174203300'
+              test "$(stat -c%s "$DEPLOY_BACKUP_DB")" = "$DEPLOY_BACKUP_BYTES"
+              test "$(sha256sum "$DEPLOY_BACKUP_DB" | awk '{print $1}')" = \
+                "$DEPLOY_BACKUP_SHA256"
+              validate_deploy_db "$DEPLOY_BACKUP_DB"
+              DEPLOY_BACKUP_READY=1
+            fi
             mv "$NEW_OVERRIDE" "$DEPLOY_DIR/docker-compose.override.yml"
             if ! (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never --force-recreate); then
               rollback_deploy || true
@@ -374,6 +472,22 @@ jobs:
               docker ps -a --filter name=panpan-api
               docker inspect panpan-api --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' || true
               docker logs --tail 240 panpan-api 2>&1 || true
+              rollback_deploy || true
+              exit 1
+            fi
+
+            EXPECTED_IMAGE_ID="$(docker image inspect "$DEPLOY_IMAGE" --format '{{.Id}}')"
+            RUNNING_IMAGE_ID="$(docker inspect panpan-api --format '{{.Image}}')"
+            RUNNING_IMAGE_REF="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+            RUNNING_REVISION="$(docker image inspect "$RUNNING_IMAGE_ID" \
+              --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+            if [ "$RUNNING_IMAGE_REF" != "$DEPLOY_IMAGE" ] \
+              || [ "$RUNNING_IMAGE_ID" != "$EXPECTED_IMAGE_ID" ] \
+              || [ "$RUNNING_REVISION" != "$PANPAN_DEPLOY_SHA" ]; then
+              echo "Running image identity check failed"
+              echo "expected_ref=$DEPLOY_IMAGE actual_ref=$RUNNING_IMAGE_REF"
+              echo "expected_id=$EXPECTED_IMAGE_ID actual_id=$RUNNING_IMAGE_ID"
+              echo "expected_revision=$PANPAN_DEPLOY_SHA actual_revision=$RUNNING_REVISION"
               rollback_deploy || true
               exit 1
             fi
@@ -409,3 +523,5 @@ jobs:
               rollback_deploy || true
               exit 1
             fi
+            DEPLOY_SUCCESS=1
+            trap - EXIT HUP INT TERM

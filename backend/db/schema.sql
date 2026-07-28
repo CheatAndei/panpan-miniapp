@@ -361,6 +361,47 @@ CREATE TABLE IF NOT EXISTS practice_student_settings (
   PRIMARY KEY(plan_id, student_id)
 );
 
+-- 学生专属、按日期锁定的练习课程。题目清单与通用 practice_questions
+-- 完全隔离，避免专属单页题型被普通自适应题库混入。
+CREATE TABLE IF NOT EXISTS practice_student_curricula (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  curriculum_key TEXT UNIQUE NOT NULL,
+  teacher_id INTEGER NOT NULL REFERENCES users(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  plan_id INTEGER UNIQUE NOT NULL REFERENCES practice_plans(id),
+  title TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  daily_question_count INTEGER NOT NULL DEFAULT 10 CHECK(daily_question_count = 10),
+  source_document_key TEXT NOT NULL,
+  source_document_title TEXT NOT NULL,
+  manifest_version INTEGER NOT NULL DEFAULT 1,
+  manifest_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 每天只允许一个来源页和一个题型；questions_json 必须经导入服务校验为
+-- 恰好 10 道题。student_id 冗余用于数据库级保证同一学生同日唯一。
+CREATE TABLE IF NOT EXISTS practice_student_curriculum_days (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  curriculum_id INTEGER NOT NULL REFERENCES practice_student_curricula(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  practice_date DATE NOT NULL,
+  day_index INTEGER NOT NULL CHECK(day_index >= 1),
+  source_page INTEGER NOT NULL CHECK(source_page >= 1),
+  question_type_key TEXT NOT NULL,
+  question_type_label TEXT NOT NULL,
+  question_count INTEGER NOT NULL DEFAULT 10 CHECK(question_count = 10),
+  questions_json TEXT NOT NULL,
+  content_sha256 TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(curriculum_id, day_index),
+  UNIQUE(student_id, practice_date)
+);
+
 -- student_id + practice_date 全局唯一，避免并发领取重复出题。
 CREATE TABLE IF NOT EXISTS practice_assignments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -370,6 +411,9 @@ CREATE TABLE IF NOT EXISTS practice_assignments (
   status TEXT NOT NULL DEFAULT 'ready',
   estimated_seconds INTEGER NOT NULL DEFAULT 0,
   selection_meta TEXT NOT NULL DEFAULT '{}',
+  assignment_source TEXT NOT NULL DEFAULT 'adaptive'
+    CHECK(assignment_source IN ('adaptive', 'student_curriculum')),
+  curriculum_day_id INTEGER REFERENCES practice_student_curriculum_days(id),
   claimed_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(student_id, practice_date)
@@ -389,6 +433,7 @@ CREATE TABLE IF NOT EXISTS practice_assignment_items (
   estimated_seconds INTEGER NOT NULL,
   signature TEXT NOT NULL,
   template_key TEXT NOT NULL,
+  snapshot_payload TEXT NOT NULL DEFAULT '{}',
   UNIQUE(assignment_id, position),
   UNIQUE(assignment_id, signature)
 );
@@ -404,7 +449,8 @@ CREATE TABLE IF NOT EXISTS practice_submissions (
   submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   reviewed_by INTEGER REFERENCES users(id),
   reviewed_at DATETIME,
-  completed_at DATETIME
+  completed_at DATETIME,
+  review_revision INTEGER NOT NULL DEFAULT 0
 );
 
 -- 一份每日练习只保留一个 submission；家长每次订正上传会新增一轮，
@@ -460,8 +506,9 @@ CREATE TABLE IF NOT EXISTS practice_reviews (
   PRIMARY KEY(submission_id, assignment_item_id)
 );
 
--- 不可变的逐轮批改历史。practice_reviews 继续保存每道题的最新结果，
--- 供旧接口与统计兼容；历史错题学习统一从本表读取。
+-- 逐轮批改结果。教师修订当前最新轮时会原位更新本表，并把修改前后快照
+-- 追加到 operation_logs；practice_reviews 继续保存每道题的最新结果，
+-- 供旧接口与统计兼容，历史错题学习统一从本表读取。
 CREATE TABLE IF NOT EXISTS practice_review_rounds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   submission_id INTEGER NOT NULL REFERENCES practice_submissions(id),
@@ -993,10 +1040,18 @@ CREATE INDEX IF NOT EXISTS idx_practice_question_region
   ON practice_questions(source_region, is_active);
 CREATE INDEX IF NOT EXISTS idx_practice_plan_class_dates
   ON practice_plans(class_id, status, start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_practice_curriculum_student_dates
+  ON practice_student_curricula(student_id, status, start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_practice_curriculum_teacher
+  ON practice_student_curricula(teacher_id, status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_practice_curriculum_day_date
+  ON practice_student_curriculum_days(student_id, practice_date);
 CREATE INDEX IF NOT EXISTS idx_practice_assignment_plan_date
   ON practice_assignments(plan_id, practice_date, status);
 CREATE INDEX IF NOT EXISTS idx_practice_assignment_student_date
   ON practice_assignments(student_id, practice_date);
+CREATE INDEX IF NOT EXISTS idx_practice_assignment_curriculum_day
+  ON practice_assignments(curriculum_day_id);
 CREATE INDEX IF NOT EXISTS idx_practice_submission_status
   ON practice_submissions(status, submitted_at);
 CREATE INDEX IF NOT EXISTS idx_practice_attachment_submission

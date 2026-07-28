@@ -182,3 +182,149 @@ export default {
 .btn-primary{width:100%;margin-top:20rpx}
 .btn-primary[disabled]{opacity:.5}
 </style>
+
+<style scoped>
+.s-title,
+.cat-label { color: var(--ink); }
+.bind-fill {
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+.section-card,
+.action-row,
+.trait-tag {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.action-row:active,
+.trait-tag:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-card,
+  .action-row,
+  .trait-tag {
+    transition: none !important;
+  }
+  .action-row:active,
+  .trait-tag:active { transform: none; }
+}
+</style>
+
+<style scoped>
+/* mei final pass: student dossier as a light notebook */
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .17), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero.hero-navy {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 72%, #FFF7DC);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: dossier-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero.hero-navy::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 116rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.char-img {
+  border: 6rpx solid #FFFFFF;
+  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .14);
+}
+.parent-status.on { background: var(--success-soft); color: var(--success); }
+.parent-status.off { background: var(--coral-soft); color: #B85D51; }
+.page > .card {
+  border: 1rpx solid var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.bind-card {
+  position: relative;
+  overflow: hidden;
+  border-top: 6rpx solid var(--gold);
+}
+.bind-count.on,
+.parent-chip { background: var(--success-soft); color: var(--success); border-color: #CDE9E1; }
+.bind-count.off { background: var(--coral-soft); color: #B85D51; }
+.bind-meter { background: #E7EEF8; }
+.bind-fill { background: linear-gradient(90deg, var(--primary), var(--accent)); }
+.tag,
+.trait-btn.on {
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.cat-head {
+  border-color: var(--border);
+  background: #F7FAFF;
+}
+.textarea {
+  border: 1rpx solid var(--border);
+  background: #F9FBFF;
+  color: var(--ink);
+}
+.btn-ai {
+  min-height: 72rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.btn-primary {
+  min-height: 104rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .16);
+}
+.cat-head,
+.trait-btn,
+.tag,
+.btn-ai,
+.btn-primary {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.cat-head:active,
+.trait-btn:active,
+.tag:active,
+.btn-ai:active,
+.btn-primary:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes dossier-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero.hero-navy,
+  .cat-head,
+  .trait-btn,
+  .tag,
+  .btn-ai,
+  .btn-primary {
+    animation: none !important;
+    transition: none !important;
+  }
+  .cat-head:active,
+  .trait-btn:active,
+  .tag:active,
+  .btn-ai:active,
+  .btn-primary:active { transform: none; }
+}
+</style>

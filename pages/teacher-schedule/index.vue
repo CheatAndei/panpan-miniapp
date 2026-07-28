@@ -197,7 +197,7 @@ export default {
       const msg=notify.ok
         ? `${title} ${res.count} 节并提醒家长${skipped}`
         : `${title} ${res.count} 节，提醒未送达${notifyReason?'：'+notifyReason:''}${skipped}`;
-      uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#2F7D6B'});
+    uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#315EA8'});
     }
   }
 };
@@ -244,6 +244,193 @@ export default {
 </style>
 
 <style scoped>
+/* mei final pass: sky-paper scheduling board */
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .17), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 74%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: schedule-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 112rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.page > .card {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.special-entry {
+  border-color: #EBD797;
+  background: linear-gradient(145deg, #FFFFFF, var(--warning-soft));
+}
+.special-icon { background: var(--warning-soft); color: #8B6819; }
+.btn-sm {
+  min-height: 64rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.sc-card {
+  border-color: var(--border);
+  background: #F9FBFF;
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.sc-card.selected {
+  border-color: #AFC5E7;
+  background: var(--primary-soft);
+}
+.checkbox.on { border-color: var(--primary); background: var(--primary); }
+.publish-dock {
+  border-top-color: rgba(221, 231, 242, .94);
+  background: rgba(246, 250, 255, .98);
+}
+.publish-dock .btn-accent {
+  min-height: 104rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .2);
+}
+.modal {
+  border: 1rpx solid var(--border);
+  background: #FFFFFF;
+  animation: schedule-sheet-in var(--motion-slow) var(--ease-out) both;
+}
+.input {
+  border-color: var(--border);
+  background: #F9FBFF;
+  color: var(--ink);
+}
+.btn-primary {
+  min-height: 104rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .16);
+}
+.btn-cancel { min-height: 88rpx; color: var(--text-secondary); }
+.special-entry,
+.btn-sm,
+.checkbox,
+.btn-accent,
+.btn-primary,
+.btn-cancel {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.special-entry:active,
+.btn-sm:active,
+.sc-card:active,
+.checkbox:active,
+.btn-accent:active,
+.btn-primary:active,
+.btn-cancel:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes schedule-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes schedule-sheet-in {
+  from { transform: translateY(24rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .modal,
+  .special-entry,
+  .btn-sm,
+  .sc-card,
+  .checkbox,
+  .btn-accent,
+  .btn-primary,
+  .btn-cancel {
+    animation: none !important;
+    transition: none !important;
+  }
+  .special-entry:active,
+  .btn-sm:active,
+  .sc-card:active,
+  .checkbox:active,
+  .btn-accent:active,
+  .btn-primary:active,
+  .btn-cancel:active { transform: none; }
+}
+</style>
+
+<style scoped>
+.btn-accent { background: var(--primary); color: #FFFFFF; }
+.btn-special {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.day-name,
+.modal-title { color: var(--ink); }
+.btn-sm { background: var(--primary-soft); color: var(--primary-strong); }
+.checkbox.on { border-color: var(--primary); background: var(--primary); }
+.bg0,
+.bg5 { background: var(--primary-soft); color: var(--primary-strong); }
+.bg1,
+.bg4 { background: var(--accent-soft); color: var(--accent-strong); }
+.btn-primary { background: var(--primary-strong); color: #FFFFFF; }
+.btn-accent,
+.btn-special,
+.btn-sm,
+.day-card,
+.checkbox,
+.btn-primary {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.btn-accent:active,
+.btn-special:active,
+.btn-sm:active,
+.day-card:active,
+.checkbox:active,
+.btn-primary:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-accent,
+  .btn-special,
+  .btn-sm,
+  .day-card,
+  .checkbox,
+  .btn-primary {
+    transition: none !important;
+  }
+  .btn-accent:active,
+  .btn-special:active,
+  .btn-sm:active,
+  .day-card:active,
+  .checkbox:active,
+  .btn-primary:active { transform: none; }
+}
+</style>
+
+<style scoped>
 .page{padding-bottom:calc(130rpx + env(safe-area-inset-bottom))}
 .hero{padding:46rpx 34rpx 36rpx;background:linear-gradient(150deg,#F9FCFB,#EEF6F3)}
 .hero .gold-rule{display:none}
@@ -271,4 +458,70 @@ export default {
 .input{min-height:88rpx;line-height:88rpx;padding:0 22rpx;border-radius:14rpx;background:#FAFCFB;border-color:#D5E3DE;box-sizing:border-box}
 .row{align-items:stretch}.half{flex:1;min-width:0}
 .half .input{width:100%}
+</style>
+
+<style scoped>
+/* final cascade after legacy page blocks */
+.hero {
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 74%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+}
+.eyebrow { color: var(--primary-strong); }
+.special-entry {
+  border-color: #EBD797;
+  background: linear-gradient(145deg, #FFFFFF, var(--warning-soft));
+}
+.special-icon { background: var(--warning-soft); color: #8B6819; }
+.btn-sm {
+  min-height: 64rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.sc-card {
+  border-color: var(--border);
+  background: #F9FBFF;
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.sc-card.selected {
+  border-color: #AFC5E7;
+  background: var(--primary-soft);
+}
+.checkbox.on { border-color: var(--primary); background: var(--primary); }
+.publish-dock {
+  border-top-color: rgba(221, 231, 242, .94);
+  background: rgba(246, 250, 255, .98);
+}
+.publish-dock .btn-accent {
+  min-height: 104rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .2);
+}
+.input { border-color: var(--border); background: #F9FBFF; color: var(--ink); }
+.special-entry,
+.btn-sm,
+.checkbox,
+.btn-accent,
+.btn-primary,
+.btn-cancel {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .modal,
+  .special-entry,
+  .btn-sm,
+  .sc-card,
+  .checkbox,
+  .btn-accent,
+  .btn-primary,
+  .btn-cancel {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 </style>

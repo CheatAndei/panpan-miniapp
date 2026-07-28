@@ -76,7 +76,7 @@
             <text class="class-setting-title">本次有出门测</text>
             <text class="class-setting-hint">统一控制本班本次反馈，不按学生单独设置</text>
           </view>
-          <switch :checked="se._hasExitQuiz" @change="e=>se._hasExitQuiz=e.detail.value" color="#2F7D6B" />
+              <switch :checked="se._hasExitQuiz" @change="e=>se._hasExitQuiz=e.detail.value" color="#527CC9" />
         </view>
         <text v-if="!se._hasExitQuiz" class="no-quiz-note">本次不使用出门测信息，反馈只写课堂表现。</text>
         <view class="feedback-style-switch" role="tablist" aria-label="反馈风格">
@@ -105,10 +105,10 @@
           <view v-if="s._leave" class="leave-note">该学生已请假，不会发布个人反馈。点击右上角可取消标记。</view>
           <template v-else>
           <text class="label">课堂表现 {{ s._performanceScore }}</text>
-          <slider :value="s._performanceScore" @change="e=>s._performanceScore=e.detail.value" min="1" max="10" block-size="20" activeColor="#183A36" />
+                <slider :value="s._performanceScore" @change="e=>s._performanceScore=e.detail.value" min="1" max="10" block-size="20" activeColor="#315EA8" />
           <view v-if="se._hasExitQuiz" class="quiz-score-block">
             <text class="label">出门测 {{ s._score }}</text>
-            <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#2F7D6B" />
+                <slider :value="s._score" @change="e=>s._score=e.detail.value" min="1" max="10" block-size="20" activeColor="#527CC9" />
           </view>
           <input v-model="s._note" class="input big" placeholder="大致情况" />
           <textarea v-model="s._text" class="result-area" placeholder="可直接手动输入学生反馈" :maxlength="240" />
@@ -619,6 +619,74 @@ export default {
 </style>
 
 <style scoped>
+.hero .gold-rule { background: var(--gold); }
+.hero-title,
+.se-title,
+.block-title { color: var(--ink); }
+.tag-done { background: var(--accent-soft); color: var(--accent-strong); }
+.tab-btn.on {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  box-shadow: none;
+}
+.btn-primary {
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.btn-accent {
+  border: 1rpx solid #CDE9E1;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.btn-publish { background: var(--primary-strong); color: #FFFFFF; }
+.btn-outline {
+  border-color: #BFD0EC;
+  color: var(--primary-strong);
+}
+.s-level,
+.btn-sm { background: var(--primary-soft); color: var(--primary-strong); }
+.pdf-hint { color: var(--primary-strong); }
+.tab-btn,
+.btn-primary,
+.btn-accent,
+.btn-publish,
+.btn-outline,
+.btn-sm,
+.share-builder-actions button {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out), background-color var(--motion-base) var(--ease-out);
+}
+.tab-btn:active,
+.btn-primary:active,
+.btn-accent:active,
+.btn-publish:active,
+.btn-outline:active,
+.btn-sm:active,
+.share-builder-actions button:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-publish,
+  .btn-outline,
+  .btn-sm,
+  .share-builder-actions button {
+    transition: none !important;
+  }
+  .tab-btn:active,
+  .btn-primary:active,
+  .btn-accent:active,
+  .btn-publish:active,
+  .btn-outline:active,
+  .btn-sm:active,
+  .share-builder-actions button:active { transform: none; }
+}
+</style>
+
+<style scoped>
 .page{padding-bottom:calc(96rpx + env(safe-area-inset-bottom));background:var(--bg)}
 .hero{padding:46rpx 34rpx 36rpx;background:linear-gradient(150deg,#F9FCFB,#EEF6F3);border-color:var(--hairline)}
 .hero .gold-rule{display:none}
@@ -666,4 +734,208 @@ export default {
 .no-quiz-note{display:block;margin:0 0 16rpx;padding:14rpx 16rpx;border-radius:12rpx;background:var(--warning-soft);color:var(--warning);font-size:22rpx;line-height:1.5}
 .quiz-score-block{margin-top:4rpx}
 .card-save-panel{margin:0 0 20rpx;padding:18rpx;border:1rpx solid #D8E5E1;border-radius:15rpx;background:#fff}.save-all-cards,.retry-cards,.preview-one-card,.save-one-card{min-height:76rpx;margin:0;border-radius:13rpx;font-size:25rpx;font-weight:700}.save-all-cards{background:var(--primary);color:#fff}.retry-cards{margin-top:10rpx;border:1rpx solid #C89446;background:#FFF8E8;color:#7A580F}.card-privacy-note{display:block;margin-top:11rpx;color:var(--text-muted);font-size:21rpx;line-height:1.5}.feedback-card-actions{display:flex;gap:12rpx;margin-top:12rpx}.preview-one-card,.save-one-card{flex:1;border:1rpx solid #BFD2CC}.preview-one-card{background:var(--accent-soft);color:var(--accent-strong)}.save-one-card{background:#fff;color:var(--accent-strong)}.save-all-cards::after,.retry-cards::after,.preview-one-card::after,.save-one-card::after{border:0}.feedback-card-canvas{position:fixed;left:-2000px;top:0;width:750px;height:1000px;pointer-events:none}
+</style>
+
+<style scoped>
+/* mei final pass: feedback workspace stays light; exported cards keep their themes */
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(244, 199, 91, .17), transparent 22%),
+    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+}
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  background:
+    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF5FF 74%, #FFF8DE);
+  background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
+  color: var(--ink);
+  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  animation: feedback-surface-in var(--motion-slow) var(--ease-out) both;
+}
+.hero::after {
+  position: absolute;
+  right: 34rpx;
+  bottom: 0;
+  width: 112rpx;
+  height: 8rpx;
+  border-radius: 999rpx 999rpx 0 0;
+  background: var(--gold);
+  content: "";
+}
+.eyebrow { color: var(--primary-strong); }
+.hero-title { color: var(--ink); }
+.hero-sub { color: var(--text-secondary); }
+.se-card {
+  border-color: var(--border);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+.tab-row {
+  border-color: var(--border);
+  background: #EEF4FC;
+}
+.tab-btn { color: var(--text-secondary); }
+.tab-btn.on {
+  background: #FFFFFF;
+  color: var(--primary-strong);
+  box-shadow: 0 5rpx 14rpx rgba(49, 94, 168, .09);
+}
+.block-card {
+  border: 1rpx solid var(--border);
+  background: #F8FBFF;
+}
+.input,
+.result-area,
+.class-setting-row,
+.card-save-panel {
+  border-color: var(--border);
+  background: #FFFFFF;
+  color: var(--ink);
+}
+.btn-primary,
+.btn-accent {
+  min-height: 88rpx;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  box-shadow: none;
+}
+.btn-publish {
+  min-height: 104rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  color: #FFFFFF;
+  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .2);
+}
+.btn-outline,
+.copy-feedback-btn {
+  border-color: #BFD0EC;
+  background: #FFFFFF;
+  color: var(--primary-strong);
+}
+.feedback-style-switch { background: #EAF2FF; }
+.style-choice.on { color: var(--primary-strong); box-shadow: 0 3rpx 10rpx rgba(49, 94, 168, .09); }
+.s-level,
+.stu-btns .btn-sm {
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.thumb-remove { background: var(--coral); color: #FFFFFF; }
+.save-all-cards {
+  min-height: 88rpx;
+  background: var(--primary-strong);
+  color: #FFFFFF;
+}
+.preview-one-card {
+  border-color: #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.save-one-card {
+  border-color: var(--primary-strong);
+  background: var(--primary-strong);
+  color: #FFFFFF;
+}
+.share-card-builder,
+.class-share-builder,
+.homework-share-builder {
+  border: 1rpx solid var(--border);
+  background:
+    linear-gradient(rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
+    #FFFFFF;
+  background-size: 30rpx 30rpx;
+  color: var(--ink);
+  box-shadow: inset 8rpx 0 var(--gold);
+}
+.class-share-builder .share-builder-kicker,
+.homework-share-builder .share-builder-kicker { color: var(--primary-strong); }
+.class-share-builder .share-builder-note,
+.homework-share-builder .share-builder-note { color: var(--text-secondary); }
+.class-share-builder button:first-child,
+.homework-share-builder button:first-child {
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.class-share-builder button:last-child,
+.homework-share-builder button:last-child {
+  background: var(--primary-strong);
+  color: #FFFFFF;
+}
+.share-builder-actions button { min-height: 84rpx; }
+.tab-btn,
+.btn-primary,
+.btn-accent,
+.btn-publish,
+.btn-outline,
+.copy-feedback-btn,
+.style-choice,
+.stu-btns .btn-sm,
+.save-all-cards,
+.retry-cards,
+.preview-one-card,
+.save-one-card,
+.share-builder-actions button {
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+.tab-btn:active,
+.btn-primary:active,
+.btn-accent:active,
+.btn-publish:active,
+.btn-outline:active,
+.copy-feedback-btn:active,
+.style-choice:active,
+.stu-btns .btn-sm:active,
+.save-all-cards:active,
+.retry-cards:active,
+.preview-one-card:active,
+.save-one-card:active,
+.share-builder-actions button:active {
+  transform: scale(var(--tap-scale));
+  opacity: .9;
+}
+@keyframes feedback-surface-in {
+  from { transform: translateY(12rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .tab-btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-publish,
+  .btn-outline,
+  .copy-feedback-btn,
+  .style-choice,
+  .stu-btns .btn-sm,
+  .save-all-cards,
+  .retry-cards,
+  .preview-one-card,
+  .save-one-card,
+  .share-builder-actions button,
+  .feedback-swipe-inner,
+  .swipe-del {
+    animation: none !important;
+    transition: none !important;
+  }
+  .tab-btn:active,
+  .btn-primary:active,
+  .btn-accent:active,
+  .btn-publish:active,
+  .btn-outline:active,
+  .copy-feedback-btn:active,
+  .style-choice:active,
+  .stu-btns .btn-sm:active,
+  .save-all-cards:active,
+  .retry-cards:active,
+  .preview-one-card:active,
+  .save-one-card:active,
+  .share-builder-actions button:active { transform: none; }
+}
 </style>

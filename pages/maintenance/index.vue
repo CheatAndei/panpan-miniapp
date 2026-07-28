@@ -50,17 +50,117 @@ export default {
 </script>
 
 <style scoped>
-.maintenance-page{min-height:100vh;box-sizing:border-box;display:flex;align-items:center;padding:72rpx 34rpx calc(72rpx + env(safe-area-inset-bottom));background:radial-gradient(circle at 15% 10%,rgba(47,125,107,.12),transparent 34%),#F6F0E4}
-.paper-card{width:100%;box-sizing:border-box;padding:54rpx 38rpx 44rpx;border:1rpx solid rgba(103,125,116,.18);border-radius:34rpx;background:rgba(255,253,248,.94);box-shadow:0 28rpx 72rpx rgba(67,74,63,.12);text-align:center}
-.brand-mark{display:inline-flex;padding:8rpx 18rpx;border-radius:999rpx;background:#E6F1ED;color:#2F6E61;font-size:22rpx;font-weight:700;letter-spacing:2rpx}
-.status-dot{width:116rpx;height:116rpx;display:flex;align-items:center;justify-content:center;margin:38rpx auto 26rpx;border-radius:34rpx;background:#E6F1ED}
-.dot-core{width:34rpx;height:34rpx;border:9rpx solid #2F7D6B;border-top-color:transparent;border-radius:50%;animation:turn 1.1s linear infinite}
-.title{display:block;color:#183A36;font-size:42rpx;font-weight:780;letter-spacing:-1rpx}
-.message{display:block;margin-top:20rpx;color:#61716B;font-size:27rpx;line-height:1.8}
-.eta{display:flex;justify-content:space-between;align-items:center;margin-top:28rpx;padding:20rpx 22rpx;border-radius:18rpx;background:#F2F6F3}
-.eta-label{color:#7A8984;font-size:24rpx}.eta-value{color:#264F48;font-size:25rpx;font-weight:700}
-.retry-btn{min-height:90rpx;margin:34rpx 0 0;border-radius:16rpx;background:#183A36;color:#fff;font-size:28rpx;font-weight:700}
-.retry-btn[disabled]{opacity:.55}.retry-btn::after{border:0}
-.care{display:block;margin-top:22rpx;color:#8A9691;font-size:22rpx}
-@keyframes turn{to{transform:rotate(360deg)}}
+.maintenance-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 72rpx 34rpx calc(72rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 92% 5%, rgba(244, 199, 91, .2), transparent 26%),
+    radial-gradient(circle at 5% 22%, rgba(82, 124, 201, .12), transparent 28%),
+    var(--page-bg);
+}
+
+.paper-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 54rpx 38rpx 44rpx;
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+  animation: maintenance-enter var(--motion-slow) var(--ease-out) both;
+}
+
+.brand-mark {
+  display: inline-flex;
+  padding: 8rpx 18rpx;
+  border-radius: var(--r-xs);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.status-dot {
+  width: 116rpx;
+  height: 116rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 38rpx auto 26rpx;
+  border-radius: 34rpx;
+  background: linear-gradient(145deg, var(--primary-soft), var(--warning-soft));
+}
+
+.dot-core {
+  width: 34rpx;
+  height: 34rpx;
+  border: 9rpx solid var(--primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: turn 1.1s linear infinite;
+}
+
+.title {
+  display: block;
+  color: var(--ink);
+  font-size: 42rpx;
+  font-weight: 780;
+  letter-spacing: -1rpx;
+}
+
+.message {
+  display: block;
+  margin-top: 20rpx;
+  color: var(--text-secondary);
+  font-size: 27rpx;
+  line-height: 1.8;
+}
+
+.eta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 28rpx;
+  padding: 20rpx 22rpx;
+  border: 1rpx solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+}
+
+.eta-label { color: var(--text-muted); font-size: 24rpx; }
+.eta-value { color: var(--primary-strong); font-size: 25rpx; font-weight: 700; }
+
+.retry-btn {
+  min-height: 96rpx;
+  margin: 34rpx 0 0;
+  border-radius: var(--r-sm);
+  background: var(--primary-strong);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .2);
+  transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
+}
+
+.retry-btn:active { transform: scale(var(--tap-scale)); }
+.retry-btn[disabled] { opacity: .55; box-shadow: none; }
+.retry-btn::after { border: 0; }
+.care { display: block; margin-top: 22rpx; color: var(--text-muted); font-size: 22rpx; }
+
+@keyframes turn { to { transform: rotate(360deg); } }
+@keyframes maintenance-enter {
+  from { opacity: 0; transform: translateY(18rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-card { animation: none; }
+  .retry-btn { transition: none; }
+  .dot-core { animation-duration: 1.8s; }
+}
 </style>

@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('教师首页有宣传海报工作台，新事件会自动打开', () => {
   const pages = read('pages.json');
-  const home = read('pages/index/index.vue');
+  const home = read('pages/index/index.vue') + read('components/home/TeacherHomeView.vue');
   assert.match(pages, /pages\/promotion-posters\/index/);
   assert.match(home, /宣传海报工作台/);
   assert.match(home, /\/promotions\?limit=12/);
