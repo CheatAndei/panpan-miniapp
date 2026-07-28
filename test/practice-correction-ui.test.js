@@ -37,9 +37,11 @@ test('手机批改台使用上下布局、横向滑选题卡并用单图原生�
   assert.doesNotMatch(review, /@tap="previewPhoto/);
 });
 
-test('批改台只在首次 onShow 取队列并明确点击下一位才移走已保存学生', () => {
+test('批改台每次安全 onShow 都刷新队列，同时保护未保存批改', () => {
   assert.match(review, /const hasShown = ref\(false\)/);
-  assert.match(review, /onShow\(\(\) => \{[\s\S]*?if \(hasShown\.value\) return;[\s\S]*?loadQueue\(\)/u);
+  assert.match(review, /onShow\(\(\) => \{[\s\S]*?const firstShow = !hasShown\.value[\s\S]*?hasUnsavedChanges[\s\S]*?loadQueue\(\)/u);
+  assert.match(review, /!firstShow && hasUnsavedChanges/);
+  assert.doesNotMatch(review, /if \(hasShown\.value\) return/);
   assert.match(review, /currentSubmissionId/);
   assert.match(review, /current\?\._saved[\s\S]*?return/u);
   assert.match(review, /submission\._saved = true/);
@@ -139,8 +141,18 @@ test('家长页明确待订正状态且照片数只取当前轮', () => {
   assert.match(parent, /上传订正照片/);
   assert.match(parent, /订正已提交/);
   assert.match(parent, /correction_required/);
-  assert.match(parent, /upload_complete=\$\{uploadComplete\}/);
-  assert.match(parent, /index === files\.length - 1 \? 1 : 0/);
+  assert.match(parent, /upload\?upload_complete=0/);
+  assert.match(parent, /\/upload\/complete/);
+  assert.match(parent, /已传好，确认送达老师/);
+  assert.match(parent, /function confirmSavedUpload/);
+  assert.match(parent, /\{ timeout: 60000 \}/);
+  assert.doesNotMatch(parent, /index === files\.length - 1 \? 1 : 0/);
+  assert.match(parent, /submission\.value\?\.status === 'uploading'/);
+  assert.match(parent, /尚未送达老师/);
+  assert.match(parent, /result\.submission\?\.status !== 'submitted'/);
+  assert.match(parent, /\['submitted', 'reviewed'\]\.includes/);
+  assert.match(parent, /已送达老师批改台/);
+  assert.match(parent, /v-if="deliveredToTeacher && attachmentCount"/);
   assert.match(home, /task\.status === 'correction_required'/);
   assert.match(home, /return '去订正'/);
 });

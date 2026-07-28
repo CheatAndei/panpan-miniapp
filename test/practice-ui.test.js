@@ -50,6 +50,14 @@ test('家长页领取结构化题目并上传照片', () => {
   assert.match(parent, /不包含学生作业照片/);
 });
 
+test('作业图片使用长超时并在全部暂存后单独确认送达', () => {
+  assert.match(parent, /upload\?upload_complete=0/);
+  assert.match(parent, /\/upload\/complete/);
+  assert.match(parent, /已传好，确认送达老师/);
+  assert.match(api, /request\('POST', path,[\s\S]*?\{ timeout: 60000 \}\)/u);
+  assert.match(api, /uni\.uploadFile\(\{[\s\S]*?timeout:\s*60000/u);
+});
+
 test('计划页使用四类可选初中计算题库，批改台独立且只处理未批改提交', () => {
   assert.match(teacher, /固定题库 · 初中计算/);
   assert.match(teacher, /按学生当前进度勾选模块/);
@@ -132,4 +140,13 @@ test('教师首页初次加载和失败时不会误报待办已清', () => {
   assert.match(teacherHome, /title="今日教务加载失败"/);
   assert.match(teacherHome, /@action="\$emit\('reload'\)"/);
   assert.match(teacherHome, /\.todo-row\s*\{[\s\S]*?min-height:\s*112rpx/u);
+});
+
+test('教师端独立轮询学生打卡并在到件时明确提醒', () => {
+  assert.match(homePage, /async function loadTeacherPracticeTodos/);
+  assert.match(homePage, /api\.get\('\/practice\/todos\?limit=3'\)/);
+  assert.match(homePage, /setInterval\([\s\S]*?loadTeacherPracticeTodos\(\{\s*announce:\s*true\s*\}\)[\s\S]*?15000/u);
+  assert.match(homePage, /收到 \$\{nextCount - previousCount\} 份新打卡/);
+  assert.match(homePage, /Promise\.allSettled/);
+  assert.match(homePage, /const practicePromise = loadTeacherPracticeTodos/);
 });

@@ -116,11 +116,27 @@ if (token && savedUser?.role) {
 
 // 每次页面显示时刷新数据
 let parentRefreshTimer = null;
+let teacherRefreshTimer = null;
+let teacherTodoRequesting = false;
 let autoOpenedPromotionId = 0;
 let queuedParentChildId = null;
 function stopParentRefresh() {
   if (parentRefreshTimer) clearInterval(parentRefreshTimer);
   parentRefreshTimer = null;
+}
+
+function stopTeacherRefresh() {
+  if (teacherRefreshTimer) clearInterval(teacherRefreshTimer);
+  teacherRefreshTimer = null;
+}
+
+function startTeacherRefresh() {
+  stopTeacherRefresh();
+  if (user.value.role !== 'teacher') return;
+  teacherRefreshTimer = setInterval(
+    () => loadTeacherPracticeTodos({ announce: true }),
+    15000,
+  );
 }
 
 function resetHomeScroll() {
@@ -129,7 +145,10 @@ function resetHomeScroll() {
 
 onShow(() => {
   stopParentRefresh();
-  if (user.value.role === 'teacher') loadTeacherData();
+  stopTeacherRefresh();
+  if (user.value.role === 'teacher') {
+    loadTeacherData({ announcePractice: true }).finally(startTeacherRefresh);
+  }
   else if (user.value.role === 'parent') {
     loadNotifyTemplates();
     // tabBar 页面会保留上次滚动位置；等异步孩子头部插入后再回顶，避免顶部看似被裁掉。
@@ -137,7 +156,10 @@ onShow(() => {
     parentRefreshTimer = setInterval(() => loadParentData(), 30000);
   }
 });
-onHide(stopParentRefresh);
+onHide(() => {
+  stopParentRefresh();
+  stopTeacherRefresh();
+});
 
 onPullDownRefresh(async () => {
   try {
@@ -345,7 +367,10 @@ async function handleLogin() {
   try {
     const loggedInUser = await doLogin();
     user.value = loggedInUser;
-    if (loggedInUser.role === 'teacher') await loadTeacherData();
+    if (loggedInUser.role === 'teacher') {
+      await loadTeacherData({ announcePractice: true });
+      startTeacherRefresh();
+    }
     else {
       await loadNotifyTemplates();
       const hasChild = await loadParentData();
@@ -385,31 +410,77 @@ async function handleLoginRepair() {
   }
 }
 
-async function loadTeacherData() {
+async function loadTeacherPracticeTodos({ announce = false } = {}) {
+  if (teacherTodoRequesting || user.value.role !== 'teacher') return false;
+  teacherTodoRequesting = true;
+  try {
+    const previousCount = Number(pendingPracticeCount.value || 0);
+    const result = await api.get('/practice/todos?limit=3');
+    const nextCount = Number(result.count || 0);
+    pendingPracticeCount.value = nextCount;
+    pendingPracticeTodos.value = result.todos || [];
+    if (announce && nextCount > previousCount) {
+      uni.showToast({
+        title: `收到 ${nextCount - previousCount} 份新打卡`,
+        icon: 'none',
+      });
+    }
+    return true;
+  } catch (error) {
+    logError('loadTeacherPracticeTodos', error);
+    return false;
+  } finally {
+    teacherTodoRequesting = false;
+  }
+}
+
+async function loadTeacherData({ announcePractice = false } = {}) {
   if (teacherLoading.value) return;
   teacherLoading.value = true;
   teacherError.value = '';
   try {
-    const [cRes, lRes, sessionRes, practiceTodos, challengeTodos, answerTodos, promotionResult] = await Promise.all([
+    const practicePromise = loadTeacherPracticeTodos({ announce: announcePractice });
+    const results = await Promise.allSettled([
       api.get('/classes'),
       api.get('/leaves'),
       api.get('/schedules/sessions'),
-      api.get('/practice/todos?limit=3'),
       api.get('/weekly-challenge/v2/teacher/submissions?status=submitted&limit=3'),
       api.get('/exams/teacher/answer-todos?limit=3'),
-      api.get('/promotions?limit=12').catch(error => ({ __error:error, promotions:[], unseen:0 }))
+      api.get('/promotions?limit=12'),
     ]);
-    classes.value = cRes.classes || [];
-    pendingLeaves.value = (lRes.leaves||[]).filter(l=>l.status==='pending').length;
-    pendingPracticeCount.value = Number(practiceTodos.count || 0);
-    pendingPracticeTodos.value = practiceTodos.todos || [];
-    pendingChallengeCount.value = Number(challengeTodos.count || 0);
-    pendingChallengeTodos.value = challengeTodos.todos || [];
-    answerRequestCount.value = Number(answerTodos.count || 0);
-    answerRequestTodos.value = answerTodos.requests || [];
-    promotionItems.value = promotionResult.promotions || [];
-    promotionUnseen.value = Number(promotionResult.unseen || 0);
-    todaySessions.value = (sessionRes.sessions || []).filter(item => item.class_date === localDateKey());
+    const [classResult, leaveResult, sessionResult, challengeResult, answerResult, promotionResult] = results;
+    if (classResult.status === 'fulfilled') classes.value = classResult.value.classes || [];
+    if (leaveResult.status === 'fulfilled') {
+      pendingLeaves.value = (leaveResult.value.leaves || []).filter((item) => item.status === 'pending').length;
+    }
+    if (sessionResult.status === 'fulfilled') {
+      todaySessions.value = (sessionResult.value.sessions || []).filter(
+        (item) => item.class_date === localDateKey(),
+      );
+    }
+    if (challengeResult.status === 'fulfilled') {
+      pendingChallengeCount.value = Number(challengeResult.value.count || 0);
+      pendingChallengeTodos.value = challengeResult.value.todos || [];
+    }
+    if (answerResult.status === 'fulfilled') {
+      answerRequestCount.value = Number(answerResult.value.count || 0);
+      answerRequestTodos.value = answerResult.value.requests || [];
+    }
+    if (promotionResult.status === 'fulfilled') {
+      promotionItems.value = promotionResult.value.promotions || [];
+      promotionUnseen.value = Number(promotionResult.value.unseen || 0);
+    }
+    const practiceLoaded = await practicePromise;
+    const fulfilledCount = results.filter((result) => result.status === 'fulfilled').length;
+    if (!practiceLoaded && fulfilledCount === 0) {
+      const firstFailure = results.find((result) => result.status === 'rejected');
+      throw firstFailure?.reason || new Error('教师工作台加载失败');
+    }
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        logError(`loadTeacherData.section${index + 1}`, result.reason);
+      }
+    });
     const newestPromotion = promotionItems.value.find(item => !item.seen);
     if (newestPromotion && Number(newestPromotion.id) !== autoOpenedPromotionId) {
       autoOpenedPromotionId = Number(newestPromotion.id);

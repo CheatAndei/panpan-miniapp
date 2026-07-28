@@ -81,7 +81,7 @@ app.use('/api/system', systemRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v2.2.0' });
+  res.json({ ok: true, time: new Date().toISOString(), build: 'panpan-v2.2.1' });
 });
 
 // 所有未捕获的路由错误统一返回 JSON，避免小程序收到 HTML 错误页后再次解析失败。

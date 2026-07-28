@@ -377,8 +377,20 @@ onLoad((options) => {
   requestedSubmissionId.value = Number(options?.submission_id || 0);
 });
 onShow(() => {
-  if (hasShown.value) return;
+  const firstShow = !hasShown.value;
   hasShown.value = true;
+  const current = activeSubmission.value;
+  const hasUnsavedChanges = Boolean(
+    current?._editing
+      || current?._saving
+      || current?._posterBusy
+      || current?._posterSaving
+      || (!current?._saved && current?.items?.some((item) => item._correct === false)),
+  );
+  if (!firstShow && hasUnsavedChanges) {
+    loadRecentReviews();
+    return;
+  }
   loadQueue();
   loadRecentReviews();
 });

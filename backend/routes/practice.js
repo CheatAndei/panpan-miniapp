@@ -89,6 +89,23 @@ function nextPracticeRoundStarted(db, submission) {
   );
 }
 
+function practiceUploadTargetRound(submission) {
+  const currentRound = Math.max(1, Number(submission?.current_round || 1));
+  return submission?.status === 'correction_required' ? currentRound + 1 : currentRound;
+}
+
+function finishPracticeUploadRound(db, submission, assignmentId, targetRound) {
+  db.run(`INSERT INTO practice_submission_rounds(submission_id,round_no,status,submitted_at)
+    VALUES(?,?,'submitted',CURRENT_TIMESTAMP)
+    ON CONFLICT(submission_id,round_no) DO UPDATE SET
+      status='submitted',submitted_at=CURRENT_TIMESTAMP`, [submission.id, targetRound]);
+  db.run(`UPDATE practice_submissions SET current_round=?,status='submitted',needs_correction=0,
+    teacher_note=NULL,submitted_at=CURRENT_TIMESTAMP,reviewed_by=NULL,reviewed_at=NULL,completed_at=NULL
+    WHERE id=?`, [targetRound, submission.id]);
+  db.run(`UPDATE practice_assignments SET status='submitted' WHERE id=?`, [assignmentId]);
+  return db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]);
+}
+
 function reviewRevisionLockReason(db, submission, reviewRows = null) {
   if (!REVIEW_REVISION_STATUSES.has(String(submission?.status || ''))) {
     return '当前状态不可修订';
@@ -488,26 +505,16 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
       if (Number(submission.parent_id) !== Number(req.user.id)) return { wrongParent: true };
       if (submission.status === 'reviewed') return { completed: true };
       if (!['uploading', 'submitted', 'correction_required'].includes(submission.status)) return { invalidStatus: true };
-      const currentRound = Math.max(1, Number(submission.current_round || 1));
-      const targetRound = submission.status === 'correction_required' ? currentRound + 1 : currentRound;
-      const finishRoundUpload = () => {
-        db.run(`INSERT INTO practice_submission_rounds(submission_id,round_no,status,submitted_at)
-          VALUES(?,?,'submitted',CURRENT_TIMESTAMP)
-          ON CONFLICT(submission_id,round_no) DO UPDATE SET
-            status='submitted',submitted_at=CURRENT_TIMESTAMP`, [submission.id, targetRound]);
-        db.run(`UPDATE practice_submissions SET current_round=?,status='submitted',needs_correction=0,
-          teacher_note=NULL,submitted_at=CURRENT_TIMESTAMP,reviewed_by=NULL,reviewed_at=NULL,completed_at=NULL
-          WHERE id=?`, [targetRound, submission.id]);
-        db.run(`UPDATE practice_assignments SET status='submitted' WHERE id=?`, [assignment.id]);
-        return db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]);
-      };
+      const targetRound = practiceUploadTargetRound(submission);
       const duplicate = db.get(`SELECT pa.id,pa.round_no,pa.created_at,
           pf.token,pf.mime_type,pf.byte_size
         FROM practice_attachments pa JOIN private_files pf ON pf.id=pa.file_id
         WHERE pa.submission_id=? AND pa.sha256=?`, [submission.id, decoded.sha256]);
       if (duplicate) {
         if (Number(duplicate.round_no || 1) === targetRound) {
-          if (uploadComplete) submission = finishRoundUpload();
+          if (uploadComplete) {
+            submission = finishPracticeUploadRound(db, submission, assignment.id, targetRound);
+          }
           return { duplicate, submission };
         }
         return { duplicatePreviousRound: true };
@@ -523,7 +530,9 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
       const attachment = db.run(`INSERT INTO practice_attachments
         (submission_id,round_no,owner_parent_id,file_id,sha256)
         VALUES(?,?,?,?,?)`, [submission.id, targetRound, req.user.id, stored.id, decoded.sha256]);
-      if (uploadComplete) submission = finishRoundUpload();
+      if (uploadComplete) {
+        submission = finishPracticeUploadRound(db, submission, assignment.id, targetRound);
+      }
       return {
         attachmentId: attachment.lastInsertRowid,
         submission,
@@ -550,6 +559,53 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
     || state.rounds?.flatMap((round) => round.attachments || [])
       .find((file) => Number(file.id) === Number(result.attachmentId));
   res.status(201).json({ ok: true, attachment, submission: state });
+});
+
+router.post('/assignments/:id/upload/complete', auth, parentOnly, (req, res) => {
+  const db = getDB();
+  const assignment = db.get('SELECT * FROM practice_assignments WHERE id=?', [req.params.id]);
+  if (!assignment || !parentBoundStudent(db, req.user.id, assignment.student_id)) {
+    return res.status(404).json({ error: '打卡任务不存在' });
+  }
+
+  let result;
+  try {
+    result = db.transaction(() => {
+      let submission = db.get('SELECT * FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
+      if (!submission) return { noSubmission: true };
+      if (Number(submission.parent_id) !== Number(req.user.id)) return { wrongParent: true };
+      if (submission.status === 'reviewed') return { completed: true };
+      if (submission.status === 'submitted') return { submission, idempotent: true };
+      if (!['uploading', 'correction_required'].includes(submission.status)) return { invalidStatus: true };
+
+      const targetRound = practiceUploadTargetRound(submission);
+      const files = db.get(`SELECT COUNT(*) count FROM practice_attachments
+        WHERE submission_id=? AND round_no=?`, [submission.id, targetRound]);
+      if (Number(files?.count || 0) < 1) return { noAttachment: true };
+
+      submission = finishPracticeUploadRound(db, submission, assignment.id, targetRound);
+      return { submission, idempotent: false };
+    });
+  } catch {
+    return res.status(500).json({ error: '提交确认失败，请稍后重试' });
+  }
+
+  if (result.noSubmission || result.noAttachment) {
+    return res.status(409).json({ error: '请先上传至少一张本轮作业照片' });
+  }
+  if (result.wrongParent) return res.status(403).json({ error: '该打卡已由另一位绑定家长提交' });
+  if (result.completed) return res.status(409).json({ error: '该打卡已完成，无需再次提交' });
+  if (result.invalidStatus) return res.status(409).json({ error: '当前状态暂不可提交' });
+
+  const state = serializePracticeSubmission(db, {
+    ...result.submission,
+    assignment_id: assignment.id,
+  });
+  return res.json({
+    ok: true,
+    submission: state,
+    idempotent: result.idempotent,
+  });
 });
 
 router.get('/reviews/recent', auth, teacherOnly, (req, res) => {

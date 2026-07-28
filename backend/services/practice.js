@@ -7,6 +7,10 @@ const {
   generateStudentCurriculumAssignment,
   resolveStudentPracticePlan,
 } = require('./student-practice-curriculum');
+const {
+  resolvePracticePdfBlocks,
+  drawPracticePdfBlocks,
+} = require('./practice-pdf-math');
 
 const FIXED_GRADE = '初中';
 const FIXED_MODULE = '综合计算';
@@ -427,6 +431,75 @@ function writePdfText(doc, value, options = {}) {
   }
 }
 
+function drawResolvedPracticeMath(doc, item, kind, options = {}) {
+  const x = Number(options.x ?? doc.x);
+  const y = Number(options.y ?? doc.y);
+  const layout = drawPracticePdfBlocks(doc, resolvePracticePdfBlocks(item, kind), {
+    x,
+    y,
+    width: Number(options.width || (doc.page.width - x - doc.page.margins.right)),
+    fontSize: Number(options.fontSize || 10),
+    minFontSize: Number(options.minFontSize || options.fontSize || 10),
+    maxHeight: Number(options.maxHeight || 0),
+    lineGap: Number(options.lineGap ?? 2),
+    prefix: options.prefix || '',
+    color: options.color || '#183A36',
+    fontForCharacter,
+  });
+  doc.x = x;
+  doc.y = y + layout.height;
+  return layout;
+}
+
+function loadPracticePdfItems(db, assignmentId) {
+  return db.all(`SELECT position,snapshot_stem,snapshot_answer,snapshot_payload
+    FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignmentId]);
+}
+
+function practiceAnswerCardHeight(itemCount, columns = 5) {
+  return 34 + Math.max(1, Math.ceil(Math.max(0, itemCount) / columns)) * 34;
+}
+
+function drawPracticeAnswerDay(doc, assignment, dayIndex, options = {}) {
+  const x = Number(options.x || 42);
+  const width = Number(options.width || 511);
+  const columns = Number(options.columns || 5);
+  const top = Number(options.y ?? doc.y);
+  const rows = Math.max(1, Math.ceil(assignment.items.length / columns));
+  const height = practiceAnswerCardHeight(assignment.items.length, columns);
+  const background = dayIndex % 2 ? '#F7FAF8' : '#FCF7EE';
+  doc.roundedRect(x, top, width, height, 7).fill(background);
+  drawPracticePdfBlocks(doc, [{ type: 'text', value: `${assignment.date}（第${dayIndex + 1}天）` }], {
+    x: x + 10,
+    y: top + 7,
+    width: width - 20,
+    fontSize: 9.5,
+    minFontSize: 9.5,
+    color: '#2F7D6B',
+    fontForCharacter,
+  });
+  const gap = 4;
+  const cellWidth = (width - 20 - gap * (columns - 1)) / columns;
+  assignment.items.forEach((item, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    drawResolvedPracticeMath(doc, item, 'answer', {
+      x: x + 10 + column * (cellWidth + gap),
+      y: top + 32 + row * 34,
+      width: cellWidth,
+      maxHeight: 29,
+      fontSize: 8.8,
+      minFontSize: 6.8,
+      lineGap: 1,
+      prefix: `${item.position}. `,
+      color: '#243D38',
+    });
+  });
+  doc.x = x;
+  doc.y = top + height + 8;
+  return { height, rows };
+}
+
 function generateLegacyPlanPdf(db, plan, response, requestedStart = plan.start_date) {
   const start = requestedStart < plan.start_date ? plan.start_date : requestedStart;
   const fifth = new Date(`${start}T00:00:00Z`);
@@ -452,8 +525,25 @@ function generateLegacyPlanPdf(db, plan, response, requestedStart = plan.start_d
       doc.addPage();
       writePdfText(doc, `${student.name}｜${date}｜约20分钟`, { size: 16, characters: 30 });
       const assignment = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [student.id, date]);
-      const items = db.all('SELECT * FROM practice_assignment_items WHERE assignment_id=? ORDER BY position', [assignment.id]);
-      items.forEach((item) => writePdfText(doc, `${item.position}. ${item.snapshot_stem}`, { size: 11, characters: 34 }));
+      const items = loadPracticePdfItems(db, assignment.id);
+      items.forEach((item) => {
+        if (doc.y + 58 > 752) {
+          doc.addPage();
+          writePdfText(doc, `${student.name}｜${date}｜练习续页`, { size: 14, characters: 30 });
+        }
+        const top = doc.y + 5;
+        drawResolvedPracticeMath(doc, item, 'question', {
+          x: 44,
+          y: top,
+          width: 507,
+          maxHeight: 46,
+          fontSize: 10.5,
+          minFontSize: 8,
+          lineGap: 2,
+          prefix: `${item.position}. `,
+        });
+        doc.y += 7;
+      });
     });
   });
 
@@ -463,11 +553,15 @@ function generateLegacyPlanPdf(db, plan, response, requestedStart = plan.start_d
   students.forEach((student) => {
     doc.addPage();
     writePdfText(doc, `${student.name}｜参考答案（教师版）`, { size: 16, characters: 30 });
-    dates.forEach((date) => {
-      writePdfText(doc, date, { size: 12, color: '#2F7D6B' });
+    dates.forEach((date, dateIndex) => {
       const assignment = db.get('SELECT id FROM practice_assignments WHERE student_id=? AND practice_date=?', [student.id, date]);
-      const items = db.all('SELECT position,snapshot_answer FROM practice_assignment_items WHERE assignment_id=? ORDER BY position', [assignment.id]);
-      writePdfText(doc, items.map((item) => `${item.position}.${item.snapshot_answer}`).join('　'), { size: 10, characters: 40 });
+      const items = loadPracticePdfItems(db, assignment.id);
+      const cardHeight = practiceAnswerCardHeight(items.length);
+      if (doc.y + cardHeight > 752) {
+        doc.addPage();
+        writePdfText(doc, `${student.name}｜参考答案（续）`, { size: 16, characters: 30 });
+      }
+      drawPracticeAnswerDay(doc, { date, items }, dateIndex, { y: doc.y + 5 });
     });
   });
   writePdfText(doc, '题目来源：项目自编参数化题库，不复制教材或真题。答案仅供教师核对。', { size: 9, color: '#697B76' });
@@ -521,13 +615,18 @@ function writePracticeFooter(doc, text, pageNumber) {
   doc.restore();
 }
 
-function drawPracticeQuestionColumn(doc, items, x, rowPitch) {
+function drawPracticeQuestionColumn(doc, items, x, rowPitch, width = 243) {
   items.forEach((item, index) => {
     const y = 188 + index * rowPitch;
-    doc.x = x;
-    doc.y = y;
-    writePdfText(doc, `${item.position}. ${item.snapshot_stem}`, {
-      size: 10.2, color: '#183A36', characters: 23, lineGap: 2,
+    drawResolvedPracticeMath(doc, item, 'question', {
+      x,
+      y,
+      width,
+      maxHeight: Math.max(28, rowPitch - 8),
+      fontSize: 10.2,
+      minFontSize: 7.2,
+      lineGap: 2,
+      prefix: `${item.position}. `,
     });
   });
 }
@@ -542,8 +641,7 @@ function generateStudentPlanPdf(db, plan, student, response) {
       WHERE plan_id=? AND student_id=? AND practice_date=?`, [plan.id, student.id, date]);
     return {
       date,
-      items: assignment ? db.all(`SELECT position,snapshot_stem,snapshot_answer
-        FROM practice_assignment_items WHERE assignment_id=? ORDER BY position`, [assignment.id]) : [],
+      items: assignment ? loadPracticePdfItems(db, assignment.id) : [],
     };
   });
   const topicLabel = normalizeTopicKeys(plan.topic_keys).map((key) => TOPICS[key].label).join(' · ');
@@ -571,10 +669,12 @@ function generateStudentPlanPdf(db, plan, student, response) {
       dayIndex: index + 1,
       avatarPath,
     });
-    const left = assignment.items.slice(0, 6);
-    const right = assignment.items.slice(6);
-    drawPracticeQuestionColumn(doc, left, 42, 88);
-    drawPracticeQuestionColumn(doc, right, 310, right.length > 6 ? 73 : 88);
+    const rowsPerColumn = Math.max(1, Math.ceil(assignment.items.length / 2));
+    const rowPitch = Math.min(105, 566 / rowsPerColumn);
+    const left = assignment.items.slice(0, rowsPerColumn);
+    const right = assignment.items.slice(rowsPerColumn);
+    drawPracticeQuestionColumn(doc, left, 42, rowPitch, 243);
+    drawPracticeQuestionColumn(doc, right, 310, rowPitch, 243);
     writePracticeFooter(doc, '学生记录 · 每天一点点，进步看得见', index + 1);
   });
 
@@ -594,19 +694,12 @@ function generateStudentPlanPdf(db, plan, student, response) {
   };
   startAnswerPage();
   assignments.forEach((assignment, index) => {
-    const answerText = assignment.items.map((item) => `${item.position}.${item.snapshot_answer}`).join('　');
-    const estimatedLines = Math.max(1, Math.ceil(Array.from(answerText).length / 48));
-    if (doc.y + 28 + estimatedLines * 17 > 750) {
+    const cardHeight = practiceAnswerCardHeight(assignment.items.length);
+    if (doc.y + cardHeight > 750) {
       writePracticeFooter(doc, '答案仅供教师核对 · 题目来自项目自编参数化题库', answerPageNumber);
       startAnswerPage();
     }
-    doc.roundedRect(42, doc.y - 3, 511, 22 + estimatedLines * 17, 7).fill(index % 2 ? '#F7FAF8' : '#FCF7EE');
-    doc.x = 52;
-    doc.y += 5;
-    writePdfText(doc, `${assignment.date}（第${index + 1}天）`, { size: 9.5, color: '#2F7D6B', characters: 45, lineGap: 1 });
-    doc.x = 52;
-    writePdfText(doc, answerText, { size: 8.8, color: '#243D38', characters: 48, lineGap: 2 });
-    doc.moveDown(0.35);
+    drawPracticeAnswerDay(doc, assignment, index);
   });
   writePracticeFooter(doc, '答案仅供教师核对 · 题目来自项目自编参数化题库', answerPageNumber);
   doc.end();
@@ -632,4 +725,5 @@ module.exports = {
   serializePracticeSubmission,
   generatePlanPdf: generateLegacyPlanPdf,
   generateStudentPlanPdf,
+  loadPracticePdfItems,
 };
