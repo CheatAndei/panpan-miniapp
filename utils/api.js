@@ -123,7 +123,7 @@ async function uploadAsBase64(path, filePath, name) {
     base64,
     fileName: fileNameFromPath(filePath, name),
     mimeType: inferMimeType(filePath, name)
-  });
+  }, { timeout: 60000 });
 }
 
 export function uploadFile(path, filePath, name = 'file') {
@@ -133,6 +133,7 @@ export function uploadFile(path, filePath, name = 'file') {
       url: buildUrl(path),
       filePath,
       name,
+      timeout: 60000,
       header: authHeader(),
       success(res) {
         try {

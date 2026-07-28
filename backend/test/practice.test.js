@@ -147,6 +147,9 @@ test('打卡照片私有存储，未登录和跨学生跨老师都不可读取',
   const invalid = await request('POST', `/practice/assignments/${assignmentId}/upload`, parentToken, { base64: fakePng, fileName: 'fake.png' });
   assert.equal(invalid.response.status, 400);
   assert.equal(getDB().get('SELECT id FROM practice_submissions WHERE assignment_id=?', [assignmentId]), null);
+  const emptyComplete = await request('POST', `/practice/assignments/${assignmentId}/upload/complete`, parentToken, {});
+  assert.equal(emptyComplete.response.status, 409);
+  assert.match(emptyComplete.payload.error, /至少一张/);
   const png = (await sharp({ create: { width: 8, height: 8, channels: 3, background: '#2F7D6B' } }).png().toBuffer()).toString('base64');
   const partialUpload = await request('POST', `/practice/assignments/${assignmentId}/upload?upload_complete=0`, parentToken, {
     base64: png, fileName: 'practice.png', mimeType: 'image/png',
@@ -155,6 +158,14 @@ test('打卡照片私有存储，未登录和跨学生跨老师都不可读取',
   assert.equal(partialUpload.payload.submission.status, 'uploading');
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
     '多图尚未传完时不能进入教师待批队列');
+  const completed = await request('POST', `/practice/assignments/${assignmentId}/upload/complete`, parentToken, {});
+  assert.equal(completed.response.status, 200);
+  assert.equal(completed.payload.idempotent, false);
+  assert.equal(completed.payload.submission.status, 'submitted');
+  const completedAgain = await request('POST', `/practice/assignments/${assignmentId}/upload/complete`, parentToken, {});
+  assert.equal(completedAgain.response.status, 200);
+  assert.equal(completedAgain.payload.idempotent, true);
+  assert.equal(completedAgain.payload.submission.status, 'submitted');
   const uploaded = await request('POST', `/practice/assignments/${assignmentId}/upload?upload_complete=1`, parentToken, {
     base64: png, fileName: 'practice.png', mimeType: 'image/png',
   });
@@ -269,13 +280,11 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
     '订正照片整批上传完成前不能进入教师待批队列');
   const correctionUpload = await request('POST',
-    `/practice/assignments/${submission.assignment_id}/upload?upload_complete=1`, parentToken, {
-    base64: correctionPhoto, fileName: 'correction-2.png', mimeType: 'image/png',
-  });
+    `/practice/assignments/${submission.assignment_id}/upload/complete`, parentToken, {});
   assert.equal(correctionUpload.response.status, 200);
-  assert.equal(correctionUpload.payload.idempotent, true);
-  assert.equal(correctionUpload.payload.attachment.round_no, 2);
-  assert.equal(correctionUpload.payload.attachment.is_correction, true);
+  assert.equal(correctionUpload.payload.idempotent, false);
+  assert.equal(partialCorrectionUpload.payload.attachment.round_no, 2);
+  assert.equal(partialCorrectionUpload.payload.attachment.is_correction, true);
   assert.equal(correctionUpload.payload.submission.status, 'submitted');
   assert.equal(correctionUpload.payload.submission.correction_round, 2);
   assert.equal(correctionUpload.payload.submission.is_correction, true);
