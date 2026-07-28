@@ -124,3 +124,11 @@ test('布局修复未改变图片缩放拖动和旋转入口', () => {
   assert.match(review, /@tap="resetCurrentPhoto"/u);
   assert.match(review, /@tap="rotateCurrentPhoto"/u);
 });
+
+test('照片放大后可拖动且松手不再惯性滑动或越界回弹', () => {
+  assert.match(review, /:inertia="false"/u);
+  assert.match(review, /:animation="false"/u);
+  assert.match(review, /:out-of-bounds="false"/u);
+  assert.match(review, /放大后拖动，松手停在当前位置/u);
+  assert.doesNotMatch(review, /拖动松手后自然回弹/u);
+});

@@ -123,7 +123,7 @@
             <view class="pane-head">
               <view>
                 <text class="pane-title">{{ activeSubmission._isCorrection ? '本轮新照片' : '学生照片' }}</text>
-                <text class="pane-sub">双指缩放 1×–4×，拖动松手后自然回弹</text>
+                <text class="pane-sub">双指缩放 1×–4×，放大后拖动，松手停在当前位置</text>
               </view>
               <text class="pane-count">
                 {{ activeSubmission._photoPaths.length ? activeSubmission._activePhoto + 1 : 0 }} / {{ activeSubmission.attachments.length }}
@@ -142,9 +142,9 @@
                     direction="all"
                     :x="activePhotoGesture.x"
                     :y="activePhotoGesture.y"
-                    :inertia="true"
-                    :animation="true"
-                    :out-of-bounds="true"
+                    :inertia="false"
+                    :animation="false"
+                    :out-of-bounds="false"
                     :scale="true"
                     :scale-min="1"
                     :scale-max="4"

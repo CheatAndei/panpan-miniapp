@@ -134,6 +134,25 @@ test('教师首页把快捷工作放在今日总览和高优先待办之前', ()
   assert.ok(quickWork < priority, '快捷工作应在高优先待办之前');
 });
 
+test('教师首页快捷工作使用按列重复的三种等深语义色', () => {
+  const actionTones = [...teacherHome.matchAll(/<button class="action-item ([^"]+)"/gu)]
+    .slice(0, 6)
+    .map((match) => match[1].split(/\s+/u).find((name) => name.startsWith('action-tone-')));
+
+  assert.deepEqual(actionTones, [
+    'action-tone-blue',
+    'action-tone-coral',
+    'action-tone-mint',
+    'action-tone-blue',
+    'action-tone-coral',
+    'action-tone-mint',
+  ]);
+  assert.match(teacherHome, /\.action-tone-blue \.action-icon\s*\{[\s\S]*?color:\s*#315EA8/u);
+  assert.match(teacherHome, /\.action-tone-coral \.action-icon\s*\{[\s\S]*?color:\s*#A94F48/u);
+  assert.match(teacherHome, /\.action-tone-mint \.action-icon\s*\{[\s\S]*?color:\s*#2F796B/u);
+  assert.doesNotMatch(teacherHome, /\.action-item:nth-child\(/u);
+});
+
 test('教师首页初次加载和失败时不会误报待办已清', () => {
   assert.match(teacherHome, /v-if="loading && classes\.length === 0"/);
   assert.match(teacherHome, /v-else-if="error"/);

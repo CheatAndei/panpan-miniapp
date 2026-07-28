@@ -277,23 +277,24 @@ test('长姓名与长错题号会安全截断', async () => {
   assert.ok(!rendered.includes(completeWrongList));
 });
 
-test('海报恢复浅蓝、白纸与少量珊瑚的旧版配色并保持 750×1000 逻辑画布与 2 倍导出', async () => {
+test('海报使用明亮清爽的绿色同色系并保持 750×1000 逻辑画布与 2 倍导出', async () => {
   const file = path.join(__dirname, '..', 'utils', 'practice-review-poster.js');
   const source = fs.readFileSync(file, 'utf8');
   const harness = await renderPoster();
   const options = harness.exportOptions[0];
 
-  assert.match(source, /#F6FAFF/);
-  assert.match(source, /#527CC9/);
-  assert.match(source, /#315EA8/);
-  assert.match(source, /#F4C75B/);
-  assert.match(source, /#D66D62/);
-  assert.match(source, /#FFF0ED/);
-  assert.match(source, /#24324A/);
+  assert.match(source, /#F4FBF8/);
+  assert.match(source, /#34B98A/);
+  assert.match(source, /#187A5D/);
+  assert.match(source, /#E8F8F1/);
+  assert.match(source, /#82D8B5/);
+  assert.match(source, /#C6655A/);
+  assert.match(source, /#FBEDEA/);
+  assert.match(source, /#234039/);
   assert.match(source, /#FFFFFF/);
   assert.match(source, /drawCover\([\s\S]*?'contain'/u);
   assert.doesNotMatch(source, /total === 1 \? 'cover'/);
-  assert.doesNotMatch(source, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F/iu);
+  assert.doesNotMatch(source, /#527CC9|#315EA8|#EAF2FF|#F4C75B|#FFF5D7|#D66D62|#FFF0ED/iu);
   assert.doesNotMatch(source, /#173A35|#E9D8BC|#F7F0E5/iu);
   assert.equal(options.width, 750);
   assert.equal(options.height, 1000);
@@ -301,7 +302,7 @@ test('海报恢复浅蓝、白纸与少量珊瑚的旧版配色并保持 750×10
   assert.equal(options.destHeight, 2000);
 });
 
-test('海报恢复旧版蓝色侧脊与白纸构图，并用绿红区分全对与有错', async () => {
+test('海报以绿色侧脊、薄荷数据卡和白纸构图，并用小面积暖红区分有错状态', async () => {
   const allCorrect = await renderPoster({ totalCount: 10, correctCount: 10 });
   const needsWork = await renderPoster({
     totalCount: 10,
@@ -317,14 +318,17 @@ test('海报恢复旧版蓝色侧脊与白纸构图，并用绿红区分全对�
   );
 
   for (const harness of [allCorrect, needsWork]) {
-    assert.ok(hasRect(harness, '#527CC9', 0, 0, 14, 1000));
+    assert.ok(hasRect(harness, '#34B98A', 0, 0, 14, 1000));
     assert.ok(hasRect(harness, '#FFFFFF', 14, 0, 736, 165));
     assert.ok(hasRect(harness, '#FFFFFF', 28, 182, 478, 728));
     assert.ok(hasRect(harness, '#FFFFFF', 520, 182, 202, 728));
-    assert.ok(hasRect(harness, '#EAF2FF', 538, 306, 166, 120));
+    assert.ok(hasRect(harness, '#E8F8F1', 538, 306, 166, 120));
     assert.ok(hasRect(harness, '#FFFFFF', 14, 928, 736, 72));
-    assert.equal(harness.fillRects.some((rect) => ['#20B486', '#15946D', '#FF7468'].includes(rect.color)), false);
+    assert.equal(
+      harness.fillRects.some((rect) => ['#527CC9', '#315EA8', '#F4C75B'].includes(rect.color)),
+      false,
+    );
   }
-  assert.ok(hasRect(allCorrect, '#E9F8F3', 562, 40, 148, 88));
-  assert.ok(hasRect(needsWork, '#FFF0ED', 562, 40, 148, 88));
+  assert.ok(hasRect(allCorrect, '#E4F7EF', 562, 40, 148, 88));
+  assert.ok(hasRect(needsWork, '#FBEDEA', 562, 40, 148, 88));
 });

@@ -22,9 +22,9 @@ test('手机批改台使用上下布局、横向滑选题卡并用单图原生�
   assert.match(review, /:scale-min="1"/);
   assert.match(review, /:scale-max="4"/);
   assert.match(review, /direction="all"/);
-  assert.match(review, /:inertia="true"/);
-  assert.match(review, /:animation="true"/);
-  assert.match(review, /:out-of-bounds="true"/);
+  assert.match(review, /:inertia="false"/);
+  assert.match(review, /:animation="false"/);
+  assert.match(review, /:out-of-bounds="false"/);
   assert.match(review, /:x="activePhotoGesture\.x"/);
   assert.match(review, /:y="activePhotoGesture\.y"/);
   assert.match(review, /:scale-value="activePhotoGesture\.scale"/);
@@ -127,17 +127,16 @@ test('保存区移除刻意隐私说明并支持相册拒权后前往设置恢�
   assert.match(review, /@media \(prefers-reduced-motion:\s*reduce\)/);
 });
 
-test('批改台和海报恢复浅蓝主视觉并保留珊瑚状态色', () => {
+test('批改台保持浅蓝主视觉，计算打卡海报单独使用绿色主题', () => {
   const poster = read('utils/practice-review-poster.js');
-  const visibleReviewSurface = `${review}\n${poster}`;
 
-  assert.match(visibleReviewSurface, /#527CC9/);
-  assert.match(visibleReviewSurface, /#315EA8/);
-  assert.match(visibleReviewSurface, /#EAF2FF/);
-  assert.match(visibleReviewSurface, /#F6FAFF/);
-  assert.match(visibleReviewSurface, /#24324A/);
-  assert.match(visibleReviewSurface, /#D66D62/);
-  assert.doesNotMatch(visibleReviewSurface, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F/iu);
+  for (const color of ['#527CC9', '#315EA8', '#EAF2FF', '#F6FAFF', '#24324A', '#D66D62']) {
+    assert.match(review, new RegExp(color, 'u'));
+  }
+  for (const color of ['#34B98A', '#187A5D', '#E8F8F1', '#F4FBF8', '#234039']) {
+    assert.match(poster, new RegExp(color, 'u'));
+  }
+  assert.doesNotMatch(poster, /#527CC9|#315EA8|#EAF2FF|#F4C75B/iu);
 });
 
 test('批改和私密海报异步处理中锁住学生上下文并提供持久错误重试', () => {

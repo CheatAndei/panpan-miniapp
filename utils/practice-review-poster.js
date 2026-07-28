@@ -4,23 +4,23 @@ export const PRACTICE_REVIEW_POSTER_WIDTH = 750;
 export const PRACTICE_REVIEW_POSTER_HEIGHT = 1000;
 
 const POSTER_COLORS = Object.freeze({
-  blue: '#527CC9',
-  blueStrong: '#315EA8',
-  blueSoft: '#EAF2FF',
-  success: '#4FA98F',
-  successStrong: '#358E7D',
-  successSoft: '#E9F8F3',
-  gold: '#F4C75B',
-  goldSoft: '#FFF5D7',
-  coral: '#D66D62',
-  coralSoft: '#FFF0ED',
-  paper: '#F6FAFF',
+  primary: '#34B98A',
+  primaryStrong: '#187A5D',
+  primarySoft: '#E8F8F1',
+  success: '#2EA77D',
+  successStrong: '#176F56',
+  successSoft: '#E4F7EF',
+  accent: '#82D8B5',
+  accentSoft: '#F0FBF6',
+  alert: '#C6655A',
+  alertSoft: '#FBEDEA',
+  paper: '#F4FBF8',
   photoPaper: '#FFFFFF',
-  ink: '#24324A',
-  secondary: '#5C6C84',
-  muted: '#6E7D91',
-  border: '#DDE7F2',
-  line: '#E9F0F8',
+  ink: '#234039',
+  secondary: '#4F6D64',
+  muted: '#6E837C',
+  border: '#CFE5DC',
+  line: '#E2F0EA',
   white: '#FFFFFF',
 });
 
@@ -270,7 +270,7 @@ function wrapText(ctx, text, maxWidth, maxLines = Number.POSITIVE_INFINITY) {
 }
 
 function drawPhotoFrame(ctx, photo, layout, rotation, index) {
-  ctx.setShadow(0, 8, 18, 'rgba(49,94,168,.12)');
+  ctx.setShadow(0, 8, 18, 'rgba(24,122,93,.12)');
   ctx.setFillStyle(POSTER_COLORS.photoPaper);
   ctx.fillRect(layout.x - 4, layout.y - 4, layout.w + 8, layout.h + 8);
   ctx.setShadow(0, 0, 0, 'rgba(0,0,0,0)');
@@ -284,9 +284,9 @@ function drawPhotoFrame(ctx, photo, layout, rotation, index) {
     rotation,
     'contain',
   );
-  ctx.setFillStyle(POSTER_COLORS.blueSoft);
+  ctx.setFillStyle(POSTER_COLORS.primarySoft);
   ctx.fillRect(layout.x + 10, layout.y + 10, 48, 25);
-  ctx.setFillStyle(POSTER_COLORS.blueStrong);
+  ctx.setFillStyle(POSTER_COLORS.primaryStrong);
   ctx.setFontSize(13);
   ctx.fillText(String(index + 1).padStart(2, '0'), layout.x + 21, layout.y + 28);
 }
@@ -341,10 +341,10 @@ export async function renderPracticeReviewPoster({
   const countSummary = normalizedTotal ? `${normalizedCorrect} / ${normalizedTotal}` : '— / —';
   const roundLabel = isCorrection ? `订正轮次 ${normalizedCorrectionRound}` : '首次批改';
   const statusLabel = correctionComplete ? '及时订正' : (allCorrect ? '批改通过' : '待订正');
-  const statusColor = allCorrect ? POSTER_COLORS.success : POSTER_COLORS.coral;
-  const statusSoft = allCorrect ? POSTER_COLORS.successSoft : POSTER_COLORS.coralSoft;
-  const commentColor = allCorrect ? POSTER_COLORS.successSoft : POSTER_COLORS.goldSoft;
-  const commentInk = allCorrect ? POSTER_COLORS.successStrong : '#8A651B';
+  const statusColor = allCorrect ? POSTER_COLORS.success : POSTER_COLORS.alert;
+  const statusSoft = allCorrect ? POSTER_COLORS.successSoft : POSTER_COLORS.alertSoft;
+  const commentColor = allCorrect ? POSTER_COLORS.successSoft : POSTER_COLORS.accentSoft;
+  const commentInk = allCorrect ? POSTER_COLORS.successStrong : POSTER_COLORS.primaryStrong;
   const rawTeacherName = String(teacherName || '任课老师').trim() || '任课老师';
   const teacherLabel = /老师$/.test(rawTeacherName) ? rawTeacherName : `${rawTeacherName}老师`;
   const signature = `${teacherLabel}批改`;
@@ -353,13 +353,13 @@ export async function renderPracticeReviewPoster({
   ctx.fillRect(0, 0, 750, 1000);
   ctx.setFillStyle(POSTER_COLORS.line);
   for (let y = 170; y < 930; y += 46) ctx.fillRect(0, y, 750, 1);
-  ctx.setFillStyle(POSTER_COLORS.blue);
+  ctx.setFillStyle(POSTER_COLORS.primary);
   ctx.fillRect(0, 0, 14, 1000);
   ctx.setFillStyle(POSTER_COLORS.white);
   ctx.fillRect(14, 0, 736, 165);
-  ctx.setFillStyle(POSTER_COLORS.gold);
+  ctx.setFillStyle(POSTER_COLORS.accent);
   ctx.fillRect(46, 25, 74, 6);
-  ctx.setFillStyle(POSTER_COLORS.blue);
+  ctx.setFillStyle(POSTER_COLORS.primary);
   ctx.setFontSize(18);
   ctx.fillText(brandLine, 46, 54);
   ctx.setFillStyle(POSTER_COLORS.ink);
@@ -385,7 +385,7 @@ export async function renderPracticeReviewPoster({
   ctx.setStrokeStyle(POSTER_COLORS.border);
   ctx.setLineWidth(2);
   ctx.strokeRect(28, 182, 478, 728);
-  ctx.setFillStyle(POSTER_COLORS.blueStrong);
+  ctx.setFillStyle(POSTER_COLORS.primaryStrong);
   ctx.setFontSize(19);
   ctx.fillText('作业原图', 48, 216);
   ctx.setFillStyle(POSTER_COLORS.muted);
@@ -412,12 +412,12 @@ export async function renderPracticeReviewPoster({
   ctx.setFontSize(35);
   ctx.fillText(truncateText(ctx, resultSummary, 162), 540, 276);
 
-  ctx.setFillStyle(POSTER_COLORS.blueSoft);
+  ctx.setFillStyle(POSTER_COLORS.primarySoft);
   ctx.fillRect(538, 306, 166, 120);
   ctx.setFillStyle(POSTER_COLORS.secondary);
   ctx.setFontSize(15);
   ctx.fillText('正确 / 总题', 554, 338);
-  ctx.setFillStyle(POSTER_COLORS.blueStrong);
+  ctx.setFillStyle(POSTER_COLORS.primaryStrong);
   ctx.setFontSize(34);
   ctx.fillText(countSummary, 554, 386);
 
@@ -452,11 +452,11 @@ export async function renderPracticeReviewPoster({
 
   ctx.setFillStyle(POSTER_COLORS.white);
   ctx.fillRect(14, 928, 736, 72);
-  ctx.setFillStyle(POSTER_COLORS.blueStrong);
+  ctx.setFillStyle(POSTER_COLORS.primaryStrong);
   ctx.setFontSize(15);
   const encouragementLines = wrapText(ctx, encouragement, 440, 2);
   encouragementLines.forEach((line, index) => ctx.fillText(line, 38, 953 + index * 20));
-  ctx.setFillStyle(POSTER_COLORS.coral);
+  ctx.setFillStyle(POSTER_COLORS.primaryStrong);
   ctx.setFontSize(16);
   const safeSignature = truncateText(ctx, signature, 180);
   const signatureWidth = ctx.measureText(safeSignature).width;

@@ -37,30 +37,30 @@
     </view>
 
     <view class="quick-actions">
-      <button class="action-item" aria-label="进入签到" @tap="navigate('/pages/teacher-checkin/index')">
+      <button class="action-item action-tone-blue" aria-label="进入签到" @tap="navigate('/pages/teacher-checkin/index')">
         <view class="action-icon"><pp-icon name="check" :size="40" motion="pop" :delay="60" decorative /></view>
         <text>签到</text>
       </button>
-      <button class="action-item" aria-label="发送课堂反馈" @tap="navigate('/pages/teacher-feedback/index')">
+      <button class="action-item action-tone-coral" aria-label="发送课堂反馈" @tap="navigate('/pages/teacher-feedback/index')">
         <view class="action-icon"><pp-icon name="message" :size="40" motion="ring" :delay="120" decorative /></view>
         <text>发反馈</text>
       </button>
-      <button class="action-item" aria-label="管理学习小组" @tap="navigate('/pages/teacher-classes/index')">
+      <button class="action-item action-tone-mint" aria-label="管理学习小组" @tap="navigate('/pages/teacher-classes/index')">
         <view class="action-icon"><pp-icon name="users" :size="40" motion="pop" :delay="180" decorative /></view>
         <text>小组管理</text>
       </button>
-      <button class="action-item" aria-label="查看教师课表" @tap="navigate('/pages/teacher-schedule/index')">
+      <button class="action-item action-tone-blue" aria-label="查看教师课表" @tap="navigate('/pages/teacher-schedule/index')">
         <view class="action-icon"><pp-icon name="calendar" :size="40" motion="pop" :delay="240" decorative /></view>
         <text>课表</text>
       </button>
-      <button class="action-item" aria-label="处理请假审批" @tap="navigate('/pages/teacher-leaves/index')">
+      <button class="action-item action-tone-coral" aria-label="处理请假审批" @tap="navigate('/pages/teacher-leaves/index')">
         <view class="action-icon">
           <pp-icon name="clipboard" :size="40" :motion="pendingLeaves > 0 ? 'ring' : 'pop'" :delay="300" decorative />
           <view v-if="pendingLeaves > 0" class="red-dot">{{ pendingLeaves }}</view>
         </view>
         <text>审批</text>
       </button>
-      <button class="action-item record-action" aria-label="查看学生学习记录" @tap="navigate('/pages/student-records/index')">
+      <button class="action-item action-tone-mint record-action" aria-label="查看学生学习记录" @tap="navigate('/pages/student-records/index')">
         <view class="action-icon"><pp-icon name="report" :size="40" motion="shine" :delay="360" decorative /></view>
         <text>学习记录</text>
       </button>
@@ -927,54 +927,41 @@ function toggleClasses() {
   justify-content: center;
   border: 1rpx solid #C9DAF0;
   border-radius: 14rpx;
-  background: var(--primary-soft);
+  background: #EAF2FF;
+  color: #315EA8;
 }
 
-.action-item:nth-child(1),
-.action-item:nth-child(6) {
+.action-item.action-tone-blue {
   border-color: #C9DAF0;
-  background: var(--primary-soft);
+  background: #F5F8FF;
 }
 
-.action-item:nth-child(2) {
-  border-color: #DDE7F2;
-  background: #F6FAFF;
-}
-
-.action-item:nth-child(2) .action-icon {
-  border-color: #FCEEEB;
-  background: #FFFFFF;
-  color: var(--danger);
-}
-
-.action-item:nth-child(3),
-.action-item:nth-child(4) {
-  border-color: #DDE7F2;
-  background: #F6FAFF;
-}
-
-.action-item:nth-child(3) .action-icon,
-.action-item:nth-child(4) .action-icon {
+.action-tone-blue .action-icon {
   border-color: #C9DAF0;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
+  background: #EAF2FF;
+  color: #315EA8;
 }
 
-.action-item:nth-child(5) {
-  border-color: #DDE7F2;
-  background: #F6FAFF;
+.action-item.action-tone-coral {
+  border-color: #F0D2CC;
+  background: #FFF8F6;
 }
 
-.action-item:nth-child(5) .action-icon {
-  border-color: #FCEEEB;
-  background: var(--coral-soft);
-  color: var(--danger);
+.action-tone-coral .action-icon {
+  border-color: #F0D2CC;
+  background: #FFF0ED;
+  color: #A94F48;
 }
 
-.record-action .action-icon {
-  border-color: #C9DAF0;
-  background: #FFFFFF;
-  color: var(--primary-strong);
+.action-item.action-tone-mint {
+  border-color: #CBE3DD;
+  background: #F5FBF9;
+}
+
+.action-tone-mint .action-icon {
+  border-color: #CBE3DD;
+  background: #EAF7F3;
+  color: #2F796B;
 }
 
 .red-dot {

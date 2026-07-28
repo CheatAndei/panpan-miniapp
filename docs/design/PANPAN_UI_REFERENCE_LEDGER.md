@@ -47,7 +47,7 @@
 | Tubik / Abuk | 同一套浅色教育品牌贯穿身份入口、教师、家长和共用组件；图标本地化、文字优先可读 | `App.vue`、`components/home/HomeWelcome.vue`、`components/pp-avatar/pp-avatar.vue`、`components/pp-question-reader/pp-question-reader.vue` |
 | Tubik / Evergreen Nexus University | 教师运营页保持友好但功能型，以扫描效率而非装饰为先 | `pages/teacher-classes/index.vue`、`pages/teacher-feedback/index.vue`、`pages/teacher-schedule/index.vue`、`pages/teacher-checkin/index.vue`、`pages/student-detail/index.vue` |
 | Recent / Aave Auto Saver Flow | 学生挑战页和保存反馈使用浅底、清楚进度、短促状态过渡；主界面收敛到学习蓝、薄荷绿与珊瑚，不使用四色拼贴或幼儿化装饰 | `pages/choice-king*`、`pages/mental-arena/*`、`pages/learning-session/index.vue`、`pages/weekly-challenge/index.vue`、`pages/knowledge-challenge/index.vue` |
-| 本轮用户实拍反馈 | 全局统一 `border-box` 与原生按钮垂直居中，修复按钮/答案卡/状态卡/空照片区被固定高度撑出的白块；批改图保留独立缩放位移并启用惯性回弹；全项目恢复浅蓝主视觉；口算、压轴和打卡海报恢复指定旧版界面，其中打卡海报仅回退表现层并保留随机文案与署名逻辑 | `App.vue`、`components/pp-state/pp-state.vue`、`components/pp-icon/pp-icon.vue`、`components/home/ParentHomeView.vue`、`components/home/TeacherHomeView.vue`、`pages/learning-center/index.vue`、`pages/practice-review/index.vue`、`utils/practice-review-poster.js`、`utils/mental-arena-poster.js`、`utils/promotion-poster.js` |
+| 本轮用户实拍反馈 | 全局统一 `border-box` 与原生按钮垂直居中，修复按钮/答案卡/状态卡/空照片区被固定高度撑出的白块；批改图保留独立缩放位移，关闭惯性、越界与动画回弹，松手停在当前位置；全项目保持浅蓝主视觉；计算打卡海报单独使用明亮绿色同色系；快捷工作按列重复蓝、珊瑚、薄荷绿三种等深语义色 | `App.vue`、`components/pp-state/pp-state.vue`、`components/pp-icon/pp-icon.vue`、`components/home/ParentHomeView.vue`、`components/home/TeacherHomeView.vue`、`pages/learning-center/index.vue`、`pages/practice-review/index.vue`、`utils/practice-review-poster.js`、`utils/mental-arena-poster.js`、`utils/promotion-poster.js` |
 
 ## 角色与页面映射
 
@@ -92,7 +92,7 @@
 
 ## 验收
 
-- 41 个注册页面均使用全局浅蓝教育 tokens，主流程不存在黄绿蓝黑拼贴；口算、压轴与打卡海报按用户指定保留各自旧版视觉。
+- 41 个注册页面均使用全局浅蓝教育 tokens，主流程不存在黄绿蓝黑拼贴；计算打卡海报使用独立绿色同色系，口算与压轴海报保留各自旧版视觉。
 - 家长、教师、学生三个角色有明显但一致的节奏差异。
 - 教师首页快捷工作置顶并新增“学生记录”；批改台最近三份可展开并横向滑动。
 - 作业照片在真机可自然缩放、拖动、复位和多图切换，不与页面/轮播手势冲突。
