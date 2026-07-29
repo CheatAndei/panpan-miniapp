@@ -44,7 +44,12 @@ const ICON_NAMES = Object.freeze([
   'history',
   'pencil',
   'calculator',
-  'lightbulb'
+  'lightbulb',
+  'school',
+  'clock',
+  'document',
+  'trend',
+  'family'
 ]);
 const ICON_LABELS = Object.freeze({
   arrow: '前往',
@@ -67,7 +72,12 @@ const ICON_LABELS = Object.freeze({
   history: '历史记录',
   pencil: '书写',
   calculator: '计算',
-  lightbulb: '学习提示'
+  lightbulb: '学习提示',
+  school: '课程',
+  clock: '时间',
+  document: '学习文档',
+  trend: '学习趋势',
+  family: '家校服务'
 });
 
 const props = defineProps({

@@ -69,7 +69,7 @@ test('知识点闯关不提前泄露答案，服务端判题并达到掌握门�
   assert.equal(last.payload.completed,true);assert.equal(last.payload.score,100);assert.equal(last.payload.mastered,true);
 });
 
-test('连续压轴挑战支持拍照、批改通过、进度累计与手动下一题',async()=>{
+test('连续压轴挑战支持多图暂存、文字选填、手动提交、批改通过与进度累计',async()=>{
   const db=getDB();
   const asset=db.run(`INSERT INTO exam_assets(asset_kind,storage_key,original_name,mime_type,byte_size,sha256)
     VALUES('question','test/q.png','q.png','image/png',10,?)`,['a'.repeat(64)]);
@@ -77,11 +77,29 @@ test('连续压轴挑战支持拍照、批改通过、进度累计与手动下�
     VALUES(?,?,?,?,?,'g8','math',1)`,[`mg-${type}-${i}`,type,`八上压轴${i}`,asset.lastInsertRowid,'原创测试']);
   const claimed=await request('POST','/weekly-challenge/v2/assignments',parentToken,{student_id:studentId,grade:'g8',subject:'math',question_type:'fill'});
   assert.equal(claimed.response.status,201);assert.equal(claimed.payload.assignment.status,'active');
-  const image=await sharp({create:{width:20,height:20,channels:3,background:'#ffffff'}}).jpeg().toBuffer();
-  const uploaded=await request('POST',`/weekly-challenge/v2/assignments/${claimed.payload.assignment.id}/upload`,parentToken,{base64:image.toString('base64'),fileName:'answer.jpg'});
-  assert.equal(uploaded.response.status,201);
+  const emptySubmit=await request('POST',`/weekly-challenge/v2/assignments/${claimed.payload.assignment.id}/submit`,parentToken,{student_note:'还没有图片'});
+  assert.equal(emptySubmit.response.status,400);
+  assert.match(emptySubmit.payload.error,/至少上传 1 张/);
+  const firstImage=await sharp({create:{width:20,height:20,channels:3,background:'#ffffff'}}).jpeg().toBuffer();
+  const secondImage=await sharp({create:{width:20,height:20,channels:3,background:'#ddeeff'}}).jpeg().toBuffer();
+  const firstUpload=await request('POST',`/weekly-challenge/v2/assignments/${claimed.payload.assignment.id}/upload?upload_complete=0`,parentToken,{base64:firstImage.toString('base64'),fileName:'answer-1.jpg'});
+  assert.equal(firstUpload.response.status,201);
+  const secondUpload=await request('POST',`/weekly-challenge/v2/assignments/${claimed.payload.assignment.id}/upload?upload_complete=0`,parentToken,{base64:secondImage.toString('base64'),fileName:'answer-2.jpg'});
+  assert.equal(secondUpload.response.status,201);
+  const draft=await request('GET',`/weekly-challenge/v2/current?student_id=${studentId}&grade=g8&subject=math`,parentToken);
+  assert.equal(draft.payload.assignment.status,'active');
+  assert.equal(draft.payload.assignment.submission.attachments.length,2);
+  assert.equal(draft.payload.assignment.submission.submitted_at,null);
+  const emptyQueue=await request('GET','/weekly-challenge/v2/teacher/submissions?status=submitted',teacherToken);
+  assert.equal(emptyQueue.payload.count,0);
+  const submitted=await request('POST',`/weekly-challenge/v2/assignments/${claimed.payload.assignment.id}/submit`,parentToken,{student_note:'第二问使用分类讨论。'});
+  assert.equal(submitted.response.status,200);
+  assert.equal(submitted.payload.assignment.status,'submitted');
+  assert.equal(submitted.payload.assignment.submission.student_note,'第二问使用分类讨论。');
   const queue=await request('GET','/weekly-challenge/v2/teacher/submissions?status=submitted',teacherToken);
   assert.equal(queue.payload.count,1);
+  assert.equal(queue.payload.submissions[0].submission.attachments.length,2);
+  assert.equal(queue.payload.submissions[0].submission.student_note,'第二问使用分类讨论。');
   const reviewed=await request('PUT',`/weekly-challenge/v2/teacher/submissions/${queue.payload.submissions[0].submission.id}/review`,teacherToken,{is_correct:true,teacher_note:'步骤完整'});
   assert.equal(reviewed.response.status,200);assert.equal(reviewed.payload.is_correct,true);
   assert.equal(reviewed.payload.promotion.event_type,'challenge_pass');
@@ -104,6 +122,12 @@ test('连续压轴挑战支持拍照、批改通过、进度累计与手动下�
   assert.equal(current.payload.next_question_type,'subjective');
   const next=await request('POST','/weekly-challenge/v2/assignments',parentToken,{student_id:studentId,grade:'g8',subject:'math',question_type:'fill'});
   assert.equal(next.payload.assignment.question_type,'subjective');
+  const legacyImage=await sharp({create:{width:20,height:20,channels:3,background:'#ccddee'}}).jpeg().toBuffer();
+  const legacyUpload=await request('POST',`/weekly-challenge/v2/assignments/${next.payload.assignment.id}/upload`,parentToken,{base64:legacyImage.toString('base64'),fileName:'legacy-answer.jpg'});
+  assert.equal(legacyUpload.response.status,201);
+  assert.equal(legacyUpload.payload.upload_complete,true);
+  const legacyCurrent=await request('GET',`/weekly-challenge/v2/current?student_id=${studentId}&grade=g8&subject=math`,parentToken);
+  assert.equal(legacyCurrent.payload.assignment.status,'submitted');
 });
 
 test('三类成就只取真实记录，公开姓名为姓加同学且里程碑可配置',async()=>{

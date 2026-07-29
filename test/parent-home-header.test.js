@@ -41,7 +41,21 @@ test('家长首页用小图标组织任务、成长与家校服务，但不依�
     .map((match) => Number(match[1]));
 
   assert.ok(iconNames.length >= 18);
-  for (const name of ['user', 'calculator', 'calendar', 'book', 'trophy', 'target', 'bell', 'message']) {
+  for (const name of [
+    'user',
+    'calculator',
+    'calendar',
+    'book',
+    'trophy',
+    'target',
+    'bell',
+    'message',
+    'school',
+    'clock',
+    'document',
+    'trend',
+    'family',
+  ]) {
     assert.ok(iconNames.includes(name), `家长首页应包含 ${name} 图标`);
   }
   assert.ok(iconSizes.every((size) => size >= 20 && size <= 48));
@@ -50,4 +64,14 @@ test('家长首页用小图标组织任务、成长与家校服务，但不依�
   assert.match(parentHomeSource, /:motion="task\.completed \? 'pop'/);
   assert.doesNotMatch(parentHomeSource, /#(?:5B9DF7|337BD8|FFC94A|B27600|FFF6D8|EDF4FF)/i);
   assert.doesNotMatch(parentHomeSource, /<svg\b|[✓□★⭐🔒📌📚🎯✨💡]/u);
+});
+
+test('家长首页以文具涂鸦、双状态卡和分组容器建立信息层级', () => {
+  assert.match(parentHomeSource, /class="parent-hero-doodle"/);
+  assert.match(parentHomeSource, /class="home-glance-grid"/);
+  assert.equal((parentHomeSource.match(/class="home-section-block/g) || []).length, 2);
+  assert.match(parentHomeSource, /COURSE TRACE/);
+  assert.match(parentHomeSource, /LEARNING KIT/);
+  assert.match(parentHomeSource, /\.home-section-block\s*>\s*\.home-card\s*\{[\s\S]*?box-shadow:\s*none/u);
+  assert.match(parentHomeSource, /\.task-position\.done\s*\{[\s\S]*?background:\s*var\(--primary-soft\)/u);
 });

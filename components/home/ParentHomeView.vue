@@ -23,20 +23,35 @@
           <text class="child-greeting">{{ greeting }}，{{ child.name }}家长</text>
           <text class="child-class">{{ child.className }} · {{ childTeacherName }}</text>
         </view>
+        <view class="parent-hero-doodle" aria-hidden="true">
+          <view class="doodle-line doodle-line-gold"></view>
+          <view class="doodle-line doodle-line-mint"></view>
+          <view class="doodle-paper"></view>
+          <view class="doodle-dot doodle-dot-blue"></view>
+          <view class="doodle-dot doodle-dot-coral"></view>
+        </view>
         <button
           class="mental-hero-mini"
           :aria-label="`查看${child.name}的口算王成绩`"
           @tap="navigate('/pages/mental-arena/index?student_id=' + child.id)"
         >
-          <view class="mental-mini-kicker-row">
+          <view class="mental-mini-icon" aria-hidden="true">
             <pp-icon name="calculator" :size="25" motion="bob" decorative />
-            <text class="mental-mini-kicker">口算王</text>
           </view>
-          <text class="mental-mini-rank">{{ mentalSummary?.rank ? `本周第 ${mentalSummary.rank} 名` : '本周未上榜' }}</text>
-          <text v-if="mentalSummary?.goal && mentalSummary.goal.remaining_score" class="mental-mini-goal">
-            距目标差 {{ mentalSummary.goal.remaining_score }} 分
-          </text>
-          <text v-else class="mental-mini-goal">{{ mentalSummary?.campaign?.reward_text || '前三名有奶茶红包' }}</text>
+          <view class="mental-mini-copy">
+            <view class="mental-mini-kicker-row">
+              <text class="mental-mini-kicker">口算王</text>
+              <text class="mental-mini-rank">{{ mentalSummary?.rank ? `本周第 ${mentalSummary.rank} 名` : '本周未上榜' }}</text>
+            </view>
+            <text v-if="mentalSummary?.goal && mentalSummary.goal.remaining_score" class="mental-mini-goal">
+              距目标差 {{ mentalSummary.goal.remaining_score }} 分
+            </text>
+            <text v-else class="mental-mini-goal">{{ mentalSummary?.campaign?.reward_text || '前三名有奶茶红包' }}</text>
+          </view>
+          <view class="mental-mini-action">
+            <text>查看成绩</text>
+            <pp-icon name="arrow" :size="24" decorative />
+          </view>
         </button>
       </view>
     </view>
@@ -142,8 +157,14 @@
           <pp-icon name="arrow" :size="28" decorative />
         </button>
         <view class="today-footer">
-          <text>近期正确率 {{ learningToday.stats.accuracy === null ? '待积累' : learningToday.stats.accuracy + '%' }}</text>
-          <text>{{ learningToday.stats.open_wrong_count }} 道错题待掌握</text>
+          <view class="today-footer-item">
+            <pp-icon name="trend" :size="22" decorative />
+            <text>近期正确率 {{ learningToday.stats.accuracy === null ? '待积累' : learningToday.stats.accuracy + '%' }}</text>
+          </view>
+          <view class="today-footer-item">
+            <pp-icon name="report" :size="22" decorative />
+            <text>{{ learningToday.stats.open_wrong_count }} 道错题待掌握</text>
+          </view>
         </view>
       </view>
 
@@ -158,30 +179,44 @@
         :class-name="child.className || ''"
       />
 
-      <view v-if="todayStatus" class="home-card status-card">
-        <view class="status-mark" aria-hidden="true">
-          <pp-icon :name="todayStatus.checkedIn ? 'check' : 'calendar'" :size="48" motion="pop" decorative />
+      <view class="home-glance-grid">
+        <view v-if="todayStatus" class="home-card status-card">
+          <view class="status-mark" aria-hidden="true">
+            <pp-icon :name="todayStatus.checkedIn ? 'check' : 'calendar'" :size="40" motion="pop" decorative />
+          </view>
+          <view class="status-content">
+            <text class="status-kicker">今日状态</text>
+            <text :class="['status-badge', statusBadgeClass(todayStatus)]">{{ statusText(todayStatus) }}</text>
+            <text v-if="todayStatus.checkOutNote" class="status-note">{{ todayStatus.checkOutNote }}</text>
+          </view>
         </view>
-        <view class="status-content">
-          <text class="status-kicker">今日状态</text>
-          <text :class="['status-badge', statusBadgeClass(todayStatus)]">{{ statusText(todayStatus) }}</text>
-          <text v-if="todayStatus.checkOutNote" class="status-note">{{ todayStatus.checkOutNote }}</text>
-        </view>
+
+        <button class="home-card notify-strip" :disabled="notifyRequesting" @tap="$emit('subscribe')">
+          <view class="notify-icon" aria-hidden="true"><pp-icon name="bell" :size="36" motion="ring" :delay="260" decorative /></view>
+          <view class="notify-copy">
+            <text class="notify-title">{{ notifyRequesting ? '正在申请提醒' : '开启学习提醒' }}</text>
+            <text class="notify-desc">签到、反馈和作业动态</text>
+          </view>
+          <pp-icon name="arrow" :size="26" decorative />
+        </button>
       </view>
 
-      <button class="home-card notify-strip" :disabled="notifyRequesting" @tap="$emit('subscribe')">
-        <view class="notify-icon" aria-hidden="true"><pp-icon name="bell" :size="42" motion="ring" :delay="260" decorative /></view>
-        <view class="notify-copy">
-          <text class="notify-title">{{ notifyRequesting ? '正在申请提醒' : '开启学习提醒' }}</text>
-          <text class="notify-desc">接收签到、签退、上课、反馈和作业提醒</text>
+      <view class="home-section-block">
+        <view class="home-section-heading">
+          <view class="home-section-icon" aria-hidden="true">
+            <pp-icon name="school" :size="34" motion="pop" decorative />
+          </view>
+          <view class="home-section-copy">
+            <text class="home-section-kicker">COURSE TRACE</text>
+            <text class="home-section-title">课程与沟通</text>
+          </view>
+          <text class="home-section-note">课表 · 反馈</text>
         </view>
-        <pp-icon name="arrow" :size="32" decorative />
-      </button>
 
-      <button class="home-card schedule-card" @tap="navigate('/pages/parent-schedule/index')">
+        <button class="home-card schedule-card" @tap="navigate('/pages/parent-schedule/index')">
         <view class="card-heading">
           <view class="card-title-wrap">
-            <view class="card-title-icon sky" aria-hidden="true"><pp-icon name="calendar" :size="30" motion="pop" :delay="100" decorative /></view>
+            <view class="card-title-icon sky" aria-hidden="true"><pp-icon name="clock" :size="30" motion="pop" :delay="100" decorative /></view>
             <text class="card-title">本周课表</text>
           </view>
           <text class="card-link">进入学习小组详情</text>
@@ -195,12 +230,12 @@
           </view>
           <pp-icon name="arrow" :size="30" decorative />
         </view>
-      </button>
+        </button>
 
-      <view class="home-card feedback-card">
+        <view class="home-card feedback-card">
         <view class="card-heading">
           <view class="card-title-wrap">
-            <view class="card-title-icon coral" aria-hidden="true"><pp-icon name="message" :size="30" motion="ring" :delay="160" decorative /></view>
+            <view class="card-title-icon coral" aria-hidden="true"><pp-icon name="document" :size="30" motion="ring" :delay="160" decorative /></view>
             <text class="card-title">最新反馈</text>
           </view>
           <button class="card-link-button" @tap="navigate('/pages/parent-feedback/index')">全部反馈</button>
@@ -226,9 +261,9 @@
           <text class="feedback-preview">{{ studentPreview(studentFeedback.text) }}</text>
         </button>
         <view v-if="!latestFeedback && !studentFeedback" class="hint">暂无反馈</view>
-      </view>
+        </view>
 
-      <view v-if="parentOpinions.length" class="home-card opinion-card">
+        <view v-if="parentOpinions.length" class="home-card opinion-card">
         <view class="card-heading">
           <view class="card-title-wrap">
             <view class="card-title-icon yellow" aria-hidden="true"><pp-icon name="pencil" :size="30" motion="pop" :delay="220" decorative /></view>
@@ -250,9 +285,22 @@
           <text class="opinion-content">{{ item.content }}</text>
           <text v-if="item.reply" class="opinion-reply">老师：{{ item.reply }}</text>
         </button>
+        </view>
       </view>
 
-      <view class="home-card learning-shortcuts">
+      <view class="home-section-block learning-service-block">
+        <view class="home-section-heading">
+          <view class="home-section-icon mint" aria-hidden="true">
+            <pp-icon name="trend" :size="34" motion="shine" :delay="120" decorative />
+          </view>
+          <view class="home-section-copy">
+            <text class="home-section-kicker">LEARNING KIT</text>
+            <text class="home-section-title">学习与服务</text>
+          </view>
+          <text class="home-section-note">练习 · 家校</text>
+        </view>
+
+        <view class="home-card learning-shortcuts">
         <view class="card-heading">
           <view class="card-title-wrap">
             <view class="card-title-icon mint" aria-hidden="true"><pp-icon name="lightbulb" :size="30" motion="shine" decorative /></view>
@@ -272,11 +320,11 @@
             <text class="shortcut-desc">一模 · 期中 · 期末</text>
           </button>
         </view>
-      </view>
+        </view>
 
-      <view class="home-card parent-tools">
+        <view class="home-card parent-tools">
         <view class="card-title-wrap service-title">
-          <view class="card-title-icon sky" aria-hidden="true"><pp-icon name="home" :size="30" motion="pop" decorative /></view>
+          <view class="card-title-icon sky" aria-hidden="true"><pp-icon name="family" :size="30" motion="pop" decorative /></view>
           <text class="card-title">常用服务</text>
         </view>
         <view class="tool-grid">
@@ -296,6 +344,7 @@
             <text class="leave-date">{{ item.class_date }}</text>
             <text :class="['leave-status', item.status]">{{ item.status === 'pending' ? '待审批' : item.status === 'approved' ? '已批准' : '已拒绝' }}</text>
           </view>
+        </view>
         </view>
       </view>
     </template>
@@ -470,7 +519,7 @@ function scheduleLabel(schedule) {
 
 <style scoped>
 .parent-home {
-  padding: 18rpx 24rpx 10rpx;
+  padding: 14rpx 24rpx 28rpx;
 }
 
 .child-switcher {
@@ -535,8 +584,8 @@ function scheduleLabel(schedule) {
 .parent-hero {
   position: relative;
   overflow: hidden;
-  padding: 46rpx 30rpx 28rpx 36rpx;
-  border: 1rpx solid #C9DAF0;
+  padding: 42rpx 30rpx 22rpx 36rpx;
+  border: 1rpx solid var(--border);
   border-radius: 16rpx;
   background-color: #FFFFFF;
   background-image: repeating-linear-gradient(
@@ -546,7 +595,7 @@ function scheduleLabel(schedule) {
     rgba(82, 124, 201, .09) 52rpx,
     rgba(82, 124, 201, .09) 53rpx
   );
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
   animation: parent-enter var(--motion-slow) var(--ease-out) both;
 }
 
@@ -576,9 +625,9 @@ function scheduleLabel(schedule) {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 208rpx;
-  align-items: center;
-  gap: 20rpx;
+  grid-template-columns: minmax(0, 1fr) 142rpx;
+  align-items: start;
+  gap: 16rpx 20rpx;
 }
 
 .parent-hero-copy {
@@ -613,62 +662,163 @@ function scheduleLabel(schedule) {
   line-height: 1.45;
 }
 
+.parent-hero-doodle {
+  position: relative;
+  width: 132rpx;
+  height: 82rpx;
+  align-self: center;
+  justify-self: end;
+  margin-top: 20rpx;
+  transform: rotate(-3deg);
+}
+
+.doodle-line {
+  position: absolute;
+  left: 6rpx;
+  height: 7rpx;
+  border-radius: 6rpx;
+  transform-origin: left center;
+}
+
+.doodle-line-gold {
+  top: 25rpx;
+  width: 84rpx;
+  background: var(--gold);
+  transform: rotate(-7deg);
+}
+
+.doodle-line-mint {
+  top: 45rpx;
+  left: 28rpx;
+  width: 62rpx;
+  background: var(--accent);
+  transform: rotate(-5deg);
+}
+
+.doodle-paper {
+  position: absolute;
+  top: 8rpx;
+  right: 2rpx;
+  width: 44rpx;
+  height: 52rpx;
+  border: 2rpx solid rgba(214, 109, 98, .42);
+  border-radius: 4rpx;
+  background: rgba(255, 255, 255, .74);
+  transform: rotate(8deg);
+}
+
+.doodle-paper::before {
+  content: '';
+  position: absolute;
+  top: 10rpx;
+  left: 9rpx;
+  width: 24rpx;
+  height: 2rpx;
+  background: rgba(82, 124, 201, .26);
+  box-shadow: 0 9rpx 0 rgba(82, 124, 201, .18), 0 18rpx 0 rgba(82, 124, 201, .18);
+}
+
+.doodle-dot {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+}
+
+.doodle-dot-blue {
+  right: 28rpx;
+  bottom: 2rpx;
+  background: var(--primary);
+}
+
+.doodle-dot-coral {
+  right: 5rpx;
+  bottom: 18rpx;
+  background: var(--coral);
+}
+
 .mental-hero-mini {
-  min-height: 124rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 82rpx;
+  display: grid;
+  grid-template-columns: 54rpx minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14rpx;
   margin: 0;
-  padding: 18rpx 16rpx;
-  border: 1rpx solid #A9E1CE;
-  border-radius: 14rpx;
-  background: #EAF9F3;
+  padding: 12rpx 14rpx;
+  border: 1rpx solid #CBE3DD;
+  border-radius: 13rpx;
+  background: var(--accent-soft);
   text-align: left;
-  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .08);
+  box-shadow: none;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
 
+.mental-mini-icon {
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #BBDCD3;
+  border-radius: 13rpx;
+  background: #FFFFFF;
+}
+
+.mental-mini-copy {
+  min-width: 0;
+}
+
 .mental-mini-kicker {
-  color: var(--primary-strong);
-  font-size: 19rpx;
-  font-weight: 850;
+  color: var(--accent-strong);
+  font-size: 20rpx;
+  font-weight: 780;
   letter-spacing: 0;
 }
 
 .mental-mini-kicker-row {
   display: flex;
   align-items: center;
-  gap: 7rpx;
-  color: var(--primary-strong);
+  gap: 12rpx;
+  color: var(--accent-strong);
 }
 
 .mental-mini-rank {
-  display: block;
-  margin-top: 4rpx;
+  display: inline;
+  margin-top: 0;
   color: var(--ink);
-  font-size: 26rpx;
-  font-weight: 800;
+  font-size: 23rpx;
+  font-weight: 740;
 }
 
 .mental-mini-goal {
   display: block;
-  margin-top: 4rpx;
+  margin-top: 2rpx;
   color: var(--text-secondary);
   font-size: 18rpx;
   line-height: 1.4;
 }
 
+.mental-mini-action {
+  display: flex;
+  align-items: center;
+  gap: 5rpx;
+  color: var(--primary-strong);
+  font-size: 19rpx;
+  font-weight: 700;
+}
+
 .parent-section-nav {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8rpx;
-  margin-top: 18rpx;
-  padding: 8rpx;
+  gap: 6rpx;
+  margin-top: 14rpx;
+  padding: 7rpx;
   border: 1rpx solid var(--border);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 3rpx 10rpx rgba(49, 94, 168, .035);
 }
 
 .parent-nav-item {
@@ -810,12 +960,13 @@ function scheduleLabel(schedule) {
 }
 
 .today-learning-card {
-  margin-top: 20rpx;
+  margin-top: 18rpx;
   overflow: hidden;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid var(--border);
+  border-top: 5rpx solid var(--primary);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .today-learning-head {
@@ -823,8 +974,8 @@ function scheduleLabel(schedule) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18rpx;
-  padding: 28rpx 26rpx 22rpx;
-  background: #E8F9F2;
+  padding: 24rpx 24rpx 20rpx;
+  background: linear-gradient(120deg, var(--accent-soft) 0%, #FFFFFF 76%);
   color: var(--ink);
 }
 
@@ -837,16 +988,16 @@ function scheduleLabel(schedule) {
 
 .today-eyebrow {
   display: block;
-  color: var(--primary-strong);
-  font-size: 19rpx;
+  color: var(--accent-strong);
+  font-size: 18rpx;
   font-weight: 780;
   letter-spacing: 0;
 }
 
 .today-title {
   display: block;
-  margin-top: 4rpx;
-  font-size: 33rpx;
+  margin-top: 2rpx;
+  font-size: 31rpx;
   font-weight: 780;
 }
 
@@ -859,29 +1010,30 @@ function scheduleLabel(schedule) {
 }
 
 .today-percent {
-  width: 90rpx;
-  height: 90rpx;
+  width: 82rpx;
+  height: 62rpx;
   display: flex;
   align-items: baseline;
   justify-content: center;
   flex: none;
-  padding-top: 17rpx;
-  border: 2rpx solid #AFC5E7;
+  padding-top: 9rpx;
+  border: 1rpx solid #BFD0EC;
   background: #FFFFFF;
-  border-radius: 50%;
+  border-radius: 13rpx;
   box-sizing: border-box;
   color: var(--primary-strong);
-  font-size: 19rpx;
+  font-size: 17rpx;
+  box-shadow: 0 4rpx 10rpx rgba(49, 94, 168, .05);
 }
 
 .today-percent .num {
-  font-size: 36rpx;
+  font-size: 32rpx;
   font-weight: 820;
 }
 
 .today-progress {
   position: relative;
-  height: 8rpx;
+  height: 6rpx;
   overflow: hidden;
   background: #EDF5FF;
 }
@@ -897,10 +1049,10 @@ function scheduleLabel(schedule) {
 .today-progress-fill::after {
   content: '';
   position: absolute;
-  top: -3rpx;
-  right: 0;
-  width: 14rpx;
-  height: 14rpx;
+  top: -2rpx;
+  right: 1rpx;
+  width: 10rpx;
+  height: 10rpx;
   border-radius: 50%;
   background: #FFFFFF;
   opacity: .76;
@@ -909,12 +1061,12 @@ function scheduleLabel(schedule) {
 
 .today-task {
   width: 100%;
-  min-height: 90rpx;
+  min-height: 92rpx;
   display: flex;
   align-items: center;
   gap: 14rpx;
   margin: 0;
-  padding: 14rpx 22rpx;
+  padding: 15rpx 22rpx;
   border-bottom: 1rpx solid var(--hairline);
   border-radius: 0;
   background: #FFFFFF;
@@ -957,8 +1109,9 @@ function scheduleLabel(schedule) {
 }
 
 .task-position.done {
-  background: var(--primary-strong);
-  color: #FFFFFF;
+  border: 1rpx solid #BFD0EC;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
 }
 
 .task-position.pending {
@@ -1000,22 +1153,121 @@ function scheduleLabel(schedule) {
 .today-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12rpx;
-  padding: 18rpx 22rpx 20rpx;
+  padding: 15rpx 22rpx 17rpx;
   background: #F8FBFF;
   color: var(--text-muted);
   font-size: 19rpx;
 }
 
+.today-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
+}
+
 .home-card {
   width: 100%;
-  margin-top: 18rpx;
-  padding: 26rpx;
+  margin-top: 16rpx;
+  padding: 24rpx;
   border: 1rpx solid var(--border);
   border-radius: 16rpx;
   background: #FFFFFF;
   box-sizing: border-box;
   box-shadow: var(--shadow-sm);
+}
+
+.home-glance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.home-glance-grid .home-card {
+  min-width: 0;
+  margin-top: 0;
+  padding: 18rpx;
+}
+
+.home-section-block {
+  margin-top: 20rpx;
+  overflow: hidden;
+  border: 1rpx solid var(--border);
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-section-heading {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 16rpx 22rpx;
+  border-bottom: 1rpx solid var(--hairline);
+  background: var(--surface-muted);
+}
+
+.home-section-icon {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1rpx solid #D1DFF0;
+  border-radius: 14rpx;
+  background: var(--primary-soft);
+}
+
+.home-section-icon.mint {
+  border-color: #CBE3DD;
+  background: var(--accent-soft);
+}
+
+.home-section-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.home-section-kicker,
+.home-section-title {
+  display: block;
+}
+
+.home-section-kicker {
+  color: var(--primary);
+  font-size: 16rpx;
+  font-weight: 800;
+  letter-spacing: .5rpx;
+}
+
+.home-section-title {
+  margin-top: 1rpx;
+  color: var(--ink);
+  font-size: 28rpx;
+  font-weight: 760;
+}
+
+.home-section-note {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 20rpx;
+}
+
+.home-section-block > .home-card {
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-section-block > .feedback-card,
+.home-section-block > .opinion-card,
+.home-section-block > .parent-tools {
+  border-top: 1rpx solid var(--hairline);
 }
 
 .learning-error-strip {
@@ -1040,21 +1292,21 @@ function scheduleLabel(schedule) {
 }
 
 .status-card {
-  min-height: 104rpx;
+  min-height: 112rpx;
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 14rpx;
 }
 
 .status-mark,
 .notify-icon {
-  width: 72rpx;
-  height: 72rpx;
+  width: 60rpx;
+  height: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  border-radius: 16rpx;
+  border-radius: 14rpx;
   background: var(--primary-soft);
 }
 
@@ -1072,8 +1324,9 @@ function scheduleLabel(schedule) {
   display: block;
   margin-top: 2rpx;
   color: var(--ink);
-  font-size: 29rpx;
+  font-size: 25rpx;
   font-weight: 730;
+  line-height: 1.35;
 }
 
 .status-badge.done,
@@ -1097,10 +1350,10 @@ function scheduleLabel(schedule) {
 }
 
 .notify-strip {
-  min-height: 90rpx;
+  min-height: 112rpx;
   display: flex;
   align-items: center;
-  gap: 18rpx;
+  gap: 13rpx;
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
@@ -1113,7 +1366,7 @@ function scheduleLabel(schedule) {
 .notify-title {
   display: block;
   color: var(--ink);
-  font-size: 27rpx;
+  font-size: 25rpx;
   font-weight: 700;
 }
 
@@ -1121,7 +1374,7 @@ function scheduleLabel(schedule) {
   display: block;
   margin-top: 2rpx;
   color: var(--text-muted);
-  font-size: 22rpx;
+  font-size: 20rpx;
   line-height: 1.45;
 }
 
@@ -1437,7 +1690,7 @@ function scheduleLabel(schedule) {
   z-index: 99;
   display: flex;
   align-items: flex-end;
-  background: rgba(30, 52, 43, .42);
+  background: rgba(36, 50, 74, .46);
   animation: modal-mask-enter var(--motion-base) ease-out both;
 }
 
@@ -1480,8 +1733,8 @@ function scheduleLabel(schedule) {
   min-height: 88rpx;
   margin: 18rpx 0 0;
   border-radius: 14rpx;
-  background: var(--primary);
-  color: #243E70;
+  background: var(--primary-strong);
+  color: #FFFFFF;
   font-size: 27rpx;
   font-weight: 720;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
@@ -1587,15 +1840,27 @@ function scheduleLabel(schedule) {
   }
 
   .parent-hero {
-    padding-right: 24rpx;
+    padding-right: 22rpx;
   }
 
   .parent-hero-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 112rpx;
   }
 
   .mental-hero-mini {
-    min-height: 108rpx;
+    grid-template-columns: 50rpx minmax(0, 1fr) auto;
+    min-height: 82rpx;
+  }
+
+  .parent-hero-doodle {
+    width: 106rpx;
+    transform: scale(.88) rotate(-3deg);
+    transform-origin: center;
+  }
+
+  .mental-mini-action text,
+  .home-section-note {
+    display: none;
   }
 
   .child-greeting {
@@ -1609,6 +1874,11 @@ function scheduleLabel(schedule) {
 
   .today-footer {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .home-glance-grid {
+    grid-template-columns: 1fr;
   }
 }
 

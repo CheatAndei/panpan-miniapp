@@ -839,6 +839,7 @@ CREATE TABLE IF NOT EXISTS challenge_submissions_v2 (
   parent_id INTEGER NOT NULL REFERENCES users(id),
   attempt_no INTEGER NOT NULL DEFAULT 1,
   status TEXT NOT NULL DEFAULT 'submitted' CHECK(status IN ('submitted','reviewed')),
+  student_note TEXT,
   teacher_note TEXT,
   is_correct INTEGER CHECK(is_correct IN (0,1)),
   submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,

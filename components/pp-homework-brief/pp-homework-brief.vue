@@ -33,24 +33,24 @@ defineProps({
 .homework-brief {
   position: relative;
   display: flex;
-  margin: 22rpx 24rpx;
+  margin: 16rpx 0 0;
   overflow: hidden;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid var(--border);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: 0 5rpx 16rpx rgba(36, 50, 74, .055);
+  box-shadow: var(--shadow-sm);
 }
-.brief-rail { width: 10rpx; flex-shrink: 0; background: #527CC9; }
-.brief-main { flex: 1; min-width: 0; padding: 22rpx 24rpx 20rpx; }
-.brief-head { display: flex; align-items: center; min-height: 64rpx; }
-.brief-icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 12rpx; background: #EAF2FF; color: #315EA8; }
-.brief-heading { flex: 1; min-width: 0; margin-left: 16rpx; }
-.brief-kicker { display: block; color: #315EA8; font-size: 20rpx; font-weight: 680; letter-spacing: 0; }
-.brief-title { display: block; margin-top: 1rpx; color: #24324A; font-size: 30rpx; font-weight: 760; }
-.brief-date { margin-left: 14rpx; padding: 7rpx 12rpx; flex-shrink: 0; border-radius: 8rpx; background: #EAF2FF; color: #315EA8; font-size: 21rpx; }
-.brief-rule { height: 2rpx; margin: 16rpx 0 13rpx; background: repeating-linear-gradient(90deg, #527CC9 0, #527CC9 12rpx, transparent 12rpx, transparent 23rpx); }
-.brief-content { display: block; color: #24324A; font-size: 28rpx; font-weight: 520; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
-.brief-empty-title { display: block; color: #5C6C84; font-size: 26rpx; font-weight: 620; line-height: 1.6; }
-.brief-empty-copy { display: block; margin-top: 3rpx; color: #5C6C84; font-size: 22rpx; line-height: 1.6; }
-.brief-class { display: block; margin-top: 14rpx; color: #315EA8; font-size: 21rpx; }
+.brief-rail { width: 7rpx; flex-shrink: 0; background: var(--primary); }
+.brief-main { flex: 1; min-width: 0; padding: 18rpx 21rpx 17rpx; }
+.brief-head { display: flex; align-items: center; min-height: 58rpx; }
+.brief-icon { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1rpx solid #D1DFF0; border-radius: 12rpx; background: var(--primary-soft); color: var(--primary-strong); }
+.brief-heading { flex: 1; min-width: 0; margin-left: 14rpx; }
+.brief-kicker { display: block; color: var(--primary-strong); font-size: 18rpx; font-weight: 700; letter-spacing: 0; }
+.brief-title { display: block; margin-top: 1rpx; color: var(--ink); font-size: 28rpx; font-weight: 760; }
+.brief-date { margin-left: 12rpx; padding: 6rpx 10rpx; flex-shrink: 0; border-radius: 8rpx; background: var(--primary-soft); color: var(--primary-strong); font-size: 19rpx; }
+.brief-rule { height: 1rpx; margin: 14rpx 0 11rpx; background: repeating-linear-gradient(90deg, var(--primary) 0, var(--primary) 12rpx, transparent 12rpx, transparent 23rpx); opacity: .72; }
+.brief-content { display: block; color: var(--ink); font-size: 26rpx; font-weight: 540; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.brief-empty-title { display: block; color: var(--text-secondary); font-size: 25rpx; font-weight: 620; line-height: 1.6; }
+.brief-empty-copy { display: block; margin-top: 3rpx; color: var(--text-muted); font-size: 21rpx; line-height: 1.6; }
+.brief-class { display: block; margin-top: 11rpx; color: var(--primary-strong); font-size: 20rpx; }
 </style>

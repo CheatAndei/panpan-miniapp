@@ -36,11 +36,17 @@
       </view>
 
       <view class="submit-card">
-        <view class="submit-head"><view class="section-title-row"><pp-icon name="pencil" :size="30" motion="pop" :delay="240" /><view><text class="section-title">拍照提交解题过程</text><text class="section-desc">写清题号和步骤，最多 4 张；答案仅老师批阅时可见。</text></view></view><text v-if="photoCount" class="count">{{ photoCount }} 张</text></view>
+        <view class="submit-head"><view class="section-title-row"><pp-icon name="pencil" :size="30" motion="pop" :delay="240" /><view><text class="section-title">整理后再确认提交</text><text class="section-desc">先上传 1–4 张解题图片，可补充文字；确认后老师才会收到。</text></view></view><text v-if="photoCount" class="count">{{ photoCount }} 张</text></view>
         <view v-if="localPhotos.length" class="photo-grid"><image v-for="(src,index) in localPhotos" :key="src" :src="src" mode="aspectFill" @tap="previewPhotos(index)" /></view>
-        <button class="upload-btn" :disabled="uploading || assignment.status==='submitted' || photoCount>=4" @tap="chooseAndUpload">{{ assignment.status==='submitted'?'等待老师批阅':uploading?`正在上传 ${uploadProgress}`:assignment.status==='reviewed_wrong'?'重新拍照提交':photoCount?'继续补充照片':'拍照或选择图片' }}</button>
-        <view v-if="assignment.submission" :class="['review-state',assignment.submission.status]">
+        <template v-if="assignment.status!=='submitted'">
+          <button class="upload-btn photo-upload-btn" :disabled="uploading || submitting || photoCount>=4" @tap="chooseAndUpload">{{ uploading?`正在暂存 ${uploadProgress}`:photoCount>=4?'已上传 4 张':photoCount?'继续添加图片':'拍照或选择图片' }}</button>
+          <textarea v-model="answerText" class="answer-text" maxlength="500" placeholder="补充解题思路或说明（选填）" />
+          <text v-if="photoCount" class="draft-note">已暂存 {{ photoCount }} 张图片；点击下方按钮后才会送达老师。</text>
+          <button class="submit-btn" :disabled="uploading || submitting || photoCount<1" @tap="submitChallenge">{{ submitting?'正在提交…':'确认提交给老师' }}</button>
+        </template>
+        <view v-if="assignment.submission && (assignment.status==='submitted' || assignment.status==='reviewed_wrong')" :class="['review-state',assignment.status]">
           <text class="review-title">{{ assignment.status==='reviewed_wrong'?'本次未通过，可修改后重新提交同一道题':'提交成功，等待老师批阅' }}</text>
+          <text v-if="assignment.submission.student_note" class="student-note">{{ assignment.submission.student_note }}</text>
           <text v-if="assignment.submission.teacher_note" class="review-note">{{ assignment.submission.teacher_note }}</text>
         </view>
       </view>
@@ -61,21 +67,25 @@ import { computed, ref } from 'vue';
 import { onBackPress, onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 
-const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(false),imageLoading=ref(false);
-const error=ref(''),uploadProgress=ref(''),assignment=ref(null),lastPassed=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
+const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(false),submitting=ref(false),imageLoading=ref(false);
+const error=ref(''),uploadProgress=ref(''),answerText=ref(''),assignment=ref(null),lastPassed=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
 const gradeCode=ref('g7'),progress=ref({}),canChange=ref(false),changeRemaining=ref(0),nextQuestionType=ref(null);
 let allowBack=false,loadPromise=null,reloadCurrent=false;
 const types=[
   {value:'fill',short:'填',label:'填空题',desc:'原卷最后一道填空，准确计算并规范作答'},
   {value:'subjective',short:'解',label:'解答题',desc:'原卷最后两道大题，完整表达推理过程'},
 ];
-const photoCount=computed(()=>assignment.value?.status==='reviewed_wrong'?0:(assignment.value?.submission?.attachments?.length||0));
+const photoCount=computed(()=>{
+  const submission=assignment.value?.submission;
+  if(assignment.value?.status==='reviewed_wrong'&&submission?.status==='reviewed')return 0;
+  return submission?.attachments?.length||0;
+});
 onLoad((query)=>{studentId.value=Number(query.student_id||uni.getStorageSync('activeChildId')||0);gradeCode.value=['g7','g8','g9'].includes(String(query.grade||''))?String(query.grade):'g7';});
 onShow(()=>{if(studentId.value)loadCurrent();});
 onPullDownRefresh(async()=>{try{await loadCurrent();}finally{uni.stopPullDownRefresh();}});
 onBackPress(()=>{
-  if(allowBack || !assignment.value || assignment.value.submission)return false;
-  uni.showModal({title:'暂存并退出挑战？',content:'这道压轴题会保留，下次进入可继续拍照提交。',confirmText:'暂存退出',cancelText:'继续完成',success:(res)=>{if(res.confirm){allowBack=true;uni.navigateBack();}}});
+  if(allowBack || !assignment.value || assignment.value.status==='submitted')return false;
+  uni.showModal({title:'暂存并退出挑战？',content:'已上传图片会保留，未提交的文字不会保存；下次进入可继续完成。',confirmText:'暂存退出',cancelText:'继续完成',success:(res)=>{if(res.confirm){allowBack=true;uni.navigateBack();}}});
   return true;
 });
 async function runCurrentLoads(){
@@ -83,7 +93,7 @@ async function runCurrentLoads(){
   try{
     do{
       reloadCurrent=false;error.value='';
-      try{const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value)await loadImages();else{questionImage.value='';localPhotos.value=[];}}
+      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
       catch(e){error.value=e?.error||'请检查网络后重试';}
     }while(reloadCurrent);
   }finally{loading.value=false;}
@@ -100,17 +110,23 @@ async function loadImages(){
 }
 async function claim(type){
   if(claiming.value)return;claiming.value=true;
-  try{if(loadPromise)await loadPromise;const data=await api.post('/weekly-challenge/v2/assignments',{student_id:studentId.value,grade:gradeCode.value,subject:'math',question_type:type});assignment.value=data.assignment;lastPassed.value=null;await loadCurrent();}
+  try{if(loadPromise)await loadPromise;const data=await api.post('/weekly-challenge/v2/assignments',{student_id:studentId.value,grade:gradeCode.value,subject:'math',question_type:type});answerText.value='';assignment.value=data.assignment;lastPassed.value=null;await loadCurrent();}
   catch(e){uni.showToast({title:e?.error||'领取失败',icon:'none'});}finally{claiming.value=false;}
 }
 function chooseImages(){return new Promise((resolve,reject)=>{const count=Math.max(1,4-photoCount.value);if(uni.chooseMedia)uni.chooseMedia({count,mediaType:['image'],sourceType:['camera','album'],success:r=>resolve((r.tempFiles||[]).map(f=>f.tempFilePath)),fail:reject});else uni.chooseImage({count,sourceType:['camera','album'],success:r=>resolve(r.tempFilePaths||[]),fail:reject});});}
 async function chooseAndUpload(){
-  try{const files=await chooseImages();if(!files.length)return;uploading.value=true;for(let i=0;i<files.length;i++){uploadProgress.value=`${i+1}/${files.length}`;await api.upload(`/weekly-challenge/v2/assignments/${assignment.value.id}/upload`,files[i],'image');}uni.showToast({title:'挑战已提交',icon:'success'});await loadCurrent();}
+  try{const files=await chooseImages();if(!files.length)return;uploading.value=true;for(let i=0;i<files.length;i++){uploadProgress.value=`${i+1}/${files.length}`;await api.upload(`/weekly-challenge/v2/assignments/${assignment.value.id}/upload?upload_complete=0`,files[i],'image');}uni.showToast({title:'图片已暂存',icon:'success'});await loadCurrent();}
   catch(e){if(!/cancel/i.test(e?.errMsg||''))uni.showToast({title:e?.error||'上传失败',icon:'none'});}finally{uploading.value=false;uploadProgress.value='';}
+}
+async function submitChallenge(){
+  if(submitting.value||uploading.value||photoCount.value<1||!assignment.value)return;
+  submitting.value=true;
+  try{const data=await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/submit`,{student_note:answerText.value.trim()});assignment.value=data.assignment;uni.showToast({title:'挑战已提交',icon:'success'});await loadCurrent();}
+  catch(e){uni.showToast({title:e?.error||'提交失败，请重试',icon:'none'});}finally{submitting.value=false;}
 }
 async function changeQuestion(){
   if(!assignment.value||!canChange.value||claiming.value)return;claiming.value=true;
-  try{await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/change`,{});uni.showToast({title:'已更换题目',icon:'success'});await loadCurrent();}
+  try{await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/change`,{});answerText.value='';uni.showToast({title:'已更换题目',icon:'success'});await loadCurrent();}
   catch(e){uni.showToast({title:e?.error||'更换失败',icon:'none'});}finally{claiming.value=false;}
 }
 function typeLabel(type){return types.find(item=>item.value===type)?.label||'压轴题';}
@@ -119,7 +135,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 48rpx}.hero{margin:0 -24rpx 22rpx;padding:50rpx 34rpx 44rpx}.eyebrow{display:block;font-size:19rpx;font-weight:800}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;font-size:23rpx}.choose-card,.challenge-card,.submit-card{margin-bottom:18rpx;padding:28rpx}.section-title{display:block;font-size:30rpx;font-weight:750}.section-desc{display:block;margin-top:6rpx;font-size:22rpx;line-height:1.5}.type-card{width:100%;min-height:112rpx;display:flex;align-items:center;gap:17rpx;margin:18rpx 0 0;padding:17rpx;text-align:left}.type-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;font-size:28rpx;font-weight:850}.type-copy{flex:1}.type-title{display:block;font-size:27rpx;font-weight:720}.type-desc{display:block;margin-top:3rpx;font-size:20rpx}.challenge-head,.submit-head{display:flex;justify-content:space-between;gap:18rpx}.type-pill{display:inline-block;padding:6rpx 13rpx;font-size:20rpx;font-weight:720}.challenge-title{display:block;margin-top:10rpx;font-size:29rpx;font-weight:740}.week-label,.count{flex:none;font-size:20rpx}.source{display:block;margin-top:7rpx;font-size:21rpx}.question-image{width:100%;margin-top:22rpx}.upload-btn{min-height:88rpx;margin:22rpx 0 0;font-size:27rpx;font-weight:720}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:20rpx}.photo-grid image{width:100%;height:180rpx}.review-state{margin-top:18rpx;padding:18rpx}.review-title{display:block;font-size:24rpx;font-weight:720}.review-note{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
+.page{min-height:100vh;padding:0 24rpx 48rpx}.hero{margin:0 -24rpx 22rpx;padding:50rpx 34rpx 44rpx}.eyebrow{display:block;font-size:19rpx;font-weight:800}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;font-size:23rpx}.choose-card,.challenge-card,.submit-card{margin-bottom:18rpx;padding:28rpx}.section-title{display:block;font-size:30rpx;font-weight:750}.section-desc{display:block;margin-top:6rpx;font-size:22rpx;line-height:1.5}.type-card{width:100%;min-height:112rpx;display:flex;align-items:center;gap:17rpx;margin:18rpx 0 0;padding:17rpx;text-align:left}.type-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;font-size:28rpx;font-weight:850}.type-copy{flex:1}.type-title{display:block;font-size:27rpx;font-weight:720}.type-desc{display:block;margin-top:3rpx;font-size:20rpx}.challenge-head,.submit-head{display:flex;justify-content:space-between;gap:18rpx}.type-pill{display:inline-block;padding:6rpx 13rpx;font-size:20rpx;font-weight:720}.challenge-title{display:block;margin-top:10rpx;font-size:29rpx;font-weight:740}.week-label,.count{flex:none;font-size:20rpx}.source{display:block;margin-top:7rpx;font-size:21rpx}.question-image{width:100%;margin-top:22rpx}.upload-btn,.submit-btn{min-height:88rpx;margin:22rpx 0 0;font-size:27rpx;font-weight:720}.answer-text{box-sizing:border-box;width:100%;min-height:150rpx;margin-top:16rpx;padding:18rpx;font-size:24rpx;line-height:1.55}.draft-note{display:block;margin-top:12rpx;font-size:21rpx;line-height:1.5}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:20rpx}.photo-grid image{width:100%;height:180rpx}.review-state{margin-top:18rpx;padding:18rpx}.review-title{display:block;font-size:24rpx;font-weight:720}.student-note,.review-note{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
 .change-btn{min-height:68rpx;margin:14rpx 0 0;font-size:22rpx}.passed-card{margin-bottom:18rpx;padding:42rpx 28rpx;text-align:center}.passed-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:46rpx;font-weight:800}.passed-title{display:block;margin-top:18rpx;font-size:34rpx;font-weight:800}.passed-desc{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
 .poster-btn{min-height:76rpx;margin:20rpx 0 10rpx;font-size:23rpx;font-weight:760}
 
@@ -151,13 +167,16 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 }
 
 .upload-btn,
+.submit-btn,
 .poster-btn {
   min-height: 112rpx;
 }
 .upload-btn:active,
+.submit-btn:active,
 .poster-btn:active,
 .change-btn:active { transform: scale(var(--tap-scale)); }
 .upload-btn[disabled],
+.submit-btn[disabled],
 .poster-btn[disabled],
 .change-btn[disabled] { opacity: .5; }
 
@@ -171,6 +190,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 @media (prefers-reduced-motion: reduce) {
   .type-card:active,
   .upload-btn:active,
+  .submit-btn:active,
   .poster-btn:active,
   .change-btn:active { transform: none; }
 }
@@ -338,6 +358,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 }
 
 .student-challenge-page .upload-btn,
+.student-challenge-page .submit-btn,
 .student-challenge-page .poster-btn {
   min-height: 96rpx;
   border-radius: var(--r-sm);
@@ -346,6 +367,28 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 
 .student-challenge-page .upload-btn {
   background: var(--primary);
+  color: #FFFFFF;
+}
+
+.student-challenge-page .photo-upload-btn {
+  border: 1rpx solid #CADCF2;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.student-challenge-page .answer-text {
+  border: 1rpx solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.student-challenge-page .draft-note {
+  color: var(--text-muted);
+}
+
+.student-challenge-page .submit-btn {
+  background: var(--primary-strong);
   color: #FFFFFF;
 }
 
@@ -382,6 +425,10 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 
 .student-challenge-page .review-note {
   color: var(--text-secondary);
+}
+
+.student-challenge-page .student-note {
+  color: var(--ink);
 }
 
 .student-challenge-page .passed-card {

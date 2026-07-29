@@ -7,7 +7,8 @@ const { decodePrivateImage, storePrivateFile, removePrivateFile } = require('../
 const { resolveExamPath } = require('../utils/exam-files');
 const { weekStartKey } = require('../services/learning');
 const {
-  assignmentRow: assignmentRowV2, currentState: currentStateV2, createAssignment: createAssignmentV2,
+  assignmentRow: assignmentRowV2, serializeAssignment: serializeAssignmentV2,
+  currentState: currentStateV2, createAssignment: createAssignmentV2,
   changeAssignment: changeAssignmentV2, teacherQueue: teacherQueueV2, teacherQueueCount: teacherQueueCountV2,
   reviewSubmission: reviewSubmissionV2,
 } = require('../services/challenge-v2');
@@ -102,21 +103,25 @@ router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => 
   const db=getDB();
   const assignment=assignmentRowV2(db,Number(req.params.id));
   if(!assignment||!boundStudent(db,req.user.id,assignment.student_id))return res.status(404).json({error:'挑战不存在'});
-  if(!['active','submitted','reviewed_wrong'].includes(assignment.status))return res.status(409).json({error:'当前挑战不能继续提交'});
+  const uploadCompleteValue=req.query?.upload_complete??req.body?.upload_complete;
+  const uploadComplete=uploadCompleteValue===undefined
+    || !['0','false'].includes(String(uploadCompleteValue).toLowerCase());
+  const allowedStatuses=uploadComplete?['active','submitted','reviewed_wrong']:['active','reviewed_wrong'];
+  if(!allowedStatuses.includes(assignment.status))return res.status(409).json({error:'当前挑战不能继续提交'});
   let decoded;
   try{decoded=await decodePrivateImage(req.body?.base64);}catch(error){return res.status(400).json({error:error.message});}
   let stored;
   try{
     const result=db.transaction(()=>{
       const freshAssignment=assignmentRowV2(db,assignment.id);
-      if(!freshAssignment||!['active','submitted','reviewed_wrong'].includes(freshAssignment.status)){
+      if(!freshAssignment||!allowedStatuses.includes(freshAssignment.status)){
         return {staleStatus:true};
       }
       let submission=db.get(`SELECT * FROM challenge_submissions_v2 WHERE assignment_id=? ORDER BY attempt_no DESC LIMIT 1`,[assignment.id]);
       if(!submission||submission.status==='reviewed'){
         const attemptNo=Number(submission?.attempt_no||0)+1;
-        const created=db.run(`INSERT INTO challenge_submissions_v2(assignment_id,parent_id,attempt_no,status)
-          VALUES(?,?,?,'submitted')`,[assignment.id,req.user.id,attemptNo]);
+        const created=db.run(`INSERT INTO challenge_submissions_v2(assignment_id,parent_id,attempt_no,status,submitted_at)
+          VALUES(?,?,?,'submitted',?)`,[assignment.id,req.user.id,attemptNo,uploadComplete?new Date().toISOString():null]);
         submission=db.get('SELECT * FROM challenge_submissions_v2 WHERE id=?',[created.lastInsertRowid]);
       }
       if(Number(submission.parent_id)!==Number(req.user.id))return {wrongParent:true};
@@ -128,17 +133,56 @@ router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => 
       stored=storePrivateFile(db,{...decoded,studentId:assignment.student_id,purpose:'challenge_v2_photo',
         ownerType:'challenge_v2_submission',ownerId:submission.id,createdBy:req.user.id,originalName:req.body?.fileName||'challenge-photo'});
       const attachment=db.run(`INSERT INTO challenge_attachments_v2(submission_id,file_id,sha256) VALUES(?,?,?)`,[submission.id,stored.id,decoded.sha256]);
-      db.run("UPDATE challenge_assignments_v2 SET status='submitted',updated_at=CURRENT_TIMESTAMP WHERE id=?",[assignment.id]);
+      if(uploadComplete){
+        db.run('UPDATE challenge_submissions_v2 SET submitted_at=COALESCE(submitted_at,CURRENT_TIMESTAMP) WHERE id=?',[submission.id]);
+        db.run("UPDATE challenge_assignments_v2 SET status='submitted',updated_at=CURRENT_TIMESTAMP WHERE id=?",[assignment.id]);
+      }
       return {attachmentId:attachment.lastInsertRowid,submissionId:submission.id};
     });
     if(result.staleStatus)return res.status(409).json({error:'当前挑战状态已变化，请刷新后重试'});
     if(result.wrongParent)return res.status(403).json({error:'该挑战已由另一位绑定家长提交'});
     if(result.tooMany)return res.status(400).json({error:'每次提交最多 4 张图片'});
-    if(result.duplicate)return res.json({ok:true,idempotent:true,attachment:{...result.duplicate,url:fileUrl(result.duplicate.token)}});
-    return res.status(201).json({ok:true,submission_id:result.submissionId,attachment:{id:result.attachmentId,token:stored.token,url:fileUrl(stored.token)}});
+    if(result.duplicate)return res.json({ok:true,idempotent:true,upload_complete:uploadComplete,attachment:{...result.duplicate,url:fileUrl(result.duplicate.token)}});
+    return res.status(201).json({ok:true,upload_complete:uploadComplete,submission_id:result.submissionId,attachment:{id:result.attachmentId,token:stored.token,url:fileUrl(stored.token)}});
   }catch(error){
     if(stored)removePrivateFile(db,{id:stored.id,storage_key:stored.storageKey});
     return res.status(500).json({error:error.message||'图片保存失败'});
+  }
+});
+
+router.post('/v2/assignments/:id/submit', auth, parentOnly, (req, res) => {
+  const db=getDB();
+  const assignment=assignmentRowV2(db,Number(req.params.id));
+  if(!assignment||!boundStudent(db,req.user.id,assignment.student_id))return res.status(404).json({error:'挑战不存在'});
+  const studentNote=String(req.body?.student_note||'').trim().slice(0,500);
+  try{
+    const result=db.transaction(()=>{
+      const freshAssignment=assignmentRowV2(db,assignment.id);
+      if(!freshAssignment)return {missing:true};
+      const submission=db.get(`SELECT * FROM challenge_submissions_v2
+        WHERE assignment_id=? ORDER BY attempt_no DESC,id DESC LIMIT 1`,[assignment.id]);
+      if(!submission)return {noPhotos:true};
+      if(Number(submission.parent_id)!==Number(req.user.id))return {wrongParent:true};
+      const photoCount=Number(db.get('SELECT COUNT(*) count FROM challenge_attachments_v2 WHERE submission_id=?',[submission.id])?.count||0);
+      if(photoCount<1)return {noPhotos:true};
+      if(freshAssignment.status==='submitted'){
+        return {idempotent:true,assignment:serializeAssignmentV2(db,freshAssignment,'parent')};
+      }
+      if(!['active','reviewed_wrong'].includes(freshAssignment.status))return {staleStatus:true};
+      if(submission.status==='reviewed')return {staleStatus:true};
+      db.run(`UPDATE challenge_submissions_v2
+        SET student_note=?,submitted_at=CURRENT_TIMESTAMP
+        WHERE id=?`,[studentNote,submission.id]);
+      db.run("UPDATE challenge_assignments_v2 SET status='submitted',updated_at=CURRENT_TIMESTAMP WHERE id=?",[assignment.id]);
+      return {idempotent:false,assignment:serializeAssignmentV2(db,assignmentRowV2(db,assignment.id),'parent')};
+    });
+    if(result.missing)return res.status(404).json({error:'挑战不存在'});
+    if(result.wrongParent)return res.status(403).json({error:'该挑战已由另一位绑定家长提交'});
+    if(result.noPhotos)return res.status(400).json({error:'请至少上传 1 张解题图片'});
+    if(result.staleStatus)return res.status(409).json({error:'当前挑战状态已变化，请刷新后重试'});
+    return res.json({ok:true,idempotent:result.idempotent,assignment:result.assignment});
+  }catch(error){
+    return res.status(500).json({error:error.message||'提交失败'});
   }
 });
 

@@ -345,6 +345,7 @@ function runMigrations() {
   ensureColumn('weekly_challenge_questions', 'topic_key', 'TEXT');
   ensureColumn('weekly_challenge_questions', 'difficulty', 'INTEGER NOT NULL DEFAULT 3');
   ensureColumn('challenge_assignments_v2', 'passed_on', 'DATE');
+  ensureColumn('challenge_submissions_v2', 'student_note', 'TEXT');
   ensureColumn('choice_king_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'");
   ensureColumn('choice_king_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'");
   ensureColumn('choice_king_questions', 'topic_key', 'TEXT');

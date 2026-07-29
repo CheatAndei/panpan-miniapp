@@ -175,7 +175,7 @@ test('student challenge business events and question states remain wired', () =>
     ],
     [
       'pages/weekly-challenge/index.vue',
-      ['@tap="claim(item.value)"', '@tap="changeQuestion"', '@tap="chooseAndUpload"'],
+      ['@tap="claim(item.value)"', '@tap="changeQuestion"', '@tap="chooseAndUpload"', '@tap="submitChallenge"'],
     ],
     [
       'pages/knowledge-challenge/index.vue',

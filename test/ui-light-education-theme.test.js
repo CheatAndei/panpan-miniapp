@@ -71,6 +71,11 @@ test('education icons stay local and state feedback respects reduced motion', ()
     'pencil',
     'calculator',
     'lightbulb',
+    'school',
+    'clock',
+    'document',
+    'trend',
+    'family',
   ];
 
   for (const name of iconNames) {
