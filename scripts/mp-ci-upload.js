@@ -1,6 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
+// 微信 CI 会同时校验上传密钥和出口 IP。默认强制直连，避免桌面代理
+// 自动切换节点后使用未加入白名单的出口；确需代理时显式设置 MP_UPLOAD_PROXY。
+const uploadProxy = String(process.env.MP_UPLOAD_PROXY || '').trim();
+const proxyEnvNames = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy'];
+if (uploadProxy) {
+  process.env.HTTP_PROXY = uploadProxy;
+  process.env.HTTPS_PROXY = uploadProxy;
+  delete process.env.ALL_PROXY;
+  delete process.env.http_proxy;
+  delete process.env.https_proxy;
+  delete process.env.all_proxy;
+} else {
+  proxyEnvNames.forEach((name) => delete process.env[name]);
+}
+
 const appid = process.env.MP_APPID || 'wx77f8ea684b6420ca';
 const root = path.resolve(__dirname, '..');
 const projectPath = path.join(root, 'dist', 'build', 'mp-weixin');
@@ -72,6 +87,7 @@ async function main() {
     throw new Error(`Missing private key: ${privateKeyPath}`);
   }
 
+  console.log(`[mp-ci] network: ${uploadProxy ? `proxy ${uploadProxy}` : 'direct'}`);
   const ci = require('miniprogram-ci');
   const version = arg('version', process.env.MP_VERSION || defaultVersion());
   const desc = arg('desc', process.env.MP_DESC || 'Codex auto upload');
