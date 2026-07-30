@@ -22,7 +22,8 @@ on:
         type: string
 
 permissions:
-  contents: read
+  # Draft release assets are only visible to a token with push-level contents access.
+  contents: write
 
 jobs:
   sync:
