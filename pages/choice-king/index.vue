@@ -44,7 +44,12 @@
     </view>
 
     <view v-else-if="!question" class="state-card">
-      <pp-state title="今天的题已经刷完啦" description="题库正在继续补充。可以先去看看本周排名，或稍后再来。" action-text="查看排行榜" @action="openLeaderboard" />
+      <pp-state
+        :title="scopeEmpty ? '老师暂未开放客观题范围' : '今天的题已经刷完啦'"
+        :description="scopeEmpty ? '开放后即可继续练习；每日打卡和试卷库不受影响。' : '题库正在继续补充。可以先去看看本周排名，或稍后再来。'"
+        action-text="查看排行榜"
+        @action="openLeaderboard"
+      />
     </view>
 
     <template v-else>
@@ -153,6 +158,7 @@ import { logError } from '@/utils/ui';
 const studentId = ref('');
 const gradeCode = ref('g7');
 const question = ref(null);
+const scopeEmpty = ref(false);
 const stats = ref({});
 const selectedAnswer = ref('');
 const answerResult = ref(null);
@@ -229,6 +235,7 @@ async function loadNext() {
     if (!id) throw { error: '请先绑定孩子后再开始刷题' };
     const result = await api.get(`/choice-king/next?student_id=${encodeURIComponent(id)}&grade=${gradeCode.value}&subject=math`);
     question.value = result.question || result.next_question || null;
+    scopeEmpty.value = Boolean(result.scope_empty);
     stats.value = result.stats || result.summary || stats.value || {};
     selectedAnswer.value = '';
     answerResult.value = null;

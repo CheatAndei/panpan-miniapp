@@ -27,6 +27,7 @@
     { "path": "pages/teacher-classes/index", "style": { "navigationBarTitleText": "学习小组管理" } },
     { "path": "pages/class-history/index", "style": { "navigationBarTitleText": "学习小组历史", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/teacher-tools/index", "style": { "navigationBarTitleText": "教学工具" } },
+    { "path": "pages/content-progress/index", "style": { "navigationBarTitleText": "进度控制管理", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/exam-library/index", "style": { "navigationBarTitleText": "广州真题大全", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/weekly-challenge/index", "style": { "navigationBarTitleText": "压轴挑战", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/knowledge-challenge/index", "style": { "navigationBarTitleText": "八上知识点闯关", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },

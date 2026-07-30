@@ -29,6 +29,7 @@ const calculationReportRoutes = require('./routes/calculation-reports');
 const achievementRoutes = require('./routes/achievements');
 const promotionRoutes = require('./routes/promotions');
 const systemRoutes = require('./routes/system');
+const contentProgressRoutes = require('./routes/content-progress');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -78,6 +79,7 @@ app.use('/api/calculation-reports', calculationReportRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/content-progress', contentProgressRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

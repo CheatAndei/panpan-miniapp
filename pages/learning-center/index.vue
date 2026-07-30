@@ -88,6 +88,14 @@
         </view>
       </view>
 
+      <view v-if="selectedGrade==='g8'&&catalog.content_scope?.empty" class="scope-paused-note" role="status">
+        <view class="scope-paused-icon"><pp-icon name="bell" :size="30" /></view>
+        <view>
+          <text class="scope-paused-title">老师暂未开放学习范围</text>
+          <text class="scope-paused-copy">客观题与压轴挑战已暂停；每日打卡和试卷库仍可使用。</text>
+        </view>
+      </view>
+
       <button v-if="catalog.features?.choice_king" class="choice-king-card" :disabled="loading" aria-label="开始选择刷题王" @tap="openChoiceKing">
         <view class="choice-king-icon"><pp-icon name="exam" :size="46" motion="shine" :delay="320" /></view>
         <view class="choice-king-copy">
@@ -264,6 +272,34 @@ function goGrowth() { uni.navigateTo({ url: `/pages/growth/index?student_id=${st
     rgba(82, 124, 201, .045) 56rpx
   );
 }
+
+.scope-paused-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  margin: 18rpx 24rpx 0;
+  padding: 19rpx 20rpx;
+  border: 1rpx solid #F1C6BF;
+  border-left: 6rpx solid #E98577;
+  border-radius: 16rpx;
+  color: #24324A;
+  background: #FFF7F5;
+}
+
+.scope-paused-icon {
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 14rpx;
+  color: #A24E43;
+  background: #FFF0ED;
+}
+
+.scope-paused-title { display: block; font-size: 25rpx; font-weight: 760; }
+.scope-paused-copy { display: block; margin-top: 5rpx; color: #5C6C84; font-size: 21rpx; line-height: 1.5; }
 
 .learning-hero {
   position: relative;

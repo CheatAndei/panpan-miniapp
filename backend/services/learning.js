@@ -6,6 +6,10 @@ const { normalizeMathDisplay } = require('../utils/math-expression');
 const {
   normalizeGradeCode, normalizeSubjectCode, studentGradeCode, gradeLabel,
 } = require('../utils/content-dimensions');
+const {
+  eligibleQuestionCount,
+  studentScope,
+} = require('./content-progress');
 
 const TASKS = {
   warmup: { title: '每日 5 题热身', count: 5, description: '短时启动，保持计算手感' },
@@ -419,10 +423,24 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
   const grade = normalizeGradeCode(gradeCode, studentGradeCode(studentProfile(db, studentId)));
   const subject = normalizeSubjectCode(subjectCode);
   const weekday = new Date(`${overview.logical_date}T00:00:00+08:00`).getDay();
-  const choiceCount = Number(db.get(`SELECT COUNT(*) count FROM choice_king_questions
-    WHERE grade_code=? AND subject_code=? AND is_active=1`, [grade, subject])?.count || 0);
-  const challengeCount = Number(db.get(`SELECT COUNT(*) count FROM weekly_challenge_questions
-    WHERE grade_code=? AND subject_code=? AND is_active=1`, [grade, subject])?.count || 0);
+  const choiceCount = eligibleQuestionCount(db, {
+    studentId, gradeCode: grade, subjectCode: subject,
+    questionTable: 'choice_king_questions',
+    relationTable: 'choice_king_question_topics',
+  });
+  const fillCount = eligibleQuestionCount(db, {
+    studentId, gradeCode: grade, subjectCode: subject,
+    questionTable: 'weekly_challenge_questions',
+    relationTable: 'weekly_challenge_question_topics',
+    questionType: 'fill',
+  });
+  const subjectiveCount = eligibleQuestionCount(db, {
+    studentId, gradeCode: grade, subjectCode: subject,
+    questionTable: 'weekly_challenge_questions',
+    relationTable: 'weekly_challenge_question_topics',
+    questionType: 'subjective',
+  });
+  const challengeCount = fillCount + subjectiveCount;
   const examCount = Number(db.get(`SELECT COUNT(*) count FROM exam_papers
     WHERE grade_code=? AND status='published'`, [grade])?.count || 0);
   const sections = [];
@@ -434,7 +452,9 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
     { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },
     { type: 'arena', title: '口算王', description: '20 题限时挑战与本周排行', route: 'arena', accent: 'gold' },
   );
-  if (grade === 'g8') sections.push({ type: 'knowledge', title: '八上知识点闯关', description: '知识卡、8 题闯关与错题复练', route: 'knowledge_challenge', accent: 'blue' });
+  if (grade === 'g8') sections.push({
+    type: 'practice', title: '老师每日打卡', description: '完成老师按初二进度发布的练习', route: 'practice', accent: 'green',
+  });
   if (challengeCount) sections.push({ type: 'weekly', ...TASKS.weekly, route: 'weekly_challenge', accent: 'navy' });
   if (examCount) sections.push({ type: 'exams', title: grade === 'g9' ? '中考一模卷库' : '广州真题大全', description: grade === 'g9' ? '按年份、学科和地区查看一模原卷' : '按考试类型和年份查看原卷', route: 'exams', accent: 'rose' });
   return {
@@ -444,7 +464,18 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
     grade_label: gradeLabel(grade),
     subject_code: subject,
     available_grades: ['g7','g8','g9'],
-    features: { knowledge_challenge: grade === 'g8', choice_king: choiceCount > 0, weekly_challenge: challengeCount > 0, exams: examCount > 0 },
+    features: {
+      knowledge_challenge: false,
+      choice_king: choiceCount > 0,
+      weekly_challenge: challengeCount > 0,
+      exams: examCount > 0,
+    },
+    content_scope: {
+      ...studentScope(db, { studentId, gradeCode: grade, subjectCode: subject }),
+      choice_count: choiceCount,
+      fill_count: fillCount,
+      subjective_count: subjectiveCount,
+    },
     sections,
   };
 }

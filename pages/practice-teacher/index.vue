@@ -17,7 +17,7 @@
 
     <view class="card builder-card">
       <view class="section-head">
-        <view><text class="section-title">新建连续计划</text><text class="section-desc">固定初中计算题 · 每天约 20 分钟</text></view>
+        <view><text class="section-title">新建连续计划</text><text class="section-desc">{{ practiceCatalog?.class?.grade_label || '按班级年级' }}计算题 · 每天约 20 分钟</text></view>
         <text class="step-mark">01 / 设置</text>
       </view>
       <text class="field-label">计划名称</text>
@@ -29,9 +29,12 @@
       </picker>
 
       <view class="fixed-scope">
-        <text class="fixed-scope-title">固定题库 · 初中计算</text>
-        <text class="fixed-scope-copy">按学生当前进度勾选模块；尚未学习的内容可以暂时取消。</text>
-        <view class="topic-grid">
+        <text class="fixed-scope-title">固定题库 · {{ practiceCatalog?.class?.grade_label || '选择班级' }}计算</text>
+        <text class="fixed-scope-copy">题库按班级年级隔离；调整班级年级后，新计划自动使用对应题库，历史计划不变。</text>
+        <pp-state v-if="catalogLoading" type="loading" title="正在读取年级题库" />
+        <pp-state v-else-if="catalogError" type="error" title="题库加载失败" :description="catalogError" action-text="重试" @action="loadPracticeCatalog" />
+        <pp-state v-else-if="practiceCatalog && !practiceCatalog.supported" title="该年级暂未开放打卡题库" description="请先在管理班级中调整为七年级或八年级。" />
+        <view v-else class="topic-grid">
           <button v-for="topic in topics" :key="topic.key" :class="['topic-option',{selected:form.topic_keys.includes(topic.key)}]" @tap="toggleTopic(topic.key)">
             <text class="topic-check">{{ form.topic_keys.includes(topic.key) ? '✓' : '' }}</text>
             <view class="topic-copy"><text class="topic-name">{{ topic.label }}</text><text class="topic-count">题库 {{ topic.question_count }} 题</text></view>
@@ -163,6 +166,10 @@ function dateText(offset = 0) {
 
 const classes = ref([]);
 const topics = ref([]);
+const practiceCatalog = ref(null);
+const catalogLoading = ref(false);
+const catalogError = ref('');
+const catalogClassId = ref('');
 const plans = ref([]);
 const todoCount = ref(0);
 const serverFilters = ref({ classes: [], months: [] });
@@ -211,18 +218,43 @@ onPullDownRefresh(async () => { try { await loadBase(); } finally { uni.stopPull
 
 async function loadBase() {
   try {
-    const [classData, catalogData, todos] = await Promise.all([
+    const [classData, todos] = await Promise.all([
       api.get('/classes'),
-      api.get('/practice/catalog'),
       api.get('/practice/todos?limit=1'),
     ]);
     classes.value = classData.classes || [];
-    topics.value = catalogData.topics || [];
     todoCount.value = Number(todos.count || 0);
     if (!form.class_id && classes.value[0]) form.class_id = classes.value[0].id;
-    await loadPlans();
+    await Promise.all([loadPracticeCatalog(), loadPlans()]);
   } catch (error) {
     uni.showToast({ title: error?.error || '打卡计划加载失败', icon: 'none' });
+  }
+}
+
+async function loadPracticeCatalog() {
+  if (!form.class_id) {
+    topics.value = [];
+    practiceCatalog.value = null;
+    return;
+  }
+  catalogLoading.value = true;
+  catalogError.value = '';
+  try {
+    const next = await api.get(`/content-progress/practice-catalog?class_id=${encodeURIComponent(form.class_id)}`);
+    const sameClass = String(catalogClassId.value) === String(form.class_id);
+    const allowed = new Set((next.topics || []).map((item) => item.key));
+    const preserved = sameClass ? form.topic_keys.filter((key) => allowed.has(key)) : [];
+    practiceCatalog.value = next;
+    topics.value = next.topics || [];
+    form.topic_keys = preserved.length ? preserved : [...(next.default_topic_keys || [])];
+    catalogClassId.value = String(form.class_id);
+    preview.value = null;
+  } catch (error) {
+    topics.value = [];
+    practiceCatalog.value = null;
+    catalogError.value = error?.error || '请检查网络后重试';
+  } finally {
+    catalogLoading.value = false;
   }
 }
 
@@ -252,7 +284,7 @@ function searchPlans(){loadPlans();}
 function changeClassFilter(event){filters.class_id=classFilterOptions.value[Number(event.detail.value)]?.id||'';loadPlans();}
 function changeStatusFilter(event){filters.status=statusOptions[Number(event.detail.value)]?.value||'all';loadPlans();}
 function changeMonthFilter(event){filters.month=monthOptions.value[Number(event.detail.value)]?.value||'';loadPlans();}
-function selectClass(event){form.class_id=classes.value[Number(event.detail.value)]?.id||'';preview.value=null;}
+async function selectClass(event){form.class_id=classes.value[Number(event.detail.value)]?.id||'';preview.value=null;await loadPracticeCatalog();}
 function toggleTopic(key){
   const index=form.topic_keys.indexOf(key);
   if(index>=0){

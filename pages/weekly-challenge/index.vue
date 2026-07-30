@@ -8,8 +8,13 @@
     </view>
     <pp-state v-if="loading && !assignment" type="loading" title="正在准备本周压轴题" />
     <pp-state v-else-if="error && !assignment" type="error" title="挑战加载失败" :description="error" action-text="重试" @action="loadCurrent" />
+    <pp-state
+      v-else-if="scopeEmpty && !assignment"
+      title="老师暂未开放压轴挑战范围"
+      description="开放后即可领取填空或解答题；每日打卡和试卷库不受影响。"
+    />
 
-    <view v-if="!loading && !assignment && !error && !nextQuestionType" class="choose-card">
+    <view v-if="!loading && !assignment && !error && !scopeEmpty && !nextQuestionType" class="choose-card">
       <view class="section-title-row"><pp-icon name="book" :size="30" motion="pop" :delay="180" /><text class="section-title">想挑战哪类压轴题？</text></view>
       <text class="section-desc">每天首次可自选；通关后两类题交替，未提交前可换 1 次同类型题。</text>
       <button v-for="(item,index) in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
@@ -70,6 +75,7 @@ import { api } from '@/utils/api';
 const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(false),submitting=ref(false),imageLoading=ref(false);
 const error=ref(''),uploadProgress=ref(''),answerText=ref(''),assignment=ref(null),lastPassed=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
 const gradeCode=ref('g7'),progress=ref({}),canChange=ref(false),changeRemaining=ref(0),nextQuestionType=ref(null);
+const scopeEmpty=ref(false);
 let allowBack=false,loadPromise=null,reloadCurrent=false;
 const types=[
   {value:'fill',short:'填',label:'填空题',desc:'原卷最后一道填空，准确计算并规范作答'},
@@ -93,7 +99,7 @@ async function runCurrentLoads(){
   try{
     do{
       reloadCurrent=false;error.value='';
-      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
+      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;scopeEmpty.value=Boolean(data.scope_empty);canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
       catch(e){error.value=e?.error||'请检查网络后重试';}
     }while(reloadCurrent);
   }finally{loading.value=false;}

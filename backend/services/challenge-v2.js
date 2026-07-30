@@ -1,5 +1,10 @@
 const { normalizeGradeCode, normalizeSubjectCode } = require('../utils/content-dimensions');
 const { practiceDateAt } = require('./practice');
+const {
+  questionScopeFilter,
+  questionAllowedForStudent,
+  studentScope,
+} = require('./content-progress');
 
 const ACTIVE_STATUSES = ['active', 'submitted', 'reviewed_wrong'];
 const TYPES = new Set(['fill', 'subjective']);
@@ -72,10 +77,14 @@ function currentAssignment(db, { studentId, gradeCode, subjectCode, questionType
 
 function availableCounts(db,{studentId,gradeCode,subjectCode}){
   const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
+  const scope=questionScopeFilter(db,{studentId,gradeCode:grade,subjectCode:subject,
+    relationTable:'weekly_challenge_question_topics',questionAlias:'q'});
+  if(scope.empty)return {};
   const rows=db.all(`SELECT q.question_type,COUNT(*) count FROM weekly_challenge_questions q
     WHERE q.grade_code=? AND q.subject_code=? AND q.is_active=1 AND q.question_type IN ('fill','subjective')
       AND NOT EXISTS(SELECT 1 FROM challenge_assignments_v2 a WHERE a.student_id=? AND a.question_id=q.id AND a.status='passed')
-    GROUP BY q.question_type`,[grade,subject,studentId]);
+      ${scope.clause}
+    GROUP BY q.question_type`,[grade,subject,studentId,...scope.params]);
   return Object.fromEntries(rows.map(item=>[item.question_type,Number(item.count)]));
 }
 
@@ -88,6 +97,7 @@ function progress(db,{studentId,gradeCode,subjectCode}){
 
 function currentState(db,{studentId,gradeCode='g7',subjectCode='math'}){
   const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
+  withdrawScopedActiveAssignments(db,{studentId,gradeCode:grade,subjectCode:subject});
   const current=currentAssignment(db,{studentId,gradeCode:grade,subjectCode:subject});
   const lastPassed=db.get(`SELECT id FROM challenge_assignments_v2 WHERE student_id=? AND grade_code=? AND subject_code=?
     AND status='passed' ORDER BY passed_on DESC,id DESC LIMIT 1`,[studentId,grade,subject]);
@@ -95,22 +105,44 @@ function currentState(db,{studentId,gradeCode='g7',subjectCode='math'}){
   const passedToday=lastPassedOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
   const changedToday=changedCountOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
   const serialized=current?serializeAssignment(db,assignmentRow(db,current.id),'parent'):null;
+  const available=availableCounts(db,{studentId,gradeCode:grade,subjectCode:subject});
   return {
     grade_code:grade,subject_code:subject,assignment:serialized,
     last_passed:!serialized&&lastPassed?serializeAssignment(db,assignmentRow(db,lastPassed.id),'parent'):null,
     next_question_type:!serialized&&passedToday?oppositeType(passedToday.question_type):null,
-    available:availableCounts(db,{studentId,gradeCode:grade,subjectCode:subject}),
+    available,
     progress:progress(db,{studentId,gradeCode:grade,subjectCode:subject}),
     can_change:Boolean(serialized&&serialized.status==='active'&&!serialized.submission&&changedToday<1),
     change_remaining:Math.max(0,1-changedToday),
+    scope_empty:Boolean(studentScope(db,{studentId,gradeCode:grade,subjectCode:subject}).empty),
   };
 }
 
 function pickQuestion(db,{studentId,grade,subject,questionType,excludeId=0}){
+  const scope=questionScopeFilter(db,{studentId,gradeCode:grade,subjectCode:subject,
+    relationTable:'weekly_challenge_question_topics',questionAlias:'q'});
+  if(scope.empty)return null;
   return db.get(`SELECT q.id FROM weekly_challenge_questions q WHERE q.grade_code=? AND q.subject_code=?
     AND q.question_type=? AND q.is_active=1 AND q.id<>?
     AND NOT EXISTS(SELECT 1 FROM challenge_assignments_v2 a WHERE a.student_id=? AND a.question_id=q.id AND a.status='passed')
-    ORDER BY RANDOM() LIMIT 1`,[grade,subject,questionType,excludeId,studentId]);
+    ${scope.clause}
+    ORDER BY RANDOM() LIMIT 1`,[grade,subject,questionType,excludeId,studentId,...scope.params]);
+}
+
+function withdrawScopedActiveAssignments(db,{studentId,gradeCode,subjectCode}){
+  const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
+  const rows=db.all(`SELECT id,question_id FROM challenge_assignments_v2
+    WHERE student_id=? AND grade_code=? AND subject_code=?
+      AND status IN ('active','reviewed_wrong')`,[studentId,grade,subject]);
+  let withdrawn=0;
+  for(const row of rows){
+    const allowed=questionAllowedForStudent(db,{studentId,gradeCode:grade,subjectCode:subject,
+      relationTable:'weekly_challenge_question_topics',questionId:row.question_id});
+    if(allowed)continue;
+    withdrawn+=Number(db.run(`UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP
+      WHERE id=? AND status IN ('active','reviewed_wrong')`,[row.id]).changes||0);
+  }
+  return withdrawn;
 }
 
 function createAssignment(db,{studentId,gradeCode='g7',subjectCode='math',questionType}){
@@ -136,6 +168,11 @@ function createAssignment(db,{studentId,gradeCode='g7',subjectCode='math',questi
 function changeAssignment(db,{studentId,assignmentId}){
   const current=assignmentRow(db,assignmentId);
   if(!current||Number(current.student_id)!==Number(studentId))throw new Error('挑战不存在');
+  if(!questionAllowedForStudent(db,{studentId,gradeCode:current.grade_code,subjectCode:current.subject_code,
+    relationTable:'weekly_challenge_question_topics',questionId:current.question_id})){
+    db.run("UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP WHERE id=?",[current.id]);
+    throw new Error('该学习范围已由老师暂停');
+  }
   if(current.status!=='active'||submissionsForAssignment(db,current.id).length)throw new Error('提交后不能更换题目');
   const today=practiceDateAt(new Date());
   const changed=changedCountOn(db,{studentId,gradeCode:current.grade_code,subjectCode:current.subject_code,logicalDate:today});
@@ -236,4 +273,5 @@ function reviewSubmission(db,{teacherId,submissionId,isCorrect,teacherNote}){
 module.exports={
   TYPES,ACTIVE_STATUSES,assignmentRow,serializeAssignment,submissionsForAssignment,currentState,
   createAssignment,changeAssignment,teacherQueue,teacherQueueCount,reviewSubmission,refreshProgress,
+  withdrawScopedActiveAssignments,
 };

@@ -227,9 +227,10 @@ router.get('/current', auth, parentOnly, (req, res) => {
   const weekStart = weekStartKey();
   const row = db.get(`SELECT a.*,q.title,q.question_asset_id,q.answer_asset_id,q.answer_text,q.source_label
     FROM weekly_challenge_assignments a JOIN weekly_challenge_questions q ON q.id=a.question_id
-    WHERE a.student_id=? AND a.week_start=?`, [studentId, weekStart]);
+    WHERE a.student_id=? AND a.week_start=? AND q.grade_code='g7' AND q.subject_code='math'`, [studentId, weekStart]);
   const counts = db.all(`SELECT question_type,COUNT(*) count FROM weekly_challenge_questions
-    WHERE is_active=1 AND question_type IN ('fill','subjective') GROUP BY question_type`);
+    WHERE is_active=1 AND grade_code='g7' AND subject_code='math'
+      AND question_type IN ('fill','subjective') GROUP BY question_type`);
   res.json({ week_start: weekStart, assignment: serializeAssignment(db, row, 'parent'), available: Object.fromEntries(counts.map((item) => [item.question_type, Number(item.count)])) });
 });
 
@@ -242,7 +243,8 @@ router.post('/assignments', auth, parentOnly, (req, res) => {
   const weekStart = weekStartKey();
   let existing = db.get('SELECT id FROM weekly_challenge_assignments WHERE student_id=? AND week_start=?', [studentId, weekStart]);
   if (!existing) {
-    const questions = db.all(`SELECT id FROM weekly_challenge_questions WHERE question_type=? AND is_active=1 ORDER BY id`, [questionType]);
+    const questions = db.all(`SELECT id FROM weekly_challenge_questions
+      WHERE question_type=? AND is_active=1 AND grade_code='g7' AND subject_code='math' ORDER BY id`, [questionType]);
     if (!questions.length) return res.status(503).json({ error: '该题型本周题目正在整理，请稍后再试' });
     const seed = [...`${studentId}-${weekStart}-${questionType}`].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
     const question = questions[seed % questions.length];
@@ -340,7 +342,8 @@ router.get('/assets/:assetId', auth, (req, res) => {
       WHERE b.parent_id=? AND s.deleted_at IS NULL AND a.week_start=? AND q.question_asset_id=?`, [req.user.id, weekStartKey(), asset.id]);
     if (!allowed) allowed = db.get(`SELECT a.id FROM challenge_assignments_v2 a JOIN weekly_challenge_questions q ON q.id=a.question_id
       JOIN bindings b ON b.student_id=a.student_id JOIN students s ON s.id=a.student_id
-      WHERE b.parent_id=? AND s.deleted_at IS NULL AND q.question_asset_id=? LIMIT 1`, [req.user.id, asset.id]);
+      WHERE b.parent_id=? AND s.deleted_at IS NULL AND a.status<>'skipped'
+        AND q.question_asset_id=? LIMIT 1`, [req.user.id, asset.id]);
     if (!allowed) return res.status(404).json({ error: '图片不存在' });
   } else if (req.user.role === 'teacher') {
     let allowed = db.get(`SELECT a.id FROM weekly_challenge_assignments a

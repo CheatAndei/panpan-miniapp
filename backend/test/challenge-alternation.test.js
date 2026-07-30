@@ -20,6 +20,8 @@ const {
   currentState,
   reviewSubmission,
 } = require('../services/challenge-v2');
+const { replaceQuestionTopics } = require('../services/content-progress');
+const { topicKeys } = require('../resources/g8-content/topics');
 const { practiceDateAt } = require('../services/practice');
 
 let studentId;
@@ -51,7 +53,7 @@ test.before(async () => {
 
   for (const type of ['fill', 'subjective']) {
     for (let index = 1; index <= 4; index += 1) {
-      db.run(`INSERT INTO weekly_challenge_questions
+      const question = db.run(`INSERT INTO weekly_challenge_questions
         (source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
         VALUES(?,?,?,?,?,'g8','math',1)`, [
         `alternate-${type}-${index}`,
@@ -60,6 +62,11 @@ test.before(async () => {
         asset.lastInsertRowid,
         '交替规则测试',
       ]);
+      replaceQuestionTopics(db, {
+        relationTable: 'weekly_challenge_question_topics',
+        questionId: question.lastInsertRowid,
+        topicKeys: [topicKeys[0]],
+      });
     }
   }
 });

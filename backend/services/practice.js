@@ -16,13 +16,26 @@ const FIXED_GRADE = '初中';
 const FIXED_MODULE = '综合计算';
 const FIXED_DIFFICULTY = 3;
 const MODULES = { [FIXED_GRADE]: [FIXED_MODULE] };
-const TOPICS = Object.freeze({
+const G7_TOPICS = Object.freeze({
   rational_numbers: { label: '有理数运算', questionTypes: ['有理数加减', '有理数乘除', '有理数混合', '有理数巧算'] },
   absolute_value: { label: '绝对值计算', questionTypes: ['绝对值计算'] },
   algebra: { label: '整式化简与求值', questionTypes: ['整式化简', '整式求值'] },
   linear_equation: { label: '一元一次方程', questionTypes: ['一元一次方程'] },
 });
-const DEFAULT_TOPIC_KEYS = Object.freeze(Object.keys(TOPICS));
+const G8_TOPICS = Object.freeze({
+  g8_powers: { label: '幂的运算', questionTypes: ['幂的运算'] },
+  g8_polynomial_multiplication: { label: '整式的乘法', questionTypes: ['整式乘法'] },
+  g8_multiplication_formulas: { label: '乘法公式', questionTypes: ['乘法公式'] },
+  g8_factorization: { label: '因式分解', questionTypes: ['因式分解'] },
+});
+const GRADE_TOPICS = Object.freeze({ g7: G7_TOPICS, g8: G8_TOPICS, g9: G7_TOPICS });
+const TOPICS = Object.freeze({ ...G7_TOPICS, ...G8_TOPICS });
+const DEFAULT_TOPIC_KEYS_BY_GRADE = Object.freeze({
+  g7: Object.freeze(Object.keys(G7_TOPICS)),
+  g8: Object.freeze(Object.keys(G8_TOPICS)),
+  g9: Object.freeze(Object.keys(G7_TOPICS)),
+});
+const DEFAULT_TOPIC_KEYS = DEFAULT_TOPIC_KEYS_BY_GRADE.g7;
 
 function practiceDateAt(value = new Date()) {
   const shanghai = new Date(new Date(value).getTime() + 8 * 60 * 60 * 1000);
@@ -46,14 +59,22 @@ function parseJson(value, fallback = []) {
   try { return JSON.parse(value || ''); } catch { return fallback; }
 }
 
-function normalizeTopicKeys(value) {
-  const source = Array.isArray(value) ? value : parseJson(value, []);
-  const unique = [...new Set(source.map(String).filter((key) => TOPICS[key]))];
-  return unique.length ? unique : [...DEFAULT_TOPIC_KEYS];
+function inferredTopicGrade(source) {
+  if (source.some((key) => G8_TOPICS[key])) return 'g8';
+  return 'g7';
 }
 
-function questionTypesForTopics(topicKeys) {
-  return normalizeTopicKeys(topicKeys).flatMap((key) => TOPICS[key].questionTypes);
+function normalizeTopicKeys(value, gradeCode = '') {
+  const source = Array.isArray(value) ? value : parseJson(value, []);
+  const grade = GRADE_TOPICS[gradeCode] ? gradeCode : inferredTopicGrade(source.map(String));
+  const topics = GRADE_TOPICS[grade];
+  const unique = [...new Set(source.map(String).filter((key) => topics[key]))];
+  return unique.length ? unique : [...DEFAULT_TOPIC_KEYS_BY_GRADE[grade]];
+}
+
+function questionTypesForTopics(topicKeys, gradeCode = '') {
+  const normalized = normalizeTopicKeys(topicKeys, gradeCode);
+  return normalized.flatMap((key) => TOPICS[key].questionTypes);
 }
 
 function deterministicSort(items, seed) {
@@ -77,12 +98,13 @@ function localityAwareSort(items, seed) {
 }
 
 function scopedQuestionPool(db, plan, setting, module = null) {
-  const questionTypes = questionTypesForTopics(plan.topic_keys);
+  const gradeCode = String(plan.grade_code || 'g7');
+  const questionTypes = questionTypesForTopics(plan.topic_keys, gradeCode);
   const placeholders = questionTypes.map(() => '?').join(',');
   const sql = `SELECT * FROM practice_questions
-    WHERE grade_band=? AND subject=? AND module=? AND is_active=1
+    WHERE grade_band=? AND grade_code=? AND subject=? AND module=? AND is_active=1
       AND question_type IN (${placeholders})`;
-  const params = [FIXED_GRADE, '数学', FIXED_MODULE, ...questionTypes];
+  const params = [FIXED_GRADE, gradeCode, '数学', FIXED_MODULE, ...questionTypes];
   return db.all(sql, params);
 }
 
@@ -517,7 +539,7 @@ function generateLegacyPlanPdf(db, plan, response, requestedStart = plan.start_d
   response.set('Cache-Control', 'private, no-store');
   doc.pipe(response);
   writePdfText(doc, `${plan.title} · 初中计算打卡`, { size: 18, characters: 28 });
-  const topicLabel = normalizeTopicKeys(plan.topic_keys).map((key) => TOPICS[key].label).join(' · ');
+  const topicLabel = normalizeTopicKeys(plan.topic_keys, plan.grade_code).map((key) => TOPICS[key].label).join(' · ');
   writePdfText(doc, `${dates[0]} 至 ${dates[dates.length - 1]}｜${topicLabel}`, { size: 10, color: '#536762' });
 
   students.forEach((student) => {
@@ -644,7 +666,7 @@ function generateStudentPlanPdf(db, plan, student, response) {
       items: assignment ? loadPracticePdfItems(db, assignment.id) : [],
     };
   });
-  const topicLabel = normalizeTopicKeys(plan.topic_keys).map((key) => TOPICS[key].label).join(' · ');
+  const topicLabel = normalizeTopicKeys(plan.topic_keys, plan.grade_code).map((key) => TOPICS[key].label).join(' · ');
   const dateRangeText = `${dates[0]}至${dates[dates.length - 1]}`;
   const title = `${student.name}定制计算打卡`;
   const avatarPath = preferredPracticeAvatar();
@@ -708,6 +730,8 @@ function generateStudentPlanPdf(db, plan, student, response) {
 module.exports = {
   MODULES,
   TOPICS,
+  GRADE_TOPICS,
+  DEFAULT_TOPIC_KEYS_BY_GRADE,
   DEFAULT_TOPIC_KEYS,
   FIXED_GRADE,
   FIXED_MODULE,

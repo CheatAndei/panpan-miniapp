@@ -151,7 +151,15 @@ function seedJuniorCalculationQuestions() {
 
 function activateJuniorCalculationQuestions() {
   _db.run(`UPDATE practice_questions SET is_active=CASE WHEN source_batch='panpan-junior-calculation-v3' THEN 1 ELSE 0 END
-    WHERE grade_band='初中'`);
+    WHERE grade_band='初中' AND grade_code='g7'`);
+}
+
+function seedG8PracticeQuestions() {
+  const { importQuestionDataset } = require('../services/practice-question-import');
+  const dataset = require('../resources/practice/g8-calculation-v1');
+  importQuestionDataset(getDB(), dataset, { dryRun: false });
+  _db.run(`UPDATE practice_questions SET is_active=1
+    WHERE grade_code='g8' AND source_batch=?`, [dataset.metadata.batch_key]);
 }
 
 function ensureColumn(table, column, definition) {
@@ -172,6 +180,8 @@ function prepareLegacySchemaColumns() {
     ['weekly_challenge_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
     ['choice_king_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
     ['choice_king_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'"],
+    ['practice_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
+    ['practice_plans', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'"],
     ['practice_submissions', 'current_round', 'INTEGER NOT NULL DEFAULT 1'],
     ['practice_submissions', 'needs_correction', 'INTEGER NOT NULL DEFAULT 0'],
     ['practice_submissions', 'completed_at', 'DATETIME'],
@@ -344,6 +354,7 @@ function runMigrations() {
   ensureColumn('practice_questions', 'copy_allowed', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('practice_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'");
   ensureColumn('practice_questions', 'topic_key', 'TEXT');
+  ensureColumn('practice_plans', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'");
   ensureColumn('weekly_challenge_questions', 'source_key', 'TEXT');
   ensureColumn('weekly_challenge_questions', 'grade_code', "TEXT NOT NULL DEFAULT 'g7'");
   ensureColumn('weekly_challenge_questions', 'subject_code', "TEXT NOT NULL DEFAULT 'math'");
@@ -376,6 +387,10 @@ function runMigrations() {
     ON exam_papers(grade_code,subject_code,exam_type,exam_year,status)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_weekly_challenge_catalog
     ON weekly_challenge_questions(grade_code,subject_code,question_type,is_active)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_question_grade
+    ON practice_questions(grade_code,subject,module,is_active,question_type)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_plan_grade
+    ON practice_plans(class_id,grade_code,status,start_date,end_date)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_attempt_student_question
     ON choice_king_attempts(student_id, question_id, is_review, answered_at)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_choice_king_attempt_first_correct
@@ -405,6 +420,45 @@ function runMigrations() {
   _db.run(`UPDATE practice_questions SET grade_code=CASE
     WHEN grade_band LIKE '%九%' THEN 'g9' WHEN grade_band LIKE '%八%' THEN 'g8' ELSE 'g7' END
     WHERE grade_code IS NULL OR grade_code=''`);
+  _db.run("UPDATE practice_plans SET grade_code='g7' WHERE grade_code IS NULL OR grade_code=''");
+  _db.run('DROP TRIGGER IF EXISTS practice_plan_grade_after_insert');
+  _db.run(`CREATE TRIGGER practice_plan_grade_after_insert
+    AFTER INSERT ON practice_plans
+    BEGIN
+      UPDATE practice_plans SET grade_code=CASE
+        WHEN (SELECT grade FROM classes WHERE id=NEW.class_id) LIKE '%九%'
+          OR (SELECT grade FROM classes WHERE id=NEW.class_id) LIKE '%初三%' THEN 'g9'
+        WHEN (SELECT grade FROM classes WHERE id=NEW.class_id) LIKE '%八%'
+          OR (SELECT grade FROM classes WHERE id=NEW.class_id) LIKE '%初二%' THEN 'g8'
+        ELSE 'g7' END
+      WHERE id=NEW.id;
+      SELECT CASE
+        WHEN (SELECT grade_code FROM practice_plans WHERE id=NEW.id)='g8'
+          AND (
+            NEW.topic_keys LIKE '%"rational_numbers"%'
+            OR NEW.topic_keys LIKE '%"absolute_value"%'
+            OR NEW.topic_keys LIKE '%"algebra"%'
+            OR NEW.topic_keys LIKE '%"linear_equation"%'
+          )
+          THEN RAISE(ABORT,'打卡模块与班级年级不一致')
+        WHEN (SELECT grade_code FROM practice_plans WHERE id=NEW.id)<>'g8'
+          AND NEW.topic_keys LIKE '%"g8_%'
+          THEN RAISE(ABORT,'打卡模块与班级年级不一致')
+      END;
+    END`);
+  _db.run('DROP TRIGGER IF EXISTS practice_assignment_item_grade_guard');
+  _db.run(`CREATE TRIGGER practice_assignment_item_grade_guard
+    BEFORE INSERT ON practice_assignment_items
+    WHEN NEW.question_id IS NOT NULL
+      AND COALESCE((SELECT grade_code FROM practice_questions WHERE id=NEW.question_id),'')
+        <> COALESCE((
+          SELECT p.grade_code FROM practice_assignments a
+          JOIN practice_plans p ON p.id=a.plan_id
+          WHERE a.id=NEW.assignment_id
+        ),'')
+    BEGIN
+      SELECT RAISE(ABORT,'打卡题目年级与计划不一致');
+    END`);
   _db.run("UPDATE weekly_challenge_questions SET grade_code='g7',subject_code='math' WHERE grade_code IS NULL OR grade_code=''");
   _db.run("UPDATE choice_king_questions SET grade_code='g7',subject_code='math' WHERE grade_code IS NULL OR grade_code=''");
   _db.run(`UPDATE homework_batches SET class_id=(
@@ -500,6 +554,7 @@ function runMigrations() {
 async function initDB() {
   // 先审计全部生成题，再打开/迁移数据库，避免坏题随启动流程进入生产。
   require('../services/question-bank-audit').assertCalculationQuestionBanks();
+  require('../services/g8-content-audit').assertG8ContentBank();
   const SQL = await initSqlJs();
   ensureDir(DB_PATH);
   _db = fs.existsSync(DB_PATH) ? new SQL.Database(fs.readFileSync(DB_PATH)) : new SQL.Database();
@@ -508,6 +563,7 @@ async function initDB() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   _db.run(schema);
   runMigrations();
+  require('../services/content-progress').seedCurriculumTopics(getDB());
   // The full generated banks are intentionally exercised by their dedicated
   // seed tests. Avoid importing 2,420 image-backed resources again for every
   // unrelated test process; production can never enter this branch by merely
@@ -519,11 +575,17 @@ async function initDB() {
     require('../services/choice-king').seedChoiceKingQuestions(getDB());
   }
   require('../services/knowledge-challenge').seedKnowledgeBank(getDB());
+  if (!skipStartupResourceSeed) {
+    require('../services/g8-legacy-migration').migrateLegacyKnowledgeQuestions(getDB());
+    await require('../services/g8-content-seed').seedG8Content(getDB());
+    require('../services/g8-source-pack-seed').seedG8SourcePack(getDB());
+  }
   seedPracticeQuestions();
   seedGuangzhouPracticeQuestions();
   retireLegacyJuniorPracticeQuestions();
   seedJuniorCalculationQuestions();
   activateJuniorCalculationQuestions();
+  if (!skipStartupResourceSeed) seedG8PracticeQuestions();
   saveDB();
   const saveTimer = setInterval(saveDB, 30000);
   saveTimer.unref?.();

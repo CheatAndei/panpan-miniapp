@@ -17,6 +17,8 @@ fs.mkdirSync(rubbish,{recursive:true});
 
 const {start}=require('../server');
 const {getDB}=require('../db/init');
+const {replaceQuestionTopics}=require('../services/content-progress');
+const {topicKeys}=require('../resources/g8-content/topics');
 let server,base,parentToken,teacherToken,parentId,teacherId,studentId;
 const token=(id,role)=>jwt.sign({id,role},process.env.JWT_SECRET,{algorithm:'HS256'});
 async function request(method,url,authToken,body){
@@ -46,7 +48,7 @@ test.after(async()=>{
 test('三学段入口保存偏好，八上知识库为 9 个主题 72 道原创题',async()=>{
   const catalog=await request('GET',`/learning/catalog?student_id=${studentId}&grade=g8`,parentToken);
   assert.equal(catalog.response.status,200);assert.equal(catalog.payload.grade_code,'g8');
-  assert.ok(catalog.payload.features.knowledge_challenge);
+  assert.equal(catalog.payload.features.knowledge_challenge,false);
   const saved=await request('PUT','/learning/preferences',parentToken,{student_id:studentId,grade:'g9',subject:'math'});
   assert.equal(saved.payload.preference.grade_code,'g9');
   const knowledge=await request('GET',`/knowledge-challenge/catalog?student_id=${studentId}`,parentToken);
@@ -73,8 +75,11 @@ test('连续压轴挑战支持多图暂存、文字选填、手动提交、批�
   const db=getDB();
   const asset=db.run(`INSERT INTO exam_assets(asset_kind,storage_key,original_name,mime_type,byte_size,sha256)
     VALUES('question','test/q.png','q.png','image/png',10,?)`,['a'.repeat(64)]);
-  for(const type of ['fill','subjective'])for(let i=1;i<=2;i++)db.run(`INSERT INTO weekly_challenge_questions(source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
-    VALUES(?,?,?,?,?,'g8','math',1)`,[`mg-${type}-${i}`,type,`八上压轴${i}`,asset.lastInsertRowid,'原创测试']);
+  for(const type of ['fill','subjective'])for(let i=1;i<=2;i++){
+    const question=db.run(`INSERT INTO weekly_challenge_questions(source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
+      VALUES(?,?,?,?,?,'g8','math',1)`,[`mg-${type}-${i}`,type,`八上压轴${i}`,asset.lastInsertRowid,'原创测试']);
+    replaceQuestionTopics(db,{relationTable:'weekly_challenge_question_topics',questionId:question.lastInsertRowid,topicKeys:[topicKeys[0]]});
+  }
   const claimed=await request('POST','/weekly-challenge/v2/assignments',parentToken,{student_id:studentId,grade:'g8',subject:'math',question_type:'fill'});
   assert.equal(claimed.response.status,201);assert.equal(claimed.payload.assignment.status,'active');
   const emptySubmit=await request('POST',`/weekly-challenge/v2/assignments/${claimed.payload.assignment.id}/submit`,parentToken,{student_note:'还没有图片'});
@@ -135,6 +140,7 @@ test('三类成就只取真实记录，公开姓名为姓加同学且里程碑�
   for(let i=1;i<=30;i++){
     const q=db.run(`INSERT INTO choice_king_questions(stable_code,stem,options_json,correct_option,source_label,grade_code,subject_code)
       VALUES(?,?,?,'A',?,'g8','math')`,[`GZ8-ACH-${i}`,`题${i}`,JSON.stringify({A:'1',B:'2',C:'3',D:'4'}),`来源${i%3}`]);
+    replaceQuestionTopics(db,{relationTable:'choice_king_question_topics',questionId:q.lastInsertRowid,topicKeys:[topicKeys[0]]});
     db.run(`INSERT INTO choice_king_attempts(student_id,parent_id,question_id,selected_option,is_correct,is_review,client_request_id,answered_at)
       VALUES(?,?,?,'A',1,0,?,?)`,[studentId,parentId,q.lastInsertRowid,`ach-${i}`,new Date(Date.now()+i*1000).toISOString()]);
   }

@@ -1,0 +1,18 @@
+{
+  "batch_key": "panpan-g8-calculation-v1",
+  "version": "1.0.0",
+  "source_title": "潘潘数学八年级计算原创题库",
+  "source_url": "https://xpytt.com/panpan/g8-calculation-v1",
+  "source_region": "通用",
+  "source_license": "project-original",
+  "source_retrieved_at": "2026-07-31",
+  "copy_allowed": false,
+  "provenance": "self_authored",
+  "questions_per_topic": 120,
+  "topics": [
+    "幂的运算",
+    "整式乘法",
+    "乘法公式",
+    "因式分解"
+  ]
+}

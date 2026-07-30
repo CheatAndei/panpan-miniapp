@@ -4,6 +4,7 @@ const GRADE_MODULES = {
   小学: new Set(['四则运算', '乘除法', '应用题']),
   初中: new Set(['有理数', '一元一次方程', '整式运算', '综合计算']),
 };
+const GRADE_CODES = new Set(['g7', 'g8', 'g9']);
 const COPY_LICENSES = new Set(['CC0-1.0', 'CC-BY-4.0', 'public-domain']);
 const ORIGINAL_LICENSES = new Set(['project-original', ...COPY_LICENSES]);
 
@@ -22,6 +23,7 @@ function sha256(value) {
 function coreQuestion(item) {
   return {
     grade_band: String(item.grade_band || ''),
+    grade_code: String(item.grade_code || 'g7'),
     subject: String(item.subject || ''),
     module: String(item.module || ''),
     question_type: String(item.question_type || ''),
@@ -36,7 +38,8 @@ function coreQuestion(item) {
 }
 
 function questionContentDigest(item) {
-  return sha256(coreQuestion(item));
+  const { grade_code: _gradeCode, ...content } = coreQuestion(item);
+  return sha256(content);
 }
 
 function validateQuestionDataset(dataset) {
@@ -61,6 +64,7 @@ function validateQuestionDataset(dataset) {
     const item = coreQuestion(raw);
     const label = `第 ${index + 1} 题`;
     if (!GRADE_MODULES[item.grade_band]?.has(item.module)) errors.push(`${label}学段或模块无效`);
+    if (!GRADE_CODES.has(item.grade_code)) errors.push(`${label}年级无效`);
     if (item.subject !== '数学') errors.push(`${label}仅支持数学`);
     if (!item.question_type.trim() || !item.template_key.trim()) errors.push(`${label}题型或模板为空`);
     if (!Number.isInteger(item.difficulty) || item.difficulty < 1 || item.difficulty > 5) errors.push(`${label}难度无效`);
@@ -77,14 +81,19 @@ function validateQuestionDataset(dataset) {
 }
 
 function sameExistingQuestion(existing, item) {
-  if (existing.content_sha256) return existing.content_sha256 === questionContentDigest(item);
+  if (existing.content_sha256) {
+    return existing.content_sha256 === questionContentDigest(item)
+      && String(existing.grade_code || 'g7') === item.grade_code;
+  }
   return existing.stem === item.stem && existing.answer === item.answer
-    && existing.module === item.module && existing.template_key === item.template_key;
+    && existing.module === item.module && existing.template_key === item.template_key
+    && String(existing.grade_code || 'g7') === item.grade_code;
 }
 
 function sameQuestionExceptStem(existing, item) {
   const expectedSourceType = item.provenance === 'self_authored' ? 'self_authored' : 'licensed';
   return String(existing.grade_band) === String(item.grade_band)
+    && String(existing.grade_code || 'g7') === String(item.grade_code)
     && String(existing.subject) === String(item.subject)
     && String(existing.module) === String(item.module)
     && String(existing.question_type) === String(item.question_type)
@@ -99,6 +108,7 @@ function sameQuestionExceptStem(existing, item) {
 function sameQuestionExceptAnswer(existing, item) {
   const expectedSourceType = item.provenance === 'self_authored' ? 'self_authored' : 'licensed';
   return String(existing.grade_band) === String(item.grade_band)
+    && String(existing.grade_code || 'g7') === String(item.grade_code)
     && String(existing.subject) === String(item.subject)
     && String(existing.module) === String(item.module)
     && String(existing.question_type) === String(item.question_type)
@@ -204,11 +214,11 @@ function importQuestionDataset(db, dataset, options = {}) {
       const item = coreQuestion(raw);
       if (db.get('SELECT id FROM practice_questions WHERE signature=?', [item.signature])) continue;
       db.run(`INSERT INTO practice_questions
-        (grade_band,subject,module,question_type,difficulty,template_key,stem,answer,estimated_seconds,signature,
+        (grade_band,grade_code,subject,module,question_type,difficulty,template_key,stem,answer,estimated_seconds,signature,
          source_type,source_batch,source_title,source_url,source_region,source_license,source_retrieved_at,
          source_snapshot_sha256,content_sha256,copy_allowed)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
-        item.grade_band, item.subject, item.module, item.question_type, item.difficulty, item.template_key,
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+        item.grade_band, item.grade_code, item.subject, item.module, item.question_type, item.difficulty, item.template_key,
         item.stem, item.answer, item.estimated_seconds, item.signature,
         item.provenance === 'self_authored' ? 'self_authored' : 'licensed', metadata.batch_key,
         metadata.source_title, metadata.source_url, metadata.source_region || '', metadata.source_license,

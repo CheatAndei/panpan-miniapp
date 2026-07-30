@@ -290,6 +290,7 @@ CREATE INDEX IF NOT EXISTS idx_homework_parent_notice_unread
 CREATE TABLE IF NOT EXISTS practice_questions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   grade_band TEXT NOT NULL CHECK(grade_band IN ('小学', '初中')),
+  grade_code TEXT NOT NULL DEFAULT 'g7' CHECK(grade_code IN ('g7','g8','g9')),
   subject TEXT NOT NULL DEFAULT '数学',
   module TEXT NOT NULL,
   question_type TEXT NOT NULL,
@@ -338,6 +339,7 @@ CREATE TABLE IF NOT EXISTS practice_plans (
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   grade_band TEXT NOT NULL,
+  grade_code TEXT NOT NULL DEFAULT 'g7' CHECK(grade_code IN ('g7','g8','g9')),
   subject TEXT NOT NULL DEFAULT '数学',
   module TEXT NOT NULL,
   question_types TEXT NOT NULL DEFAULT '[]',
@@ -632,6 +634,31 @@ CREATE TABLE IF NOT EXISTS student_learning_preferences (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 教师按班级控制八年级内容进度。没有配置记录时默认全部开放；
+-- 显式空数组表示暂停全部客观题与压轴题，试卷库不受影响。
+CREATE TABLE IF NOT EXISTS curriculum_topics (
+  topic_key TEXT PRIMARY KEY,
+  grade_code TEXT NOT NULL CHECK(grade_code IN ('g7','g8','g9')),
+  subject_code TEXT NOT NULL DEFAULT 'math',
+  title TEXT NOT NULL,
+  short_title TEXT NOT NULL,
+  source_label TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS class_content_scopes (
+  class_id INTEGER NOT NULL REFERENCES classes(id),
+  grade_code TEXT NOT NULL CHECK(grade_code IN ('g7','g8','g9')),
+  subject_code TEXT NOT NULL DEFAULT 'math',
+  topic_keys_json TEXT NOT NULL DEFAULT '[]',
+  updated_by INTEGER REFERENCES users(id),
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(class_id,grade_code,subject_code)
+);
+
 CREATE TABLE IF NOT EXISTS knowledge_topics (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   topic_key TEXT UNIQUE NOT NULL,
@@ -775,6 +802,14 @@ CREATE TABLE IF NOT EXISTS weekly_challenge_questions (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS weekly_challenge_question_topics (
+  question_id INTEGER NOT NULL REFERENCES weekly_challenge_questions(id),
+  topic_key TEXT NOT NULL REFERENCES curriculum_topics(topic_key),
+  is_primary INTEGER NOT NULL DEFAULT 0 CHECK(is_primary IN (0,1)),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(question_id,topic_key)
+);
+
 CREATE TABLE IF NOT EXISTS weekly_challenge_assignments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   student_id INTEGER NOT NULL REFERENCES students(id),
@@ -897,6 +932,27 @@ CREATE TABLE IF NOT EXISTS choice_king_questions (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS choice_king_question_topics (
+  question_id INTEGER NOT NULL REFERENCES choice_king_questions(id),
+  topic_key TEXT NOT NULL REFERENCES curriculum_topics(topic_key),
+  is_primary INTEGER NOT NULL DEFAULT 0 CHECK(is_primary IN (0,1)),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(question_id,topic_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_curriculum_topics_catalog
+  ON curriculum_topics(grade_code,subject_code,is_active,sort_order);
+CREATE INDEX IF NOT EXISTS idx_class_content_scopes_grade
+  ON class_content_scopes(class_id,grade_code,subject_code);
+CREATE INDEX IF NOT EXISTS idx_choice_king_question_topics_topic
+  ON choice_king_question_topics(topic_key,question_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_challenge_question_topics_topic
+  ON weekly_challenge_question_topics(topic_key,question_id);
+CREATE INDEX IF NOT EXISTS idx_practice_question_grade
+  ON practice_questions(grade_code,subject,module,is_active,question_type);
+CREATE INDEX IF NOT EXISTS idx_practice_plan_grade
+  ON practice_plans(class_id,grade_code,status,start_date,end_date);
 
 -- client_request_id 在学生范围内唯一；response_json 保存完整判题响应，支持安全重试。
 CREATE TABLE IF NOT EXISTS choice_king_attempts (
