@@ -137,9 +137,14 @@ function retireLegacyJuniorPracticeQuestions() {
 }
 
 function seedJuniorCalculationQuestions() {
-  const { importQuestionDataset, migrateQuestionDatasetStems } = require('../services/practice-question-import');
+  const {
+    importQuestionDataset,
+    migrateQuestionDatasetAnswers,
+    migrateQuestionDatasetStems,
+  } = require('../services/practice-question-import');
   const { normalizeLinearEquationDisplay } = require('../utils/math-expression');
   const dataset = require('../resources/practice/junior-calculation-v3');
+  migrateQuestionDatasetAnswers(getDB(), dataset, dataset.answerCorrectionSignatures);
   migrateQuestionDatasetStems(getDB(), dataset, normalizeLinearEquationDisplay);
   importQuestionDataset(getDB(), dataset, { dryRun: false });
 }

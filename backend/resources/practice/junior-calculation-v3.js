@@ -101,6 +101,12 @@ const TYPE_SLUGS = {
   一元一次方程: 'linear-equation',
 };
 
+// v3 分配律方程曾把左侧常数 c 以 -c 移到右侧，导致每四题中的第二题答案错误。
+// 签名固定，供启动迁移严格限定可修正的 40 道题。
+const answerCorrectionSignatures = Object.freeze(
+  Array.from({ length: 40 }, (_, index) => `junior-calc-v3-${String(802 + index * 4).padStart(4, '0')}`),
+);
+
 let serial = 0;
 function question(type, templateIndex, stem, answer, seconds) {
   serial += 1;
@@ -272,7 +278,11 @@ function buildQuestions() {
       const c = signedInteger(next, 1, 12);
       const d = differentInteger(next, 1, 7, a);
       const rightConstant = a * (x + b) - c - d * x;
-      return [`解方程：${a}(x${b < 0 ? b : `+${b}`})${c < 0 ? c : `+${c}`}=${polynomial([['x', d], ['', rightConstant]])}。`, `x=${x}`];
+      const actualSolution = q(rightConstant - a * b - c, a - d);
+      return [
+        `解方程：${a}(x${b < 0 ? b : `+${b}`})${c < 0 ? c : `+${c}`}=${polynomial([['x', d], ['', rightConstant]])}。`,
+        `x=${actualSolution}`,
+      ];
     }
     if (index % 4 === 2) {
       const a = signedInteger(next, 1, 8);
@@ -310,4 +320,5 @@ module.exports = {
     provenance: blueprint.provenance,
   },
   questions,
+  answerCorrectionSignatures,
 };

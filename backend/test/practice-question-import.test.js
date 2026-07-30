@@ -8,10 +8,14 @@ process.env.DATABASE_PATH = dbPath;
 
 const { initDB, getDB } = require('../db/init');
 const dataset = require('../resources/practice/junior-calculation-v3');
-const { auditCalculationQuestionBanks } = require('../services/question-bank-audit');
+const {
+  auditCalculationQuestionBanks,
+  distributiveLinearEquationAnswerMatches,
+} = require('../services/question-bank-audit');
 const { normalizeLinearEquationDisplay } = require('../utils/math-expression');
 const {
   importQuestionDataset,
+  migrateQuestionDatasetAnswers,
   migrateQuestionDatasetStems,
   questionContentDigest,
   validateQuestionDataset,
@@ -64,6 +68,70 @@ test('固定初中计算题库有 960 道、题干唯一且答案可审计', () 
   const active = db.get(`SELECT COUNT(*) count FROM practice_questions
     WHERE grade_band='初中' AND is_active=1 AND source_batch=?`, [dataset.metadata.batch_key]);
   assert.equal(Number(active.count), 960);
+});
+
+test('分配律一元一次方程的标准答案代回原式全部成立', () => {
+  const affected = dataset.questions.filter((item) => {
+    const serial = Number(item.signature.replace('junior-calc-v3-', ''));
+    return serial >= 802 && serial <= 958 && (serial - 802) % 4 === 0;
+  });
+
+  assert.equal(affected.length, 40);
+  const target = affected.find((item) => item.signature === 'junior-calc-v3-0814');
+  assert.equal(target.stem, '解方程：6(x+6)-7=5x+55。');
+  assert.equal(target.answer, 'x=26');
+  assert.equal(distributiveLinearEquationAnswerMatches(target), true);
+  assert.equal(distributiveLinearEquationAnswerMatches({ ...target, answer: 'x=12' }), false);
+
+  for (const item of affected) {
+    const match = item.stem.match(/^解方程：(\d+)\(x([+-]\d+)\)([+-]\d+)=((?:\d+)?x)([+-]\d+)?。$/u);
+    assert.ok(match, `${item.signature} 题干格式异常：${item.stem}`);
+    const [, aText, bText, cText, xTerm, constantText = '0'] = match;
+    const [numerator, denominator = '1'] = item.answer.replace('x=', '').split('/');
+    const x = Number(numerator) / Number(denominator);
+    const d = xTerm === 'x' ? 1 : Number(xTerm.replace('x', ''));
+    const left = Number(aText) * (x + Number(bText)) + Number(cText);
+    const right = d * x + Number(constantText);
+    assert.ok(Math.abs(left - right) < 1e-10, `${item.signature} 标准答案 ${item.answer} 代回不成立`);
+  }
+});
+
+test('答案修正迁移只更新白名单题目及完全匹配的历史快照', () => {
+  const db = getDB();
+  const target = dataset.questions.find((item) => item.signature === 'junior-calc-v3-0814');
+  const bank = db.get('SELECT * FROM practice_questions WHERE signature=?', [target.signature]);
+  const stale = { ...target, answer: 'x=12' };
+  db.run('UPDATE practice_questions SET answer=?,content_sha256=? WHERE id=?', [
+    stale.answer, questionContentDigest(stale), bank.id,
+  ]);
+
+  const teacherId = db.run(`INSERT INTO users(openid,nickname,role)
+    VALUES(?,?,?)`, [`answer-migration-teacher-${process.pid}`, '迁移教师', 'teacher']).lastInsertRowid;
+  const classId = db.run(`INSERT INTO classes(teacher_id,name,subject,grade)
+    VALUES(?,?,?,?)`, [teacherId, '迁移测试班', '数学', '初中']).lastInsertRowid;
+  const studentId = db.run(`INSERT INTO students(teacher_id,class_id,name,grade)
+    VALUES(?,?,?,?)`, [teacherId, classId, '迁移学生', '初中']).lastInsertRowid;
+  const planId = db.run(`INSERT INTO practice_plans
+    (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,question_types,topic_keys,difficulty)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?)`, [
+    teacherId, classId, '迁移计划', '2026-07-30', '2026-07-30', '初中', '数学',
+    '综合计算', '["一元一次方程"]', '[]', 3,
+  ]).lastInsertRowid;
+  const assignmentId = db.run(`INSERT INTO practice_assignments
+    (plan_id,student_id,practice_date,status,estimated_seconds)
+    VALUES(?,?,?,?,?)`, [planId, studentId, '2026-07-30', 'reviewed', 120]).lastInsertRowid;
+  const itemId = db.run(`INSERT INTO practice_assignment_items
+    (assignment_id,question_id,position,snapshot_stem,snapshot_answer,snapshot_module,snapshot_type,
+     snapshot_difficulty,estimated_seconds,signature,template_key)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?)`, [
+    assignmentId, bank.id, 1, target.stem, stale.answer, target.module, target.question_type,
+    target.difficulty, target.estimated_seconds, target.signature, target.template_key,
+  ]).lastInsertRowid;
+
+  const result = migrateQuestionDatasetAnswers(db, dataset, [target.signature]);
+  assert.deepEqual(result, { updated: 1, snapshot_updated: 1, total: 1 });
+  assert.equal(db.get('SELECT answer FROM practice_questions WHERE id=?', [bank.id]).answer, 'x=26');
+  assert.equal(db.get('SELECT snapshot_answer FROM practice_assignment_items WHERE id=?', [itemId]).snapshot_answer, 'x=26');
 });
 
 test('全部 2720 道生成题不存在正负号连写', () => {

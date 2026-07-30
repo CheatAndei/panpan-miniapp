@@ -96,6 +96,54 @@ function sameQuestionExceptStem(existing, item) {
     && String(existing.source_type) === expectedSourceType;
 }
 
+function sameQuestionExceptAnswer(existing, item) {
+  const expectedSourceType = item.provenance === 'self_authored' ? 'self_authored' : 'licensed';
+  return String(existing.grade_band) === String(item.grade_band)
+    && String(existing.subject) === String(item.subject)
+    && String(existing.module) === String(item.module)
+    && String(existing.question_type) === String(item.question_type)
+    && Number(existing.difficulty) === Number(item.difficulty)
+    && String(existing.template_key) === String(item.template_key)
+    && String(existing.stem) === String(item.stem)
+    && Number(existing.estimated_seconds) === Number(item.estimated_seconds)
+    && String(existing.signature) === String(item.signature)
+    && String(existing.source_type) === expectedSourceType;
+}
+
+function migrateQuestionDatasetAnswers(db, dataset, signatures = []) {
+  const validated = validateQuestionDataset(dataset);
+  if (validated.errors.length) {
+    throw new Error(`题库答案迁移校验失败：${validated.errors.join('；')}`);
+  }
+  const allowed = [...new Set(signatures.map(String))];
+  if (!allowed.length) return { updated: 0, snapshot_updated: 0, total: 0 };
+  const questionsBySignature = new Map(validated.questions.map((item) => [String(item.signature), item]));
+  let updated = 0;
+  let snapshotUpdated = 0;
+  db.transaction(() => {
+    for (const signature of allowed) {
+      const raw = questionsBySignature.get(signature);
+      if (!raw) throw new Error(`题库答案迁移缺少签名：${signature}`);
+      const item = coreQuestion(raw);
+      const existing = db.get('SELECT * FROM practice_questions WHERE signature=?', [signature]);
+      if (!existing || sameExistingQuestion(existing, item)) continue;
+      const safeAnswerChange = existing.source_batch === validated.metadata.batch_key
+        && sameQuestionExceptAnswer(existing, item);
+      if (!safeAnswerChange) throw new Error(`题库答案迁移拒绝覆盖非预期内容：${signature}`);
+      const snapshots = db.run(`UPDATE practice_assignment_items SET snapshot_answer=?
+        WHERE question_id=? AND snapshot_stem=? AND snapshot_answer=?`, [
+        item.answer, existing.id, existing.stem, existing.answer,
+      ]);
+      db.run('UPDATE practice_questions SET answer=?,content_sha256=? WHERE id=?', [
+        item.answer, questionContentDigest(item), existing.id,
+      ]);
+      updated += 1;
+      snapshotUpdated += Number(snapshots.changes || 0);
+    }
+  });
+  return { updated, snapshot_updated: snapshotUpdated, total: allowed.length };
+}
+
 function migrateQuestionDatasetStems(db, dataset, normalizeLegacyStem) {
   const validated = validateQuestionDataset(dataset);
   if (validated.errors.length) {
@@ -188,5 +236,6 @@ module.exports = {
   validateQuestionDataset,
   inspectQuestionDataset,
   importQuestionDataset,
+  migrateQuestionDatasetAnswers,
   migrateQuestionDatasetStems,
 };
