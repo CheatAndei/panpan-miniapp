@@ -97,51 +97,54 @@ function syncG8ExamPapers(db, {
   let guangzhouExam = 0;
   let mockOrReview = 0;
   let answers = 0;
+  let linkedQuestions = 0;
   const errors = [];
 
-  for (const paper of manifest.papers || []) {
-    try {
-      const paperPath = safeSourceFile(sourceRoot, paper.source_relative_path);
-      const answerPath = paper.answer
-        ? safeSourceFile(sourceRoot, path.join(path.dirname(paper.source_relative_path), paper.answer.name))
-        : null;
-      const paperAssetId = storeDocument(db, paperPath, 'paper', paper.paper.sha256);
-      const answerAssetId = answerPath
-        ? storeDocument(db, answerPath, 'answer', paper.answer.sha256)
-        : null;
-      const isMock = paper.source_kind === 'mock_or_review';
-      const displayTitle = sourceLabel({
-        source_label: paper.display_title,
-        source_kind: paper.source_kind,
-      });
-      db.run(`INSERT INTO exam_papers
-        (stable_code,display_title,school_name,district,school_year,exam_year,
-          grade,grade_code,subject_code,semester,semester_code,exam_type,
-          paper_asset_id,answer_asset_id,source_relative_path,license_status,status)
-        VALUES(?,?,?,?,?,?,'八年级','g8','math','上学期','s1',?,?,?,?,?,?)
-        ON CONFLICT(stable_code) DO UPDATE SET
-          display_title=excluded.display_title,school_name=excluded.school_name,
-          district=excluded.district,school_year=excluded.school_year,
-          exam_year=excluded.exam_year,grade='八年级',grade_code='g8',subject_code='math',
-          semester='上学期',semester_code='s1',exam_type=excluded.exam_type,
-          paper_asset_id=excluded.paper_asset_id,answer_asset_id=excluded.answer_asset_id,
-          source_relative_path=excluded.source_relative_path,
-          license_status='teacher_provided',status=excluded.status,updated_at=CURRENT_TIMESTAMP`, [
-        paper.stable_code, displayTitle, paper.school_name || '', paper.district || '',
-        paper.school_year || '', Number(paper.exam_year) || null,
-        isMock ? 'mock' : paper.exam_type, paperAssetId, answerAssetId,
-        paper.source_relative_path, 'teacher_provided', publish ? 'published' : 'draft',
-      ]);
-      imported += 1;
-      answers += answerAssetId ? 1 : 0;
-      if (isMock) mockOrReview += 1;
-      else guangzhouExam += 1;
-    } catch (error) {
-      errors.push({ stable_code: paper.stable_code, error: error.message });
-      if (strict) throw error;
+  db.transaction(() => {
+    for (const paper of manifest.papers || []) {
+      try {
+        const paperPath = safeSourceFile(sourceRoot, paper.source_relative_path);
+        const answerPath = paper.answer
+          ? safeSourceFile(sourceRoot, path.join(path.dirname(paper.source_relative_path), paper.answer.name))
+          : null;
+        const paperAssetId = storeDocument(db, paperPath, 'paper', paper.paper.sha256);
+        const answerAssetId = answerPath
+          ? storeDocument(db, answerPath, 'answer', paper.answer.sha256)
+          : null;
+        const isMock = paper.source_kind === 'mock_or_review';
+        const displayTitle = sourceLabel({
+          source_label: paper.display_title,
+          source_kind: paper.source_kind,
+        });
+        db.run(`INSERT INTO exam_papers
+          (stable_code,display_title,school_name,district,school_year,exam_year,
+            grade,grade_code,subject_code,semester,semester_code,exam_type,
+            paper_asset_id,answer_asset_id,source_relative_path,license_status,status)
+          VALUES(?,?,?,?,?,?,'八年级','g8','math','上学期','s1',?,?,?,?,?,?)
+          ON CONFLICT(stable_code) DO UPDATE SET
+            display_title=excluded.display_title,school_name=excluded.school_name,
+            district=excluded.district,school_year=excluded.school_year,
+            exam_year=excluded.exam_year,grade='八年级',grade_code='g8',subject_code='math',
+            semester='上学期',semester_code='s1',exam_type=excluded.exam_type,
+            paper_asset_id=excluded.paper_asset_id,answer_asset_id=excluded.answer_asset_id,
+            source_relative_path=excluded.source_relative_path,
+            license_status='teacher_provided',status=excluded.status,updated_at=CURRENT_TIMESTAMP`, [
+          paper.stable_code, displayTitle, paper.school_name || '', paper.district || '',
+          paper.school_year || '', Number(paper.exam_year) || null,
+          isMock ? 'mock' : paper.exam_type, paperAssetId, answerAssetId,
+          paper.source_relative_path, 'teacher_provided', publish ? 'published' : 'draft',
+        ]);
+        imported += 1;
+        answers += answerAssetId ? 1 : 0;
+        if (isMock) mockOrReview += 1;
+        else guangzhouExam += 1;
+      } catch (error) {
+        errors.push({ stable_code: paper.stable_code, error: error.message });
+        if (strict) throw error;
+      }
     }
-  }
-  const linkedQuestions = linkSourceQuestions(db, packRoot);
+    linkedQuestions = linkSourceQuestions(db, packRoot);
+  });
   return {
     imported,
     answers,

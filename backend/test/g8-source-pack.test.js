@@ -20,6 +20,7 @@ const {
   seedG8SourcePack,
 } = require('../services/g8-source-pack-seed');
 const { syncG8ExamPapers } = require('../services/g8-exam-sync');
+const { buildG8ExamBundle } = require('../scripts/build-g8-exam-bundle');
 
 test.before(async () => {
   fs.mkdirSync(rubbish, { recursive: true });
@@ -33,9 +34,76 @@ test.after(() => {
     process.env.PRIVATE_UPLOAD_DIR,
     process.env.EXAM_LIBRARY_DIR,
     path.join(rubbish, `g8-exam-sync-${suffix}`),
+    path.join(rubbish, `g8-exam-bundle-${suffix}`),
   ]) {
     try { fs.rmSync(target, { recursive: true, force: true }); } catch {}
   }
+});
+
+test('八上整卷部署包校验 206 卷并保留学校、来源和扩展名', () => {
+  const root = path.join(rubbish, `g8-exam-bundle-${suffix}`);
+  const sourceRoot = path.join(root, 'source');
+  const outputRoot = path.join(root, 'output');
+  const paperDir = path.join(sourceRoot, '资料');
+  fs.mkdirSync(paperDir, { recursive: true });
+  const files = Array.from({ length: 206 }, (_, index) => {
+    const extension = index === 0 ? '.pdf' : '.docx';
+    const paperFile = path.join(paperDir, `原卷-${index}${extension}`);
+    fs.writeFileSync(paperFile, Buffer.from(`paper-${index}`));
+    const answerFile = index < 202 ? path.join(paperDir, `解析-${index}${extension}`) : null;
+    if (answerFile) fs.writeFileSync(answerFile, Buffer.from(`answer-${index}`));
+    return { paperFile, answerFile };
+  });
+  const item = (file) => ({
+    name: path.basename(file),
+    sha256: crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+    byte_size: fs.statSync(file).size,
+  });
+  const papers = files.map(({ paperFile, answerFile }, index) => ({
+    stable_code: `GZ8-TEST-${String(index).padStart(3, '0')}`,
+    display_title: `八上试卷 ${index}`,
+    school_name: `学校 ${index}`,
+    district: '广州',
+    school_year: '2025-2026',
+    exam_year: 2025,
+    exam_type: 'final',
+    source_kind: index < 14 ? 'mock_or_review' : 'guangzhou_exam',
+    source_relative_path: path.join('资料', path.basename(paperFile)),
+    paper: item(paperFile),
+    answer: answerFile ? item(answerFile) : null,
+  }));
+  const manifestPath = path.join(root, 'exam-manifest.json');
+  const auditPath = path.join(root, 'audit-report.json');
+  fs.writeFileSync(manifestPath, `${JSON.stringify({
+    summary: { paired_papers: 202 },
+    papers,
+  })}\n`);
+  fs.writeFileSync(auditPath, '{"ok":true}\n');
+
+  const result = buildG8ExamBundle({
+    manifestPath,
+    auditPath,
+    sourceRoot,
+    outputRoot,
+  });
+  assert.deepEqual(result.expected, {
+    papers: 206,
+    answers: 202,
+    guangzhou_exam: 192,
+    mock_or_review: 14,
+    question_links: 0,
+    grade_code: 'g8',
+    subject_code: 'math',
+  });
+  assert.equal(result.papers[0].school_name, '学校 0');
+  assert.equal(result.papers[0].exam_type, 'mock');
+  assert.match(result.papers[0].display_title, /^模拟\/复习 · /);
+  assert.ok(fs.existsSync(path.join(
+    outputRoot,
+    'paper',
+    result.papers[0].paper.sha256.slice(0, 2),
+    `${result.papers[0].paper.sha256}.pdf`,
+  )));
 });
 
 test('八上真题包保守隔离低置信度与固定 12 讲以外内容', () => {

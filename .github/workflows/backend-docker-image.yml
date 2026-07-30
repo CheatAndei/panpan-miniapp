@@ -72,6 +72,10 @@ jobs:
             | tar -xzf - -C ../private-resources-deploy
           test -f ../private-resources-deploy/choice-king/manifest.json
           test -f ../private-resources-deploy/weekly-challenges/manifest.json
+          test -f ../private-resources-deploy/choice-king/g8-source-pack/exam-manifest.json
+          test -f ../private-resources-deploy/choice-king/g8-source-pack/choice/manifest.json
+          test -f ../private-resources-deploy/choice-king/g8-source-pack/terminal/manifest.json
+          test -f ../private-resources-deploy/choice-king/g8-source-pack/audit/audit-report.json
 
       - name: Check private question-bank resource cache
         id: resource_cache
@@ -92,6 +96,10 @@ jobs:
             RESOURCE_DIR="/opt/panpan-miniapp/private-resources/$PANPAN_RESOURCE_BUNDLE_ID"
             test -f "$RESOURCE_DIR/choice-king/manifest.json"
             test -f "$RESOURCE_DIR/weekly-challenges/manifest.json"
+            test -f "$RESOURCE_DIR/choice-king/g8-source-pack/exam-manifest.json"
+            test -f "$RESOURCE_DIR/choice-king/g8-source-pack/choice/manifest.json"
+            test -f "$RESOURCE_DIR/choice-king/g8-source-pack/terminal/manifest.json"
+            test -f "$RESOURCE_DIR/choice-king/g8-source-pack/audit/audit-report.json"
 
       - name: Upload private question-bank resources
         if: github.ref == 'refs/heads/main' && steps.resource_cache.outcome != 'success'
@@ -158,9 +166,17 @@ jobs:
             if [ -d "$RESOURCE_DIR" ]; then
               test -f "$RESOURCE_DIR/choice-king/manifest.json"
               test -f "$RESOURCE_DIR/weekly-challenges/manifest.json"
+              test -f "$RESOURCE_DIR/choice-king/g8-source-pack/exam-manifest.json"
+              test -f "$RESOURCE_DIR/choice-king/g8-source-pack/choice/manifest.json"
+              test -f "$RESOURCE_DIR/choice-king/g8-source-pack/terminal/manifest.json"
+              test -f "$RESOURCE_DIR/choice-king/g8-source-pack/audit/audit-report.json"
             else
               test -f "$RESOURCE_UPLOAD/choice-king/manifest.json"
               test -f "$RESOURCE_UPLOAD/weekly-challenges/manifest.json"
+              test -f "$RESOURCE_UPLOAD/choice-king/g8-source-pack/exam-manifest.json"
+              test -f "$RESOURCE_UPLOAD/choice-king/g8-source-pack/choice/manifest.json"
+              test -f "$RESOURCE_UPLOAD/choice-king/g8-source-pack/terminal/manifest.json"
+              test -f "$RESOURCE_UPLOAD/choice-king/g8-source-pack/audit/audit-report.json"
               mv "$RESOURCE_UPLOAD" "$RESOURCE_DIR"
             fi
             rm -rf "$DEPLOY_DIR/private-resource-upload/$PANPAN_RESOURCE_BUNDLE_ID"
@@ -234,7 +250,15 @@ jobs:
             const terminalRoot = '/app/resources/weekly-challenges';
             const choice = read(path.join(choiceRoot, 'manifest.json')).questions;
             const terminal = read(path.join(terminalRoot, 'manifest.json')).questions;
+            const g8Root = path.join(choiceRoot, 'g8-source-pack');
+            const g8Exams = read(path.join(g8Root, 'exam-manifest.json')).papers;
+            const g8Choice = read(path.join(g8Root, 'choice', 'manifest.json')).questions;
+            const g8Terminal = read(path.join(g8Root, 'terminal', 'manifest.json')).questions;
+            const g8Audit = read(path.join(g8Root, 'audit', 'audit-report.json'));
             if (choice.length !== 1000 || terminal.length !== 710) throw new Error('private resource counts are invalid');
+            if (g8Exams.length !== 206 || g8Choice.length !== 1000 || g8Terminal.length !== 552 || g8Audit.ok !== true) {
+              throw new Error('g8 private resource counts are invalid');
+            }
             if (choice.filter((item) => item.recent_bucket === 'recent').length !== 500) throw new Error('recent choice count is invalid');
             if (choice.filter((item) => item.recent_bucket === 'older').length !== 500) throw new Error('older choice count is invalid');
             for (const item of choice) {
@@ -244,7 +268,21 @@ jobs:
               if (!fs.existsSync(path.join(terminalRoot, item.question_image))) throw new Error(`missing terminal question: ${item.source_key}`);
               if (item.answer_image && !fs.existsSync(path.join(terminalRoot, item.answer_image))) throw new Error(`missing terminal answer: ${item.source_key}`);
             }
-            console.log(JSON.stringify({ choice: choice.length, terminal: terminal.length, resources: 'ok' }));
+            for (const item of g8Choice) {
+              if (!fs.existsSync(path.join(g8Root, 'choice', item.question_image))) throw new Error(`missing g8 choice image: ${item.source_key}`);
+            }
+            for (const item of g8Terminal) {
+              if (!fs.existsSync(path.join(g8Root, 'terminal', item.question_image))) throw new Error(`missing g8 terminal question: ${item.source_key}`);
+              if (item.answer_image && !fs.existsSync(path.join(g8Root, 'terminal', item.answer_image))) throw new Error(`missing g8 terminal answer: ${item.source_key}`);
+            }
+            console.log(JSON.stringify({
+              choice: choice.length,
+              terminal: terminal.length,
+              g8_exams: g8Exams.length,
+              g8_choice: g8Choice.length,
+              g8_terminal: g8Terminal.length,
+              resources: 'ok',
+            }));
             NODE
             if [ ! -f "$DEPLOY_DIR/docker-compose.yml" ]; then
               cat > "$DEPLOY_DIR/docker-compose.yml" <<'EOF'
@@ -513,9 +551,13 @@ jobs:
                 recent: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%' AND source_period='recent'"),
                 older: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%' AND source_period='older'"),
                 terminal: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND source_key LIKE 'gz7-terminal-%'"),
+                g8_choice: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND grade_code='g8'"),
+                g8_terminal: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND grade_code='g8'"),
+                g8_practice: scalar("SELECT COUNT(*) FROM practice_questions WHERE is_active=1 AND grade_code='g8'"),
               };
               console.log(JSON.stringify(counts));
-              if (counts.choice !== 1000 || counts.recent !== 500 || counts.older !== 500 || counts.terminal !== 710) process.exit(1);
+              if (counts.choice !== 1000 || counts.recent !== 500 || counts.older !== 500 || counts.terminal !== 710
+                || counts.g8_choice !== 1322 || counts.g8_terminal !== 723 || counts.g8_practice !== 480) process.exit(1);
             }).catch((error) => { console.error(error); process.exit(1); });
             NODE
             then

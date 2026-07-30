@@ -188,7 +188,7 @@ const error = ref('');
 const selectedGrade=ref('');
 const gradeTabs=[
   {value:'g7',label:'七年级',sub:'基础衔接'},
-  {value:'g8',label:'八年级',sub:'知识闯关'},
+  {value:'g8',label:'八年级',sub:'12 讲同步'},
   {value:'g9',label:'冲刺中考',sub:'全科一模'},
 ];
 const dailyTypes = new Set(['warmup', 'weakness', 'wrong', 'practice']);

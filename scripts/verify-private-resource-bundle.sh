@@ -32,16 +32,30 @@ import sys
 root = pathlib.Path(sys.argv[1])
 choice = json.loads((root / "choice-king/manifest.json").read_text(encoding="utf-8"))
 terminal = json.loads((root / "weekly-challenges/manifest.json").read_text(encoding="utf-8"))
+g8_root = root / "choice-king/g8-source-pack"
+g8_exams = json.loads((g8_root / "exam-manifest.json").read_text(encoding="utf-8"))
+g8_choice = json.loads((g8_root / "choice/manifest.json").read_text(encoding="utf-8"))
+g8_terminal = json.loads((g8_root / "terminal/manifest.json").read_text(encoding="utf-8"))
+g8_audit = json.loads((g8_root / "audit/audit-report.json").read_text(encoding="utf-8"))
 choice_questions = choice.get("questions", choice) if isinstance(choice, dict) else choice
 terminal_questions = terminal.get("questions", terminal) if isinstance(terminal, dict) else terminal
 assert len(choice_questions) == 1000, len(choice_questions)
 assert len(terminal_questions) == 710, len(terminal_questions)
 assert sum(item.get("recent_bucket") == "recent" for item in choice_questions) == 500
 assert sum(item.get("recent_bucket") == "older" for item in choice_questions) == 500
+assert len(g8_exams.get("papers", [])) == 206
+assert len(g8_choice.get("questions", [])) == 1000
+assert len(g8_terminal.get("questions", [])) == 552
+assert g8_audit.get("ok") is True
+assert len(list((g8_root / "choice/questions").glob("*.webp"))) == 1000
+assert len(list((g8_root / "terminal").rglob("*.webp"))) == 1104
 print({
     "choice": len(choice_questions),
     "terminal": len(terminal_questions),
     "choice_images": len(list((root / "choice-king/questions").glob("*"))),
     "terminal_webp": len(list((root / "weekly-challenges").rglob("*.webp"))),
+    "g8_exams": len(g8_exams.get("papers", [])),
+    "g8_choice": len(g8_choice.get("questions", [])),
+    "g8_terminal": len(g8_terminal.get("questions", [])),
 })
 PY

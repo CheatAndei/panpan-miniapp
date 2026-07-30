@@ -31,7 +31,7 @@ async function main(){
   if(!fs.existsSync(manifestPath))throw new Error(`manifest 不存在：${manifestPath}`);
   const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
   if(!Array.isArray(manifest.papers)||!manifest.papers.length)throw new Error('manifest 无试卷');
-  await initDB();const db=getDB();let imported=0;
+  await initDB();const db=getDB();let imported=0;let linked=0;
   db.transaction(()=>{for(const item of manifest.papers){
     const paperAssetId=asset(db,item.paper,'paper');const answerAssetId=asset(db,item.answer,'answer');
     db.run(`INSERT INTO exam_papers(stable_code,display_title,school_name,district,school_year,exam_year,grade,grade_code,subject_code,semester,semester_code,exam_type,
@@ -40,10 +40,24 @@ async function main(){
       grade=excluded.grade,grade_code=excluded.grade_code,subject_code=excluded.subject_code,semester=excluded.semester,semester_code=excluded.semester_code,
       exam_type=excluded.exam_type,paper_asset_id=excluded.paper_asset_id,answer_asset_id=excluded.answer_asset_id,
       source_relative_path=excluded.source_relative_path,license_status='teacher_provided',status=excluded.status,updated_at=CURRENT_TIMESTAMP`,[
-      item.stable_code,item.display_title,item.district,item.district,String(item.exam_year||''),item.exam_year,item.grade,item.grade_code,item.subject_code,
+      item.stable_code,item.display_title,item.school_name||item.district||'',item.district||'',String(item.school_year||item.exam_year||''),item.exam_year,item.grade,item.grade_code,item.subject_code,
       item.semester,item.semester_code,item.exam_type,paperAssetId,answerAssetId,item.source_relative_path,publish?'published':'draft']);
     imported+=1;
+  }
+  for(const link of manifest.question_links||[]){
+    const config=link.kind==='choice'
+      ?{table:'choice_king_questions',key:'stable_code'}
+      :link.kind==='terminal'
+        ?{table:'weekly_challenge_questions',key:'source_key'}
+        :null;
+    if(!config)throw new Error(`题目关联类型无效：${link.kind}`);
+    const exam=db.get('SELECT id FROM exam_papers WHERE stable_code=?',[link.exam_stable_code]);
+    if(!exam)throw new Error(`题目关联试卷不存在：${link.exam_stable_code}`);
+    linked+=Number(db.run(`UPDATE ${config.table} SET exam_id=?
+      WHERE ${config.key}=? AND COALESCE(exam_id,0)<>?`,[
+      exam.id,link.question_key,exam.id,
+    ]).changes||0);
   }});
-  console.log(JSON.stringify({ok:true,imported,published:publish,manifest:manifestPath,exam_library_dir:EXAM_LIBRARY_DIR}));
+  console.log(JSON.stringify({ok:true,imported,linked,published:publish,manifest:manifestPath,exam_library_dir:EXAM_LIBRARY_DIR}));
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

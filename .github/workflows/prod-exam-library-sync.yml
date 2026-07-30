@@ -200,9 +200,19 @@ jobs:
             const rows=new Map((result[0]?.values||[]).map(([code,answer])=>[String(code),answer]));
             const missing=manifest.papers.filter(item=>!rows.has(item.stable_code));
             const missingAnswers=manifest.papers.filter(item=>item.answer&&rows.get(item.stable_code)==null);
-            const counts={papers:manifest.papers.length-missing.length,answers:manifest.papers.filter(item=>item.answer).length-missingAnswers.length};
+            let linked=0;
+            for(const link of manifest.question_links||[]){
+              const table=link.kind==='choice'?'choice_king_questions':link.kind==='terminal'?'weekly_challenge_questions':'';
+              const key=link.kind==='choice'?'stable_code':'source_key';
+              if(!table)continue;
+              const escapedQuestion=String(link.question_key).replaceAll("'","''");
+              const escapedExam=String(link.exam_stable_code).replaceAll("'","''");
+              linked+=q(`SELECT COUNT(*) FROM ${table} q JOIN exam_papers e ON e.id=q.exam_id WHERE q.${key}='${escapedQuestion}' AND e.stable_code='${escapedExam}'`);
+            }
+            const counts={papers:manifest.papers.length-missing.length,answers:manifest.papers.filter(item=>item.answer).length-missingAnswers.length,question_links:linked};
             console.log(JSON.stringify({...counts,missing:missing.length,missing_answers:missingAnswers.length}));
-            if(missing.length||missingAnswers.length||counts.papers!==manifest.expected.papers||counts.answers!==manifest.expected.answers)process.exit(1);
+            if(missing.length||missingAnswers.length||counts.papers!==manifest.expected.papers||counts.answers!==manifest.expected.answers
+              ||counts.question_links!==Number(manifest.expected.question_links||0))process.exit(1);
           }else{
             const counts={papers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published'"),answers:q("SELECT COUNT(*) FROM exam_papers WHERE grade_code='g9' AND exam_type='mock' AND status='published' AND answer_asset_id IS NOT NULL")};
             console.log(JSON.stringify(counts));if(counts.papers!==194||counts.answers!==193)process.exit(1);

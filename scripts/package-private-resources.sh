@@ -14,6 +14,10 @@ fi
 
 for required in \
   "$RESOURCE_ROOT/choice-king/manifest.json" \
+  "$RESOURCE_ROOT/choice-king/g8-source-pack/exam-manifest.json" \
+  "$RESOURCE_ROOT/choice-king/g8-source-pack/choice/manifest.json" \
+  "$RESOURCE_ROOT/choice-king/g8-source-pack/terminal/manifest.json" \
+  "$RESOURCE_ROOT/choice-king/g8-source-pack/audit/audit-report.json" \
   "$RESOURCE_ROOT/weekly-challenges/manifest.json"; do
   if [[ ! -f "$required" ]]; then
     echo "missing private resource: $required" >&2

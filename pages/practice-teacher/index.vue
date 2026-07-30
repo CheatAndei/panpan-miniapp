@@ -29,8 +29,8 @@
       </picker>
 
       <view class="fixed-scope">
-        <text class="fixed-scope-title">固定题库 · {{ practiceCatalog?.class?.grade_label || '选择班级' }}计算</text>
-        <text class="fixed-scope-copy">题库按班级年级隔离；调整班级年级后，新计划自动使用对应题库，历史计划不变。</text>
+        <text class="fixed-scope-title">固定题库 · 初中计算 · {{ practiceCatalog?.class?.grade_label || '选择班级' }}</text>
+        <text class="fixed-scope-copy">按学生当前进度勾选模块；题库按班级年级隔离。调整班级年级后，新计划自动使用对应题库，历史计划不变。</text>
         <pp-state v-if="catalogLoading" type="loading" title="正在读取年级题库" />
         <pp-state v-else-if="catalogError" type="error" title="题库加载失败" :description="catalogError" action-text="重试" @action="loadPracticeCatalog" />
         <pp-state v-else-if="practiceCatalog && !practiceCatalog.supported" title="该年级暂未开放打卡题库" description="请先在管理班级中调整为七年级或八年级。" />

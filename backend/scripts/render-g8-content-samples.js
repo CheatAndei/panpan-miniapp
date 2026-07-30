@@ -8,7 +8,9 @@ const { renderQuestionCardSvg } = require('../services/g8-content-seed');
 async function main() {
   const outputDir = path.resolve(process.argv[2] || path.join(__dirname, '..', '..', 'z-rubbish', 'g8-content-samples'));
   fs.mkdirSync(outputDir, { recursive: true });
-  const samples = topics.map((topic) => terminals.find((item) => item.topic_key === topic.topic_key));
+  const samples = topics.flatMap((topic) => ['fill', 'subjective'].map((questionType) => (
+    terminals.find((item) => item.topic_key === topic.topic_key && item.question_type === questionType)
+  )));
   for (const item of samples) {
     const target = path.join(outputDir, `${item.source_key}.webp`);
     await sharp(renderQuestionCardSvg(item)).webp({ quality: 90, effort: 4 }).toFile(target);
