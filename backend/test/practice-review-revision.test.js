@@ -254,6 +254,70 @@ test('历史详情返回当前轮完整评题、修订版本与锁定原因', as
   assert.equal(record.revision_lock_reason, null);
 });
 
+test('重新推送已有批改记录后可在原轮次安全覆盖，不产生重复批改行', async () => {
+  const db = getDB();
+  const target = seedReviewedSubmission(db, {
+    practiceDate: '2099-01-10',
+    reviewedAt: '2099-01-10 12:00:00',
+    status: 'correction_required',
+    results: [false, true],
+  });
+  const file = db.run(`INSERT INTO private_files
+    (token,student_id,purpose,owner_type,owner_id,storage_key,mime_type,byte_size,sha256,created_by)
+    VALUES(?,?,'practice_photo','practice_submission',?,?, 'image/jpeg',128,?,?)`, [
+    `requeue-token-${target.id}`,
+    studentId,
+    target.id,
+    `2099-01/requeue-${target.id}.jpg`,
+    `requeue-sha-${target.id}`,
+    parentId,
+  ]);
+  db.run(`INSERT INTO practice_attachments
+    (submission_id,round_no,owner_parent_id,file_id,sha256)
+    VALUES(?,1,?,?,?)`, [
+    target.id,
+    parentId,
+    file.lastInsertRowid,
+    `requeue-sha-${target.id}`,
+  ]);
+  db.run(`UPDATE practice_submissions SET
+    status='submitted',needs_correction=0,reviewed_by=NULL,reviewed_at=NULL,completed_at=NULL
+    WHERE id=?`, [target.id]);
+  db.run(`UPDATE practice_submission_rounds SET
+    status='submitted',reviewed_by=NULL,reviewed_at=NULL
+    WHERE submission_id=? AND round_no=1`, [target.id]);
+  db.run("UPDATE practice_assignments SET status='submitted' WHERE id=?", [target.assignmentId]);
+
+  const listed = await request(
+    'GET',
+    `/practice/submissions?plan_id=${planId}&status=submitted&limit=50&page=1&submission_id=${target.id}`,
+    teacherToken,
+  );
+  const submission = listed.payload.submissions.find((item) => Number(item.id) === target.id);
+  assert.ok(submission);
+  assert.equal(submission.attachments.length, 1);
+
+  const reviewed = await request(
+    'PUT',
+    `/practice/submissions/${target.id}/review`,
+    teacherToken,
+    {
+      round_no: 1,
+      teacher_note: '重新核对完成',
+      results: submission.items.map((item) => ({ item_id: item.id, is_correct: true })),
+    },
+  );
+  assert.equal(reviewed.response.status, 200);
+  assert.equal(reviewed.payload.status, 'reviewed');
+  assert.equal(reviewed.payload.review_revision, 2);
+  const rows = db.all(`SELECT assignment_item_id,is_correct
+    FROM practice_review_rounds
+    WHERE submission_id=? AND round_no=1
+    ORDER BY assignment_item_id`, [target.id]);
+  assert.equal(rows.length, target.itemIds.length);
+  assert.ok(rows.every((item) => Number(item.is_correct) === 1));
+});
+
 test('独立 PUT 修订完整校验、状态双向联动、版本并发与操作日志', async () => {
   const db = getDB();
   const target = seedReviewedSubmission(db, {

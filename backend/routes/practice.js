@@ -739,7 +739,11 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
         const note = String(result.note || '').slice(0, 240);
         db.run(`INSERT INTO practice_review_rounds
           (submission_id,round_no,assignment_item_id,is_correct,teacher_note,reviewed_at)
-          VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)`, [
+          VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)
+          ON CONFLICT(submission_id,round_no,assignment_item_id) DO UPDATE SET
+            is_correct=excluded.is_correct,
+            teacher_note=excluded.teacher_note,
+            reviewed_at=CURRENT_TIMESTAMP`, [
           submission.id, roundNo, item.id, result.is_correct ? 1 : 0, note,
         ]);
         db.run(`INSERT INTO practice_reviews

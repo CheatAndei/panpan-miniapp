@@ -1,0 +1,328 @@
+name: Production Practice Requeue
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Inspect image files or requeue the approved seven submissions"
+        required: true
+        default: "inspect"
+        type: choice
+        options:
+          - inspect
+          - requeue
+      confirm:
+        description: "Type REQUEUE_7_CORRECTIONS when mode is requeue"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panpan-production
+  cancel-in-progress: false
+
+jobs:
+  practice-requeue:
+    name: Inspect or requeue approved practice submissions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Verify approved rows and private image files
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 'docker exec -i panpan-api node --input-type=commonjs' <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const initSqlJs = require('sql.js');
+          const ids = [10, 20, 25, 26, 27, 30, 34];
+          const placeholders = ids.map(() => '?').join(',');
+          const query = (db, sql, params = []) => {
+            const statement = db.prepare(sql);
+            statement.bind(params);
+            const rows = [];
+            while (statement.step()) rows.push(statement.getAsObject());
+            statement.free();
+            return rows;
+          };
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+            const rows = query(db, `SELECT ps.id,ps.status,ps.current_round,a.id assignment_id,
+                a.practice_date,st.name student_name,p.teacher_id
+              FROM practice_submissions ps
+              JOIN practice_assignments a ON a.id=ps.assignment_id
+              JOIN practice_plans p ON p.id=a.plan_id
+              JOIN students st ON st.id=a.student_id
+              WHERE ps.id IN (${placeholders})
+              ORDER BY ps.id`, ids);
+            if (rows.length !== ids.length) throw new Error(`Expected ${ids.length} submissions, got ${rows.length}`);
+            if (rows.some((row) => row.status !== 'correction_required' || Number(row.current_round) !== 1)) {
+              throw new Error(`Approved submissions changed state: ${JSON.stringify(rows)}`);
+            }
+            if (new Set(rows.map((row) => Number(row.teacher_id))).size !== 1) {
+              throw new Error('Approved submissions no longer belong to one teacher');
+            }
+            const files = query(db, `SELECT pa.submission_id,pa.round_no,pf.storage_key,
+                pf.byte_size,pf.sha256
+              FROM practice_attachments pa
+              JOIN private_files pf ON pf.id=pa.file_id
+              WHERE pa.submission_id IN (${placeholders})
+              ORDER BY pa.submission_id,pa.id`, ids);
+            if (files.length !== 8) throw new Error(`Expected 8 image rows, got ${files.length}`);
+            if (files.some((file) => Number(file.round_no) !== 1)) {
+              throw new Error('Approved submissions contain unexpected correction-round images');
+            }
+            for (const file of files) {
+              const fullPath = path.resolve('/app/private-uploads', file.storage_key);
+              if (!fullPath.startsWith('/app/private-uploads/')) throw new Error(`Unsafe storage key: ${file.storage_key}`);
+              if (!fs.existsSync(fullPath)) throw new Error(`Missing image: ${file.storage_key}`);
+              const stat = fs.statSync(fullPath);
+              if (stat.size !== Number(file.byte_size)) throw new Error(`Image size mismatch: ${file.storage_key}`);
+              const sha256 = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+              if (sha256 !== file.sha256) throw new Error(`Image checksum mismatch: ${file.storage_key}`);
+            }
+            console.log(JSON.stringify({
+              ok: true,
+              submissions: rows.map(({ id, student_name, practice_date }) => ({ id, student_name, practice_date })),
+              image_count: files.length,
+              image_bytes: files.reduce((sum, file) => sum + Number(file.byte_size), 0),
+            }));
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Require exact requeue confirmation
+        if: inputs.mode == 'requeue' && inputs.confirm != 'REQUEUE_7_CORRECTIONS'
+        run: |
+          echo "Missing exact confirmation REQUEUE_7_CORRECTIONS"
+          exit 1
+
+      - name: Requeue approved submissions with backup and rollback
+        if: inputs.mode == 'requeue' && inputs.confirm == 'REQUEUE_7_CORRECTIONS'
+        env:
+          REQUEUE_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 "REQUEUE_ID='$REQUEUE_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$REQUEUE_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid requeue id'; exit 1 ;; esac
+          DEPLOY_DIR=/opt/panpan-miniapp
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          PRIVATE_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/private-uploads"}}{{.Source}}{{end}}{{end}}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          test -n "$DATA_DIR"
+          test -n "$PRIVATE_DIR"
+          test -n "$IMAGE"
+          test -f "$DATA_DIR/teach.db"
+          BACKUP_DIR="/opt/panpan-miniapp/backups/practice-requeue-$REQUEUE_ID"
+          test ! -e "$BACKUP_DIR"
+          install -d -m 700 "$BACKUP_DIR"
+
+          rollback() {
+            status="$?"
+            trap - EXIT HUP INT TERM
+            if [ "$status" = "0" ]; then
+              return
+            fi
+            set +e
+            echo "Requeue failed; restoring database backup"
+            (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            cp -a "$BACKUP_DIR/teach.db" "$DATA_DIR/.teach.db.rollback-$REQUEUE_ID.tmp"
+            mv -f "$DATA_DIR/.teach.db.rollback-$REQUEUE_ID.tmp" "$DATA_DIR/teach.db"
+            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+            exit "$status"
+          }
+          trap rollback EXIT
+          trap 'exit 129' HUP
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+
+          (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+          cp -a "$DATA_DIR/teach.db" "$BACKUP_DIR/teach.db"
+          BACKUP_BYTES="$(stat -c%s "$BACKUP_DIR/teach.db")"
+          BACKUP_SHA256="$(sha256sum "$BACKUP_DIR/teach.db" | awk '{print $1}')"
+          test "$BACKUP_BYTES" -gt 0
+          test "$(od -An -tx1 -N16 "$BACKUP_DIR/teach.db" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
+          printf '%s  teach.db\n' "$BACKUP_SHA256" > "$BACKUP_DIR/teach.db.sha256"
+          chmod 600 "$BACKUP_DIR/teach.db" "$BACKUP_DIR/teach.db.sha256"
+
+          docker run --rm -i \
+            -e DATABASE_PATH=/app/data/teach.db \
+            -e PRIVATE_UPLOAD_DIR=/app/private-uploads \
+            -e REQUEUE_ID="$REQUEUE_ID" \
+            -v "$DATA_DIR:/app/data" \
+            -v "$PRIVATE_DIR:/app/private-uploads:ro" \
+            "$IMAGE" node --input-type=commonjs <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const initSqlJs = require('sql.js');
+          const ids = [10, 20, 25, 26, 27, 30, 34];
+          const placeholders = ids.map(() => '?').join(',');
+          const dbPath = process.env.DATABASE_PATH;
+          const query = (db, sql, params = []) => {
+            const statement = db.prepare(sql);
+            statement.bind(params);
+            const rows = [];
+            while (statement.step()) rows.push(statement.getAsObject());
+            statement.free();
+            return rows;
+          };
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync(dbPath));
+            const rows = query(db, `SELECT ps.*,a.id assignment_id,a.status assignment_status,
+                a.practice_date,st.name student_name,p.teacher_id
+              FROM practice_submissions ps
+              JOIN practice_assignments a ON a.id=ps.assignment_id
+              JOIN practice_plans p ON p.id=a.plan_id
+              JOIN students st ON st.id=a.student_id
+              WHERE ps.id IN (${placeholders})
+              ORDER BY ps.id`, ids);
+            if (rows.length !== ids.length) throw new Error(`Expected ${ids.length} submissions, got ${rows.length}`);
+            if (rows.some((row) => row.status !== 'correction_required' || Number(row.current_round) !== 1)) {
+              throw new Error(`Approved submissions changed state: ${JSON.stringify(rows)}`);
+            }
+            const files = query(db, `SELECT pa.submission_id,pa.round_no,pf.storage_key,
+                pf.byte_size,pf.sha256
+              FROM practice_attachments pa
+              JOIN private_files pf ON pf.id=pa.file_id
+              WHERE pa.submission_id IN (${placeholders})
+              ORDER BY pa.submission_id,pa.id`, ids);
+            if (files.length !== 8 || files.some((file) => Number(file.round_no) !== 1)) {
+              throw new Error(`Unexpected image rows: ${JSON.stringify(files)}`);
+            }
+            for (const file of files) {
+              const fullPath = path.resolve(process.env.PRIVATE_UPLOAD_DIR, file.storage_key);
+              if (!fullPath.startsWith(`${path.resolve(process.env.PRIVATE_UPLOAD_DIR)}${path.sep}`)) {
+                throw new Error(`Unsafe storage key: ${file.storage_key}`);
+              }
+              if (!fs.existsSync(fullPath)) throw new Error(`Missing image: ${file.storage_key}`);
+              const stat = fs.statSync(fullPath);
+              if (stat.size !== Number(file.byte_size)) throw new Error(`Image size mismatch: ${file.storage_key}`);
+              const sha256 = crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+              if (sha256 !== file.sha256) throw new Error(`Image checksum mismatch: ${file.storage_key}`);
+            }
+
+            db.run('BEGIN TRANSACTION');
+            for (const row of rows) {
+              const reviewRows = query(db, `SELECT round_no,assignment_item_id,is_correct,teacher_note,reviewed_at
+                FROM practice_review_rounds WHERE submission_id=?
+                ORDER BY round_no,assignment_item_id`, [row.id]);
+              const roundRows = query(db, `SELECT round_no,status,teacher_note,submitted_at,reviewed_by,reviewed_at
+                FROM practice_submission_rounds WHERE submission_id=? ORDER BY round_no`, [row.id]);
+              db.run(`INSERT INTO operation_logs(actor_id,action,entity_type,entity_id,detail)
+                VALUES(?,?,?,?,?)`, [
+                row.teacher_id,
+                'practice_submission_requeued',
+                'practice_submission',
+                row.id,
+                JSON.stringify({
+                  requeue_id: process.env.REQUEUE_ID,
+                  before: {
+                    status: row.status,
+                    current_round: row.current_round,
+                    needs_correction: row.needs_correction,
+                    teacher_note: row.teacher_note,
+                    submitted_at: row.submitted_at,
+                    reviewed_by: row.reviewed_by,
+                    reviewed_at: row.reviewed_at,
+                    completed_at: row.completed_at,
+                    review_revision: row.review_revision,
+                    assignment_status: row.assignment_status,
+                    rounds: roundRows,
+                    reviews: reviewRows,
+                  },
+                }),
+              ]);
+              db.run(`UPDATE practice_submissions SET
+                  status='submitted',needs_correction=0,teacher_note='',
+                  reviewed_by=NULL,reviewed_at=NULL,completed_at=NULL,
+                  review_revision=review_revision+1
+                WHERE id=? AND status='correction_required' AND current_round=1`, [row.id]);
+              db.run(`UPDATE practice_submission_rounds SET
+                  status='submitted',teacher_note='',reviewed_by=NULL,reviewed_at=NULL
+                WHERE submission_id=? AND round_no=1`, [row.id]);
+              db.run("UPDATE practice_assignments SET status='submitted' WHERE id=?", [row.assignment_id]);
+            }
+            const after = query(db, `SELECT id,status,current_round,needs_correction
+              FROM practice_submissions WHERE id IN (${placeholders}) ORDER BY id`, ids);
+            if (after.length !== ids.length
+                || after.some((row) => row.status !== 'submitted'
+                  || Number(row.current_round) !== 1
+                  || Number(row.needs_correction) !== 0)) {
+              throw new Error(`Requeue verification failed: ${JSON.stringify(after)}`);
+            }
+            const integrity = query(db, 'PRAGMA integrity_check');
+            if (integrity.length !== 1 || integrity[0].integrity_check !== 'ok') {
+              throw new Error(`SQLite integrity check failed: ${JSON.stringify(integrity)}`);
+            }
+            db.run('COMMIT');
+            const tmp = `${dbPath}.practice-requeue.tmp`;
+            fs.writeFileSync(tmp, Buffer.from(db.export()));
+            fs.renameSync(tmp, dbPath);
+            console.log(JSON.stringify({ ok: true, requeued: after, images: files.length }));
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          test "$(od -An -tx1 -N16 "$DATA_DIR/teach.db" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
+          (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+          for attempt in $(seq 1 30); do
+            if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = "30" ]; then
+              false
+            fi
+            sleep 2
+          done
+          docker exec -i panpan-api node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const initSqlJs = require('sql.js');
+          const ids = [10, 20, 25, 26, 27, 30, 34];
+          const placeholders = ids.map(() => '?').join(',');
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+            const statement = db.prepare(`SELECT COUNT(*) count
+              FROM practice_submissions ps
+              JOIN practice_assignments a ON a.id=ps.assignment_id
+              WHERE ps.id IN (${placeholders})
+                AND ps.status='submitted'
+                AND a.status='submitted'`);
+            statement.bind(ids);
+            statement.step();
+            const count = Number(statement.getAsObject().count || 0);
+            statement.free();
+            if (count !== ids.length) throw new Error(`Only ${count} approved submissions reached the teacher queue`);
+            console.log(JSON.stringify({ ok: true, teacher_queue_count: count, submission_ids: ids }));
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+          trap - EXIT HUP INT TERM
+          echo "Backup: $BACKUP_DIR/teach.db bytes=$BACKUP_BYTES sha256=$BACKUP_SHA256"
+          REMOTE
