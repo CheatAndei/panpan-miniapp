@@ -80,7 +80,7 @@ test('计划页使用四类可选初中计算题库，批改台独立且只处�
   assert.match(teacher, /\['published','student_curriculum'\]\.includes\(item\.status\)/);
   assert.match(teacher, /plans\/\$\{pdfPlan\.value\.id\}\/pdf\?student_id=/);
   assert.doesNotMatch(teacher, /api\.downloadPrivate/);
-  assert.match(review, /status=submitted/);
+  assert.match(review, /practice\/todos\?limit=\$\{pageSize\}&page=\$\{page\}&include_review=1/);
   assert.match(review, /status=all&limit=50&page=1&submission_id=/);
   assert.match(review, /photo-pane/);
   assert.match(review, /answer-pane/);

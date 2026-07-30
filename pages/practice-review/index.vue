@@ -599,9 +599,20 @@ async function loadQueue() {
   loading.value = true;
   queueError.value = '';
   try {
-    const result = await api.get('/practice/todos?limit=50');
-    todos.value = result.todos || [];
-    todoCount.value = Number(result.count || 0);
+    const pageSize = 50;
+    let page = 1;
+    let expectedCount = 0;
+    const queued = [];
+    do {
+      const result = await api.get(`/practice/todos?limit=${pageSize}&page=${page}&include_review=1`);
+      const batch = result.todos || [];
+      expectedCount = Number(result.count || 0);
+      queued.push(...batch);
+      page += 1;
+      if (batch.length < pageSize) break;
+    } while (queued.length < expectedCount);
+    todos.value = [...new Map(queued.map((item) => [Number(item.submission_id), item])).values()];
+    todoCount.value = todos.value.length;
     if (current?._saved && !requestedSubmissionId.value && !requestedPlanId.value) return;
     const requestedTodo = todos.value.find((item) => Number(item.submission_id) === routeSubmissionId);
     if (routePlanId && routeSubmissionId && !requestedTodo) {
@@ -610,18 +621,22 @@ async function loadQueue() {
       requestedSubmissionId.value = 0;
       if (loaded) return;
     }
-    const requested = requestedTodo
-      || todos.value.find((item) => Number(item.plan_id) === routePlanId)
-      || todos.value.find((item) => Number(item.submission_id) === currentSubmissionId)
-      || todos.value.find((item) => Number(item.plan_id) === currentPlanId)
-      || todos.value[0];
+    const prepared = todos.value.map(prepareSubmission);
+    const requested = prepared.find((item) => Number(item.submission_id) === Number(requestedTodo?.submission_id))
+      || prepared.find((item) => Number(item.plan_id) === routePlanId)
+      || prepared.find((item) => Number(item.submission_id) === currentSubmissionId)
+      || prepared.find((item) => Number(item.plan_id) === currentPlanId)
+      || prepared[0];
     requestedPlanId.value = 0;
     requestedSubmissionId.value = 0;
     if (!requested) {
       submissions.value = [];
       return;
     }
-    await loadPlanSubmissions(requested.plan_id, requested.submission_id);
+    submissions.value = prepared;
+    const preferredIndex = prepared.findIndex((item) => Number(item.submission_id) === Number(requested.submission_id));
+    activeSubmissionIndex.value = preferredIndex >= 0 ? preferredIndex : 0;
+    await ensurePhotos(activeSubmission.value);
   } catch (error) {
     queueError.value = error?.error || error?.message || '请检查网络后重试';
     if (activeSubmission.value) {
@@ -637,7 +652,9 @@ async function loadRequestedSubmission(planId, submissionId) {
   const record = (result.submissions || []).find((item) => Number(item.id) === Number(submissionId));
   if (!record) return false;
   if (record.status === 'submitted') {
-    await loadPlanSubmissions(planId, submissionId);
+    submissions.value = [prepareSubmission(record)];
+    activeSubmissionIndex.value = 0;
+    await ensurePhotos(activeSubmission.value);
     return true;
   }
   if (!['reviewed', 'correction_required'].includes(record.status)) return false;
@@ -645,14 +662,6 @@ async function loadRequestedSubmission(planId, submissionId) {
   activeSubmissionIndex.value = 0;
   await ensurePhotos(activeSubmission.value);
   return true;
-}
-
-async function loadPlanSubmissions(planId, preferredId = 0) {
-  const result = await api.get(`/practice/submissions?plan_id=${planId}&status=submitted&limit=50&page=1&submission_id=${preferredId || ''}`);
-  submissions.value = (result.submissions || []).map(prepareSubmission);
-  const preferredIndex = submissions.value.findIndex((item) => Number(item.id) === Number(preferredId));
-  activeSubmissionIndex.value = preferredIndex >= 0 ? preferredIndex : 0;
-  await ensurePhotos(activeSubmission.value);
 }
 
 async function ensurePhotos(submission) {

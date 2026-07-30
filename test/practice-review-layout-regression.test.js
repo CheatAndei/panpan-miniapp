@@ -132,3 +132,14 @@ test('照片放大后可拖动且松手不再惯性滑动或越界回弹', () =>
   assert.match(review, /放大后拖动，松手停在当前位置/u);
   assert.doesNotMatch(review, /拖动松手后自然回弹/u);
 });
+
+test('批改台使用跨计划全局待批队列，顶部数量与前后翻页口径一致', () => {
+  assert.match(review, /\/practice\/todos\?limit=\$\{pageSize\}&page=\$\{page\}&include_review=1/u);
+  assert.match(review, /while \(queued\.length < expectedCount\)/u);
+  assert.match(review, /new Map\(queued\.map\(\(item\) => \[Number\(item\.submission_id\), item\]\)\)/u);
+  assert.match(review, /todoCount\.value = todos\.value\.length;/u);
+  assert.match(review, /const prepared = todos\.value\.map\(prepareSubmission\);/u);
+  assert.match(review, /submissions\.value = prepared;/u);
+  assert.doesNotMatch(review, /function loadPlanSubmissions/u);
+  assert.doesNotMatch(review, /status=submitted&limit=50&page=1/u);
+});

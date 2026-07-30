@@ -213,6 +213,17 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(todos.response.status, 200);
   assert.equal(todos.payload.count, 1);
   assert.equal(Number(todos.payload.todos[0].submission_id), Number(submission.id));
+  assert.equal(Object.hasOwn(todos.payload.todos[0], 'items'), false,
+    '普通待办接口保持轻量，避免首页拉取完整题目');
+  const reviewTodos = await request('GET', '/practice/todos?limit=3&include_review=1', teacherToken);
+  assert.equal(reviewTodos.response.status, 200);
+  assert.equal(reviewTodos.payload.count, 1);
+  assert.equal(reviewTodos.payload.todos[0].attachments.length, 1);
+  assert.deepEqual(
+    reviewTodos.payload.todos[0].items.map(({ id, position, answer }) => ({ id, position, answer })),
+    submission.items.map(({ id, position, answer }) => ({ id, position, answer })),
+    '批改台全局队列应直接带齐照片与标准答案，不再按单个计划截断',
+  );
   assert.equal((await request('GET', '/practice/todos', otherTeacherToken)).payload.count, 0);
   assert.equal(Number(submission.student_id), Number(studentId));
   assert.equal(submission.attachments.length, 1);
@@ -387,6 +398,77 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(Number(getDB().get(`SELECT COUNT(*) count FROM practice_review_rounds
     WHERE submission_id=?`, [submission.id]).count), historyCount,
   '增量迁移可重复执行且不会覆盖或复制批改历史');
+});
+
+test('全局待批队列跨计划分页，数量与可翻阅记录一致', async () => {
+  const db = getDB();
+  const teacherId = db.get('SELECT teacher_id FROM classes WHERE id=?', [classId]).teacher_id;
+  const sourceAssignment = db.get(`SELECT * FROM practice_assignments
+    WHERE student_id=? ORDER BY id LIMIT 1`, [studentId]);
+  assert.ok(sourceAssignment);
+  const planIds = [];
+  const assignmentIds = [];
+  const submissionIds = [];
+  try {
+    const sourceItems = db.all(`SELECT * FROM practice_assignment_items
+      WHERE assignment_id=? ORDER BY position`, [sourceAssignment.id]);
+    const parentId = db.get('SELECT parent_id FROM bindings WHERE student_id=? LIMIT 1', [studentId]).parent_id;
+    for (const offset of [40, 41]) {
+      const nextDate = new Date(`${sourceAssignment.practice_date}T00:00:00Z`);
+      nextDate.setUTCDate(nextDate.getUTCDate() + offset);
+      const practiceDate = nextDate.toISOString().slice(0, 10);
+      const planId = db.run(`INSERT INTO practice_plans
+        (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,question_types,topic_keys,difficulty,target_seconds,auto_advance,status)
+        VALUES(?,?,?,?,?,'初中','数学','综合计算','[]','[]',3,1200,0,'published')`, [
+        teacherId, classId, `跨计划待批测试-${offset}`, practiceDate, practiceDate,
+      ]).lastInsertRowid;
+      planIds.push(planId);
+      const assignmentId = db.run(`INSERT INTO practice_assignments
+        (plan_id,student_id,practice_date,status,estimated_seconds,selection_meta)
+        VALUES(?,?,?,'submitted',1200,'{}')`, [planId, studentId, practiceDate]).lastInsertRowid;
+      assignmentIds.push(assignmentId);
+      for (const item of sourceItems) {
+        db.run(`INSERT INTO practice_assignment_items
+          (assignment_id,question_id,position,snapshot_stem,snapshot_answer,snapshot_module,
+            snapshot_type,snapshot_difficulty,estimated_seconds,signature,template_key,snapshot_payload)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, [
+          assignmentId, item.question_id, item.position, item.snapshot_stem, item.snapshot_answer,
+          item.snapshot_module, item.snapshot_type, item.snapshot_difficulty, item.estimated_seconds,
+          item.signature, item.template_key, item.snapshot_payload,
+        ]);
+      }
+      const submissionId = db.run(`INSERT INTO practice_submissions
+        (assignment_id,parent_id,status,current_round,needs_correction)
+        VALUES(?,?,'submitted',1,0)`, [assignmentId, parentId]).lastInsertRowid;
+      submissionIds.push(submissionId);
+      db.run(`INSERT INTO practice_submission_rounds(submission_id,round_no,status)
+        VALUES(?,1,'submitted')`, [submissionId]);
+    }
+
+    const first = await request('GET', '/practice/todos?limit=1&page=1&include_review=1', teacherToken);
+    const second = await request('GET', '/practice/todos?limit=1&page=2&include_review=1', teacherToken);
+    assert.equal(first.response.status, 200);
+    assert.equal(second.response.status, 200);
+    assert.equal(first.payload.count, 2);
+    assert.equal(second.payload.count, 2);
+    assert.deepEqual(first.payload.pagination, { page: 1, limit: 1, total: 2, pages: 2 });
+    assert.deepEqual(second.payload.pagination, { page: 2, limit: 1, total: 2, pages: 2 });
+    assert.equal(new Set([
+      ...first.payload.todos.map((item) => Number(item.plan_id)),
+      ...second.payload.todos.map((item) => Number(item.plan_id)),
+    ]).size, 2);
+    assert.ok([...first.payload.todos, ...second.payload.todos].every((item) => item.items.length));
+  } finally {
+    for (const submissionId of submissionIds) {
+      db.run('DELETE FROM practice_submission_rounds WHERE submission_id=?', [submissionId]);
+      db.run('DELETE FROM practice_submissions WHERE id=?', [submissionId]);
+    }
+    for (const assignmentId of assignmentIds) {
+      db.run('DELETE FROM practice_assignment_items WHERE assignment_id=?', [assignmentId]);
+      db.run('DELETE FROM practice_assignments WHERE id=?', [assignmentId]);
+    }
+    for (const planId of planIds) db.run('DELETE FROM practice_plans WHERE id=?', [planId]);
+  }
 });
 
 test('固定题库不允许按学生调整模块或难度', async () => {

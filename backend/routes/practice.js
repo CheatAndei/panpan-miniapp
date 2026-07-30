@@ -365,7 +365,10 @@ router.get('/plans', auth, teacherOnly, (req, res) => {
 });
 
 router.get('/todos', auth, teacherOnly, (req, res) => {
+  const page = Math.max(1, Number.parseInt(req.query.page || '1', 10) || 1);
   const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit || '20', 10) || 20));
+  const offset = (page - 1) * limit;
+  const includeReview = ['1', 'true'].includes(String(req.query.include_review || '').toLowerCase());
   const db = getDB();
   const total = Number(db.get(`SELECT COUNT(*) count FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
@@ -380,7 +383,7 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
     JOIN students st ON st.id=a.student_id
     JOIN classes c ON c.id=p.class_id
     WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL
-    ORDER BY ps.submitted_at ASC,ps.id ASC LIMIT ?`, [req.user.id, limit]);
+    ORDER BY ps.submitted_at ASC,ps.id ASC LIMIT ? OFFSET ?`, [req.user.id, limit, offset]);
   for (const todo of todos) {
     const state = serializePracticeSubmission(db, todo, { includeRounds: false });
     todo.correction_round = state.correction_round;
@@ -388,8 +391,27 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
     todo.needs_correction = state.needs_correction;
     todo.focus_item_ids = state.focus_item_ids;
     todo.attachment_count = state.attachment_count;
+    todo.total_attachment_count = state.total_attachment_count;
+    if (includeReview) {
+      const visibleIds = new Set(practiceVisibleItemIds(db, state));
+      todo.attachments = state.attachments;
+      todo.items = db.all(`SELECT i.id,i.position,i.snapshot_stem stem,i.snapshot_answer answer,
+          i.snapshot_payload,r.is_correct,r.teacher_note review_note
+        FROM practice_assignment_items i
+        LEFT JOIN practice_review_rounds r ON r.assignment_item_id=i.id
+          AND r.submission_id=? AND r.round_no=?
+        WHERE i.assignment_id=? ORDER BY i.position`, [
+        state.id, state.correction_round, state.assignment_id,
+      ])
+        .filter((item) => visibleIds.has(Number(item.id)))
+        .map(reviewPracticeItem);
+    }
   }
-  res.json({ count: total, todos });
+  res.json({
+    count: total,
+    todos,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+  });
 });
 
 router.get('/plans/:id/settings', auth, teacherOnly, (req, res) => {
