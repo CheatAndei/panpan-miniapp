@@ -339,7 +339,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o BatchMode=yes root@134.175.69.59 \
-            'docker exec -i panpan-api node --input-type=commonjs - --database /app/data/teach.db --mode inspect' \
+            'docker exec -i -e PANPAN_REPAIR_CLI=1 panpan-api node --input-type=commonjs - --database /app/data/teach.db --mode inspect' \
             < backend/scripts/repair-practice-history.js
 
       - name: Require exact history repair confirmation

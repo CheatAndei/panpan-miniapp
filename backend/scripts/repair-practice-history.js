@@ -467,7 +467,7 @@ async function main() {
   console.log(JSON.stringify(result));
 }
 
-if (require.main === module) {
+if (require.main === module || process.env.PANPAN_REPAIR_CLI === '1') {
   main().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
