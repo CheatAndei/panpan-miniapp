@@ -468,17 +468,26 @@ def manifest_row(candidate: Candidate) -> dict:
     code = str(candidate.paper["stable_code"])
     label = candidate.paper.get("display_title") or code
     type_label = "填空压轴" if candidate.question_type == "fill" else "大题压轴"
+    grade_prefix = code.split("-", 1)[0].lower()
+    grade_code = grade_prefix.replace("gz", "g") if grade_prefix in {"gz7", "gz8", "gz9"} else "g7"
     return {
-        "source_key": f"gz7-terminal-{code}-{candidate.question_type}-Q{candidate.question_number:02d}",
+        "source_key": f"{grade_prefix}-terminal-{code}-{candidate.question_type}-Q{candidate.question_number:02d}",
         "question_type": candidate.question_type,
         "title": f"{type_label} · {label} · 第{candidate.question_number}题",
         "question_image": relative_image_path(candidate, "question"),
         "answer_image": relative_image_path(candidate, "answer"),
+        "source_text": candidate.question_segment.text,
         "answer_text": candidate.answer_text,
         "source_label": label,
         "exam_stable_code": code,
+        "grade_code": grade_code,
+        "subject_code": "math",
         "source_year": int(candidate.paper.get("exam_year") or 0),
         "source_question_no": candidate.question_number,
+        "source_original_page_start": candidate.question_segment.start.page + 1,
+        "source_original_page_end": candidate.question_segment.end.page + 1,
+        "source_answer_page_start": candidate.answer_segment.start.page + 1,
+        "source_answer_page_end": candidate.answer_segment.end.page + 1,
         "source_original_pdf": f"original/{code}.pdf",
         "source_answer_pdf": f"answer/{code}.pdf",
         "signature": candidate.signature,

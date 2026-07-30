@@ -70,6 +70,8 @@ class Candidate:
     explanation: str
     signature: str
     source_period: str
+    answer_page_start: int
+    answer_page_end: int
 
 
 def utc_now() -> str:
@@ -343,6 +345,8 @@ def candidate_from_paper(paper: dict, pdf_root: Path, recent_from: int) -> tuple
                 explanation=record.explanation,
                 signature=signature,
                 source_period=source_period,
+                answer_page_start=answer_layout.lines[record.anchor_index].page + 1,
+                answer_page_end=answer_layout.lines[max(record.answer_index, record.end_index - 1)].page + 1,
             )
         )
     return candidates, review
@@ -435,6 +439,11 @@ def manifest_row(candidate: Candidate, image_relative: str) -> dict:
         "source_year": int(candidate.paper.get("exam_year") or 0),
         "recent_bucket": candidate.source_period,
         "source_question_no": candidate.question_number,
+        "source_text": candidate.question_text,
+        "source_original_page_start": candidate.start.page + 1,
+        "source_original_page_end": candidate.end.page + 1,
+        "source_answer_page_start": candidate.answer_page_start,
+        "source_answer_page_end": candidate.answer_page_end,
         "question_image": image_relative,
         # The original-paper crop is authoritative for formulas and figures.
         # Keep the tap targets deliberately simple instead of showing a second,
