@@ -17,6 +17,7 @@ test('生产历史修复工作流要求精确确认、独立备份、失败回�
   assert.match(workflow, /trap rollback EXIT/);
   assert.match(workflow, /Practice history repair failed; restoring database backup/);
   assert.match(workflow, /--backup-sha256 "\$BACKUP_SHA256"/);
+  assert.match(workflow, /NODE_PATH=\/app\/node_modules/);
   assert.match(workflow, /--mode verify/);
   assert.match(workflow, /sqlite_integrity: 'ok'/);
   assert.ok(

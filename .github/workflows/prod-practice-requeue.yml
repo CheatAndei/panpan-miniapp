@@ -406,6 +406,7 @@ jobs:
           chmod 600 "$BACKUP_DIR/teach.db" "$BACKUP_DIR/teach.db.sha256"
 
           docker run --rm \
+            -e NODE_PATH=/app/node_modules \
             -v "$DATA_DIR:/app/data" \
             -v "$BACKUP_DIR:/repair:ro" \
             "$IMAGE" node /repair/repair-practice-history.js \
@@ -418,6 +419,7 @@ jobs:
           test "$(od -An -tx1 -N16 "$DATA_DIR/teach.db" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
           test "$(sha256sum "$BACKUP_DIR/teach.db" | awk '{print $1}')" = "$BACKUP_SHA256"
           docker run --rm \
+            -e NODE_PATH=/app/node_modules \
             -v "$DATA_DIR:/app/data:ro" \
             -v "$BACKUP_DIR:/repair:ro" \
             "$IMAGE" node /repair/repair-practice-history.js \
