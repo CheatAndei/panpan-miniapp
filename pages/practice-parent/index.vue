@@ -169,7 +169,7 @@ const submissionNote = computed(() => {
   if (needsCorrection.value) return '老师已打回，等待上传新的订正照片';
   if (submission.value?.status === 'reviewed') return isCorrection.value ? '本轮订正已通过复核' : '老师已对照答案复核';
   if (submission.value?.status === 'uploading') {
-    return `已暂存 ${attachmentCount.value} 张，尚未送达老师；请继续上传完成提交`;
+    return `已暂存 ${attachmentCount.value} 张，尚未送达老师；可继续添加，确认无误后点击下方按钮提交`;
   }
   return isCorrection.value ? '订正提交成功，等待老师复核上一轮错题' : '提交成功，等待老师对照答案复核';
 });
@@ -241,16 +241,12 @@ async function chooseAndUpload() {
         'image',
       );
     }
-    uploadProgress.value = '确认中';
-    await completePracticeUpload();
-    uni.showToast({ title: '已送达老师批改台', icon: 'success' });
+    uni.showToast({ title: '图片已暂存，可继续添加', icon: 'success' });
     await loadData();
   } catch (err) {
     await loadData();
-    if (deliveredToTeacher.value) {
-      uni.showToast({ title: '已送达老师批改台', icon: 'success' });
-    } else if (!/cancel/i.test(err?.errMsg || '')) {
-      uni.showToast({ title: err?.error || '照片已暂存，请重试确认送达', icon: 'none' });
+    if (!/cancel/i.test(err?.errMsg || '')) {
+      uni.showToast({ title: err?.error || '上传未完成，已成功的图片会保留', icon: 'none' });
     }
   } finally {
     uploading.value = false;

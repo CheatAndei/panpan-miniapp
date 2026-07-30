@@ -51,9 +51,14 @@ test('家长页领取结构化题目并上传照片', () => {
 });
 
 test('作业图片使用长超时并在全部暂存后单独确认送达', () => {
+  const uploadDraftFlow = parent.match(/async function chooseAndUpload\(\) \{[\s\S]*?\n\}/u)?.[0] || '';
+  const manualSubmitFlow = parent.match(/async function confirmSavedUpload\(\) \{[\s\S]*?\n\}/u)?.[0] || '';
   assert.match(parent, /upload\?upload_complete=0/);
   assert.match(parent, /\/upload\/complete/);
   assert.match(parent, /已传好，确认送达老师/);
+  assert.match(uploadDraftFlow, /图片已暂存/);
+  assert.doesNotMatch(uploadDraftFlow, /completePracticeUpload/);
+  assert.match(manualSubmitFlow, /completePracticeUpload/);
   assert.match(api, /request\('POST', path,[\s\S]*?\{ timeout: 60000 \}\)/u);
   assert.match(api, /uni\.uploadFile\(\{[\s\S]*?timeout:\s*60000/u);
 });
