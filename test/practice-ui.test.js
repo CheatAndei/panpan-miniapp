@@ -59,6 +59,7 @@ test('作业图片使用长超时并在全部暂存后单独确认送达', () =>
   assert.match(uploadDraftFlow, /图片已暂存/);
   assert.doesNotMatch(uploadDraftFlow, /completePracticeUpload/);
   assert.match(manualSubmitFlow, /completePracticeUpload/);
+  assert.match(parent, /\['uploading', 'correction_required'\]\.includes\(submission\.value\?\.status\)/);
   assert.match(api, /request\('POST', path,[\s\S]*?\{ timeout: 60000 \}\)/u);
   assert.match(api, /uni\.uploadFile\(\{[\s\S]*?timeout:\s*60000/u);
 });

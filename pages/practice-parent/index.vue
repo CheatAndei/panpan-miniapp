@@ -62,7 +62,7 @@
           <pp-icon name="plus" :size="28" /><text>{{ uploadButtonText }}</text>
         </button>
         <button
-          v-if="submission && submission.status === 'uploading' && attachmentCount"
+          v-if="submission && canConfirmUpload && attachmentCount"
           class="confirm-btn"
           :disabled="uploading"
           aria-label="确认将已上传照片送达老师"
@@ -129,14 +129,26 @@ function recordNeedsCorrection(record) {
 }
 
 const submission = computed(() => assignment.value?.submission || null);
-const correctionRound = computed(() => Math.max(1, Number(submission.value?.correction_round ?? submission.value?.correctionRound ?? 1) || 1));
-const isCorrection = computed(() => booleanField(submission.value?.is_correction ?? submission.value?.isCorrection) || correctionRound.value > 1);
+const correctionRound = computed(() => Math.max(1, Number(
+  submission.value?.upload_round
+    ?? submission.value?.correction_round
+    ?? submission.value?.correctionRound
+    ?? 1,
+) || 1));
+const isCorrection = computed(() => (
+  booleanField(submission.value?.is_correction ?? submission.value?.isCorrection)
+  || submission.value?.status === 'correction_required'
+  || correctionRound.value > 1
+));
 const needsCorrection = computed(() => recordNeedsCorrection(submission.value));
 const deliveredToTeacher = computed(() => (
-  ['submitted', 'reviewed', 'correction_required'].includes(submission.value?.status)
+  ['submitted', 'reviewed'].includes(submission.value?.status)
+));
+const canConfirmUpload = computed(() => (
+  ['uploading', 'correction_required'].includes(submission.value?.status)
 ));
 const attachmentCount = computed(() => {
-  if (!submission.value || needsCorrection.value) return 0;
+  if (!submission.value) return 0;
   const explicit = submission.value.attachment_count
     ?? submission.value.current_round_attachment_count
     ?? submission.value.new_attachment_count;
@@ -160,12 +172,15 @@ const uploadButtonText = computed(() => {
   if (uploading.value) return `正在上传 ${uploadProgress.value}`;
   if (submission.value?.status === 'reviewed') return '本轮练习已完成';
   if (submission.value?.status === 'submitted') return '已送达老师，等待批改';
-  if (needsCorrection.value) return '上传订正照片';
+  if (needsCorrection.value) return attachmentCount.value ? '继续补充订正照片' : '上传订正照片';
   if (isCorrection.value) return attachmentCount.value ? '继续补充订正照片' : '上传订正照片';
   if (submission.value?.status === 'uploading') return '继续补充照片';
   return attachmentCount.value ? '继续补充照片' : '拍照或选择图片';
 });
 const submissionNote = computed(() => {
+  if (canConfirmUpload.value && attachmentCount.value) {
+    return `已暂存 ${attachmentCount.value} 张，尚未送达老师；可继续添加，确认无误后点击下方按钮提交`;
+  }
   if (needsCorrection.value) return '老师已打回，等待上传新的订正照片';
   if (submission.value?.status === 'reviewed') return isCorrection.value ? '本轮订正已通过复核' : '老师已对照答案复核';
   if (submission.value?.status === 'uploading') {

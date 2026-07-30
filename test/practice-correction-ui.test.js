@@ -160,7 +160,9 @@ test('家长页明确待订正状态且照片数只取当前轮', () => {
   assert.match(parent, /待订正/);
   assert.match(parent, /本轮新增 \{\{ attachmentCount \}\} 张/);
   assert.match(parent, /submission\.value\.attachment_count/);
-  assert.match(parent, /if \(!submission\.value \|\| needsCorrection\.value\) return 0/);
+  assert.match(parent, /submission\.value\?\.upload_round/);
+  assert.match(parent, /if \(!submission\.value\) return 0/);
+  assert.doesNotMatch(parent, /if \(!submission\.value \|\| needsCorrection\.value\) return 0/);
   assert.match(parent, /上传订正照片/);
   assert.match(parent, /订正已提交/);
   assert.match(parent, /correction_required/);
@@ -170,7 +172,11 @@ test('家长页明确待订正状态且照片数只取当前轮', () => {
   assert.match(parent, /function confirmSavedUpload/);
   assert.match(parent, /\{ timeout: 60000 \}/);
   assert.doesNotMatch(parent, /index === files\.length - 1 \? 1 : 0/);
-  assert.match(parent, /submission\.value\?\.status === 'uploading'/);
+  assert.match(parent, /const canConfirmUpload = computed/);
+  assert.match(parent, /\['uploading', 'correction_required'\]\.includes\(submission\.value\?\.status\)/);
+  assert.match(parent, /v-if="submission && canConfirmUpload && attachmentCount"/);
+  assert.match(parent, /\['submitted', 'reviewed'\]\.includes\(submission\.value\?\.status\)/);
+  assert.doesNotMatch(parent, /\['submitted', 'reviewed', 'correction_required'\]\.includes\(submission\.value\?\.status\)/);
   assert.match(parent, /尚未送达老师/);
   assert.match(parent, /result\.submission\?\.status !== 'submitted'/);
   assert.match(parent, /\['submitted', 'reviewed'\]\.includes/);

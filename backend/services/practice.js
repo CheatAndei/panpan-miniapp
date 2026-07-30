@@ -327,16 +327,16 @@ function serializePracticeSubmission(db, submission, { includeRounds = true } = 
     FROM practice_attachments pa JOIN private_files pf ON pf.id=pa.file_id
     WHERE pa.submission_id=? ORDER BY pa.round_no,pa.created_at,pa.id`, [submission.id])
     .map(publicPracticeAttachment);
-  // 兼容旧家长端：它用顶层 attachments.length 判断还能否上传。
-  // 打回待订正时清空顶层列表，历史照片仍完整保存在 rounds 中。
-  const currentAttachments = submission.status === 'correction_required'
-    ? []
-    : allAttachments.filter((file) => file.round_no === roundNo);
+  // 待订正时顶层列表代表下一轮正在暂存的照片；尚未上传时仍为空，
+  // 既兼容旧家长端继续上传，也让新版家长端能显示“确认提交”。
+  const uploadRound = submission.status === 'correction_required' ? roundNo + 1 : roundNo;
+  const currentAttachments = allAttachments.filter((file) => file.round_no === uploadRound);
   const focusItemIds = practiceFocusItemIds(db, submission);
   const result = {
     ...submission,
     current_round: roundNo,
     correction_round: roundNo,
+    upload_round: uploadRound,
     is_correction: roundNo > 1,
     needs_correction: submission.status === 'correction_required' || Boolean(Number(submission.needs_correction)),
     focus_item_ids: focusItemIds,

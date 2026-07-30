@@ -255,6 +255,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(today.payload.assignment.submission.status, 'correction_required');
   assert.equal(today.payload.assignment.submission.needs_correction, true);
   assert.equal(today.payload.assignment.submission.correction_round, 1);
+  assert.equal(today.payload.assignment.submission.upload_round, 2);
   assert.equal(today.payload.assignment.submission.attachments.length, 0,
     '待订正时顶层照片清空，兼容旧版继续上传');
   assert.equal(today.payload.assignment.submission.total_attachment_count, 1);
@@ -277,6 +278,11 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(partialCorrectionUpload.response.status, 201);
   assert.equal(partialCorrectionUpload.payload.attachment.round_no, 2);
   assert.equal(partialCorrectionUpload.payload.submission.status, 'correction_required');
+  assert.equal(partialCorrectionUpload.payload.submission.upload_round, 2);
+  assert.equal(partialCorrectionUpload.payload.submission.attachment_count, 1,
+    '订正照片暂存后应暴露本轮照片数，供家长确认提交');
+  assert.equal(partialCorrectionUpload.payload.submission.attachments.length, 1);
+  assert.equal(partialCorrectionUpload.payload.submission.attachments[0].round_no, 2);
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
     '订正照片整批上传完成前不能进入教师待批队列');
   const correctionUpload = await request('POST',
