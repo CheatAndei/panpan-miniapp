@@ -14,6 +14,22 @@ test('家长端将每周挑战改为压轴挑战且只可领取填空和解答�
   assert.doesNotMatch(page, /每周挑战|value:'choice'|label:'选择题'/);
 });
 
+test('压轴挑战按孩子班级年级初始化并持久记忆手动切换', () => {
+  const page = read('pages/weekly-challenge/index.vue');
+  assert.match(page, /\{value:'g7',label:'七年级'\}/);
+  assert.match(page, /\{value:'g8',label:'八年级'\}/);
+  assert.match(page, /\{value:'g9',label:'九年级'\}/);
+  assert.match(page, /const gradeCode=ref\(''\)/);
+  assert.doesNotMatch(page, /const gradeCode=ref\('g7'\)/);
+  assert.match(page, /\/learning\/catalog\?student_id=\$\{studentId\.value\}/);
+  assert.match(page, /data\.grade_code\|\|data\.detected_grade_code/);
+  assert.match(page, /api\.put\('\/learning\/preferences',\{student_id:studentId\.value,grade:nextGrade,subject:'math'\}\)/);
+  assert.match(page, /gradeCode\.value=nextGrade/);
+  assert.match(page, /\/weekly-challenge\/v2\/current\?student_id=\$\{studentId\.value\}&grade=\$\{gradeCode\.value\}/);
+  assert.match(page, /广州\$\{gradeLabel\}数学真题精选/);
+  assert.match(page, /切换后会记住该孩子的选择/);
+});
+
 test('教师首页纳入压轴挑战待批阅数量、待办列表和直达入口', () => {
   const homePage = read('pages/index/index.vue');
   const teacherHome = read('components/home/TeacherHomeView.vue');

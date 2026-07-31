@@ -50,6 +50,20 @@ test('家长页领取结构化题目并上传照片', () => {
   assert.match(parent, /不包含学生作业照片/);
 });
 
+test('家长页即时展示已上传照片且后台刷新不卸载当前页面', () => {
+  const uploadFlow = parent.match(/async function chooseAndUpload\(\) \{[\s\S]*?\n\}/u)?.[0] || '';
+  const uploadSuccessFlow = uploadFlow.split('} catch')[0];
+  assert.match(parent, /v-if="loading && !assignment"/);
+  assert.match(parent, /v-else-if="error && !assignment"/);
+  assert.match(parent, /class="photo-grid"/);
+  assert.match(parent, /点击可放大预览/);
+  assert.match(parent, /uni\.previewImage\(/);
+  assert.match(parent, /api\.downloadPrivate\(attachment\.url\)/);
+  assert.match(uploadSuccessFlow, /const result = await api\.upload/);
+  assert.match(uploadSuccessFlow, /applySubmission\(result\.submission/);
+  assert.doesNotMatch(uploadSuccessFlow, /loadData\(\)/);
+});
+
 test('作业图片使用长超时并在全部暂存后单独确认送达', () => {
   const uploadDraftFlow = parent.match(/async function chooseAndUpload\(\) \{[\s\S]*?\n\}/u)?.[0] || '';
   const manualSubmitFlow = parent.match(/async function confirmSavedUpload\(\) \{[\s\S]*?\n\}/u)?.[0] || '';

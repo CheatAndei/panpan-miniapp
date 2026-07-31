@@ -25,6 +25,64 @@ const SOURCE_SCOPE_TO_TOPIC = Object.freeze({
 const MANAGED_CHOICE_CODE = /^GZ8-(?:MID|FIN|MON)-/;
 const MANAGED_TERMINAL_CODE = /^gz8-terminal-GZ8-/;
 const imageCache = new Map();
+const LEGACY_PDF_MATH_SYMBOLS = Object.freeze({
+  '\uF021': '△',
+  '\uF028': '(',
+  '\uF029': ')',
+  '\uF02B': '+',
+  '\uF02D': '−',
+  '\uF03C': '<',
+  '\uF03D': '=',
+  '\uF03E': '>',
+  '\uF040': '≌',
+  '\uF044': '△',
+  '\uF04C': '…',
+  '\uF050': '∥',
+  '\uF051': '∵',
+  '\uF056': '△',
+  '\uF05C': '∴',
+  '\uF05E': '⊥',
+  '\uF061': 'α',
+  '\uF062': 'β',
+  '\uF067': '·',
+  '\uF06E': '■',
+  '\uF06F': '°',
+  '\uF070': 'π',
+  '\uF0A2': '′',
+  '\uF0A3': '≤',
+  '\uF0B0': '°',
+  '\uF0B1': '±',
+  '\uF0B3': '≥',
+  '\uF0B4': '×',
+  '\uF0B7': '•',
+  '\uF0B8': '÷',
+  '\uF0B9': '≠',
+  '\uF0BB': '≈',
+  '\uF0D0': '∠',
+  '\uF0D7': '×',
+  '\uF0E6': '⎛',
+  '\uF0E7': '⎜',
+  '\uF0E8': '⎝',
+  '\uF0EC': '⎧',
+  '\uF0ED': '⎨',
+  '\uF0EE': '⎩',
+  '\uF0EF': '⎪',
+  '\uF0F6': '⎞',
+  '\uF0F7': '⎟',
+  '\uF0F8': '⎠',
+});
+const UNSUPPORTED_PDF_GLYPH = /[\uE000-\uF8FF\uFFFD]/u;
+
+function normalizePdfMathText(value) {
+  return Array.from(String(value || ''))
+    .map((character) => LEGACY_PDF_MATH_SYMBOLS[character] || character)
+    .join('')
+    .trim();
+}
+
+function hasUnsupportedPdfGlyph(value) {
+  return UNSUPPORTED_PDF_GLYPH.test(String(value || ''));
+}
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -137,6 +195,7 @@ function seedG8SourcePack(db, { packRoot = PACK_ROOT } = {}) {
   ensureExamLibraryDir();
   let seededChoices = 0;
   let seededTerminals = 0;
+  let quarantinedChoices = 0;
   let deactivated = 0;
   const eligibleChoiceCodes = new Set();
   const eligibleTerminalCodes = new Set();
@@ -147,11 +206,17 @@ function seedG8SourcePack(db, { packRoot = PACK_ROOT } = {}) {
       if (!topicKeys.length) continue;
       const stableCode = String(item.source_key || '').trim();
       const primaryTopic = SOURCE_SCOPE_TO_TOPIC[item.primary_topic_key] || topicKeys[0];
-      const options = item.source_options;
+      const options = Object.fromEntries(Object.entries(item.source_options || {})
+        .map(([key, value]) => [key, normalizePdfMathText(value)]));
+      const explanation = normalizePdfMathText(item.explanation);
       if (!MANAGED_CHOICE_CODE.test(stableCode)
         || !['A', 'B', 'C', 'D'].every((key) => String(options?.[key] || '').trim())
         || !/^[A-D]$/.test(String(item.correct_option || ''))) {
         throw new Error(`客观题数据无效：${stableCode || 'missing-code'}`);
+      }
+      if ([...Object.values(options), explanation].some(hasUnsupportedPdfGlyph)) {
+        quarantinedChoices += 1;
+        continue;
       }
       const examId = db.get('SELECT id FROM exam_papers WHERE stable_code=?', [item.exam_stable_code])?.id || null;
       db.run(`INSERT INTO choice_king_questions
@@ -169,7 +234,7 @@ function seedG8SourcePack(db, { packRoot = PACK_ROOT } = {}) {
           topic_key=excluded.topic_key,difficulty=excluded.difficulty,is_active=1,
           updated_at=CURRENT_TIMESTAMP`, [
         stableCode, examId, '', JSON.stringify(options), item.correct_option,
-        String(item.explanation || '').trim(), choiceImageUrl(item.question_image),
+        explanation, choiceImageUrl(item.question_image),
         sourceLabel(item), Number(item.source_year) || null,
         item.recent_bucket === 'recent' ? 'recent' : 'older',
         String(item.source_question_no || ''), primaryTopic,
@@ -252,6 +317,7 @@ function seedG8SourcePack(db, { packRoot = PACK_ROOT } = {}) {
     choice: seededChoices,
     terminal: seededTerminals,
     total: seededChoices + seededTerminals,
+    quarantined_choice: quarantinedChoices,
     deactivated,
     audit,
   };
@@ -265,6 +331,8 @@ module.exports = {
   SOURCE_SCOPE_TO_TOPIC,
   mappedTopics,
   sourceLabel,
+  normalizePdfMathText,
+  hasUnsupportedPdfGlyph,
   packAudit,
   seedG8SourcePack,
 };

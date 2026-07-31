@@ -127,16 +127,17 @@ test('八上真题包保守隔离低置信度与固定 12 讲以外内容', () =
   assert.equal(audit.eligible_mock_or_review, 57);
 });
 
-test('八上真题包写入 989 道可用题并保留多标签和来源真实性', () => {
+test('八上真题包写入 987 道可用题并清洗 PDF 私有数学字符', () => {
   const db = getDB();
   const first = seedG8SourcePack(db);
-  assert.equal(first.choice, 554);
+  assert.equal(first.choice, 552);
   assert.equal(first.terminal, 435);
-  assert.equal(first.total, 989);
+  assert.equal(first.total, 987);
+  assert.equal(first.quarantined_choice, 2);
 
   assert.equal(Number(db.get(`SELECT COUNT(*) count FROM choice_king_questions
     WHERE grade_code='g8' AND stable_code LIKE 'GZ8-%' AND stable_code NOT LIKE 'GZ8-ORIGINAL-%'
-      AND is_active=1`)?.count || 0), 554);
+      AND is_active=1`)?.count || 0), 552);
   assert.equal(Number(db.get(`SELECT COUNT(*) count FROM weekly_challenge_questions
     WHERE grade_code='g8' AND source_key LIKE 'gz8-terminal-GZ8-%' AND is_active=1`)?.count || 0), 435);
   assert.equal(Number(db.get(`SELECT COUNT(*) count FROM weekly_challenge_questions
@@ -153,14 +154,26 @@ test('八上真题包写入 989 道可用题并保留多标签和来源真实性
     WHERE stable_code LIKE 'GZ8-%' AND stable_code NOT LIKE 'GZ8-ORIGINAL-%' ORDER BY id LIMIT 1`);
   assert.match(sample.question_image_url, /^\/api\/choice-king\/assets\/g8-source-pack\/choice\/questions\//);
   assert.deepEqual(Object.keys(JSON.parse(sample.options_json)), ['A', 'B', 'C', 'D']);
+  const screenshotQuestion = db.get(`SELECT options_json FROM choice_king_questions
+    WHERE stable_code='GZ8-MID-649BDC7D83-Q03'`);
+  assert.deepEqual(JSON.parse(screenshotQuestion.options_json), {
+    A: 'AB = CD',
+    B: 'AC = BD',
+    C: '∠ A = ∠ D',
+    D: '∠ ABC = ∠ DCB',
+  });
+  for (const row of db.all(`SELECT options_json,explanation FROM choice_king_questions
+    WHERE grade_code='g8' AND stable_code LIKE 'GZ8-%' AND is_active=1`)) {
+    assert.doesNotMatch(`${row.options_json}\n${row.explanation || ''}`, /[\uE000-\uF8FF\uFFFD]/u);
+  }
   const multi = db.get(`SELECT question_id,COUNT(*) count FROM choice_king_question_topics
     GROUP BY question_id HAVING COUNT(*)>1 LIMIT 1`);
   assert.ok(Number(multi.count) > 1);
 
   const again = seedG8SourcePack(db);
-  assert.equal(again.total, 989);
+  assert.equal(again.total, 987);
   assert.equal(Number(db.get(`SELECT COUNT(*) count FROM choice_king_questions
-    WHERE grade_code='g8' AND stable_code LIKE 'GZ8-%' AND stable_code NOT LIKE 'GZ8-ORIGINAL-%'`)?.count || 0), 554);
+    WHERE grade_code='g8' AND stable_code LIKE 'GZ8-%' AND stable_code NOT LIKE 'GZ8-ORIGINAL-%'`)?.count || 0), 552);
 });
 
 test('八上试卷同步按来源类型发布，模拟/复习不会标成广州真题', () => {

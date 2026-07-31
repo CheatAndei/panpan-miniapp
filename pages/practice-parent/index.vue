@@ -9,8 +9,8 @@
       <view class="hero-sub"><pp-icon name="calendar" :size="24" /><text>{{ practiceDate || '今日' }} · 约 20 分钟</text></view>
     </view>
 
-    <view v-if="loading" class="state-card"><pp-state type="loading" title="正在准备今日练习" /></view>
-    <view v-else-if="error" class="state-card"><pp-state type="error" title="暂时无法加载" :description="error" action-text="重试" @action="loadData" /></view>
+    <view v-if="loading && !assignment" class="state-card"><pp-state type="loading" title="正在准备今日练习" /></view>
+    <view v-else-if="error && !assignment" class="state-card"><pp-state type="error" title="暂时无法加载" :description="error" action-text="重试" @action="loadData" /></view>
     <view v-else-if="!assignment" class="state-card"><pp-state title="今天没有打卡计划" description="老师发布假期计划后会显示在这里。" /></view>
 
     <template v-else>
@@ -57,6 +57,24 @@
             </text>
           </view>
           <text v-if="assignment.submission" class="photo-count">本轮新增 {{ attachmentCount }} 张</text>
+        </view>
+        <view v-if="localPhotos.length" class="photo-preview">
+          <view class="photo-preview-head">
+            <text class="photo-preview-title">已添加照片</text>
+            <text class="photo-preview-tip">点击可放大预览</text>
+          </view>
+          <view class="photo-grid">
+            <button
+              v-for="(src, index) in localPhotos"
+              :key="photoItems[index]?.id || src"
+              class="photo-thumb"
+              :aria-label="`预览第 ${index + 1} 张作业照片`"
+              @tap="previewPhotos(index)"
+            >
+              <image :src="src" mode="aspectFill" />
+              <text class="photo-index">{{ index + 1 }}</text>
+            </button>
+          </view>
         </view>
         <button class="primary-btn" :disabled="uploading || attachmentCount >= 6 || uploadLocked" aria-label="拍照上传打卡作业" @tap="chooseAndUpload">
           <pp-icon name="plus" :size="28" /><text>{{ uploadButtonText }}</text>
@@ -115,6 +133,8 @@ const practiceDate = ref('');
 const plan = ref({});
 const assignment = ref(null);
 const history = ref([]);
+const photoItems = ref([]);
+let selectingImages = false;
 
 function booleanField(value) {
   return value === true || value === 1 || value === '1' || value === 'true';
@@ -129,6 +149,7 @@ function recordNeedsCorrection(record) {
 }
 
 const submission = computed(() => assignment.value?.submission || null);
+const localPhotos = computed(() => photoItems.value.map((item) => item.path).filter(Boolean));
 const correctionRound = computed(() => Math.max(1, Number(
   submission.value?.upload_round
     ?? submission.value?.correction_round
@@ -190,7 +211,9 @@ const submissionNote = computed(() => {
 });
 
 onLoad((options) => { studentId.value = String(options?.student_id || ''); });
-onShow(() => loadData());
+onShow(() => {
+  if (!selectingImages) loadData();
+});
 // 分享入口只发送打卡鼓励卡，不包含学生作业照片。
 onShareAppMessage(() => ({
   title: '今日练习已打卡，一起坚持每天多练一点！',
@@ -205,6 +228,35 @@ async function resolveStudent() {
   const child = list.find((item) => String(item.id) === activeId) || list[0];
   studentId.value = child ? String(child.id) : '';
   return studentId.value;
+}
+
+function attachmentKey(attachment, index = 0) {
+  return String(attachment?.id ?? attachment?.url ?? `attachment-${index}`);
+}
+
+async function syncSubmissionPhotos(nextSubmission, localAttachment = null) {
+  const existing = new Map(photoItems.value.map((item) => [String(item.id), item.path]));
+  if (localAttachment?.attachment) {
+    existing.set(attachmentKey(localAttachment.attachment), localAttachment.path);
+  }
+  const attachments = nextSubmission?.attachments || [];
+  const resolved = await Promise.all(attachments.map(async (attachment, index) => {
+    const id = attachmentKey(attachment, index);
+    if (existing.has(id)) return { id, path: existing.get(id) };
+    try {
+      return { id, path: await api.downloadPrivate(attachment.url) };
+    } catch (err) {
+      logError('practiceParent.loadPhoto', err);
+      return null;
+    }
+  }));
+  photoItems.value = resolved.filter((item) => item?.path);
+}
+
+async function applySubmission(nextSubmission, localAttachment = null) {
+  if (!nextSubmission || !assignment.value) return;
+  assignment.value = { ...assignment.value, submission: nextSubmission };
+  await syncSubmissionPhotos(nextSubmission, localAttachment);
 }
 
 async function loadData() {
@@ -222,6 +274,7 @@ async function loadData() {
     plan.value = today.plan || {};
     assignment.value = today.assignment || null;
     history.value = recent.assignments || [];
+    await syncSubmissionPhotos(assignment.value?.submission || null);
   } catch (err) {
     error.value = err?.error || '请检查网络后重试';
     logError('practiceParent.loadData', err);
@@ -232,12 +285,21 @@ async function loadData() {
 
 function chooseImages() {
   const count = Math.max(1, 6 - attachmentCount.value);
+  selectingImages = true;
   return new Promise((resolve, reject) => {
     if (uni.chooseMedia) {
       uni.chooseMedia({ count, mediaType: ['image'], sourceType: ['camera', 'album'],
-        success: (res) => resolve((res.tempFiles || []).map((file) => file.tempFilePath)), fail: reject });
+        success: (res) => resolve((res.tempFiles || []).map((file) => file.tempFilePath)),
+        fail: reject,
+        complete: () => { selectingImages = false; } });
     } else {
-      uni.chooseImage({ count, sourceType: ['camera', 'album'], success: (res) => resolve(res.tempFilePaths || []), fail: reject });
+      uni.chooseImage({
+        count,
+        sourceType: ['camera', 'album'],
+        success: (res) => resolve(res.tempFilePaths || []),
+        fail: reject,
+        complete: () => { selectingImages = false; },
+      });
     }
   });
 }
@@ -250,14 +312,17 @@ async function chooseAndUpload() {
     uploading.value = true;
     for (let index = 0; index < files.length; index++) {
       uploadProgress.value = `${index + 1}/${files.length}`;
-      await api.upload(
+      const result = await api.upload(
         `/practice/assignments/${assignment.value.id}/upload?upload_complete=0`,
         files[index],
         'image',
       );
+      await applySubmission(result.submission, {
+        attachment: result.attachment,
+        path: files[index],
+      });
     }
     uni.showToast({ title: '图片已暂存，可继续添加', icon: 'success' });
-    await loadData();
   } catch (err) {
     await loadData();
     if (!/cancel/i.test(err?.errMsg || '')) {
@@ -286,9 +351,9 @@ async function confirmSavedUpload() {
   uploading.value = true;
   uploadProgress.value = '确认中';
   try {
-    await completePracticeUpload();
+    const nextSubmission = await completePracticeUpload();
+    await applySubmission(nextSubmission);
     uni.showToast({ title: '已送达老师批改台', icon: 'success' });
-    await loadData();
   } catch (err) {
     await loadData();
     if (deliveredToTeacher.value) {
@@ -317,6 +382,13 @@ function historyStatusText(item) {
 function historyStatusClass(item) {
   if (recordNeedsCorrection(item)) return 'correction-required';
   return item.submission_status === 'reviewed' ? 'reviewed' : '';
+}
+
+function previewPhotos(index) {
+  uni.previewImage({
+    urls: localPhotos.value,
+    current: localPhotos.value[index],
+  });
 }
 </script>
 
@@ -395,6 +467,15 @@ function historyStatusClass(item) {
 .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14rpx; margin-bottom: 15rpx; }
 .section-note,
 .photo-count { color: #315EA8; font-size: 21rpx; }
+.photo-preview { margin-bottom: 15rpx; padding: 15rpx; border: 1rpx solid #DDE7F2; border-radius: 12rpx; background: #F8FBFF; }
+.photo-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-bottom: 11rpx; }
+.photo-preview-title { color: var(--panpan-ink); font-size: 23rpx; font-weight: 720; }
+.photo-preview-tip { color: var(--panpan-muted); font-size: 19rpx; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10rpx; }
+.photo-thumb { position: relative; width: 100%; height: 170rpx; margin: 0; padding: 0; overflow: hidden; border-radius: 10rpx; background: #EAF2FF; line-height: 1; }
+.photo-thumb::after { border: 0; }
+.photo-thumb image { width: 100%; height: 100%; }
+.photo-index { position: absolute; right: 7rpx; bottom: 7rpx; min-width: 30rpx; height: 30rpx; display: flex; align-items: center; justify-content: center; border-radius: 15rpx; background: rgba(36, 50, 74, .78); color: #FFFFFF; font-size: 17rpx; }
 .question-row { display: flex; gap: 15rpx; padding: 18rpx 0; border-bottom: 1rpx solid #E9F0F8; }
 .question-row:last-child { border-bottom: 0; }
 .question-no { width: 44rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; background: #EAF2FF; color: #315EA8; font-size: 22rpx; font-weight: 760; }
