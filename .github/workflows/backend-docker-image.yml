@@ -557,7 +557,7 @@ jobs:
               };
               console.log(JSON.stringify(counts));
               if (counts.choice !== 1000 || counts.recent !== 500 || counts.older !== 500 || counts.terminal !== 710
-                || counts.g8_choice !== 1322 || counts.g8_terminal !== 723 || counts.g8_practice !== 480) process.exit(1);
+                || counts.g8_choice !== 1320 || counts.g8_terminal !== 723 || counts.g8_practice !== 480) process.exit(1);
             }).catch((error) => { console.error(error); process.exit(1); });
             NODE
             then

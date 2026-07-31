@@ -11,6 +11,10 @@ const reimportWorkflow = fs.readFileSync(
   path.join(__dirname, '..', '.github', 'workflows', 'prod-exam-library-reimport.yml'),
   'utf8'
 );
+const backendWorkflow = fs.readFileSync(
+  path.join(__dirname, '..', '.github', 'workflows', 'backend-docker-image.yml'),
+  'utf8'
+);
 
 test('生产试卷同步暂停在线服务并在同一数据卷内导入，避免 sql.js 内存库覆盖', () => {
   assert.match(workflow, /docker compose stop panpan-api/);
@@ -35,4 +39,9 @@ test('生产试卷同步支持经质检的七年级 PDF manifest，并逐卷核�
   assert.match(workflow, /missingAnswers/);
   assert.match(workflow, /manifest\.expected\.papers/);
   assert.match(workflow, /manifest\.expected\.answers/);
+});
+
+test('生产部署守卫使用隔离乱码题后的八年级有效选择题总数', () => {
+  assert.match(backendWorkflow, /counts\.g8_choice !== 1320/);
+  assert.doesNotMatch(backendWorkflow, /counts\.g8_choice !== 1322/);
 });
