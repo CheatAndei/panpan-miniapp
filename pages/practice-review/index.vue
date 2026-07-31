@@ -137,20 +137,15 @@
               <view v-else-if="activeSubmission._photoPaths.length" class="photo-frame">
                 <movable-area class="zoom-area" :scale-area="true">
                   <movable-view
-                    :key="activePhotoGestureKey"
+                    :key="activePhotoViewKey"
                     class="zoom-view"
                     direction="all"
-                    :x="activePhotoGesture.x"
-                    :y="activePhotoGesture.y"
                     :inertia="false"
                     :animation="false"
                     :out-of-bounds="false"
                     :scale="true"
                     :scale-min="1"
                     :scale-max="4"
-                    :scale-value="activePhotoGesture.scale"
-                    @change="onPhotoMove"
-                    @scale="onPhotoScale"
                   >
                     <image
                       :src="activeSubmission._photoPaths[activeSubmission._activePhoto]"
@@ -367,12 +362,7 @@ const photosReady = computed(() => {
 const recentVisibleReviews = computed(() => (
   recentExpanded.value ? recentReviews.value : recentReviews.value.slice(0, 3)
 ));
-const activePhotoGesture = computed(() => {
-  const submission = activeSubmission.value;
-  const index = Number(submission?._activePhoto || 0);
-  return submission?._photoGestures?.[index] || { x: 0, y: 0, scale: 1 };
-});
-const activePhotoGestureKey = computed(() => {
+const activePhotoViewKey = computed(() => {
   const submission = activeSubmission.value;
   if (!submission?._photoPaths?.length) return 'photo-empty';
   const index = Number(submission._activePhoto || 0);
@@ -581,7 +571,6 @@ function prepareSubmission(submission, { history = false } = {}) {
     _photoInfos: [],
     _rotations: [],
     _photoResetKeys: [],
-    _photoGestures: [],
     items: focusedItems.map((item) => ({
       ...item,
       _correct: isHistorical ? reviewedItemCorrect(item) : true,
@@ -677,7 +666,6 @@ async function ensurePhotos(submission) {
     submission._activePhoto = 0;
     submission._rotations = submission._photoPaths.map(() => 0);
     submission._photoResetKeys = submission._photoPaths.map(() => 0);
-    submission._photoGestures = submission._photoPaths.map(() => ({ x: 0, y: 0, scale: 1 }));
     if (submission._photoFailures) uni.showToast({ title: '部分照片未读到，可点击重读', icon: 'none' });
   } finally {
     submission._photosLoading = false;
@@ -691,7 +679,6 @@ async function retryPhotos() {
   submission._photoInfos = [];
   submission._photoFailures = 0;
   submission._activePhoto = 0;
-  submission._photoGestures = [];
   submission._posterPath = '';
   submission._posterError = '';
   await ensurePhotos(submission);
@@ -721,42 +708,13 @@ function resetCurrentPhoto() {
   const submission = activeSubmission.value;
   const index = submission?._activePhoto || 0;
   if (!submission) return;
-  submission._photoGestures[index] = { x: 0, y: 0, scale: 1 };
   submission._photoResetKeys[index] = Number(submission._photoResetKeys[index] || 0) + 1;
-}
-function onPhotoMove(event) {
-  const submission = activeSubmission.value;
-  if (!submission) return;
-  const index = Number(submission._activePhoto || 0);
-  const current = submission._photoGestures[index] || { x: 0, y: 0, scale: 1 };
-  const x = Number(event?.detail?.x);
-  const y = Number(event?.detail?.y);
-  submission._photoGestures[index] = {
-    ...current,
-    x: Number.isFinite(x) ? x : current.x,
-    y: Number.isFinite(y) ? y : current.y,
-  };
-}
-function onPhotoScale(event) {
-  const submission = activeSubmission.value;
-  if (!submission) return;
-  const index = Number(submission._activePhoto || 0);
-  const current = submission._photoGestures[index] || { x: 0, y: 0, scale: 1 };
-  const x = Number(event?.detail?.x);
-  const y = Number(event?.detail?.y);
-  const scale = Number(event?.detail?.scale);
-  submission._photoGestures[index] = {
-    x: Number.isFinite(x) ? x : current.x,
-    y: Number.isFinite(y) ? y : current.y,
-    scale: Number.isFinite(scale) ? Math.max(1, Math.min(4, scale)) : current.scale,
-  };
 }
 function rotateCurrentPhoto() {
   const submission = activeSubmission.value;
   const index = submission?._activePhoto || 0;
   if (!submission) return;
   submission._rotations[index] = (Number(submission._rotations[index] || 0) + 90) % 360;
-  submission._photoGestures[index] = { x: 0, y: 0, scale: 1 };
   submission._photoResetKeys[index] = Number(submission._photoResetKeys[index] || 0) + 1;
   submission._posterPath = '';
 }
