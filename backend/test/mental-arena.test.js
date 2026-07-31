@@ -150,7 +150,10 @@ test('初中生进入小学战场会进入排行榜并显示炸鱼选手', async
   assert.equal(board.payload.entries.length, 2);
   assert.equal(board.payload.entries[0].student_name, '小初');
   assert.equal(board.payload.entries[0].is_fishing, true);
+  assert.equal(board.payload.entries.find((item) => Number(item.student_id) === Number(juniorStudentId)).grade_label, '八年级');
+  assert.equal(board.payload.entries.find((item) => Number(item.student_id) === Number(primaryStudentId)).grade_label, '五年级');
   assert.equal(board.payload.my_rank.rank, 1);
+  assert.equal(board.payload.my_rank.grade_label, '八年级');
 });
 
 test('口算题可报错、去重、教师停题，且家长响应不泄露答案', async () => {

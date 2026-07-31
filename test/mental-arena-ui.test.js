@@ -31,6 +31,10 @@ test('战场、答题、计分结果和双排行榜形成完整闭环', () => {
   assert.match(leaderboard, /本周榜/);
   assert.match(leaderboard, /历史榜/);
   assert.match(leaderboard, /炸鱼选手/);
+  assert.match(hub, /七、八、九年级同场/);
+  assert.match(leaderboard, /item\.grade_label/);
+  assert.match(leaderboard, /board\.my_rank\.grade_label/);
+  assert.match(leaderboard, /七、八年级混合排名/);
 });
 
 test('成绩按奖项、分数、指标和题目顺序入场，且可以跳过', () => {

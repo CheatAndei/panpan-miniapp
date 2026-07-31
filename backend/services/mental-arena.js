@@ -199,6 +199,15 @@ function maskStudentName(value) {
   return `${chars[0]}X${chars[chars.length - 1]}`;
 }
 
+function mentalGradeLabel(student) {
+  const raw = String(student?.grade || student?.class_grade || '').trim();
+  if (!raw) return '年级未设置';
+  if (/g7|初一|七年|7\s*年级/i.test(raw)) return '七年级';
+  if (/g8|初二|八年|8\s*年级/i.test(raw)) return '八年级';
+  if (/g9|初三|九年|9\s*年级|中考/i.test(raw)) return '九年级';
+  return raw.replace(/^小学/, '') || '年级未设置';
+}
+
 function leaderboard(db, { studentId, battle, period = 'week', now = new Date() }) {
   if (!BATTLES[battle]) throw new Error('战场无效');
   if (!['week', 'history'].includes(period)) throw new Error('排行榜周期无效');
@@ -213,7 +222,8 @@ function leaderboard(db, { studentId, battle, period = 'week', now = new Date() 
     timeSql = ' AND mc.completed_at>=?';
     params.push(periodStart);
   }
-  const rows = db.all(`SELECT mc.*,s.name student_name,s.external_id
+  const rows = db.all(`SELECT mc.*,s.name student_name,s.external_id,
+    s.grade student_grade,c.grade class_grade
     FROM mental_challenges mc JOIN students s ON s.id=mc.student_id
     LEFT JOIN classes c ON c.id=s.class_id
     WHERE COALESCE(s.teacher_id,c.teacher_id)=? AND mc.battle=? AND mc.status='completed'${timeSql}`, params);
@@ -227,6 +237,7 @@ function leaderboard(db, { studentId, battle, period = 'week', now = new Date() 
     student_id: row.student_id,
     student_name: Number(row.student_id) === Number(studentId) ? row.student_name : maskStudentName(row.student_name),
     is_self: Number(row.student_id) === Number(studentId),
+    grade_label: mentalGradeLabel({ grade: row.student_grade, class_grade: row.class_grade }),
     score: Number(row.score),
     correct_count: Number(row.correct_count),
     total_questions: Number(row.total_questions),
@@ -257,5 +268,6 @@ module.exports = {
   shanghaiWeekStart,
   leaderboard,
   maskStudentName,
+  mentalGradeLabel,
   isJuniorStudent,
 };

@@ -48,7 +48,12 @@ test.after(async()=>{
 test('三学段入口保存偏好，八上知识库为 9 个主题 72 道原创题',async()=>{
   const catalog=await request('GET',`/learning/catalog?student_id=${studentId}&grade=g8`,parentToken);
   assert.equal(catalog.response.status,200);assert.equal(catalog.payload.grade_code,'g8');
-  assert.equal(catalog.payload.features.knowledge_challenge,false);
+  assert.equal(catalog.payload.features.knowledge_challenge,true);
+  const sectionTypes=catalog.payload.sections.map(item=>item.type);
+  assert.ok(sectionTypes.includes('knowledge'));
+  assert.ok(sectionTypes.includes('wrong'));
+  assert.ok(sectionTypes.includes('arena'));
+  assert.equal(catalog.payload.sections.find(item=>item.type==='knowledge').title,'知识点大全');
   const saved=await request('PUT','/learning/preferences',parentToken,{student_id:studentId,grade:'g9',subject:'math'});
   assert.equal(saved.payload.preference.grade_code,'g9');
   const knowledge=await request('GET',`/knowledge-challenge/catalog?student_id=${studentId}`,parentToken);

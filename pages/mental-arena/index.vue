@@ -50,7 +50,7 @@
           </view>
           <text class="battle-time">建议 240 秒内</text>
         </view>
-        <text class="battle-desc">有理数、绝对值、分数小数、巧算、整式求值与一元一次方程。</text>
+        <text class="battle-desc">七、八、九年级同场；覆盖有理数、绝对值、分数小数、巧算、整式求值与一元一次方程。</text>
         <view class="battle-actions">
           <button class="rank-btn dark" @tap="openLeaderboard('junior')">查看排行</button>
           <button class="start-btn junior" :disabled="starting" @tap="startBattle('junior')">进入初中战场</button>

@@ -35,9 +35,16 @@ test('打卡计划按所选班级加载年级题库，历史计划不随班级�
   assert.match(page, /practiceCatalog\?\.class\?\.grade_label/);
 });
 
-test('学生端八年级改为 12 讲同步且不再展示旧知识闯关入口', () => {
+test('学生端按年级展示特色项目，八年级轻量练习恢复知识点大全、错题清零与口算王', () => {
   const page = read('pages/learning-center/index.vue');
-  assert.match(page, /\{value:'g8',label:'八年级',sub:'12 讲同步'\}/);
-  assert.doesNotMatch(page, /\{[^}]*route:\s*'knowledge_challenge'[^}]*\}/);
+  const service = read('backend/services/learning.js');
+  const knowledge = read('pages/knowledge-challenge/index.vue');
+  assert.match(page, /\{value:'g7',label:'七年级',sub:'口算王'\}/);
+  assert.match(page, /\{value:'g8',label:'八年级',sub:'知识点大全'\}/);
+  assert.match(page, /'wrong', 'practice', 'knowledge'/);
   assert.match(page, /item\.route === 'knowledge_challenge'/);
+  assert.match(service, /type: 'knowledge', title: '知识点大全'/);
+  assert.match(service, /type: 'wrong', \.\.\.TASKS\.wrong/);
+  assert.match(service, /七、八年级混合排行/);
+  assert.match(knowledge, /class="hero-title">知识点大全</);
 });

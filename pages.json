@@ -30,7 +30,7 @@
     { "path": "pages/content-progress/index", "style": { "navigationBarTitleText": "进度控制管理", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/exam-library/index", "style": { "navigationBarTitleText": "广州真题大全", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/weekly-challenge/index", "style": { "navigationBarTitleText": "压轴挑战", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
-    { "path": "pages/knowledge-challenge/index", "style": { "navigationBarTitleText": "八上知识点闯关", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
+    { "path": "pages/knowledge-challenge/index", "style": { "navigationBarTitleText": "知识点大全", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/weekly-review/index", "style": { "navigationBarTitleText": "压轴挑战批阅", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/mental-goals/index", "style": { "navigationBarTitleText": "口算冲榜目标", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/teacher-checkin/index", "style": { "navigationBarTitleText": "签到" } },

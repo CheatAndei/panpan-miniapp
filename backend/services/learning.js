@@ -443,6 +443,10 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
   const challengeCount = fillCount + subjectiveCount;
   const examCount = Number(db.get(`SELECT COUNT(*) count FROM exam_papers
     WHERE grade_code=? AND status='published'`, [grade])?.count || 0);
+  const knowledgeCount = grade === 'g8'
+    ? Number(db.get(`SELECT COUNT(*) count FROM knowledge_topics
+      WHERE grade_code='g8' AND subject_code='math' AND is_active=1`)?.count || 0)
+    : 0;
   const sections = [];
   if (grade === 'g7') sections.push(
     { type: 'warmup', ...TASKS.warmup, accent: 'mint' },
@@ -452,9 +456,26 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
     { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },
     { type: 'arena', title: '口算王', description: '20 题限时挑战与本周排行', route: 'arena', accent: 'gold' },
   );
-  if (grade === 'g8') sections.push({
-    type: 'practice', title: '老师每日打卡', description: '完成老师按初二进度发布的练习', route: 'practice', accent: 'green',
-  });
+  if (grade === 'g8') sections.push(
+    ...(knowledgeCount ? [{
+      type: 'knowledge', title: '知识点大全',
+      description: `${knowledgeCount} 个八上核心知识点，知识卡配套 8 题巩固`,
+      route: 'knowledge_challenge', accent: 'blue',
+    }] : []),
+    {
+      type: 'wrong', ...TASKS.wrong,
+      title: overview.stats.open_wrong_count ? `错题清零 · ${overview.stats.open_wrong_count} 待掌握` : '错题清零 · 今日巩固',
+      accent: 'amber',
+    },
+    {
+      type: 'practice', title: '老师每日打卡',
+      description: '完成老师按初二进度发布的练习', route: 'practice', accent: 'green',
+    },
+    {
+      type: 'arena', title: '口算王',
+      description: '七、八年级混合排行，挑战初中口算', route: 'arena', accent: 'gold',
+    },
+  );
   if (challengeCount) sections.push({ type: 'weekly', ...TASKS.weekly, route: 'weekly_challenge', accent: 'navy' });
   if (examCount) sections.push({ type: 'exams', title: grade === 'g9' ? '中考一模卷库' : '广州真题大全', description: grade === 'g9' ? '按年份、学科和地区查看一模原卷' : '按考试类型和年份查看原卷', route: 'exams', accent: 'rose' });
   return {
@@ -465,7 +486,7 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
     subject_code: subject,
     available_grades: ['g7','g8','g9'],
     features: {
-      knowledge_challenge: false,
+      knowledge_challenge: knowledgeCount > 0,
       choice_king: choiceCount > 0,
       weekly_challenge: challengeCount > 0,
       exams: examCount > 0,

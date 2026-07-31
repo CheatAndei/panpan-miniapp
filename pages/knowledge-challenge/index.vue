@@ -1,6 +1,6 @@
 <template>
   <view class="page page-bottom-safe student-challenge-page">
-    <view class="hero"><view class="hero-mark"><pp-icon name="lightbulb" :size="42" motion="bob" :delay="80" /></view><text class="eyebrow">GRADE 8 KNOWLEDGE</text><text class="hero-title">八上知识点闯关</text><text class="hero-sub">知识卡 → 8 题闯关 → 错题复练</text></view>
+    <view class="hero"><view class="hero-mark"><pp-icon name="lightbulb" :size="42" motion="bob" :delay="80" /></view><text class="eyebrow">GRADE 8 KNOWLEDGE</text><text class="hero-title">知识点大全</text><text class="hero-sub">八上知识卡 → 8 题巩固 → 错题复练</text></view>
     <pp-state v-if="loading&&!catalog" type="loading" title="正在整理知识点" />
     <pp-state v-else-if="error&&!catalog" type="error" title="知识点加载失败" :description="error" action-text="重试" @action="loadCatalog" />
     <template v-if="catalog&&!attempt&&!selectedTopic">
