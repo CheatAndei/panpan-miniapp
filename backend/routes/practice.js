@@ -5,7 +5,8 @@ const { teacherOwnsClass, parentBoundStudent } = require('../utils/scope');
 const {
   MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
   normalizeTopicKeys, questionTypesForTopics,
-  practiceDateAt, dateRange, generateAssignment, preGenerateDate, resolveStudentPracticePlan,
+  practiceDateAt, oldestPendingPracticeCorrection,
+  dateRange, generateAssignment, preGenerateDate, resolveStudentPracticePlan,
   evaluateProgression, generatePlanPdf, generateStudentPlanPdf,
   practiceFocusItemIds, practiceVisibleItemIds, serializePracticeSubmission,
 } = require('../services/practice');
@@ -442,20 +443,33 @@ router.get('/today', auth, parentOnly, (req, res) => {
   const db = getDB();
   const studentId = Number(req.query.student_id);
   if (!parentBoundStudent(db, req.user.id, studentId)) return res.status(403).json({ error: '无权查看该学生' });
-  const practiceDate = practiceDateAt();
-  const plan = resolveStudentPracticePlan(db, studentId, practiceDate)
-    || db.get(`SELECT p.* FROM practice_plans p JOIN students s ON s.class_id=p.class_id
-      WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
-      ORDER BY p.created_at DESC LIMIT 1`, [studentId, practiceDate, practiceDate]);
-  if (!plan) return res.json({ practice_date: practiceDate, assignment: null });
-  const assignment = generateAssignment(db, plan, studentId, practiceDate);
+  const todayPracticeDate = practiceDateAt();
+  const pendingCorrection = oldestPendingPracticeCorrection(db, studentId, todayPracticeDate);
+  const plan = pendingCorrection
+    ? db.get('SELECT * FROM practice_plans WHERE id=?', [pendingCorrection.plan_id])
+    : resolveStudentPracticePlan(db, studentId, todayPracticeDate)
+      || db.get(`SELECT p.* FROM practice_plans p JOIN students s ON s.class_id=p.class_id
+        WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
+        ORDER BY p.created_at DESC LIMIT 1`, [studentId, todayPracticeDate, todayPracticeDate]);
+  if (!plan) return res.json({
+    practice_date: todayPracticeDate,
+    today_practice_date: todayPracticeDate,
+    blocked_by_correction: false,
+    assignment: null,
+  });
+  const assignment = pendingCorrection
+    ? db.get('SELECT * FROM practice_assignments WHERE id=?', [pendingCorrection.assignment_id])
+    : generateAssignment(db, plan, studentId, todayPracticeDate);
   if (!assignment.claimed_at) db.run('UPDATE practice_assignments SET claimed_at=CURRENT_TIMESTAMP WHERE id=?', [assignment.id]);
   const items = db.all(`SELECT id,position,snapshot_stem stem,snapshot_module module,snapshot_type question_type,
     estimated_seconds,snapshot_payload FROM practice_assignment_items
     WHERE assignment_id=? ORDER BY position`, [assignment.id]).map(publicPracticeItem);
   const submission = db.get('SELECT * FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
   res.json({
-    practice_date: practiceDate,
+    practice_date: assignment.practice_date,
+    today_practice_date: todayPracticeDate,
+    blocked_by_correction: Boolean(pendingCorrection),
+    is_overdue_correction: Boolean(pendingCorrection && assignment.practice_date < todayPracticeDate),
     plan: { id: plan.id, title: plan.title, module: plan.module },
     assignment: {
       ...assignment,
@@ -623,10 +637,18 @@ router.post('/assignments/:id/upload/complete', auth, parentOnly, (req, res) => 
     ...result.submission,
     assignment_id: assignment.id,
   });
+  const teacherQueueReceipt = db.get(`SELECT ps.id
+    FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN practice_plans p ON p.id=a.plan_id
+    JOIN students st ON st.id=a.student_id
+    WHERE ps.id=? AND ps.status='submitted' AND p.teacher_id IS NOT NULL
+      AND st.deleted_at IS NULL`, [state.id]);
   return res.json({
     ok: true,
     submission: state,
     idempotent: result.idempotent,
+    teacher_queue_received: Boolean(teacherQueueReceipt),
   });
 });
 

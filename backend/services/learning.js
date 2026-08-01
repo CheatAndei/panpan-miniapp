@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 const { QUESTION_BANK } = require('../resources/mental-arena/questions');
 const { answersEqual, isJuniorStudent, shanghaiWeekStart } = require('./mental-arena');
-const { practiceDateAt } = require('./practice');
+const { practiceDateAt, oldestPendingPracticeCorrection } = require('./practice');
 const { normalizeMathDisplay } = require('../utils/math-expression');
 const {
   normalizeGradeCode, normalizeSubjectCode, studentGradeCode, gradeLabel,
@@ -332,13 +332,24 @@ function todayOverview(db, { studentId, now = new Date() }) {
   const attempts = db.all(`SELECT task_type,status,correct_count,total_questions,elapsed_seconds FROM learning_attempts
     WHERE student_id=? AND logical_date=?`, [studentId, logicalDate]);
   const byType = new Map(attempts.map((item) => [item.task_type, item]));
-  const practice = db.get(`SELECT p.id plan_id,p.title,a.id assignment_id,a.status,
-    ps.status submission_status,ps.reviewed_at
+  const scheduledPractice = db.get(`SELECT p.id plan_id,p.title,a.id assignment_id,a.status,
+    a.practice_date,ps.status submission_status,ps.reviewed_at
     FROM practice_plans p JOIN students s ON s.class_id=p.class_id
     LEFT JOIN practice_assignments a ON a.plan_id=p.id AND a.student_id=s.id AND a.practice_date=?
     LEFT JOIN practice_submissions ps ON ps.assignment_id=a.id
     WHERE s.id=? AND s.deleted_at IS NULL AND p.status='published' AND p.start_date<=? AND p.end_date>=?
     ORDER BY p.created_at DESC LIMIT 1`, [logicalDate, studentId, logicalDate, logicalDate]);
+  const pendingCorrection = oldestPendingPracticeCorrection(db, studentId, logicalDate);
+  const practice = pendingCorrection ? {
+    plan_id: pendingCorrection.plan_id,
+    title: pendingCorrection.plan_title,
+    assignment_id: pendingCorrection.assignment_id,
+    status: pendingCorrection.assignment_status,
+    practice_date: pendingCorrection.practice_date,
+    submission_status: pendingCorrection.submission_status,
+    reviewed_at: pendingCorrection.reviewed_at,
+    blocked_by_correction: true,
+  } : scheduledPractice;
   const fallbackThird = openWrongs > 0 ? 'wrong' : 'weekly';
   const taskTypes = [practice ? 'practice' : 'warmup', 'weakness', fallbackThird];
   const tasks = taskTypes.map((type, index) => {
@@ -348,12 +359,15 @@ function todayOverview(db, { studentId, now = new Date() }) {
       return {
         key: 'practice', position: index + 1, title: practice.title || '老师每日练习',
         description: needsCorrection
-          ? '老师已打回，请上传订正照片'
+          ? practice.blocked_by_correction && practice.practice_date < logicalDate
+            ? `先完成 ${practice.practice_date} 的订正，提交后再做今日练习`
+            : '老师已打回，请上传订正照片'
           : practice.submission_status === 'submitted'
             ? '已提交，等待老师批改'
             : '完成后拍照提交，由老师逐题复核',
         route: 'practice', status: needsCorrection ? 'correction_required' : (completed ? 'completed' : 'ready'),
-        completed,
+        completed, practice_date: practice.practice_date,
+        blocked_by_correction: Boolean(practice.blocked_by_correction),
       };
     }
     if (type === 'weekly') {

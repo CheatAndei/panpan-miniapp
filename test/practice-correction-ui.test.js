@@ -185,3 +185,16 @@ test('家长页明确待订正状态且照片数只取当前轮', () => {
   assert.match(home, /task\.status === 'correction_required'/);
   assert.match(home, /return '去订正'/);
 });
+
+test('家长页先处理历史订正，确认教师收件后自动进入今日题单', () => {
+  assert.match(parent, /today_practice_date/);
+  assert.match(parent, /blocked_by_correction/);
+  assert.match(parent, /const isOverdueCorrection = computed/);
+  assert.match(parent, /历史订正优先/);
+  assert.match(parent, /待订正题单/);
+  assert.match(parent, /确认送达老师后，自动进入/);
+  assert.match(parent, /teacher_queue_received === false/);
+  assert.match(parent, /if \(correctionWasPending\) await loadData\(\)/);
+  assert.match(parent, /订正已送达老师/);
+  assert.match(parent, /const correctionDelivered = correctionWasPending/);
+});

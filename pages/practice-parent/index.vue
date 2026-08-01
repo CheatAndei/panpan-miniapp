@@ -23,14 +23,15 @@
       </view>
 
       <view v-if="needsCorrection" class="correction-card">
-        <view class="correction-kicker"><pp-icon name="pencil" :size="24" /><text>老师已打回</text></view>
+        <view class="correction-kicker"><pp-icon name="pencil" :size="24" /><text>{{ isOverdueCorrection ? '历史订正优先' : '老师已打回' }}</text></view>
         <text class="correction-title">待上传订正照片</text>
+        <text v-if="isOverdueCorrection" class="correction-order">先完成 {{ practiceDate }} 的订正；确认送达老师后，自动进入 {{ todayPracticeDate }} 今日练习。</text>
         <text class="correction-copy">请订正老师标记的错题，只上传本轮新照片；提交后老师只复核上一轮错题。</text>
       </view>
 
       <view class="card question-card">
         <view class="section-head">
-          <view class="section-title"><pp-icon name="book" :size="28" /><text>今日题目</text></view>
+          <view class="section-title"><pp-icon name="book" :size="28" /><text>{{ isOverdueCorrection ? '待订正题单' : '今日题目' }}</text></view>
           <text class="section-note">建议写在纸上</text>
         </view>
         <view v-for="item in assignment.items" :key="item.id" class="question-row">
@@ -131,6 +132,8 @@ const uploading = ref(false);
 const uploadProgress = ref('');
 const error = ref('');
 const practiceDate = ref('');
+const todayPracticeDate = ref('');
+const blockedByCorrection = ref(false);
 const plan = ref({});
 const assignment = ref(null);
 const history = ref([]);
@@ -163,6 +166,12 @@ const isCorrection = computed(() => (
   || correctionRound.value > 1
 ));
 const needsCorrection = computed(() => recordNeedsCorrection(submission.value));
+const isOverdueCorrection = computed(() => (
+  blockedByCorrection.value
+  && Boolean(practiceDate.value)
+  && Boolean(todayPracticeDate.value)
+  && practiceDate.value < todayPracticeDate.value
+));
 const deliveredToTeacher = computed(() => (
   ['submitted', 'reviewed'].includes(submission.value?.status)
 ));
@@ -272,6 +281,8 @@ async function loadData() {
       api.get(`/practice/history?student_id=${id}`),
     ]);
     practiceDate.value = today.practice_date;
+    todayPracticeDate.value = today.today_practice_date || today.practice_date;
+    blockedByCorrection.value = booleanField(today.blocked_by_correction);
     plan.value = today.plan || {};
     assignment.value = today.assignment || null;
     history.value = recent.assignments || [];
@@ -344,21 +355,31 @@ async function completePracticeUpload() {
   if (result.submission?.status !== 'submitted') {
     throw { error: '照片已暂存，但尚未送达老师，请重试确认' };
   }
+  if (result.teacher_queue_received === false) {
+    throw { error: '订正已保存，但教师批改台尚未确认收到，请重试' };
+  }
   return result.submission;
 }
 
 async function confirmSavedUpload() {
   if (uploading.value || !assignment.value || !attachmentCount.value) return;
+  const assignmentId = Number(assignment.value.id);
+  const correctionWasPending = needsCorrection.value || isCorrection.value;
   uploading.value = true;
   uploadProgress.value = '确认中';
   try {
     const nextSubmission = await completePracticeUpload();
     await applySubmission(nextSubmission);
-    uni.showToast({ title: '已送达老师批改台', icon: 'success' });
+    if (correctionWasPending) await loadData();
+    uni.showToast({ title: correctionWasPending ? '订正已送达老师' : '已送达老师批改台', icon: 'success' });
   } catch (err) {
     await loadData();
-    if (deliveredToTeacher.value) {
-      uni.showToast({ title: '已送达老师批改台', icon: 'success' });
+    const correctionDelivered = correctionWasPending && history.value.some((item) => (
+      Number(item.id) === assignmentId
+      && ['submitted', 'reviewed'].includes(item.submission_status)
+    ));
+    if (deliveredToTeacher.value || correctionDelivered) {
+      uni.showToast({ title: correctionDelivered ? '订正已送达老师' : '已送达老师批改台', icon: 'success' });
     } else {
       uni.showToast({ title: err?.error || '确认失败，请重试', icon: 'none' });
     }
@@ -457,9 +478,11 @@ function previewPhotos(index) {
 .correction-card { border-color: rgba(247, 155, 192, .3); border-left: 6rpx solid var(--panpan-coral); background: #FFF0F6; }
 .correction-kicker,
 .correction-title,
+.correction-order,
 .correction-copy { display: block; }
 .correction-kicker { display: flex; align-items: center; gap: 6rpx; color: #B53A52; font-size: 19rpx; font-weight: 760; letter-spacing: 0; }
 .correction-title { margin-top: 5rpx; color: var(--panpan-ink); font-size: 29rpx; font-weight: 780; }
+.correction-order { margin-top: 9rpx; padding: 12rpx 14rpx; border-radius: 9rpx; background: #FFFFFF; color: #B53A52; font-size: 22rpx; font-weight: 700; line-height: 1.52; }
 .correction-copy { margin-top: 7rpx; color: #50545B; font-size: 22rpx; line-height: 1.52; }
 
 .question-card { border-top: 6rpx solid var(--panpan-leaf); }

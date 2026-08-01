@@ -43,6 +43,22 @@ function practiceDateAt(value = new Date()) {
   return shanghai.toISOString().slice(0, 10);
 }
 
+function oldestPendingPracticeCorrection(db, studentId, throughDate = practiceDateAt()) {
+  return db.get(`SELECT a.id assignment_id,a.plan_id,a.student_id,a.practice_date,
+      a.status assignment_status,a.estimated_seconds,a.claimed_at,
+      p.title plan_title,p.module plan_module,
+      ps.id submission_id,ps.status submission_status,ps.current_round,
+      ps.needs_correction,ps.reviewed_at
+    FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN practice_plans p ON p.id=a.plan_id
+    JOIN students s ON s.id=a.student_id
+    WHERE a.student_id=? AND a.practice_date<=?
+      AND ps.status='correction_required' AND s.deleted_at IS NULL
+    ORDER BY a.practice_date ASC,a.id ASC
+    LIMIT 1`, [studentId, throughDate]);
+}
+
 function dateRange(start, end, maxDays = 31) {
   const result = [];
   const current = new Date(`${start}T00:00:00Z`);
@@ -737,6 +753,7 @@ module.exports = {
   FIXED_MODULE,
   FIXED_DIFFICULTY,
   practiceDateAt,
+  oldestPendingPracticeCorrection,
   dateRange,
   normalizeTopicKeys,
   questionTypesForTopics,

@@ -524,6 +524,128 @@ test('已有绑定或练习历史的学生软删除后仍保留全部关联数�
   assert.equal(blocked.response.status, 403);
 });
 
+test('积压订正按最早优先，确认提交后教师立即收件，全部清空后才进入今日练习', async () => {
+  const db = getDB();
+  const teacher = db.run(`INSERT INTO users(openid,role,nickname)
+    VALUES(?, 'teacher', '订正验收老师')`, [`overdue-teacher-${process.pid}`]);
+  const parent = db.run(`INSERT INTO users(openid,role,nickname)
+    VALUES(?, 'parent', '订正验收家长')`, [`overdue-parent-${process.pid}`]);
+  const cls = db.run(`INSERT INTO classes(teacher_id,name,subject,grade)
+    VALUES(?, '订正验收班', '数学', '七年级')`, [teacher.lastInsertRowid]);
+  const student = db.run(`INSERT INTO students(teacher_id,class_id,name,invite_code)
+    VALUES(?,?,'订正验收学生',?)`, [teacher.lastInsertRowid, cls.lastInsertRowid, `OVD${process.pid}`]);
+  db.run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [parent.lastInsertRowid, student.lastInsertRowid]);
+
+  const dateAt = (offset) => {
+    const date = new Date(`${logicalToday}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + offset);
+    return date.toISOString().slice(0, 10);
+  };
+  const oldestDate = dateAt(-2);
+  const laterDate = dateAt(-1);
+  const plan = db.run(`INSERT INTO practice_plans
+    (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,
+      question_types,topic_keys,difficulty,target_seconds,auto_advance,status)
+    VALUES(?,?,? ,?,?,'初中','数学','综合计算','[]','[]',3,1200,0,'published')`, [
+    teacher.lastInsertRowid, cls.lastInsertRowid, '积压订正验收计划', oldestDate, logicalToday,
+  ]);
+  const sourceItem = db.get(`SELECT * FROM practice_assignment_items ORDER BY id LIMIT 1`);
+  assert.ok(sourceItem);
+
+  const assignmentIds = new Map();
+  for (const practiceDate of [oldestDate, laterDate, logicalToday]) {
+    const correctionRequired = practiceDate !== logicalToday;
+    const assignment = db.run(`INSERT INTO practice_assignments
+      (plan_id,student_id,practice_date,status,estimated_seconds,selection_meta)
+      VALUES(?,?,?,?,1200,'{}')`, [
+      plan.lastInsertRowid, student.lastInsertRowid, practiceDate,
+      correctionRequired ? 'correction_required' : 'ready',
+    ]);
+    assignmentIds.set(practiceDate, Number(assignment.lastInsertRowid));
+    const item = db.run(`INSERT INTO practice_assignment_items
+      (assignment_id,question_id,position,snapshot_stem,snapshot_answer,snapshot_module,
+        snapshot_type,snapshot_difficulty,estimated_seconds,signature,template_key,snapshot_payload)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, [
+      assignment.lastInsertRowid, sourceItem.question_id, 1,
+      `${practiceDate} 订正验收题`, sourceItem.snapshot_answer, sourceItem.snapshot_module,
+      sourceItem.snapshot_type, sourceItem.snapshot_difficulty, sourceItem.estimated_seconds,
+      `overdue-${student.lastInsertRowid}-${practiceDate}`, sourceItem.template_key,
+      sourceItem.snapshot_payload,
+    ]);
+    if (!correctionRequired) continue;
+    const submission = db.run(`INSERT INTO practice_submissions
+      (assignment_id,parent_id,status,current_round,needs_correction,reviewed_by,reviewed_at,review_revision)
+      VALUES(?,?,'correction_required',1,1,?,CURRENT_TIMESTAMP,1)`, [
+      assignment.lastInsertRowid, parent.lastInsertRowid, teacher.lastInsertRowid,
+    ]);
+    db.run(`INSERT INTO practice_submission_rounds
+      (submission_id,round_no,status,reviewed_by,reviewed_at)
+      VALUES(?,1,'correction_required',?,CURRENT_TIMESTAMP)`, [submission.lastInsertRowid, teacher.lastInsertRowid]);
+    db.run(`INSERT INTO practice_review_rounds
+      (submission_id,round_no,assignment_item_id,is_correct,teacher_note)
+      VALUES(?,1,?,0,'请订正')`, [submission.lastInsertRowid, item.lastInsertRowid]);
+  }
+
+  const isolatedParentToken = token(parent.lastInsertRowid, 'parent');
+  const isolatedTeacherToken = token(teacher.lastInsertRowid, 'teacher');
+  const studentQuery = `student_id=${student.lastInsertRowid}`;
+
+  const firstGate = await request('GET', `/practice/today?${studentQuery}`, isolatedParentToken);
+  assert.equal(firstGate.response.status, 200);
+  assert.equal(firstGate.payload.practice_date, oldestDate);
+  assert.equal(firstGate.payload.today_practice_date, logicalToday);
+  assert.equal(firstGate.payload.blocked_by_correction, true);
+  assert.equal(firstGate.payload.is_overdue_correction, true);
+  assert.equal(Number(firstGate.payload.assignment.id), assignmentIds.get(oldestDate));
+
+  const learningGate = await request('GET', `/learning/today?${studentQuery}`, isolatedParentToken);
+  const practiceTask = learningGate.payload.tasks.find((task) => task.key === 'practice');
+  assert.equal(practiceTask.status, 'correction_required');
+  assert.equal(practiceTask.blocked_by_correction, true);
+  assert.equal(practiceTask.practice_date, oldestDate);
+  assert.match(practiceTask.description, /提交后再做今日练习/);
+
+  const submitCorrection = async (assignmentId, color, fileName) => {
+    const image = (await sharp({
+      create: { width: 8, height: 8, channels: 3, background: color },
+    }).png().toBuffer()).toString('base64');
+    const uploaded = await request('POST',
+      `/practice/assignments/${assignmentId}/upload?upload_complete=0`, isolatedParentToken, {
+        base64: image, fileName, mimeType: 'image/png',
+      });
+    assert.equal(uploaded.response.status, 201);
+    assert.equal(uploaded.payload.submission.status, 'correction_required');
+    const confirmed = await request('POST',
+      `/practice/assignments/${assignmentId}/upload/complete`, isolatedParentToken, {});
+    assert.equal(confirmed.response.status, 200);
+    assert.equal(confirmed.payload.submission.status, 'submitted');
+    assert.equal(confirmed.payload.submission.is_correction, true);
+    assert.equal(confirmed.payload.teacher_queue_received, true);
+  };
+
+  await submitCorrection(assignmentIds.get(oldestDate), '#315EA8', 'oldest-correction.png');
+  const firstReceipt = await request('GET', '/practice/todos?include_review=1', isolatedTeacherToken);
+  assert.equal(firstReceipt.payload.count, 1);
+  assert.equal(firstReceipt.payload.todos[0].practice_date, oldestDate);
+  assert.equal(firstReceipt.payload.todos[0].is_correction, true);
+  assert.equal(firstReceipt.payload.todos[0].correction_round, 2);
+
+  const secondGate = await request('GET', `/practice/today?${studentQuery}`, isolatedParentToken);
+  assert.equal(secondGate.payload.practice_date, laterDate);
+  assert.equal(Number(secondGate.payload.assignment.id), assignmentIds.get(laterDate));
+  assert.equal(secondGate.payload.blocked_by_correction, true);
+
+  await submitCorrection(assignmentIds.get(laterDate), '#D66D62', 'later-correction.png');
+  const allReceipts = await request('GET', '/practice/todos?include_review=1', isolatedTeacherToken);
+  assert.equal(allReceipts.payload.count, 2);
+  assert.ok(allReceipts.payload.todos.every((todo) => todo.is_correction && todo.correction_round === 2));
+
+  const today = await request('GET', `/practice/today?${studentQuery}`, isolatedParentToken);
+  assert.equal(today.payload.practice_date, logicalToday);
+  assert.equal(today.payload.blocked_by_correction, false);
+  assert.equal(Number(today.payload.assignment.id), assignmentIds.get(logicalToday));
+});
+
 test('PDF 源码先输出全部学生练习，最后才统一输出教师答案', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'services', 'practice.js'), 'utf8');
   assert.ok(source.indexOf('items.forEach((item) => writePdfText') < source.indexOf("writePdfText(doc, '教师参考答案'"));
