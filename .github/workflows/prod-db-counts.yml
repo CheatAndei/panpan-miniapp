@@ -6,17 +6,28 @@ on:
 jobs:
   inspect:
     name: Inspect Zhilin challenge assignments
-    runs-on: ubuntu-latest
+    runs-on: macos-15
     steps:
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
       - name: Inspect production DB read-only
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: 134.175.69.59
-          username: root
-          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            docker exec -i panpan-api node --input-type=module <<'NODE'
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            'docker exec -i panpan-api node --input-type=module' <<'NODE'
             import fs from 'fs';
             import initSqlJs from 'sql.js';
 
