@@ -2,46 +2,221 @@ name: Production DB Counts
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type compat-zhilin-toggle-143-152 to run the guarded compatibility update
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panpan-production
+  cancel-in-progress: false
 
 jobs:
-  inspect:
-    name: Count production DB rows
-    runs-on: ubuntu-latest
+  compat:
+    name: Enable Zhilin challenge pair toggle
+    runs-on: macos-15
     steps:
-      - name: Count production DB rows
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: 134.175.69.59
-          username: root
-          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
-          script: |
-            set -euo pipefail
-            docker exec -i panpan-api node --input-type=module <<'NODE'
-            import fs from 'fs';
-            import initSqlJs from 'sql.js';
-            const SQL = await initSqlJs();
-            const files = [
-              '/app/data/teach.db',
-              '/opt/panpan-miniapp/data/teach.db'
-            ];
-            for (const file of files) {
-              if (!fs.existsSync(file)) {
-                console.log(file, 'missing');
-                continue;
-              }
-              const db = new SQL.Database(fs.readFileSync(file));
-              const tables = ['users','classes','students','bindings','schedules','sessions','checkins','feedbacks','leaves','parent_feedbacks'];
-              const counts = {};
-              for (const table of tables) {
-                try {
-                  const stmt = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`);
-                  stmt.step();
-                  counts[table] = stmt.getAsObject().c;
-                  stmt.free();
-                } catch {
-                  counts[table] = 'n/a';
-                }
-              }
-              console.log(file, fs.statSync(file).size, JSON.stringify(counts));
-            }
-            NODE
+      - name: Require exact confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: test "$CONFIRM" = 'compat-zhilin-toggle-143-152'
+
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Back up, guard, update, restart, and verify
+        env:
+          COMPAT_RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            "COMPAT_RUN_ID='$COMPAT_RUN_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$COMPAT_RUN_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid compatibility run id'; exit 1 ;; esac
+
+          DEPLOY_DIR=/opt/panpan-miniapp
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          DB_FILE="$DATA_DIR/teach.db"
+          BACKUP_DIR="$DEPLOY_DIR/backups/challenge-toggle-compat-$COMPAT_RUN_ID"
+          BACKUP_FILE="$BACKUP_DIR/teach.db"
+          SUCCESS=0
+          BACKUP_READY=0
+
+          wait_for_health() {
+            for _ in $(seq 1 18); do
+              if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+
+          recover_on_failure() {
+            code=$?
+            trap - EXIT
+            if [ "$SUCCESS" = 1 ]; then exit "$code"; fi
+            set +e
+            echo 'Compatibility update failed; restoring guarded backup.'
+            (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            if [ "$BACKUP_READY" = 1 ]; then
+              cp -a "$BACKUP_FILE" "$DATA_DIR/.teach.db.compat-rollback.tmp"
+              mv "$DATA_DIR/.teach.db.compat-rollback.tmp" "$DB_FILE"
+            fi
+            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+            wait_for_health
+            exit "$code"
+          }
+          trap recover_on_failure EXIT
+
+          test -n "$DATA_DIR"
+          test -n "$IMAGE"
+          test -f "$DB_FILE"
+          test ! -e "$BACKUP_DIR"
+          install -d -m 700 "$BACKUP_DIR"
+
+          (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+          cp -a "$DB_FILE" "$BACKUP_DIR/.teach.db.tmp"
+          test "$(od -An -tx1 -N16 "$BACKUP_DIR/.teach.db.tmp" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
+          BACKUP_SHA256="$(sha256sum "$BACKUP_DIR/.teach.db.tmp" | awk '{print $1}')"
+          BACKUP_BYTES="$(stat -c%s "$BACKUP_DIR/.teach.db.tmp")"
+          test "$BACKUP_BYTES" -gt 0
+          docker run --rm -i -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync('/backup/.teach.db.tmp'));
+          const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
+          if (integrity.length !== 1 || integrity[0] !== 'ok') throw new Error(`backup integrity failed: ${integrity.join(',')}`);
+          NODE
+          mv "$BACKUP_DIR/.teach.db.tmp" "$BACKUP_FILE"
+          printf '%s  teach.db\n' "$BACKUP_SHA256" > "$BACKUP_DIR/teach.db.sha256"
+          chmod 600 "$BACKUP_FILE" "$BACKUP_DIR/teach.db.sha256"
+          BACKUP_READY=1
+          printf 'PANPAN_COMPAT_BACKUP bytes=%s sha256=%s path=%s\n' "$BACKUP_BYTES" "$BACKUP_SHA256" "$BACKUP_FILE"
+
+          docker run --rm -i \
+            -e DB_FILE=/data/teach.db \
+            -e STUDENT_ID=41 -e STUDENT_NAME='谢芷邻' \
+            -e ACTIVE_ASSIGNMENT_ID=143 -e ACTIVE_QUESTION_ID=796 \
+            -e PARTNER_ASSIGNMENT_ID=152 -e PARTNER_QUESTION_ID=652 \
+            -v "$DATA_DIR:/data" "$IMAGE" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+
+          const file = process.env.DB_FILE;
+          const studentId = Number(process.env.STUDENT_ID);
+          const activeId = Number(process.env.ACTIVE_ASSIGNMENT_ID);
+          const activeQuestionId = Number(process.env.ACTIVE_QUESTION_ID);
+          const partnerId = Number(process.env.PARTNER_ASSIGNMENT_ID);
+          const partnerQuestionId = Number(process.env.PARTNER_QUESTION_ID);
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync(file));
+
+          function one(sql, params = []) {
+            const statement = db.prepare(sql);
+            statement.bind(params);
+            const row = statement.step() ? statement.getAsObject() : null;
+            statement.free();
+            return row;
+          }
+          function assignment(id) {
+            return one(`SELECT a.*,q.is_active question_active,
+                (SELECT COUNT(*) FROM challenge_submissions_v2 s WHERE s.assignment_id=a.id) submission_count
+              FROM challenge_assignments_v2 a
+              JOIN weekly_challenge_questions q ON q.id=a.question_id
+              WHERE a.id=?`, [id]);
+          }
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          const student = one('SELECT id,name,deleted_at FROM students WHERE id=?', [studentId]);
+          const active = assignment(activeId);
+          const partner = assignment(partnerId);
+          assert(student && student.name === process.env.STUDENT_NAME && student.deleted_at === null, 'student precondition failed');
+          assert(active && Number(active.student_id) === studentId && Number(active.question_id) === activeQuestionId, 'active assignment identity changed');
+          assert(active.status === 'active' && active.replaced_by_id === null, 'active assignment state changed');
+          assert(Number(active.submission_count) === 0 && Number(active.question_active) === 1, 'active assignment is no longer safe');
+          assert(partner && Number(partner.student_id) === studentId && Number(partner.question_id) === partnerQuestionId, 'partner assignment identity changed');
+          assert(partner.status === 'skipped' && Number(partner.replaced_by_id) === activeId, 'partner assignment state changed');
+          assert(Number(partner.submission_count) === 0 && Number(partner.question_active) === 1, 'partner assignment is no longer safe');
+          assert(active.grade_code === partner.grade_code && active.subject_code === partner.subject_code && active.question_type === partner.question_type,
+            'assignment scope mismatch');
+          const current = one(`SELECT GROUP_CONCAT(id, ',') ids,COUNT(*) count FROM challenge_assignments_v2
+            WHERE student_id=? AND grade_code=? AND subject_code=?
+              AND status IN ('active','submitted','reviewed_wrong')`, [studentId, active.grade_code, active.subject_code]);
+          assert(Number(current?.count) === 1 && String(current?.ids) === String(activeId), 'current assignment precondition failed');
+
+          db.run('BEGIN TRANSACTION');
+          db.run(`UPDATE challenge_assignments_v2
+            SET status='replaced',replaced_by_id=?,updated_at=CURRENT_TIMESTAMP
+            WHERE id=? AND student_id=? AND question_id=? AND status='skipped' AND replaced_by_id=?`,
+            [activeId, partnerId, studentId, partnerQuestionId, activeId]);
+          assert(db.getRowsModified() === 1, 'guarded partner update did not affect exactly one row');
+          db.run('COMMIT');
+
+          const updated = assignment(partnerId);
+          assert(updated.status === 'replaced' && Number(updated.replaced_by_id) === activeId && Number(updated.submission_count) === 0,
+            'post-update partner state invalid');
+          const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
+          assert(integrity.length === 1 && integrity[0] === 'ok', `post-update integrity failed: ${integrity.join(',')}`);
+          const output = db.export();
+          const temp = `${file}.compat-${process.pid}.tmp`;
+          fs.writeFileSync(temp, output, { mode: 0o600 });
+          fs.renameSync(temp, file);
+          console.log('PANPAN_COMPAT_MUTATION=' + JSON.stringify({ student_id: studentId, active_assignment_id: activeId,
+            partner_assignment_id: partnerId, partner_status: updated.status, replaced_by_id: Number(updated.replaced_by_id) }));
+          NODE
+
+          (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+          wait_for_health
+
+          docker exec -i panpan-api node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+          function one(sql, params = []) {
+            const statement = db.prepare(sql);
+            statement.bind(params);
+            const row = statement.step() ? statement.getAsObject() : null;
+            statement.free();
+            return row;
+          }
+          const active = one(`SELECT a.id,a.question_id,a.status,a.replaced_by_id,
+              (SELECT COUNT(*) FROM challenge_submissions_v2 s WHERE s.assignment_id=a.id) submission_count
+            FROM challenge_assignments_v2 a WHERE a.id=143`);
+          const partner = one(`SELECT a.id,a.question_id,a.status,a.replaced_by_id,
+              (SELECT COUNT(*) FROM challenge_submissions_v2 s WHERE s.assignment_id=a.id) submission_count
+            FROM challenge_assignments_v2 a WHERE a.id=152`);
+          const current = one(`SELECT GROUP_CONCAT(id, ',') ids,COUNT(*) count FROM challenge_assignments_v2
+            WHERE student_id=41 AND grade_code='g7' AND subject_code='math'
+              AND status IN ('active','submitted','reviewed_wrong')`);
+          if (active?.status !== 'active' || Number(active?.question_id) !== 796 || active?.replaced_by_id !== null || Number(active?.submission_count) !== 0 ||
+              partner?.status !== 'replaced' || Number(partner?.question_id) !== 652 || Number(partner?.replaced_by_id) !== 143 || Number(partner?.submission_count) !== 0 ||
+              Number(current?.count) !== 1 || String(current?.ids) !== '143') throw new Error('post-restart compatibility verification failed');
+          console.log('PANPAN_COMPAT_VERIFIED=' + JSON.stringify({ active, partner, current }));
+          NODE
+
+          SUCCESS=1
+          trap - EXIT
+          echo 'PANPAN_COMPAT_COMPLETE'
+          REMOTE
