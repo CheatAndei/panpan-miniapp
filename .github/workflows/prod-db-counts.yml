@@ -2,71 +2,46 @@ name: Production DB Counts
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: Type inspect-zhilin-toggle-143-152 to run the read-only inspection
-        required: true
-        type: string
-
-permissions:
-  contents: read
 
 jobs:
   inspect:
-    name: Inspect Zhilin challenge pair
-    runs-on: macos-15
+    name: Count production DB rows
+    runs-on: ubuntu-latest
     steps:
-      - name: Require exact confirmation
-        env:
-          CONFIRM: ${{ inputs.confirm }}
-        run: test "$CONFIRM" = 'inspect-zhilin-toggle-143-152'
-
-      - name: Configure pinned production SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
-          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
-        run: |
-          set -euo pipefail
-          install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
-          chmod 600 "$HOME/.ssh/id_ed25519"
-          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
-          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
-          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
-          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/known_hosts"
-
-      - name: Read exact production state
-        run: |
-          set -euo pipefail
-          ssh -o BatchMode=yes root@134.175.69.59 <<'REMOTE'
-          set -euo pipefail
-          docker exec -i panpan-api node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import initSqlJs from 'sql.js';
-          const SQL = await initSqlJs();
-          const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
-          function all(sql, params = []) {
-            const statement = db.prepare(sql);
-            statement.bind(params);
-            const rows = [];
-            while (statement.step()) rows.push(statement.getAsObject());
-            statement.free();
-            return rows;
-          }
-          const student = all('SELECT id,name,deleted_at FROM students WHERE id=?', [41]);
-          const assignments = all(`SELECT a.id,a.student_id,a.question_id,a.grade_code,a.subject_code,a.question_type,
-              a.status,a.replaced_by_id,a.created_at,a.updated_at,q.is_active question_active,
-              (SELECT COUNT(*) FROM challenge_submissions_v2 s WHERE s.assignment_id=a.id) submission_count
-            FROM challenge_assignments_v2 a
-            JOIN weekly_challenge_questions q ON q.id=a.question_id
-            WHERE a.id IN (143,152) ORDER BY a.id`);
-          const submissions = all(`SELECT * FROM challenge_submissions_v2
-            WHERE assignment_id IN (143,152) ORDER BY id`);
-          const current = all(`SELECT id,question_id,status,replaced_by_id,grade_code,subject_code,question_type
-            FROM challenge_assignments_v2 WHERE student_id=41
-              AND status IN ('active','submitted','reviewed_wrong') ORDER BY id`);
-          const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
-          console.log('PANPAN_COMPAT_INSPECT=' + JSON.stringify({ student, assignments, submissions, current, integrity }));
-          NODE
-          REMOTE
+      - name: Count production DB rows
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 134.175.69.59
+          username: root
+          key: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            docker exec -i panpan-api node --input-type=module <<'NODE'
+            import fs from 'fs';
+            import initSqlJs from 'sql.js';
+            const SQL = await initSqlJs();
+            const files = [
+              '/app/data/teach.db',
+              '/opt/panpan-miniapp/data/teach.db'
+            ];
+            for (const file of files) {
+              if (!fs.existsSync(file)) {
+                console.log(file, 'missing');
+                continue;
+              }
+              const db = new SQL.Database(fs.readFileSync(file));
+              const tables = ['users','classes','students','bindings','schedules','sessions','checkins','feedbacks','leaves','parent_feedbacks'];
+              const counts = {};
+              for (const table of tables) {
+                try {
+                  const stmt = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`);
+                  stmt.step();
+                  counts[table] = stmt.getAsObject().c;
+                  stmt.free();
+                } catch {
+                  counts[table] = 'n/a';
+                }
+              }
+              console.log(file, fs.statSync(file).size, JSON.stringify(counts));
+            }
+            NODE
