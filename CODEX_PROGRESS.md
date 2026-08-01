@@ -11,19 +11,20 @@
 - 发布 worktree：`D:\biancheng\qian\z-rubbish\panpan-worktrees\release-20260801-g8-assets-pdf`
 - 开工 checkpoint：`296c9a4`
 - 集成提交：`4712be0`
+- 发布门禁修复 / 产品提交：`73e6441`
 
 ### 原子步骤
 
 - [x] `REL3-01` 完成恢复检查、来源提交去重并确认所有功能子树 idle。
 - [x] `REL3-02` 从发布基线创建隔离 worktree 与空 checkpoint，无冲突合入来源提交。
 - [x] `REL3-03` 解密最新私有资源；执行前后端回归、G8 PDF 审计、`build:mp` 与 `check:mp`。
-- [ ] `REL3-04` 推送发布分支，部署后端并执行 G8 PDF 重建/导入与生产健康检查。
-- [ ] `REL3-05` 上传微信体验版，完成发布登记并同时回传根任务与功能子树。
+- [x] `REL3-04` 推送发布分支，部署后端并执行 G8 PDF 重建/导入与生产健康检查。
+- [x] `REL3-05` 上传微信体验版，完成发布登记并同时回传根任务与功能子树。
 
 ### 当前步骤
 
-- 当前：`REL3-04`
-- 状态：进行中
+- 当前：无
+- 状态：已完成
 - 更新时间：2026-08-01
 
 ### 已确认边界
@@ -42,6 +43,12 @@
 - 微信小程序生产构建：通过。
 - 上传前检查：AppID `wx77f8ea684b6420ca`、API `https://panpan.xpytt.com/api` 通过。
 - 首次 G8 整卷构建被数量门禁阻断：旧 manifest 的 `mappedTopics` 关联为 `989`，但其中 2 道选择题因未知 PDF 字符不会实际入库，正确口径为 `987`；部署尚未开始。
+- 发布门禁已修正并增加回归：来源 manifest 存在时按实际可入库题目过滤关联；G8 定向测试 `5/5` 通过，整卷重建为 `206` 试卷、`202` 答案、`987` 有效关联。
+- 加密整卷包：`364941200` 字节，SHA-256 `1e3a0cb1fe53da2d626cb3eac2efb118441dd642068e9da2fc65e09fd97bfc9f`；GitHub 草稿 Release `panpan-g8-exams-20260801-pdf-fix` 资产复核一致。
+- 后端生产部署：GitHub Actions `30702627241` 成功；镜像 `git-73e64412689ecb6ce7e22500f84963b84ecc0efa`；资源门禁 `g8_terminal=723`、`g8_missing_terminal_assets=0`。
+- G8 生产导入：GitHub Actions `30702761096` 成功；最终 `papers=206`、`answers=202`、`question_links=987`、`missing=0`、`missing_answers=0`；导入前备份 `/opt/panpan-miniapp/backend/teach.pre-exam-sync-github-30702761096-1.db`。
+- 生产健康：`GET /api/health` 返回 `ok: true`；`GET /api/auth/status` 返回 HTTP 200、`ready: true`。
+- 微信 CI 首次在 WSL 内遇到编译器 `fork process timeout`，未确认上传；改用 Windows Node 对同一已检查产物重试成功。体验版 `1.08.012217`，机器人 `1`，完整包 `1638001` 字节。
 
 ## 常驻发布协议：功能子树批量发布
 
@@ -62,10 +69,10 @@
 
 ### 已发布基线
 
-- 已登记源提交：`feae4a9`、`1304bd3`、`34349b5`、`dbffe80`、`95c27f7`。
+- 已登记源提交：`feae4a9`、`1304bd3`、`34349b5`、`dbffe80`、`95c27f7`、`ac121c507acf410bc2e19c8f1844c7ae5ef45609`。
 - 批改图片缩放修复：发布提交 `dc54ba7`。
-- 当前产品发布头：`e9d8520`。
-- 当前体验版本：`1.08.011552`。
+- 当前产品发布头：`73e6441`。
+- 当前体验版本：`1.08.012217`。
 - 待发布提交：无。
 
 ## 当前发布任务：2026-08-01 Candy UI、历史订正与压轴双题往返
