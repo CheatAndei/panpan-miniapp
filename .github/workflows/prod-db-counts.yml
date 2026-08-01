@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: Type inspect-yuchen-practice to run read-only inspection
+        description: Type inspect-practice-pending to run read-only inspection
         required: true
         type: string
 
@@ -13,13 +13,13 @@ permissions:
 
 jobs:
   inspect:
-    name: Inspect Yuchen practice receipt
+    name: Inspect all pending practice receipts
     runs-on: macos-15
     steps:
       - name: Require exact confirmation
         env:
           CONFIRM: ${{ inputs.confirm }}
-        run: test "$CONFIRM" = 'inspect-yuchen-practice'
+        run: test "$CONFIRM" = 'inspect-practice-pending'
 
       - name: Configure pinned production SSH
         env:
@@ -93,7 +93,57 @@ jobs:
             JOIN practice_assignments a ON a.id=ps.assignment_id
             JOIN students s ON s.id=a.student_id
             WHERE s.name LIKE ? ORDER BY r.submission_id DESC,r.round_no`, [namePattern]);
+          const pendingCorrectionUploads = all(`SELECT s.id student_id,s.name student_name,
+              a.id assignment_id,a.practice_date,ps.id submission_id,ps.status,ps.current_round,
+              ps.current_round + 1 pending_round,COUNT(pa.id) pending_attachment_count,
+              MIN(pa.created_at) first_attachment_at,MAX(pa.created_at) last_attachment_at,
+              p.teacher_id plan_teacher_id,COALESCE(s.teacher_id,c.teacher_id) effective_teacher_id,
+              u.nickname effective_teacher_name,ps.parent_id
+            FROM practice_submissions ps
+            JOIN practice_assignments a ON a.id=ps.assignment_id
+            JOIN practice_plans p ON p.id=a.plan_id
+            JOIN students s ON s.id=a.student_id
+            LEFT JOIN classes c ON c.id=s.class_id
+            LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
+            JOIN practice_attachments pa ON pa.submission_id=ps.id AND pa.round_no>ps.current_round
+            WHERE ps.status='correction_required' AND s.deleted_at IS NULL
+              AND (c.id IS NULL OR c.deleted_at IS NULL)
+            GROUP BY s.id,s.name,a.id,a.practice_date,ps.id,ps.status,ps.current_round,
+              p.teacher_id,COALESCE(s.teacher_id,c.teacher_id),u.nickname,ps.parent_id
+            ORDER BY MAX(pa.created_at),ps.id`);
+          const pendingInitialUploads = all(`SELECT s.id student_id,s.name student_name,
+              a.id assignment_id,a.practice_date,ps.id submission_id,ps.status,ps.current_round,
+              COUNT(pa.id) pending_attachment_count,MIN(pa.created_at) first_attachment_at,
+              MAX(pa.created_at) last_attachment_at,COALESCE(s.teacher_id,c.teacher_id) effective_teacher_id,
+              u.nickname effective_teacher_name,ps.parent_id
+            FROM practice_submissions ps
+            JOIN practice_assignments a ON a.id=ps.assignment_id
+            JOIN students s ON s.id=a.student_id
+            LEFT JOIN classes c ON c.id=s.class_id
+            LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
+            JOIN practice_attachments pa ON pa.submission_id=ps.id AND pa.round_no=ps.current_round
+            WHERE ps.status='uploading' AND s.deleted_at IS NULL
+              AND (c.id IS NULL OR c.deleted_at IS NULL)
+            GROUP BY s.id,s.name,a.id,a.practice_date,ps.id,ps.status,ps.current_round,
+              COALESCE(s.teacher_id,c.teacher_id),u.nickname,ps.parent_id
+            ORDER BY MAX(pa.created_at),ps.id`);
+          const submittedRouting = all(`SELECT
+              COUNT(*) submitted_total,
+              SUM(CASE WHEN COALESCE(s.teacher_id,c.teacher_id) IS NULL THEN 1 ELSE 0 END) missing_teacher,
+              SUM(CASE WHEN s.deleted_at IS NOT NULL OR (c.id IS NOT NULL AND c.deleted_at IS NOT NULL) THEN 1 ELSE 0 END) deleted_scope,
+              SUM(CASE WHEN COALESCE(s.teacher_id,c.teacher_id) IS NOT p.teacher_id THEN 1 ELSE 0 END) transferred_teacher,
+              SUM(CASE WHEN COALESCE(s.teacher_id,c.teacher_id) IS NOT NULL AND s.deleted_at IS NULL
+                AND (c.id IS NULL OR c.deleted_at IS NULL) THEN 1 ELSE 0 END) current_queue_visible
+            FROM practice_submissions ps
+            JOIN practice_assignments a ON a.id=ps.assignment_id
+            JOIN practice_plans p ON p.id=a.plan_id
+            JOIN students s ON s.id=a.student_id
+            LEFT JOIN classes c ON c.id=s.class_id
+            WHERE ps.status='submitted'`)[0] || {};
           const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
-          console.log('PANPAN_YUCHEN_INSPECT=' + JSON.stringify({ students, submissions, attachmentRounds, submissionRounds, integrity }));
+          console.log('PANPAN_PRACTICE_PENDING=' + JSON.stringify({
+            students, submissions, attachmentRounds, submissionRounds,
+            pendingCorrectionUploads, pendingInitialUploads, submittedRouting, integrity,
+          }));
           NODE
           REMOTE
