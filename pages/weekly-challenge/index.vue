@@ -36,7 +36,7 @@
 
     <view v-if="gradeCode && !loading && !assignment && !error && !scopeEmpty && !nextQuestionType" class="choose-card">
       <view class="section-title-row"><pp-icon name="book" :size="30" motion="pop" :delay="180" /><text class="section-title">想挑战哪类压轴题？</text></view>
-      <text class="section-desc">每天首次可自选；通关后两类题交替，未提交前可换 1 次同类型题。</text>
+      <text class="section-desc">每天首次可自选；通关后两类题交替，首次换题后可在两题间来回对比。</text>
       <button v-for="(item,index) in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
         <view class="type-icon"><pp-icon name="exam" :size="30" :motion="index === 0 ? 'pop' : 'none'" :delay="260" :stagger="70" :index="index" /></view>
         <view :class="['type-mark',item.value]">{{ item.short }}</view>
@@ -58,6 +58,8 @@
           @image-error="questionImage=''"
         />
         <button v-if="canChange" class="change-btn" :disabled="claiming" @tap="changeQuestion">换一道同类型题 · 今日剩余 {{ changeRemaining }} 次</button>
+        <button v-else-if="canSwitchBack" class="change-btn switch-back-btn" :disabled="claiming" @tap="changeQuestion">还不如上一题</button>
+        <text v-if="canSwitchBack" class="switch-tip">上传答题图片前，可在这两题间反复切换。</text>
       </view>
 
       <view class="submit-card">
@@ -94,7 +96,7 @@ import { api } from '@/utils/api';
 
 const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(false),submitting=ref(false),imageLoading=ref(false);
 const error=ref(''),uploadProgress=ref(''),answerText=ref(''),assignment=ref(null),lastPassed=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
-const gradeCode=ref(''),progress=ref({}),canChange=ref(false),changeRemaining=ref(0),nextQuestionType=ref(null);
+const gradeCode=ref(''),progress=ref({}),canChange=ref(false),canSwitchBack=ref(false),changeRemaining=ref(0),nextQuestionType=ref(null);
 const scopeEmpty=ref(false);
 let allowBack=false,loadPromise=null,reloadCurrent=false,gradeInitPromise=null,initialGrade='';
 const gradeTabs=[
@@ -149,7 +151,7 @@ async function runCurrentLoads(){
   try{
     do{
       reloadCurrent=false;error.value='';
-      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;scopeEmpty.value=Boolean(data.scope_empty);canChange.value=Boolean(data.can_change);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
+      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;scopeEmpty.value=Boolean(data.scope_empty);canChange.value=Boolean(data.can_change);canSwitchBack.value=Boolean(data.can_switch_back);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
       catch(e){error.value=e?.error||'请检查网络后重试';}
     }while(reloadCurrent);
   }finally{loading.value=false;}
@@ -182,8 +184,9 @@ async function submitChallenge(){
   catch(e){uni.showToast({title:e?.error||'提交失败，请重试',icon:'none'});}finally{submitting.value=false;}
 }
 async function changeQuestion(){
-  if(!assignment.value||!canChange.value||claiming.value)return;claiming.value=true;
-  try{await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/change`,{});answerText.value='';uni.showToast({title:'已更换题目',icon:'success'});await loadCurrent();}
+  if(!assignment.value||(!canChange.value&&!canSwitchBack.value)||claiming.value)return;
+  const switchingBack=canSwitchBack.value;claiming.value=true;
+  try{await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/change`,{});answerText.value='';uni.showToast({title:switchingBack?'已切到另一题':'已更换题目',icon:'success'});await loadCurrent();}
   catch(e){uni.showToast({title:e?.error||'更换失败',icon:'none'});}finally{claiming.value=false;}
 }
 async function changeGrade(nextGrade){
@@ -196,7 +199,7 @@ async function changeGrade(nextGrade){
   }
   gradeCode.value=nextGrade;
   assignment.value=null;lastPassed.value=null;questionImage.value='';localPhotos.value=[];answerText.value='';
-  available.value={};progress.value={};nextQuestionType.value=null;scopeEmpty.value=false;
+  available.value={};progress.value={};nextQuestionType.value=null;scopeEmpty.value=false;canChange.value=false;canSwitchBack.value=false;
   await loadCurrent();
 }
 function typeLabel(type){return types.find(item=>item.value===type)?.label||'压轴题';}
@@ -206,7 +209,7 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
 
 <style scoped>
 .page{min-height:100vh;padding:0 24rpx 48rpx}.hero{margin:0 -24rpx 22rpx;padding:50rpx 34rpx 44rpx}.eyebrow{display:block;font-size:19rpx;font-weight:800}.hero-title{display:block;margin-top:8rpx;font-size:43rpx;font-weight:780}.hero-sub{display:block;margin-top:8rpx;font-size:23rpx}.grade-card{margin-bottom:18rpx;padding:22rpx 24rpx}.grade-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx}.grade-title{display:block;font-size:27rpx;font-weight:760}.grade-tip{display:block;margin-top:4rpx;font-size:20rpx}.grade-current{font-size:21rpx;font-weight:720}.grade-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:16rpx}.grade-tab{min-height:88rpx;margin:0;padding:0 8rpx;font-size:22rpx;font-weight:700}.choose-card,.challenge-card,.submit-card{margin-bottom:18rpx;padding:28rpx}.section-title{display:block;font-size:30rpx;font-weight:750}.section-desc{display:block;margin-top:6rpx;font-size:22rpx;line-height:1.5}.type-card{width:100%;min-height:112rpx;display:flex;align-items:center;gap:17rpx;margin:18rpx 0 0;padding:17rpx;text-align:left}.type-mark{width:64rpx;height:64rpx;display:flex;align-items:center;justify-content:center;flex:none;font-size:28rpx;font-weight:850}.type-copy{flex:1}.type-title{display:block;font-size:27rpx;font-weight:720}.type-desc{display:block;margin-top:3rpx;font-size:20rpx}.challenge-head,.submit-head{display:flex;justify-content:space-between;gap:18rpx}.type-pill{display:inline-block;padding:6rpx 13rpx;font-size:20rpx;font-weight:720}.challenge-title{display:block;margin-top:10rpx;font-size:29rpx;font-weight:740}.week-label,.count{flex:none;font-size:20rpx}.source{display:block;margin-top:7rpx;font-size:21rpx}.question-image{width:100%;margin-top:22rpx}.upload-btn,.submit-btn{min-height:88rpx;margin:22rpx 0 0;font-size:27rpx;font-weight:720}.answer-text{box-sizing:border-box;width:100%;min-height:150rpx;margin-top:16rpx;padding:18rpx;font-size:24rpx;line-height:1.55}.draft-note{display:block;margin-top:12rpx;font-size:21rpx;line-height:1.5}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10rpx;margin-top:20rpx}.photo-grid image{width:100%;height:180rpx}.review-state{margin-top:18rpx;padding:18rpx}.review-title{display:block;font-size:24rpx;font-weight:720}.student-note,.review-note{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
-.change-btn{min-height:68rpx;margin:14rpx 0 0;font-size:22rpx}.passed-card{margin-bottom:18rpx;padding:42rpx 28rpx;text-align:center}.passed-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:46rpx;font-weight:800}.passed-title{display:block;margin-top:18rpx;font-size:34rpx;font-weight:800}.passed-desc{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
+.change-btn{min-height:68rpx;margin:14rpx 0 0;font-size:22rpx}.switch-tip{display:block;margin-top:10rpx;font-size:20rpx;line-height:1.5;text-align:center}.passed-card{margin-bottom:18rpx;padding:42rpx 28rpx;text-align:center}.passed-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:46rpx;font-weight:800}.passed-title{display:block;margin-top:18rpx;font-size:34rpx;font-weight:800}.passed-desc{display:block;margin-top:6rpx;font-size:23rpx;line-height:1.55}
 .poster-btn{min-height:76rpx;margin:20rpx 0 10rpx;font-size:23rpx;font-weight:760}
 
 /* 压轴挑战：浅色试卷页，珊瑚提示风险、薄荷表示通过。 */
@@ -454,6 +457,16 @@ function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?stude
   border-radius: var(--r-sm);
   background: var(--surface);
   color: var(--primary-strong);
+}
+
+.student-challenge-page .switch-back-btn {
+  border-color: #EFC9C2;
+  background: var(--coral-soft);
+  color: var(--danger);
+}
+
+.student-challenge-page .switch-tip {
+  color: var(--text-muted);
 }
 
 .student-challenge-page .photo-grid {
