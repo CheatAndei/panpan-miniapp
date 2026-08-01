@@ -346,7 +346,13 @@ router.get('/plans', auth, teacherOnly, (req, res) => {
   const plans = db.all(`SELECT p.*,c.name class_name,
     (SELECT COUNT(*) FROM practice_student_settings s WHERE s.plan_id=p.id) student_count,
     (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id) submission_count,
-    (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id AND ps.status='submitted') pending_submission_count
+    (SELECT COUNT(*) FROM practice_submissions ps
+      JOIN practice_assignments a ON a.id=ps.assignment_id
+      JOIN students st ON st.id=a.student_id
+      LEFT JOIN classes current_class ON current_class.id=st.class_id
+      WHERE a.plan_id=p.id AND ps.status='submitted'
+        AND COALESCE(st.teacher_id,current_class.teacher_id)=p.teacher_id
+        AND st.deleted_at IS NULL AND current_class.deleted_at IS NULL) pending_submission_count
     FROM practice_plans p JOIN classes c ON c.id=p.class_id
     WHERE ${where} ORDER BY p.created_at DESC,p.id DESC LIMIT ? OFFSET ?`,
   [...params, limit, (page - 1) * limit]);
@@ -690,17 +696,47 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
   const limit = Math.max(1, Math.min(50, Number.parseInt(req.query.limit || '20', 10) || 20));
   const preferredId = Math.max(0, Number.parseInt(req.query.submission_id || '0', 10) || 0);
   const offset = (page - 1) * limit;
-  const plan = db.get('SELECT * FROM practice_plans WHERE id=? AND teacher_id=?', [planId, req.user.id]);
+  const plan = db.get('SELECT * FROM practice_plans WHERE id=?', [planId]);
   if (!plan) return res.status(404).json({ error: '计划不存在' });
-  const statusSql = status === 'all' ? '' : ' AND ps.status=?';
-  const params = status === 'all' ? [plan.id] : [plan.id, status];
+  const ownedSubmission = db.get(`SELECT ps.id
+    FROM practice_submissions ps
+    JOIN practice_assignments a ON a.id=ps.assignment_id
+    JOIN students st ON st.id=a.student_id
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE a.plan_id=? AND COALESCE(st.teacher_id,c.teacher_id)=?
+      AND st.deleted_at IS NULL AND c.deleted_at IS NULL
+      ${preferredId ? 'AND ps.id=?' : ''}
+    LIMIT 1`, preferredId ? [plan.id, req.user.id, preferredId] : [plan.id, req.user.id]);
+  if (preferredId && !ownedSubmission) return res.status(404).json({ error: '提交不存在' });
+  if (!preferredId && Number(plan.teacher_id) !== Number(req.user.id) && !ownedSubmission) {
+    return res.status(404).json({ error: '计划不存在' });
+  }
+  const clauses = [
+    'a.plan_id=?',
+    'COALESCE(st.teacher_id,c.teacher_id)=?',
+    'st.deleted_at IS NULL',
+    'c.deleted_at IS NULL',
+  ];
+  const params = [plan.id, req.user.id];
+  if (status !== 'all') {
+    clauses.push('ps.status=?');
+    params.push(status);
+  }
+  if (preferredId) {
+    clauses.push('ps.id=?');
+    params.push(preferredId);
+  }
+  const where = clauses.join(' AND ');
   const total = Number(db.get(`SELECT COUNT(*) count FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN students st ON st.id=a.student_id
-    WHERE a.plan_id=? AND st.deleted_at IS NULL${statusSql}`, params)?.count || 0);
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE ${where}`, params)?.count || 0);
   const submissions = db.all(`SELECT ps.*,a.student_id,a.practice_date,a.plan_id,st.name student_name
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
-    JOIN students st ON st.id=a.student_id WHERE a.plan_id=? AND st.deleted_at IS NULL${statusSql}
+    JOIN students st ON st.id=a.student_id
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE ${where}
     ORDER BY CASE WHEN ps.id=? THEN 0 ELSE 1 END,a.practice_date DESC,st.name LIMIT ? OFFSET ?`, [...params, preferredId, limit, offset]);
   for (let index = 0; index < submissions.length; index++) {
     const submission = serializePracticeSubmission(db, submissions[index]);

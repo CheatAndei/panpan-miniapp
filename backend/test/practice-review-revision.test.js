@@ -237,6 +237,91 @@ test('最近批改跨本人计划排序、限量并返回可准确进入记录�
   assert.deepEqual(otherTeacherRecent.payload.reviews.map((item) => item.submission_id), [other.id]);
 });
 
+test('转班后当前教师可从最近批改打开详情并修订，旧教师全链路失权', async () => {
+  const db = getDB();
+  const oldClassId = Number(db.run(`INSERT INTO classes(teacher_id,name,subject,grade)
+    VALUES(?,'转班原班','数学','七年级')`, [teacherId]).lastInsertRowid);
+  const newClassId = Number(db.run(`INSERT INTO classes(teacher_id,name,subject,grade)
+    VALUES(?,'转班新班','数学','七年级')`, [otherTeacherId]).lastInsertRowid);
+  const transferParentId = Number(db.run(`INSERT INTO users(openid,role,nickname)
+    VALUES('revision-transfer-parent','parent','转班家长')`).lastInsertRowid);
+  const transferredStudentId = Number(db.run(`INSERT INTO students(teacher_id,class_id,name,invite_code)
+    VALUES(?,?,'已转学生','REVTR1')`, [teacherId, oldClassId]).lastInsertRowid);
+  const retainedStudentId = Number(db.run(`INSERT INTO students(teacher_id,class_id,name,invite_code)
+    VALUES(?,?,'留班学生','REVTR2')`, [teacherId, oldClassId]).lastInsertRowid);
+  const transferPlanId = Number(createPlan(db, teacherId, oldClassId, '转班历史计划'));
+  const target = seedReviewedSubmission(db, {
+    targetPlanId: transferPlanId,
+    targetStudentId: transferredStudentId,
+    targetParentId: transferParentId,
+    practiceDate: '2098-12-26',
+    reviewedAt: '2098-12-26 12:00:00',
+    results: [true, false],
+  });
+  const pending = seedReviewedSubmission(db, {
+    targetPlanId: transferPlanId,
+    targetStudentId: transferredStudentId,
+    targetParentId: transferParentId,
+    practiceDate: '2098-12-27',
+    reviewedAt: '2098-12-27 12:00:00',
+    status: 'submitted',
+  });
+  const retained = seedReviewedSubmission(db, {
+    targetPlanId: transferPlanId,
+    targetStudentId: retainedStudentId,
+    targetParentId: transferParentId,
+    practiceDate: '2098-12-25',
+    reviewedAt: '2098-12-25 12:00:00',
+  });
+
+  db.run('UPDATE students SET teacher_id=?,class_id=? WHERE id=?', [
+    otherTeacherId, newClassId, transferredStudentId,
+  ]);
+
+  const currentRecent = await request('GET', '/practice/reviews/recent?limit=20', otherTeacherToken);
+  assert.ok(currentRecent.payload.reviews.some((item) => Number(item.submission_id) === target.id));
+  const oldRecent = await request('GET', '/practice/reviews/recent?limit=20', teacherToken);
+  assert.equal(oldRecent.payload.reviews.some((item) => Number(item.submission_id) === target.id), false);
+
+  const detailPath = `/practice/submissions?plan_id=${transferPlanId}&status=all&limit=50&page=1&submission_id=${target.id}`;
+  const currentDetail = await request('GET', detailPath, otherTeacherToken);
+  assert.equal(currentDetail.response.status, 200);
+  assert.deepEqual(currentDetail.payload.submissions.map((item) => Number(item.id)), [target.id]);
+  assert.equal((await request('GET', detailPath, teacherToken)).response.status, 404);
+
+  const currentPlanRows = await request(
+    'GET', `/practice/submissions?plan_id=${transferPlanId}&status=all&limit=50&page=1`, otherTeacherToken,
+  );
+  assert.equal(currentPlanRows.response.status, 200);
+  assert.ok(currentPlanRows.payload.submissions.some((item) => Number(item.id) === target.id));
+  assert.ok(currentPlanRows.payload.submissions.some((item) => Number(item.id) === pending.id));
+  assert.equal(currentPlanRows.payload.submissions.some((item) => Number(item.id) === retained.id), false);
+
+  const oldPlanRows = await request(
+    'GET', `/practice/submissions?plan_id=${transferPlanId}&status=all&limit=50&page=1`, teacherToken,
+  );
+  assert.equal(oldPlanRows.response.status, 200);
+  assert.ok(oldPlanRows.payload.submissions.some((item) => Number(item.id) === retained.id));
+  assert.equal(oldPlanRows.payload.submissions.some((item) => Number(item.id) === target.id), false);
+  assert.equal(oldPlanRows.payload.submissions.some((item) => Number(item.id) === pending.id), false);
+
+  const revisionBody = {
+    expected_round: 1,
+    expected_revision: 1,
+    teacher_note: '新老师完成修订',
+    results: target.itemIds.map((itemId) => ({ item_id: itemId, is_correct: true })),
+  };
+  assert.equal((await request('PUT', `/practice/submissions/${target.id}/review/revision`,
+    teacherToken, revisionBody)).response.status, 404);
+  assert.equal((await request('PUT', `/practice/submissions/${target.id}/review/revision`,
+    otherTeacherToken, revisionBody)).response.status, 200);
+
+  const plans = await request('GET', '/practice/plans?limit=100', teacherToken);
+  const transferPlan = plans.payload.plans.find((item) => Number(item.id) === transferPlanId);
+  assert.ok(transferPlan);
+  assert.equal(Number(transferPlan.pending_submission_count), 0);
+});
+
 test('历史详情返回当前轮完整评题、修订版本与锁定原因', async () => {
   const recent = await request('GET', '/practice/reviews/recent?limit=1', teacherToken);
   const target = recent.payload.reviews[0];
