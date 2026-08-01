@@ -246,11 +246,6 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   getDB().run('UPDATE practice_attachments SET round_no=1 WHERE submission_id=?', [submission.id]);
   const forbidden = await request('PUT', `/practice/submissions/${submission.id}/review`, otherTeacherToken, body);
   assert.equal(forbidden.response.status, 404);
-  const db = getDB();
-  const otherTeacherId = db.get('SELECT teacher_id FROM classes WHERE id=?', [otherClassId]).teacher_id;
-  const originalTeacherId = db.get('SELECT teacher_id FROM classes WHERE id=?', [classId]).teacher_id;
-  db.run('UPDATE students SET class_id=?,teacher_id=? WHERE id=?', [otherClassId, otherTeacherId, studentId]);
-  assert.equal((await request('PUT', `/practice/submissions/${submission.id}/review`, otherTeacherToken, body)).response.status, 404);
   const reviewed = await request('PUT', `/practice/submissions/${submission.id}/review`, teacherToken, body);
   assert.equal(reviewed.response.status, 200);
   assert.equal(reviewed.payload.status, 'correction_required');
@@ -261,7 +256,6 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.deepEqual(reviewed.payload.wrong_item_ids, submission.items.slice(0, 3).map((item) => Number(item.id)));
   assert.deepEqual(reviewed.payload.focus_item_ids, reviewed.payload.wrong_item_ids);
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0);
-  db.run('UPDATE students SET class_id=?,teacher_id=? WHERE id=?', [classId, originalTeacherId, studentId]);
   const today = await request('GET', `/practice/today?student_id=${studentId}`, parentToken);
   assert.equal(today.payload.assignment.submission.status, 'correction_required');
   assert.equal(today.payload.assignment.submission.needs_correction, true);
@@ -530,8 +524,12 @@ test('积压订正按最早优先，确认提交后教师立即收件，全部�
     VALUES(?, 'teacher', '订正验收老师')`, [`overdue-teacher-${process.pid}`]);
   const parent = db.run(`INSERT INTO users(openid,role,nickname)
     VALUES(?, 'parent', '订正验收家长')`, [`overdue-parent-${process.pid}`]);
+  const receivingTeacher = db.run(`INSERT INTO users(openid,role,nickname)
+    VALUES(?, 'teacher', '订正接收老师')`, [`overdue-receiver-${process.pid}`]);
   const cls = db.run(`INSERT INTO classes(teacher_id,name,subject,grade)
     VALUES(?, '订正验收班', '数学', '七年级')`, [teacher.lastInsertRowid]);
+  const receivingClass = db.run(`INSERT INTO classes(teacher_id,name,subject,grade)
+    VALUES(?, '订正接收班', '数学', '七年级')`, [receivingTeacher.lastInsertRowid]);
   const student = db.run(`INSERT INTO students(teacher_id,class_id,name,invite_code)
     VALUES(?,?,'订正验收学生',?)`, [teacher.lastInsertRowid, cls.lastInsertRowid, `OVD${process.pid}`]);
   db.run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [parent.lastInsertRowid, student.lastInsertRowid]);
@@ -588,6 +586,7 @@ test('积压订正按最早优先，确认提交后教师立即收件，全部�
 
   const isolatedParentToken = token(parent.lastInsertRowid, 'parent');
   const isolatedTeacherToken = token(teacher.lastInsertRowid, 'teacher');
+  const receivingTeacherToken = token(receivingTeacher.lastInsertRowid, 'teacher');
   const studentQuery = `student_id=${student.lastInsertRowid}`;
 
   const firstGate = await request('GET', `/practice/today?${studentQuery}`, isolatedParentToken);
@@ -604,6 +603,10 @@ test('积压订正按最早优先，确认提交后教师立即收件，全部�
   assert.equal(practiceTask.blocked_by_correction, true);
   assert.equal(practiceTask.practice_date, oldestDate);
   assert.match(practiceTask.description, /提交后再做今日练习/);
+
+  db.run('UPDATE students SET class_id=?,teacher_id=? WHERE id=?', [
+    receivingClass.lastInsertRowid, receivingTeacher.lastInsertRowid, student.lastInsertRowid,
+  ]);
 
   const submitCorrection = async (assignmentId, color, fileName) => {
     const image = (await sharp({
@@ -624,11 +627,22 @@ test('积压订正按最早优先，确认提交后教师立即收件，全部�
   };
 
   await submitCorrection(assignmentIds.get(oldestDate), '#315EA8', 'oldest-correction.png');
-  const firstReceipt = await request('GET', '/practice/todos?include_review=1', isolatedTeacherToken);
+  const oldTeacherQueue = await request('GET', '/practice/todos?include_review=1', isolatedTeacherToken);
+  assert.equal(oldTeacherQueue.payload.count, 0, '原计划老师不应继续收到已转交学生的新订正');
+  const firstReceipt = await request('GET', '/practice/todos?include_review=1', receivingTeacherToken);
   assert.equal(firstReceipt.payload.count, 1);
   assert.equal(firstReceipt.payload.todos[0].practice_date, oldestDate);
   assert.equal(firstReceipt.payload.todos[0].is_correction, true);
   assert.equal(firstReceipt.payload.todos[0].correction_round, 2);
+  const firstTodo = firstReceipt.payload.todos[0];
+  const reviewBody = {
+    round_no: firstTodo.correction_round,
+    results: firstTodo.items.map((item) => ({ item_id: item.id, is_correct: true })),
+  };
+  assert.equal((await request('PUT', `/practice/submissions/${firstTodo.submission_id}/review`,
+    isolatedTeacherToken, reviewBody)).response.status, 404);
+  assert.equal((await request('PUT', `/practice/submissions/${firstTodo.submission_id}/review`,
+    receivingTeacherToken, reviewBody)).response.status, 200);
 
   const secondGate = await request('GET', `/practice/today?${studentQuery}`, isolatedParentToken);
   assert.equal(secondGate.payload.practice_date, laterDate);
@@ -636,10 +650,13 @@ test('积压订正按最早优先，确认提交后教师立即收件，全部�
   assert.equal(secondGate.payload.blocked_by_correction, true);
 
   await submitCorrection(assignmentIds.get(laterDate), '#D66D62', 'later-correction.png');
-  const allReceipts = await request('GET', '/practice/todos?include_review=1', isolatedTeacherToken);
-  assert.equal(allReceipts.payload.count, 2);
+  const allReceipts = await request('GET', '/practice/todos?include_review=1', receivingTeacherToken);
+  assert.equal(allReceipts.payload.count, 1);
   assert.ok(allReceipts.payload.todos.every((todo) => todo.is_correction && todo.correction_round === 2));
 
+  db.run('UPDATE students SET class_id=?,teacher_id=? WHERE id=?', [
+    cls.lastInsertRowid, teacher.lastInsertRowid, student.lastInsertRowid,
+  ]);
   const today = await request('GET', `/practice/today?${studentQuery}`, isolatedParentToken);
   assert.equal(today.payload.practice_date, logicalToday);
   assert.equal(today.payload.blocked_by_correction, false);

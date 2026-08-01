@@ -1,7 +1,7 @@
 const express = require('express');
 const { getDB } = require('../db/init');
 const { authRequired: auth } = require('../middleware/auth');
-const { teacherOwnsClass, parentBoundStudent } = require('../utils/scope');
+const { teacherOwnsClass, teacherOwnsStudent, parentBoundStudent } = require('../utils/scope');
 const {
   MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
   normalizeTopicKeys, questionTypesForTopics,
@@ -375,15 +375,18 @@ router.get('/todos', auth, teacherOnly, (req, res) => {
     JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
-    WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL`, [req.user.id])?.count || 0);
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE COALESCE(st.teacher_id,c.teacher_id)=? AND ps.status='submitted'
+      AND st.deleted_at IS NULL AND c.deleted_at IS NULL`, [req.user.id])?.count || 0);
   const todos = db.all(`SELECT ps.*,ps.id submission_id,a.id assignment_id,a.plan_id,a.practice_date,a.student_id,
     st.name student_name,p.title plan_title,c.name class_name
     FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
-    JOIN classes c ON c.id=p.class_id
-    WHERE p.teacher_id=? AND ps.status='submitted' AND st.deleted_at IS NULL
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE COALESCE(st.teacher_id,c.teacher_id)=? AND ps.status='submitted'
+      AND st.deleted_at IS NULL AND c.deleted_at IS NULL
     ORDER BY ps.submitted_at ASC,ps.id ASC LIMIT ? OFFSET ?`, [req.user.id, limit, offset]);
   for (const todo of todos) {
     const state = serializePracticeSubmission(db, todo, { includeRounds: false });
@@ -640,10 +643,11 @@ router.post('/assignments/:id/upload/complete', auth, parentOnly, (req, res) => 
   const teacherQueueReceipt = db.get(`SELECT ps.id
     FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
-    JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
-    WHERE ps.id=? AND ps.status='submitted' AND p.teacher_id IS NOT NULL
-      AND st.deleted_at IS NULL`, [state.id]);
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE ps.id=? AND ps.status='submitted'
+      AND COALESCE(st.teacher_id,c.teacher_id) IS NOT NULL
+      AND st.deleted_at IS NULL AND c.deleted_at IS NULL`, [state.id]);
   return res.json({
     ok: true,
     submission: state,
@@ -662,7 +666,9 @@ router.get('/reviews/recent', auth, teacherOnly, (req, res) => {
     JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
-    WHERE p.teacher_id=? AND st.deleted_at IS NULL
+    LEFT JOIN classes c ON c.id=st.class_id
+    WHERE COALESCE(st.teacher_id,c.teacher_id)=?
+      AND st.deleted_at IS NULL AND c.deleted_at IS NULL
       AND ps.status IN ('reviewed','correction_required')
       AND ps.reviewed_at IS NOT NULL
     ORDER BY ps.reviewed_at DESC,ps.id DESC
@@ -726,11 +732,13 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
 
 router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
   const db = getDB();
-  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,p.teacher_id plan_teacher_id
+  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
-    JOIN practice_plans p ON p.id=a.plan_id JOIN students st ON st.id=a.student_id
+    JOIN students st ON st.id=a.student_id
     WHERE ps.id=? AND st.deleted_at IS NULL`, [req.params.id]);
-  if (!submission || Number(submission.plan_teacher_id) !== Number(req.user.id)) return res.status(404).json({ error: '提交不存在' });
+  if (!submission || !teacherOwnsStudent(db, req.user.id, submission.student_id)) {
+    return res.status(404).json({ error: '提交不存在' });
+  }
   if (submission.status !== 'submitted') {
     const message = submission.status === 'correction_required'
       ? '请等待家长上传订正照片'
@@ -841,14 +849,12 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
 
 router.put('/submissions/:id/review/revision', auth, teacherOnly, (req, res, next) => {
   const db = getDB();
-  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,
-      p.teacher_id plan_teacher_id
+  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id
     FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
-    JOIN practice_plans p ON p.id=a.plan_id
     JOIN students st ON st.id=a.student_id
     WHERE ps.id=? AND st.deleted_at IS NULL`, [req.params.id]);
-  if (!submission || Number(submission.plan_teacher_id) !== Number(req.user.id)) {
+  if (!submission || !teacherOwnsStudent(db, req.user.id, submission.student_id)) {
     return res.status(404).json({ error: '提交不存在' });
   }
 
@@ -886,14 +892,12 @@ router.put('/submissions/:id/review/revision', auth, teacherOnly, (req, res, nex
   let outcome;
   try {
     outcome = db.transaction(() => {
-      const current = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id,
-          p.teacher_id plan_teacher_id
+      const current = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id
         FROM practice_submissions ps
         JOIN practice_assignments a ON a.id=ps.assignment_id
-        JOIN practice_plans p ON p.id=a.plan_id
         JOIN students st ON st.id=a.student_id
         WHERE ps.id=? AND st.deleted_at IS NULL`, [submission.id]);
-      if (!current || Number(current.plan_teacher_id) !== Number(req.user.id)
+      if (!current || !teacherOwnsStudent(db, req.user.id, current.student_id)
           || reviewRoundNumber(current) !== expectedRound
           || Number(current.review_revision || 0) !== expectedRevision
           || String(current.status) !== String(submission.status)) {
