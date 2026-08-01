@@ -62,7 +62,7 @@ jobs:
             LEFT JOIN classes c ON c.id=s.class_id
             LEFT JOIN users u ON u.id=COALESCE(s.teacher_id,c.teacher_id)
             WHERE s.name LIKE ? ORDER BY s.id`, [namePattern]);
-          const submissions = all(`SELECT ps.id submission_id,ps.status,ps.current_round,ps.needs_correction,
+          const submissions = all(`SELECT a.student_id,ps.id submission_id,ps.status,ps.current_round,ps.needs_correction,
               ps.submitted_at,ps.reviewed_at,ps.completed_at,a.id assignment_id,a.practice_date,a.plan_id,
               p.teacher_id plan_teacher_id,plan_user.nickname plan_teacher_name,
               COALESCE(s.teacher_id,c.teacher_id) effective_teacher_id,current_user.nickname effective_teacher_name,
@@ -79,7 +79,21 @@ jobs:
             LEFT JOIN users current_user ON current_user.id=COALESCE(s.teacher_id,c.teacher_id)
             WHERE s.name LIKE ?
             ORDER BY COALESCE(ps.submitted_at,a.practice_date) DESC,ps.id DESC LIMIT 30`, [namePattern]);
+          const attachmentRounds = all(`SELECT a.student_id,pa.submission_id,pa.round_no,COUNT(*) attachment_count,
+              MIN(pa.created_at) first_attachment_at,MAX(pa.created_at) last_attachment_at
+            FROM practice_attachments pa
+            JOIN practice_submissions ps ON ps.id=pa.submission_id
+            JOIN practice_assignments a ON a.id=ps.assignment_id
+            JOIN students s ON s.id=a.student_id
+            WHERE s.name LIKE ? GROUP BY a.student_id,pa.submission_id,pa.round_no
+            ORDER BY pa.submission_id DESC,pa.round_no`, [namePattern]);
+          const submissionRounds = all(`SELECT a.student_id,r.submission_id,r.round_no,r.status,r.submitted_at,r.reviewed_at
+            FROM practice_submission_rounds r
+            JOIN practice_submissions ps ON ps.id=r.submission_id
+            JOIN practice_assignments a ON a.id=ps.assignment_id
+            JOIN students s ON s.id=a.student_id
+            WHERE s.name LIKE ? ORDER BY r.submission_id DESC,r.round_no`, [namePattern]);
           const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
-          console.log('PANPAN_YUCHEN_INSPECT=' + JSON.stringify({ students, submissions, integrity }));
+          console.log('PANPAN_YUCHEN_INSPECT=' + JSON.stringify({ students, submissions, attachmentRounds, submissionRounds, integrity }));
           NODE
           REMOTE
