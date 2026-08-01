@@ -61,8 +61,8 @@ jobs:
             FROM challenge_assignments_v2 a
             JOIN weekly_challenge_questions q ON q.id=a.question_id
             WHERE a.id IN (143,152) ORDER BY a.id`);
-          const submissions = all(`SELECT id,assignment_id,status,created_at,updated_at
-            FROM challenge_submissions_v2 WHERE assignment_id IN (143,152) ORDER BY id`);
+          const submissions = all(`SELECT * FROM challenge_submissions_v2
+            WHERE assignment_id IN (143,152) ORDER BY id`);
           const current = all(`SELECT id,question_id,status,replaced_by_id,grade_code,subject_code,question_type
             FROM challenge_assignments_v2 WHERE student_id=41
               AND status IN ('active','submitted','reviewed_wrong') ORDER BY id`);
