@@ -75,6 +75,22 @@ function currentAssignment(db, { studentId, gradeCode, subjectCode, questionType
     AND status IN ('active','submitted','reviewed_wrong')${typeSql} ORDER BY id DESC LIMIT 1`,params);
 }
 
+function switchPartner(db,current){
+  if(!current)return null;
+  const partner=db.get(`SELECT a.id,a.question_id FROM challenge_assignments_v2 a
+    JOIN weekly_challenge_questions q ON q.id=a.question_id
+    WHERE a.student_id=? AND a.grade_code=? AND a.subject_code=? AND a.question_type=?
+      AND a.status='replaced' AND a.replaced_by_id=? AND q.is_active=1
+      AND NOT EXISTS(SELECT 1 FROM challenge_submissions_v2 sub WHERE sub.assignment_id=a.id)
+    ORDER BY a.updated_at DESC,a.id DESC LIMIT 1`,[
+    current.student_id,current.grade_code,current.subject_code,current.question_type,current.id,
+  ]);
+  if(!partner)return null;
+  return questionAllowedForStudent(db,{studentId:current.student_id,gradeCode:current.grade_code,
+    subjectCode:current.subject_code,relationTable:'weekly_challenge_question_topics',questionId:partner.question_id})
+    ?assignmentRow(db,partner.id):null;
+}
+
 function availableCounts(db,{studentId,gradeCode,subjectCode}){
   const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
   const scope=questionScopeFilter(db,{studentId,gradeCode:grade,subjectCode:subject,
@@ -104,7 +120,10 @@ function currentState(db,{studentId,gradeCode='g7',subjectCode='math'}){
   const today=practiceDateAt(new Date());
   const passedToday=lastPassedOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
   const changedToday=changedCountOn(db,{studentId,gradeCode:grade,subjectCode:subject,logicalDate:today});
-  const serialized=current?serializeAssignment(db,assignmentRow(db,current.id),'parent'):null;
+  const currentRow=current?assignmentRow(db,current.id):null;
+  const serialized=currentRow?serializeAssignment(db,currentRow,'parent'):null;
+  const changeable=Boolean(serialized&&serialized.status==='active'&&!serialized.submission);
+  const partner=changeable?switchPartner(db,currentRow):null;
   const available=availableCounts(db,{studentId,gradeCode:grade,subjectCode:subject});
   return {
     grade_code:grade,subject_code:subject,assignment:serialized,
@@ -112,7 +131,8 @@ function currentState(db,{studentId,gradeCode='g7',subjectCode='math'}){
     next_question_type:!serialized&&passedToday?oppositeType(passedToday.question_type):null,
     available,
     progress:progress(db,{studentId,gradeCode:grade,subjectCode:subject}),
-    can_change:Boolean(serialized&&serialized.status==='active'&&!serialized.submission&&changedToday<1),
+    can_change:Boolean(changeable&&!partner&&changedToday<1),
+    can_switch_back:Boolean(changeable&&partner),
     change_remaining:Math.max(0,1-changedToday),
     scope_empty:Boolean(studentScope(db,{studentId,gradeCode:grade,subjectCode:subject}).empty),
   };
@@ -174,6 +194,15 @@ function changeAssignment(db,{studentId,assignmentId}){
     throw new Error('该学习范围已由老师暂停');
   }
   if(current.status!=='active'||submissionsForAssignment(db,current.id).length)throw new Error('提交后不能更换题目');
+  const partner=switchPartner(db,current);
+  if(partner){
+    db.transaction(()=>{
+      const retired=db.run("UPDATE challenge_assignments_v2 SET status='replaced',replaced_by_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='active'",[partner.id,current.id]);
+      const activated=db.run("UPDATE challenge_assignments_v2 SET status='active',replaced_by_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='replaced'",[partner.id]);
+      if(Number(retired.changes)!==1||Number(activated.changes)!==1)throw new Error('题目状态已变化，请刷新后重试');
+    });
+    return serializeAssignment(db,assignmentRow(db,partner.id),'parent');
+  }
   const today=practiceDateAt(new Date());
   const changed=changedCountOn(db,{studentId,gradeCode:current.grade_code,subjectCode:current.subject_code,logicalDate:today});
   if(changed>=1)throw new Error('今天已经更换过 1 次题目');

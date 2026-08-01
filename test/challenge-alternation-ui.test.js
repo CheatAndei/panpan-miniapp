@@ -10,6 +10,10 @@ test('压轴挑战明确展示同日交替题型，换题仍保持当前类型',
   assert.match(page, /claim\(nextQuestionType\)/);
   assert.match(page, /下一题将切换为/);
   assert.match(page, /换一道同类型题/);
+  assert.match(page, /还不如上一题/);
+  assert.match(page, /可在这两题间反复切换/);
+  assert.match(page, /data\.can_switch_back/);
+  assert.match(page, /\(!canChange\.value&&!canSwitchBack\.value\)/);
   assert.match(page, /if\(loadPromise\)\{reloadCurrent=true;return loadPromise;\}/);
   assert.match(page, /if\(loadPromise\)await loadPromise/);
   assert.match(page, /v-if="!loading&&!assignment&&lastPassed&&nextQuestionType"/);

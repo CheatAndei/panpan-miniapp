@@ -91,7 +91,20 @@ test('同一学习日通过后填空与解答严格交替，换题保持当前�
   const changedFill = changeAssignment(db, { studentId, assignmentId: firstFill.id });
   assert.equal(changedFill.question_type, 'fill');
   assert.notEqual(changedFill.id, firstFill.id);
-  assert.equal(currentState(db, dimensions).change_remaining, 0);
+  const afterInitialChange = currentState(db, dimensions);
+  assert.equal(afterInitialChange.can_change, false);
+  assert.equal(afterInitialChange.can_switch_back, true);
+  assert.equal(afterInitialChange.change_remaining, 0);
+
+  const switchedBack = changeAssignment(db, { studentId, assignmentId: changedFill.id });
+  assert.equal(switchedBack.id, firstFill.id);
+  assert.equal(currentState(db, dimensions).can_switch_back, true);
+  const switchedForward = changeAssignment(db, { studentId, assignmentId: firstFill.id });
+  assert.equal(switchedForward.id, changedFill.id);
+  assert.equal(db.get(`SELECT COUNT(*) count FROM challenge_assignments_v2
+    WHERE student_id=?`, [studentId]).count, 2);
+  assert.equal(db.get(`SELECT COUNT(*) count FROM challenge_assignments_v2
+    WHERE student_id=? AND status IN ('active','submitted','reviewed_wrong')`, [studentId]).count, 1);
 
   markPassed(db, changedFill.id);
   const afterFill = currentState(db, dimensions);
@@ -122,14 +135,18 @@ test('同一学习日通过后填空与解答严格交替，换题保持当前�
 
 test('仅最新提交可批改，通过日不可被重复请求改写', () => {
   const db = getDB();
-  const assignment = createAssignment(db, {
+  const original = createAssignment(db, {
     studentId: reviewStudentId,
     gradeCode: 'g8',
     subjectCode: 'math',
     questionType: 'fill',
   });
+  const assignment = changeAssignment(db, { studentId: reviewStudentId, assignmentId: original.id });
+  assert.equal(currentState(db, { studentId: reviewStudentId, gradeCode: 'g8', subjectCode: 'math' }).can_switch_back, true);
   const first = db.run(`INSERT INTO challenge_submissions_v2(assignment_id,parent_id,attempt_no,status)
     VALUES(?,?,1,'submitted')`, [assignment.id, parentId]);
+  assert.equal(currentState(db, { studentId: reviewStudentId, gradeCode: 'g8', subjectCode: 'math' }).can_switch_back, false);
+  assert.throws(() => changeAssignment(db, { studentId: reviewStudentId, assignmentId: assignment.id }), /提交后不能更换题目/);
   db.run("UPDATE challenge_assignments_v2 SET status='submitted' WHERE id=?", [assignment.id]);
 
   const wrong = reviewSubmission(db, {
