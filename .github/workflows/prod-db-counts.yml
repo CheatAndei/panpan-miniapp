@@ -2,12 +2,29 @@ name: Production DB Counts
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type restore-zhilin-143 to run the guarded restore
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panpan-production
+  cancel-in-progress: false
 
 jobs:
-  inspect:
-    name: Inspect Zhilin challenge assignments
+  restore:
+    name: Restore Zhilin original challenge
     runs-on: macos-15
     steps:
+      - name: Require exact restore confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: test "$CONFIRM" = 'restore-zhilin-143'
+
       - name: Configure pinned production SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
@@ -23,44 +40,183 @@ jobs:
           cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
 
-      - name: Inspect production DB read-only
+      - name: Back up, restore, restart, and verify
+        env:
+          RESTORE_RUN_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           ssh -o BatchMode=yes root@134.175.69.59 \
-            'docker exec -i panpan-api node --input-type=module' <<'NODE'
-            import fs from 'fs';
-            import initSqlJs from 'sql.js';
+            "RESTORE_RUN_ID='$RESTORE_RUN_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$RESTORE_RUN_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid restore run id'; exit 1 ;; esac
 
-            const SQL = await initSqlJs();
-            const file = '/app/data/teach.db';
-            if (!fs.existsSync(file)) throw new Error(`database missing: ${file}`);
-            const db = new SQL.Database(fs.readFileSync(file));
+          DEPLOY_DIR=/opt/panpan-miniapp
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          DB_FILE="$DATA_DIR/teach.db"
+          BACKUP_DIR="$DEPLOY_DIR/backups/challenge-restore-$RESTORE_RUN_ID"
+          BACKUP_FILE="$BACKUP_DIR/teach.db"
+          SUCCESS=0
+          STOPPED=0
+          BACKUP_READY=0
 
-            function all(sql, params = []) {
-              const statement = db.prepare(sql);
-              statement.bind(params);
-              const rows = [];
-              while (statement.step()) rows.push(statement.getAsObject());
-              statement.free();
-              return rows;
-            }
+          wait_for_health() {
+            for _ in $(seq 1 18); do
+              if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
 
-            const students = all(`SELECT s.id,s.name,s.grade,c.name class_name
-              FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
-              WHERE s.deleted_at IS NULL AND s.name LIKE ? ORDER BY s.id`, ['%芷邻%']);
-            const result = students.map((student) => ({
-              student,
-              assignments: all(`SELECT a.id,a.question_id,a.grade_code,a.subject_code,a.question_type,
-                  a.status,a.assigned_on,a.replaced_by_id,a.created_at,a.updated_at,
-                  q.title,q.source_label,
-                  (SELECT COUNT(*) FROM challenge_submissions_v2 sub WHERE sub.assignment_id=a.id) submission_count
-                FROM challenge_assignments_v2 a
-                JOIN weekly_challenge_questions q ON q.id=a.question_id
-                WHERE a.student_id=?
-                ORDER BY a.id DESC LIMIT 12`, [student.id]),
-            }));
-            console.log('PANPAN_ZHILIN_AUDIT=' + JSON.stringify(result));
-            if (students.length !== 1) {
-              throw new Error(`expected exactly one active student matching 芷邻; found ${students.length}`);
-            }
-            NODE
+          recover_on_failure() {
+            code=$?
+            trap - EXIT
+            if [ "$SUCCESS" = 1 ]; then exit "$code"; fi
+            set +e
+            echo 'Restore failed; recovering production DB from guarded backup.'
+            (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            if [ "$BACKUP_READY" = 1 ]; then
+              cp -a "$BACKUP_FILE" "$DATA_DIR/.teach.db.restore-rollback.tmp"
+              mv "$DATA_DIR/.teach.db.restore-rollback.tmp" "$DB_FILE"
+            fi
+            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+            wait_for_health
+            exit "$code"
+          }
+          trap recover_on_failure EXIT
+
+          test -n "$DATA_DIR"
+          test -n "$IMAGE"
+          test -f "$DB_FILE"
+          test ! -e "$BACKUP_DIR"
+          install -d -m 700 "$BACKUP_DIR"
+
+          (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+          STOPPED=1
+          cp -a "$DB_FILE" "$BACKUP_DIR/.teach.db.tmp"
+          test "$(od -An -tx1 -N16 "$BACKUP_DIR/.teach.db.tmp" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
+          BACKUP_SHA256="$(sha256sum "$BACKUP_DIR/.teach.db.tmp" | awk '{print $1}')"
+          BACKUP_BYTES="$(stat -c%s "$BACKUP_DIR/.teach.db.tmp")"
+          test "$BACKUP_BYTES" -gt 0
+          docker run --rm -i -v "$BACKUP_DIR:/backup:ro" "$IMAGE" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync('/backup/.teach.db.tmp'));
+          const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
+          if (integrity.length !== 1 || integrity[0] !== 'ok') throw new Error(`backup integrity failed: ${integrity.join(',')}`);
+          NODE
+          mv "$BACKUP_DIR/.teach.db.tmp" "$BACKUP_FILE"
+          printf '%s  teach.db\n' "$BACKUP_SHA256" > "$BACKUP_DIR/teach.db.sha256"
+          chmod 600 "$BACKUP_FILE" "$BACKUP_DIR/teach.db.sha256"
+          BACKUP_READY=1
+          printf 'PANPAN_RESTORE_BACKUP bytes=%s sha256=%s path=%s\n' "$BACKUP_BYTES" "$BACKUP_SHA256" "$BACKUP_FILE"
+
+          docker run --rm -i \
+            -e DB_FILE=/data/teach.db \
+            -e STUDENT_ID=41 -e STUDENT_NAME='谢芷邻' \
+            -e RESTORE_ASSIGNMENT_ID=143 -e RESTORE_QUESTION_ID=796 \
+            -e ACCIDENT_ASSIGNMENT_ID=152 -e ACCIDENT_QUESTION_ID=652 \
+            -v "$DATA_DIR:/data" "$IMAGE" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+
+          const file = process.env.DB_FILE;
+          const studentId = Number(process.env.STUDENT_ID);
+          const restoreId = Number(process.env.RESTORE_ASSIGNMENT_ID);
+          const restoreQuestionId = Number(process.env.RESTORE_QUESTION_ID);
+          const accidentId = Number(process.env.ACCIDENT_ASSIGNMENT_ID);
+          const accidentQuestionId = Number(process.env.ACCIDENT_QUESTION_ID);
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync(file));
+
+          function one(sql, params = []) {
+            const statement = db.prepare(sql);
+            statement.bind(params);
+            const row = statement.step() ? statement.getAsObject() : null;
+            statement.free();
+            return row;
+          }
+          function assignment(id) {
+            return one(`SELECT a.*,q.is_active question_active,
+                (SELECT COUNT(*) FROM challenge_submissions_v2 s WHERE s.assignment_id=a.id) submission_count
+              FROM challenge_assignments_v2 a
+              JOIN weekly_challenge_questions q ON q.id=a.question_id
+              WHERE a.id=?`, [id]);
+          }
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          const student = one('SELECT id,name,deleted_at FROM students WHERE id=?', [studentId]);
+          const restore = assignment(restoreId);
+          const accident = assignment(accidentId);
+          assert(student && student.name === process.env.STUDENT_NAME && student.deleted_at === null, 'student precondition failed');
+          assert(restore && Number(restore.student_id) === studentId, 'restore assignment owner mismatch');
+          assert(Number(restore.question_id) === restoreQuestionId, 'restore question mismatch');
+          assert(restore.status === 'replaced' && Number(restore.replaced_by_id) === accidentId, 'restore assignment state changed');
+          assert(Number(restore.submission_count) === 0 && Number(restore.question_active) === 1, 'restore assignment is no longer safe');
+          assert(accident && Number(accident.student_id) === studentId, 'accidental assignment owner mismatch');
+          assert(Number(accident.question_id) === accidentQuestionId, 'accidental question mismatch');
+          assert(accident.status === 'active' && accident.replaced_by_id === null, 'accidental assignment state changed');
+          assert(Number(accident.submission_count) === 0, 'accidental assignment has a submission');
+          assert(restore.grade_code === accident.grade_code && restore.subject_code === accident.subject_code && restore.question_type === accident.question_type,
+            'assignment scope mismatch');
+          const current = one(`SELECT id FROM challenge_assignments_v2
+            WHERE student_id=? AND grade_code=? AND subject_code=?
+              AND status IN ('active','submitted','reviewed_wrong')`, [studentId, restore.grade_code, restore.subject_code]);
+          assert(Number(current?.id) === accidentId, 'current assignment precondition failed');
+
+          db.run('BEGIN TRANSACTION');
+          db.run(`UPDATE challenge_assignments_v2 SET status='skipped',replaced_by_id=?,updated_at=CURRENT_TIMESTAMP
+            WHERE id=?`, [restoreId, accidentId]);
+          assert(db.getRowsModified() === 1, 'failed to retire accidental assignment');
+          db.run(`UPDATE challenge_assignments_v2 SET status='active',replaced_by_id=NULL,updated_at=CURRENT_TIMESTAMP
+            WHERE id=?`, [restoreId]);
+          assert(db.getRowsModified() === 1, 'failed to restore original assignment');
+          db.run('COMMIT');
+
+          const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat().map(String) || [];
+          assert(integrity.length === 1 && integrity[0] === 'ok', `post-update integrity failed: ${integrity.join(',')}`);
+          const output = db.export();
+          const temp = `${file}.restore-${process.pid}.tmp`;
+          fs.writeFileSync(temp, output, { mode: 0o600 });
+          fs.renameSync(temp, file);
+          console.log('PANPAN_RESTORE_MUTATION=' + JSON.stringify({ student_id: studentId, restored_assignment_id: restoreId,
+            restored_question_id: restoreQuestionId, retired_assignment_id: accidentId, retired_question_id: accidentQuestionId }));
+          NODE
+
+          (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+          STOPPED=0
+          wait_for_health
+
+          docker exec -i panpan-api node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import initSqlJs from 'sql.js';
+          const SQL = await initSqlJs();
+          const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+          function one(sql, params = []) {
+            const statement = db.prepare(sql);
+            statement.bind(params);
+            const row = statement.step() ? statement.getAsObject() : null;
+            statement.free();
+            return row;
+          }
+          const restored = one(`SELECT a.id,a.question_id,a.status,a.replaced_by_id,q.title,
+              (SELECT COUNT(*) FROM challenge_submissions_v2 s WHERE s.assignment_id=a.id) submission_count
+            FROM challenge_assignments_v2 a JOIN weekly_challenge_questions q ON q.id=a.question_id WHERE a.id=143`);
+          const retired = one('SELECT id,question_id,status,replaced_by_id FROM challenge_assignments_v2 WHERE id=152');
+          const current = one(`SELECT id FROM challenge_assignments_v2 WHERE student_id=41 AND grade_code='g7' AND subject_code='math'
+            AND status IN ('active','submitted','reviewed_wrong')`);
+          if (restored?.status !== 'active' || Number(restored?.question_id) !== 796 || restored?.replaced_by_id !== null ||
+              Number(restored?.submission_count) !== 0 || retired?.status !== 'skipped' || Number(retired?.replaced_by_id) !== 143 ||
+              Number(current?.id) !== 143) throw new Error('post-restart verification failed');
+          console.log('PANPAN_RESTORE_VERIFIED=' + JSON.stringify({ restored, retired, current }));
+          NODE
+
+          SUCCESS=1
+          trap - EXIT
+          echo 'PANPAN_RESTORE_COMPLETE'
+          REMOTE
