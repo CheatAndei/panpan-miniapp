@@ -40,27 +40,27 @@ test.after(() => {
   }
 });
 
-test('八上整卷部署包校验 206 卷并保留学校、来源和扩展名', () => {
+test('八上整卷部署包复用七年级流程，只发布质检后的 PDF', () => {
   const root = path.join(rubbish, `g8-exam-bundle-${suffix}`);
-  const sourceRoot = path.join(root, 'source');
+  const pdfRoot = path.join(root, 'pdfs');
   const outputRoot = path.join(root, 'output');
-  const paperDir = path.join(sourceRoot, '资料');
-  fs.mkdirSync(paperDir, { recursive: true });
+  fs.mkdirSync(path.join(pdfRoot, 'original'), { recursive: true });
+  fs.mkdirSync(path.join(pdfRoot, 'answer'), { recursive: true });
   const files = Array.from({ length: 206 }, (_, index) => {
-    const extension = index === 0 ? '.pdf' : '.docx';
-    const paperFile = path.join(paperDir, `原卷-${index}${extension}`);
-    fs.writeFileSync(paperFile, Buffer.from(`paper-${index}`));
-    const answerFile = index < 202 ? path.join(paperDir, `解析-${index}${extension}`) : null;
-    if (answerFile) fs.writeFileSync(answerFile, Buffer.from(`answer-${index}`));
-    return { paperFile, answerFile };
+    const stableCode = `GZ8-TEST-${String(index).padStart(3, '0')}`;
+    const paperFile = path.join(pdfRoot, 'original', `${stableCode}.pdf`);
+    fs.writeFileSync(paperFile, Buffer.from(`%PDF-1.4\npaper-${index}`));
+    const answerFile = index < 202 ? path.join(pdfRoot, 'answer', `${stableCode}.pdf`) : null;
+    if (answerFile) fs.writeFileSync(answerFile, Buffer.from(`%PDF-1.4\nanswer-${index}`));
+    return { stableCode, paperFile, answerFile };
   });
   const item = (file) => ({
-    name: path.basename(file),
     sha256: crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
-    byte_size: fs.statSync(file).size,
+    bytes: fs.statSync(file).size,
+    errors: [],
   });
-  const papers = files.map(({ paperFile, answerFile }, index) => ({
-    stable_code: `GZ8-TEST-${String(index).padStart(3, '0')}`,
+  const papers = files.map(({ stableCode, answerFile }, index) => ({
+    stable_code: stableCode,
     display_title: `八上试卷 ${index}`,
     school_name: `学校 ${index}`,
     district: '广州',
@@ -68,9 +68,9 @@ test('八上整卷部署包校验 206 卷并保留学校、来源和扩展名', 
     exam_year: 2025,
     exam_type: 'final',
     source_kind: index < 14 ? 'mock_or_review' : 'guangzhou_exam',
-    source_relative_path: path.join('资料', path.basename(paperFile)),
-    paper: item(paperFile),
-    answer: answerFile ? item(answerFile) : null,
+    source_relative_path: path.join('资料', `原卷-${index}.docx`),
+    paper: { name: `原卷-${index}.docx` },
+    answer: answerFile ? { name: `解析-${index}.docx` } : null,
   }));
   const manifestPath = path.join(root, 'exam-manifest.json');
   const auditPath = path.join(root, 'audit-report.json');
@@ -78,12 +78,18 @@ test('八上整卷部署包校验 206 卷并保留学校、来源和扩展名', 
     summary: { paired_papers: 202 },
     papers,
   })}\n`);
-  fs.writeFileSync(auditPath, '{"ok":true}\n');
+  fs.writeFileSync(auditPath, `${JSON.stringify({
+    summary: { failed: 0 },
+    files: files.flatMap(({ stableCode, paperFile, answerFile }) => [
+      { stable_code: stableCode, role: 'original', ...item(paperFile) },
+      ...(answerFile ? [{ stable_code: stableCode, role: 'answer', ...item(answerFile) }] : []),
+    ]),
+  })}\n`);
 
   const result = buildG8ExamBundle({
     manifestPath,
     auditPath,
-    sourceRoot,
+    pdfRoot,
     outputRoot,
   });
   assert.deepEqual(result.expected, {
@@ -98,6 +104,8 @@ test('八上整卷部署包校验 206 卷并保留学校、来源和扩展名', 
   assert.equal(result.papers[0].school_name, '学校 0');
   assert.equal(result.papers[0].exam_type, 'mock');
   assert.match(result.papers[0].display_title, /^模拟\/复习 · /);
+  assert.ok(result.papers.every((paper) => paper.paper.name.endsWith('.pdf')));
+  assert.ok(result.papers.filter((paper) => paper.answer).every((paper) => paper.answer.name.endsWith('.pdf')));
   assert.ok(fs.existsSync(path.join(
     outputRoot,
     'paper',
@@ -178,21 +186,23 @@ test('八上真题包写入 987 道可用题并清洗 PDF 私有数学字符', (
 
 test('八上试卷同步按来源类型发布，模拟/复习不会标成广州真题', () => {
   const root = path.join(rubbish, `g8-exam-sync-${suffix}`);
-  const sourceRoot = path.join(root, 'source');
+  const pdfRoot = path.join(root, 'pdfs');
   const packRoot = path.join(root, 'pack');
-  fs.mkdirSync(path.join(sourceRoot, '模拟卷'), { recursive: true });
+  fs.mkdirSync(path.join(pdfRoot, 'original'), { recursive: true });
+  fs.mkdirSync(path.join(pdfRoot, 'answer'), { recursive: true });
   fs.mkdirSync(path.join(packRoot, 'choice'), { recursive: true });
   fs.mkdirSync(path.join(packRoot, 'terminal'), { recursive: true });
-  const paper = path.join(sourceRoot, '模拟卷', '原卷.docx');
-  const answer = path.join(sourceRoot, '模拟卷', '解析版.docx');
-  fs.writeFileSync(paper, Buffer.from('g8-paper-fixture'));
-  fs.writeFileSync(answer, Buffer.from('g8-answer-fixture'));
+  const stableCode = 'GZ8-MOCK-UNIT0001';
+  const paper = path.join(pdfRoot, 'original', `${stableCode}.pdf`);
+  const answer = path.join(pdfRoot, 'answer', `${stableCode}.pdf`);
+  fs.writeFileSync(paper, Buffer.from('%PDF-1.4\ng8-paper-fixture'));
+  fs.writeFileSync(answer, Buffer.from('%PDF-1.4\ng8-answer-fixture'));
   const digest = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   fs.writeFileSync(path.join(packRoot, 'choice', 'manifest.json'), '{"questions":[]}\n');
   fs.writeFileSync(path.join(packRoot, 'terminal', 'manifest.json'), '{"questions":[]}\n');
   const examManifest = {
     papers: [{
-      stable_code: 'GZ8-MOCK-UNIT0001',
+      stable_code: stableCode,
       display_title: '八上综合复习卷',
       school_name: '广州题源',
       district: '广州',
@@ -201,25 +211,37 @@ test('八上试卷同步按来源类型发布，模拟/复习不会标成广州�
       exam_type: 'final',
       source_kind: 'mock_or_review',
       source_relative_path: path.join('模拟卷', '原卷.docx'),
-      paper: { name: '原卷.docx', sha256: digest(paper) },
-      answer: { name: '解析版.docx', sha256: digest(answer) },
+      paper: { name: '原卷.docx' },
+      answer: { name: '解析版.docx' },
     }],
   };
   const manifestPath = path.join(packRoot, 'exam-manifest.json');
+  const auditPath = path.join(root, 'pdf-quality-report.json');
   fs.writeFileSync(manifestPath, `${JSON.stringify(examManifest)}\n`);
+  fs.writeFileSync(auditPath, `${JSON.stringify({
+    summary: { failed: 0 },
+    files: [
+      { stable_code: stableCode, role: 'original', sha256: digest(paper), bytes: fs.statSync(paper).size, errors: [] },
+      { stable_code: stableCode, role: 'answer', sha256: digest(answer), bytes: fs.statSync(answer).size, errors: [] },
+    ],
+  })}\n`);
 
   const result = syncG8ExamPapers(getDB(), {
-    sourceRoot,
+    pdfRoot,
+    auditPath,
     packRoot,
     manifestPath,
     publish: true,
   });
   assert.equal(result.imported, 1);
   assert.equal(result.mock_or_review, 1);
-  const stored = getDB().get(`SELECT display_title,exam_type,status,grade_code
-    FROM exam_papers WHERE stable_code='GZ8-MOCK-UNIT0001'`);
+  const stored = getDB().get(`SELECT p.display_title,p.exam_type,p.status,p.grade_code,a.mime_type,a.original_name
+    FROM exam_papers p JOIN exam_assets a ON a.id=p.paper_asset_id
+    WHERE p.stable_code='GZ8-MOCK-UNIT0001'`);
   assert.equal(stored.exam_type, 'mock');
   assert.equal(stored.status, 'published');
   assert.equal(stored.grade_code, 'g8');
+  assert.equal(stored.mime_type, 'application/pdf');
+  assert.equal(stored.original_name, '原卷.pdf');
   assert.match(stored.display_title, /^模拟\/复习 · /);
 });

@@ -1,7 +1,10 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { EXAM_LIBRARY_DIR, ensureExamLibraryDir } = require('../utils/exam-files');
+const {
+  ensureExamLibraryDir,
+  ensureExamLibraryFile,
+} = require('../utils/exam-files');
 const { replaceQuestionTopics } = require('./content-progress');
 
 const PACK_ROOT = path.join(__dirname, '..', 'resources', 'choice-king', 'g8-source-pack');
@@ -128,20 +131,25 @@ function storeImage(db, root, relativePath, assetKind) {
   const stat = fs.statSync(source);
   const cacheKey = `${source}:${stat.size}:${stat.mtimeMs}`;
   const cached = imageCache.get(cacheKey);
-  if (cached && db.get('SELECT id FROM exam_assets WHERE id=?', [cached])) return cached;
+  if (cached) {
+    const cachedAsset = db.get('SELECT id,storage_key,byte_size FROM exam_assets WHERE id=?', [cached]);
+    if (cachedAsset) {
+      ensureExamLibraryFile(cachedAsset.storage_key, source, Number(cachedAsset.byte_size) || stat.size);
+      return cached;
+    }
+  }
   const digest = sha256File(source);
-  const existing = db.get('SELECT id,storage_key FROM exam_assets WHERE sha256=?', [digest]);
+  const existing = db.get('SELECT id,storage_key,byte_size FROM exam_assets WHERE sha256=?', [digest]);
   if (existing) {
     const id = Number(existing.id);
+    ensureExamLibraryFile(existing.storage_key, source, Number(existing.byte_size) || stat.size);
     imageCache.set(cacheKey, id);
     return id;
   }
   const extension = path.extname(source).toLowerCase();
   if (!['.webp', '.png', '.jpg', '.jpeg'].includes(extension)) throw new Error(`题图格式无效：${source}`);
   const storageKey = `weekly/${assetKind}/g8-source/${digest.slice(0, 2)}/${digest}${extension}`;
-  const target = path.join(EXAM_LIBRARY_DIR, storageKey);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  if (!fs.existsSync(target)) fs.copyFileSync(source, target);
+  ensureExamLibraryFile(storageKey, source, stat.size);
   const mimeType = extension === '.webp' ? 'image/webp'
     : extension === '.png' ? 'image/png' : 'image/jpeg';
   const created = db.run(`INSERT INTO exam_assets

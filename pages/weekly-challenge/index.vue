@@ -163,9 +163,17 @@ function loadCurrent(){
   return loadPromise;
 }
 async function loadImages(){
+  const current=assignment.value;
+  if(!current){questionImage.value='';localPhotos.value=[];return;}
   imageLoading.value=true;
-  try{questionImage.value=await api.downloadPrivate(assignment.value.question_url);localPhotos.value=await Promise.all((assignment.value.submission?.attachments||[]).map(item=>api.downloadPrivate(item.url)));}
-  catch(e){questionImage.value='';}finally{imageLoading.value=false;}
+  try{
+    const questionPromise=api.downloadPrivate(current.question_url).catch(()=> '');
+    const photoPromise=Promise.all((current.submission?.attachments||[]).map(item=>api.downloadPrivate(item.url).catch(()=>'')));
+    const [nextQuestion,nextPhotos]=await Promise.all([questionPromise,photoPromise]);
+    if(Number(assignment.value?.id)!==Number(current.id))return;
+    questionImage.value=nextQuestion;
+    localPhotos.value=nextPhotos.filter(Boolean);
+  }finally{imageLoading.value=false;}
 }
 async function claim(type){
   if(claiming.value)return;claiming.value=true;

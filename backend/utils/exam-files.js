@@ -15,4 +15,22 @@ function resolveExamPath(storageKey) {
   return fullPath;
 }
 
-module.exports = { EXAM_LIBRARY_DIR, ensureExamLibraryDir, resolveExamPath };
+function ensureExamLibraryFile(storageKey, sourceFile, expectedSize = 0) {
+  const target = resolveExamPath(storageKey);
+  if (!target) throw new Error(`资源存储路径无效：${storageKey || ''}`);
+  const size = Number(expectedSize) || Number(fs.statSync(sourceFile).size);
+  const current = fs.existsSync(target) && fs.statSync(target).isFile()
+    ? fs.statSync(target)
+    : null;
+  if (current && Number(current.size) === size) return target;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(sourceFile, target);
+  return target;
+}
+
+module.exports = {
+  EXAM_LIBRARY_DIR,
+  ensureExamLibraryDir,
+  resolveExamPath,
+  ensureExamLibraryFile,
+};

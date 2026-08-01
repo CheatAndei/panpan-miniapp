@@ -10,7 +10,7 @@ function loadMathDisplay() {
   const filename = path.join(root, 'utils', 'math-display.js');
   const source = fs.readFileSync(filename, 'utf8')
     .replace(/export\s+/g, '')
-    + '\nmodule.exports = { parseMathSegments };';
+    + '\nmodule.exports = { normalizeMathPowers, parseMathSegments };';
   const context = { module: { exports: {} }, exports: {}, String, RegExp };
   vm.runInNewContext(source, context, { filename });
   return context.module.exports;
@@ -23,6 +23,14 @@ test('数学展示把普通分数和负分数拆成上下结构数据', () => {
     { type: 'fraction', numerator: '1', denominator: '2', label: '2 分之 1' },
     { type: 'fraction', numerator: '−3', denominator: '4', label: '4 分之 −3' },
   ]);
+});
+
+test('数学展示把数字乘方转换为右上角上标', () => {
+  const { normalizeMathPowers, parseMathSegments } = loadMathDisplay();
+  assert.equal(normalizeMathPowers('计算：(10a^10b^3)÷(5a^5b^2)'), '计算：(10a¹⁰b³)÷(5a⁵b²)');
+  assert.equal(normalizeMathPowers('(-x)^(-12)+2^0'), '(-x)⁻¹²+2⁰');
+  assert.equal(parseMathSegments('x^12-25').map((item) => item.value || '').join(''), 'x¹²-25');
+  assert.equal(parseMathSegments('a^10/b^2')[0].type, 'fraction');
 });
 
 test('数学展示支持复杂分母且不会误伤日期', () => {
@@ -48,6 +56,7 @@ test('structured curriculum fractions render from numerator and denominator bloc
   assert.match(component, /blocks:\s*\{\s*type:\s*Array/);
   assert.match(component, /block\.type === 'fraction'/);
   assert.match(component, /structuredSegments\.value\.length/);
+  assert.match(component, /normalizeMathPowers\(block\.value\)/);
 
   const parent = fs.readFileSync(path.join(root, 'pages/practice-parent/index.vue'), 'utf8');
   const review = fs.readFileSync(path.join(root, 'pages/practice-review/index.vue'), 'utf8');

@@ -540,12 +540,23 @@ jobs:
 
             if ! docker exec -i panpan-api node - <<'NODE'
             const fs = require('node:fs');
+            const path = require('node:path');
             require('sql.js')().then((SQL) => {
               const db = new SQL.Database(fs.readFileSync(process.env.DATABASE_PATH));
               const scalar = (sql) => {
                 const result = db.exec(sql);
                 return Number(result[0]?.values?.[0]?.[0] || 0);
               };
+              const rows = (sql) => {
+                const result = db.exec(sql)[0];
+                return (result?.values || []).map((values) => Object.fromEntries(
+                  result.columns.map((column, index) => [column, values[index]]),
+                ));
+              };
+              const examRoot = path.resolve(process.env.EXAM_LIBRARY_DIR || '/app/exam-library');
+              const g8TerminalAssets = rows(`SELECT DISTINCT e.storage_key FROM weekly_challenge_questions q
+                JOIN exam_assets e ON e.id=q.question_asset_id OR e.id=q.answer_asset_id
+                WHERE q.is_active=1 AND q.grade_code='g8'`);
               const counts = {
                 choice: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%'"),
                 recent: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%' AND source_period='recent'"),
@@ -554,10 +565,15 @@ jobs:
                 g8_choice: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND grade_code='g8'"),
                 g8_terminal: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND grade_code='g8'"),
                 g8_practice: scalar("SELECT COUNT(*) FROM practice_questions WHERE is_active=1 AND grade_code='g8'"),
+                g8_missing_terminal_assets: g8TerminalAssets.filter((asset) => {
+                  const file = path.resolve(examRoot, String(asset.storage_key || ''));
+                  return !file.startsWith(`${examRoot}${path.sep}`) || !fs.existsSync(file);
+                }).length,
               };
               console.log(JSON.stringify(counts));
               if (counts.choice !== 1000 || counts.recent !== 500 || counts.older !== 500 || counts.terminal !== 710
-                || counts.g8_choice !== 1320 || counts.g8_terminal !== 723 || counts.g8_practice !== 480) process.exit(1);
+                || counts.g8_choice !== 1320 || counts.g8_terminal !== 723 || counts.g8_practice !== 480
+                || counts.g8_missing_terminal_assets !== 0) process.exit(1);
             }).catch((error) => { console.error(error); process.exit(1); });
             NODE
             then

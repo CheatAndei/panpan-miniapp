@@ -33,3 +33,9 @@ test('压轴挑战先暂存多张图片与选填文字，再由学生手动确�
   assert.match(uploadHandler, /图片已暂存/);
   assert.match(reviewPage, /item\.submission\.student_note/);
 });
+
+test('压轴挑战题图与学生草稿图独立下载，单张草稿失败不再清空题图', () => {
+  assert.match(page, /const questionPromise=api\.downloadPrivate\(current\.question_url\)\.catch\(\(\)=> ''\)/);
+  assert.match(page, /api\.downloadPrivate\(item\.url\)\.catch\(\(\)=>''\)/);
+  assert.match(page, /localPhotos\.value=nextPhotos\.filter\(Boolean\)/);
+});

@@ -19,7 +19,7 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def inspect_pdf(path: Path) -> dict:
+def inspect_pdf(path: Path, replacement_glyphs_warning: bool = False) -> dict:
     result = {
         "path": str(path),
         "exists": path.is_file(),
@@ -63,7 +63,8 @@ def inspect_pdf(path: Path) -> dict:
             except Exception as exc:  # noqa: BLE001 - record every damaged page
                 result["errors"].append(f"page_read:{type(exc).__name__}")
         if result["replacement_chars"]:
-            result["errors"].append("replacement_glyphs")
+            target = result["warnings"] if replacement_glyphs_warning else result["errors"]
+            target.append("replacement_glyphs")
         if result["empty_content_pages"]:
             result["warnings"].append("empty_content_page")
         if result["text_chars"] < 20:
@@ -79,6 +80,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pdf-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--strict-warnings", action="store_true")
+    parser.add_argument("--replacement-glyphs-warning", action="store_true")
     return parser.parse_args()
 
 
@@ -92,13 +94,16 @@ def main() -> int:
             if role == "answer" and not paper.get("answer"):
                 continue
             path = args.pdf_root / role / f"{stable_code}.pdf"
-            inspected = inspect_pdf(path)
+            inspected = inspect_pdf(path, args.replacement_glyphs_warning)
             inspected.update({"stable_code": stable_code, "role": role})
             rows.append(inspected)
     failures = [row for row in rows if row["errors"]]
     warnings = [row for row in rows if row["warnings"]]
     report = {
         "version": "panpan-wps-pdf-audit-v1",
+        "policy": {
+            "replacement_glyphs": "warning" if args.replacement_glyphs_warning else "error",
+        },
         "manifest": str(args.manifest.resolve()),
         "pdf_root": str(args.pdf_root.resolve()),
         "summary": {

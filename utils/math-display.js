@@ -1,5 +1,28 @@
-const FRACTION_ATOM = String.raw`(?:\([^()/]+\)|[−-]?(?:\d+(?:\.\d+)?(?:[A-Za-z][A-Za-z0-9²³⁴⁵⁶⁷⁸⁹]*)?|[A-Za-z][A-Za-z0-9²³⁴⁵⁶⁷⁸⁹]*))`;
+const FRACTION_ATOM = String.raw`(?:\([^()/]+\)|[−-]?(?:\d+(?:\.\d+)?(?:[A-Za-z][A-Za-z0-9⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]*)?|[A-Za-z][A-Za-z0-9⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]*))`;
 const FRACTION_SOURCE = `(${FRACTION_ATOM})\\s*\\/\\s*(${FRACTION_ATOM})`;
+const SUPERSCRIPT_DIGITS = Object.freeze({
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+  '+': '⁺',
+  '-': '⁻',
+  '−': '⁻',
+});
+
+export function normalizeMathPowers(value) {
+  return String(value ?? '').replace(/\^(?:\(([+\-−]?\d+)\)|([+\-−]?\d+))/gu, (source, grouped, plain) => {
+    const exponent = grouped || plain || '';
+    if (!exponent) return source;
+    return Array.from(exponent).map((character) => SUPERSCRIPT_DIGITS[character] || character).join('');
+  });
+}
 
 function unwrapAtom(value) {
   const text = String(value || '');
@@ -14,7 +37,7 @@ function binaryLeadingSign(source, start, numerator) {
 }
 
 export function parseMathSegments(value) {
-  const source = String(value ?? '');
+  const source = normalizeMathPowers(value);
   const matcher = new RegExp(FRACTION_SOURCE, 'g');
   const segments = [];
   let cursor = 0;

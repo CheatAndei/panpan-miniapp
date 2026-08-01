@@ -10,12 +10,19 @@ function value(name, fallback = '') {
 }
 
 async function main() {
-  const sourceRoot = path.resolve(value('--source', process.env.G8_EXAM_SOURCE_DIR || ''));
+  const workingRoot = path.join(__dirname, '..', '..', 'z-rubbish', 'panpan-g8-exam-bank');
+  const pdfRoot = path.resolve(value('--pdf-root', path.join(workingRoot, 'pdfs')));
+  const auditPath = path.resolve(value('--audit', path.join(workingRoot, 'pdf-quality-report.json')));
   const publish = !args.includes('--draft');
   await initDB();
   const db = getDB();
   const questions = seedG8SourcePack(db);
-  const papers = syncG8ExamPapers(db, { sourceRoot, publish, strict: true });
+  const papers = syncG8ExamPapers(db, {
+    pdfRoot,
+    auditPath,
+    publish,
+    strict: true,
+  });
   console.log(JSON.stringify({ ok: true, questions, papers }, null, 2));
 }
 

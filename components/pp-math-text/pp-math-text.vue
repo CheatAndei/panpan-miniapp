@@ -12,7 +12,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { parseMathSegments } from '@/utils/math-display';
+import { normalizeMathPowers, parseMathSegments } from '@/utils/math-display';
 
 const props = defineProps({
   value: { type: [String, Number], default: '' },
@@ -36,7 +36,7 @@ function blockSegments(blocks) {
     }
     if (block.type === 'line_break') return [{ type: 'text', value: '\n' }];
     if (['text', 'number', 'operator'].includes(block.type)) {
-      return [{ type: 'text', value: String(block.value ?? '') }];
+      return [{ type: 'text', value: normalizeMathPowers(block.value) }];
     }
     return [];
   });

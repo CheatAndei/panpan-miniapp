@@ -5,7 +5,7 @@
 - 固定 12 讲以 `backend/resources/g8-content/topics.js` 为唯一目录，不在教师端增删。
 - 原创正式题库：每讲 60 道客观题、12 道压轴填空、12 道压轴解答，共 1008 道。
 - 原创样板：每讲 2 道客观题、1 道填空、1 道解答，共 48 道，均包含在正式题库中。
-- 八上题源包：1552 道候选题中，989 道满足固定 12 讲且置信度不为低，进入学生题库。
+- 八上题源包：1552 道候选题中，987 道通过固定 12 讲、置信度和私有字符审计，进入学生题库。
 - 每日打卡：八年级 4 个计算模块共 480 道，与七年级题库和计划隔离。
 - 试卷库：206 份候选试卷，其中 192 份广州考试、14 份模拟/复习；202 份有解析。
 
@@ -26,20 +26,21 @@
 
 ```powershell
 Set-Location 'D:\biancheng\qian\teach\panpan\backend'
-$env:G8_EXAM_SOURCE_DIR = 'E:\teach\(真题)广州8上数学'
-npm run exams:g8:sync -- --source $env:G8_EXAM_SOURCE_DIR
+$pdfRoot = '..\z-rubbish\panpan-g8-exam-bank\pdfs'
+$pdfAudit = '..\z-rubbish\panpan-g8-exam-bank\pdf-quality-report.json'
+npm run exams:g8:sync -- --pdf-root $pdfRoot --audit $pdfAudit
 ```
 
-同步会逐文件核对 SHA-256；发现缺失或内容变化立即失败。重复执行幂等。
+同步只接收按七年级流程经 WPS 归一化并通过质检的 PDF；逐文件核对 SHA-256，发现缺失或内容变化立即失败。重复执行幂等。
 
 ## 生产整卷包
 
 ```powershell
 Set-Location 'D:\biancheng\qian\teach\panpan\backend'
-npm run exams:g8:bundle -- --source-root 'E:\teach\(真题)广州8上数学' --output 'D:\biancheng\qian\z-rubbish\panpan-g8-exam-bundle\exam-library'
+npm run exams:g8:bundle -- --pdf-root '..\z-rubbish\panpan-g8-exam-bank\pdfs' --audit '..\z-rubbish\panpan-g8-exam-bank\pdf-quality-report.json' --output 'D:\biancheng\qian\z-rubbish\panpan-g8-exam-bundle\exam-library'
 ```
 
-部署包会再次校验 206 份原卷、202 份答案，并携带 989 条题目到原卷的关联。加密包通过
+部署包会再次校验 206 份 PDF 原卷、202 份 PDF 答案，并携带 987 条题目到原卷的关联。加密包通过
 `.github/workflows/prod-exam-library-sync.yml` 导入，生产端必须核对试卷、答案与关联数量后才算成功。
 
 ## 验收

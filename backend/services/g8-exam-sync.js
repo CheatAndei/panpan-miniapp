@@ -1,7 +1,10 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { EXAM_LIBRARY_DIR, ensureExamLibraryDir } = require('../utils/exam-files');
+const {
+  ensureExamLibraryDir,
+  ensureExamLibraryFile,
+} = require('../utils/exam-files');
 const {
   PACK_ROOT,
   EXAM_MANIFEST,
@@ -19,36 +22,35 @@ function sha256File(file) {
   return hash.digest('hex');
 }
 
-function safeSourceFile(root, relativePath) {
-  const base = path.resolve(root);
-  const full = path.resolve(base, String(relativePath || ''));
-  if (!full.startsWith(`${base}${path.sep}`)) throw new Error(`试卷路径越界：${relativePath}`);
-  return full;
+function normalizedPdfName(sourceName, stableCode, role) {
+  const source = path.basename(String(sourceName || '')).replace(/\.(?:pdf|docx?)$/i, '');
+  return `${source || `${stableCode}-${role}`}.pdf`;
 }
 
-function mimeType(file) {
-  const extension = path.extname(file).toLowerCase();
-  if (extension === '.pdf') return 'application/pdf';
-  if (extension === '.doc') return 'application/msword';
-  return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-}
-
-function storeDocument(db, source, kind, expectedHash) {
-  if (!fs.existsSync(source) || !fs.statSync(source).isFile()) throw new Error(`试卷文件缺失：${source}`);
-  const existing = db.get('SELECT id FROM exam_assets WHERE sha256=?', [expectedHash]);
-  if (existing) return Number(existing.id);
+function storeDocument(db, source, kind, expected, originalName) {
+  if (!fs.existsSync(source) || !fs.statSync(source).isFile()) throw new Error(`试卷 PDF 缺失：${source}`);
+  if (!expected || (Array.isArray(expected.errors) && expected.errors.length)) {
+    throw new Error(`试卷 PDF 未通过质检：${source}`);
+  }
+  const stat = fs.statSync(source);
+  if (Number(expected.bytes) !== stat.size) throw new Error(`试卷 PDF 大小不符：${source}`);
   const digest = sha256File(source);
-  if (digest !== expectedHash) throw new Error(`试卷哈希不一致：${source}`);
+  if (digest !== String(expected.sha256 || '').toLowerCase()) throw new Error(`试卷 PDF 哈希不一致：${source}`);
   const extension = path.extname(source).toLowerCase();
-  if (!['.pdf', '.doc', '.docx'].includes(extension)) throw new Error(`试卷格式无效：${source}`);
-  const storageKey = `${kind}/g8/${digest.slice(0, 2)}/${digest}${extension}`;
-  const target = path.join(EXAM_LIBRARY_DIR, storageKey);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  if (!fs.existsSync(target)) fs.copyFileSync(source, target);
+  if (extension !== '.pdf' || fs.readFileSync(source).subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw new Error(`试卷 PDF 格式无效：${source}`);
+  }
+  const existing = db.get('SELECT id,storage_key,byte_size FROM exam_assets WHERE sha256=?', [digest]);
+  if (existing) {
+    ensureExamLibraryFile(existing.storage_key, source, Number(existing.byte_size) || stat.size);
+    return Number(existing.id);
+  }
+  const storageKey = `${kind}/g8/${digest.slice(0, 2)}/${digest}.pdf`;
+  ensureExamLibraryFile(storageKey, source, stat.size);
   const created = db.run(`INSERT INTO exam_assets
     (asset_kind,storage_key,original_name,mime_type,byte_size,sha256)
     VALUES(?,?,?,?,?,?)`, [
-    kind, storageKey, path.basename(source), mimeType(source), fs.statSync(source).size, digest,
+    kind, storageKey, originalName, 'application/pdf', stat.size, digest,
   ]);
   return Number(created.lastInsertRowid);
 }
@@ -83,16 +85,23 @@ function linkSourceQuestions(db, packRoot = PACK_ROOT) {
 }
 
 function syncG8ExamPapers(db, {
-  sourceRoot,
+  pdfRoot,
+  auditPath,
   packRoot = PACK_ROOT,
   manifestPath = path.join(packRoot, path.basename(EXAM_MANIFEST)),
   publish = true,
   strict = true,
 } = {}) {
-  if (!sourceRoot || !fs.existsSync(sourceRoot)) throw new Error(`八上试卷源目录不存在：${sourceRoot || ''}`);
+  if (!pdfRoot || !fs.existsSync(pdfRoot)) throw new Error(`八上 PDF 目录不存在：${pdfRoot || ''}`);
+  if (!auditPath || !fs.existsSync(auditPath)) throw new Error(`八上 PDF 质检报告不存在：${auditPath || ''}`);
   if (!fs.existsSync(manifestPath)) throw new Error(`八上试卷清单不存在：${manifestPath}`);
   ensureExamLibraryDir();
   const manifest = readJson(manifestPath);
+  const audit = readJson(auditPath);
+  if (Number(audit.summary?.failed) !== 0) throw new Error('八上 PDF 质检未通过');
+  const audited = new Map(
+    (audit.files || []).map((item) => [`${item.stable_code}:${item.role}`, item]),
+  );
   let imported = 0;
   let guangzhouExam = 0;
   let mockOrReview = 0;
@@ -103,13 +112,23 @@ function syncG8ExamPapers(db, {
   db.transaction(() => {
     for (const paper of manifest.papers || []) {
       try {
-        const paperPath = safeSourceFile(sourceRoot, paper.source_relative_path);
-        const answerPath = paper.answer
-          ? safeSourceFile(sourceRoot, path.join(path.dirname(paper.source_relative_path), paper.answer.name))
-          : null;
-        const paperAssetId = storeDocument(db, paperPath, 'paper', paper.paper.sha256);
+        const paperPath = path.join(pdfRoot, 'original', `${paper.stable_code}.pdf`);
+        const answerPath = paper.answer ? path.join(pdfRoot, 'answer', `${paper.stable_code}.pdf`) : null;
+        const paperAssetId = storeDocument(
+          db,
+          paperPath,
+          'paper',
+          audited.get(`${paper.stable_code}:original`),
+          normalizedPdfName(paper.paper?.name, paper.stable_code, '原卷'),
+        );
         const answerAssetId = answerPath
-          ? storeDocument(db, answerPath, 'answer', paper.answer.sha256)
+          ? storeDocument(
+            db,
+            answerPath,
+            'answer',
+            audited.get(`${paper.stable_code}:answer`),
+            normalizedPdfName(paper.answer?.name, paper.stable_code, '解析'),
+          )
           : null;
         const isMock = paper.source_kind === 'mock_or_review';
         const displayTitle = sourceLabel({

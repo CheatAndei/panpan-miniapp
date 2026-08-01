@@ -17,25 +17,37 @@ function sha256(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
-function safeSourceFile(root, relativePath) {
-  const base = path.resolve(root);
-  const file = path.resolve(base, String(relativePath || ''));
-  if (!file.startsWith(`${base}${path.sep}`)) throw new Error(`试卷路径越界：${relativePath}`);
-  return file;
+function normalizedPdfName(sourceName, stableCode, role) {
+  const source = path.basename(String(sourceName || '')).replace(/\.(?:pdf|docx?)$/i, '');
+  return `${source || `${stableCode}-${role}`}.pdf`;
 }
 
-function copyAsset(file, kind, expected) {
-  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`源文件不存在：${file}`);
+function copyAsset(file, kind, expected, originalName, outputRoot) {
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`PDF 文件不存在：${file}`);
+  if (!expected) throw new Error(`PDF 缺少质检记录：${file}`);
   const stat = fs.statSync(file);
-  if (Number(expected?.byte_size) !== stat.size) throw new Error(`源文件大小不符：${file}`);
+  if (Array.isArray(expected?.errors) && expected.errors.length) throw new Error(`PDF 未通过质检：${file}`);
+  if (Number(expected?.bytes) !== stat.size) throw new Error(`PDF 文件大小不符：${file}`);
   const digest = sha256(file);
   if (digest !== String(expected?.sha256 || '').toLowerCase()) throw new Error(`源文件哈希不符：${file}`);
   const extension = path.extname(file).toLowerCase();
-  if (!['.pdf', '.doc', '.docx'].includes(extension)) throw new Error(`试卷格式无效：${file}`);
-  return { stat, digest, extension };
+  if (extension !== '.pdf' || fs.readFileSync(file).subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw new Error(`试卷 PDF 格式无效：${file}`);
+  }
+  const target = path.join(outputRoot, kind, digest.slice(0, 2), `${digest}.pdf`);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  if (!fs.existsSync(target)) fs.copyFileSync(file, target, fs.constants.COPYFILE_EXCL);
+  return {
+    name: originalName,
+    sha256: digest,
+    byte_size: stat.size,
+  };
 }
 
-function questionLinks(packRoot) {
+function questionLinks(packRoot, manifest = {}) {
+  if (Array.isArray(manifest.question_links) && manifest.question_links.length) {
+    return manifest.question_links;
+  }
   const { mappedTopics } = require('../services/g8-source-pack-seed');
   const sources = [
     { file: path.join(packRoot, 'choice', 'manifest.json'), kind: 'choice' },
@@ -56,57 +68,49 @@ function questionLinks(packRoot) {
 function buildG8ExamBundle({
   manifestPath,
   auditPath,
-  sourceRoot,
+  pdfRoot,
   outputRoot,
   requireQuestionLinks = false,
 }) {
   for (const file of [manifestPath, auditPath]) {
     if (!file || !fs.existsSync(file)) throw new Error(`文件不存在：${file || ''}`);
   }
-  if (!sourceRoot || !fs.existsSync(sourceRoot)) throw new Error(`八上试卷源目录不存在：${sourceRoot || ''}`);
+  if (!pdfRoot || !fs.existsSync(pdfRoot)) throw new Error(`八上 PDF 目录不存在：${pdfRoot || ''}`);
   if (!outputRoot) throw new Error('缺少输出目录');
 
   const manifest = readJson(manifestPath);
   const audit = readJson(auditPath);
-  if (audit.ok !== true) throw new Error('八上题源审计未通过');
+  if (Number(audit.summary?.failed) !== 0) throw new Error('八上 PDF 质检未通过');
   if (!Array.isArray(manifest.papers) || manifest.papers.length !== 206) {
     throw new Error(`八上试卷数量异常：${manifest.papers?.length || 0}`);
   }
-  if (Number(manifest.summary?.paired_papers) !== 202) throw new Error('八上答案配对数量异常');
+  const pairedPapers = Number(manifest.summary?.paired_papers ?? manifest.expected?.answers);
+  if (pairedPapers !== 202) throw new Error('八上答案配对数量异常');
+  const audited = new Map(
+    (audit.files || []).map((item) => [`${item.stable_code}:${item.role}`, item]),
+  );
 
   fs.mkdirSync(outputRoot, { recursive: true });
   const papers = manifest.papers.map((paper) => {
-    const paperPath = safeSourceFile(sourceRoot, paper.source_relative_path);
-    const original = copyAsset(paperPath, 'paper', paper.paper);
-    const paperTarget = path.join(
-      outputRoot,
+    const paperPath = path.join(pdfRoot, 'original', `${paper.stable_code}.pdf`);
+    const original = copyAsset(
+      paperPath,
       'paper',
-      original.digest.slice(0, 2),
-      `${original.digest}${original.extension}`,
+      audited.get(`${paper.stable_code}:original`),
+      normalizedPdfName(paper.paper?.name, paper.stable_code, '原卷'),
+      outputRoot,
     );
-    fs.mkdirSync(path.dirname(paperTarget), { recursive: true });
-    if (!fs.existsSync(paperTarget)) fs.copyFileSync(paperPath, paperTarget, fs.constants.COPYFILE_EXCL);
 
     let answer = null;
     if (paper.answer) {
-      const answerPath = safeSourceFile(
-        sourceRoot,
-        path.join(path.dirname(paper.source_relative_path), paper.answer.name),
-      );
-      const checked = copyAsset(answerPath, 'answer', paper.answer);
-      const answerTarget = path.join(
-        outputRoot,
+      const answerPath = path.join(pdfRoot, 'answer', `${paper.stable_code}.pdf`);
+      answer = copyAsset(
+        answerPath,
         'answer',
-        checked.digest.slice(0, 2),
-        `${checked.digest}${checked.extension}`,
+        audited.get(`${paper.stable_code}:answer`),
+        normalizedPdfName(paper.answer.name, paper.stable_code, '解析'),
+        outputRoot,
       );
-      fs.mkdirSync(path.dirname(answerTarget), { recursive: true });
-      if (!fs.existsSync(answerTarget)) fs.copyFileSync(answerPath, answerTarget, fs.constants.COPYFILE_EXCL);
-      answer = {
-        name: paper.answer.name,
-        sha256: checked.digest,
-        byte_size: checked.stat.size,
-      };
     }
 
     const isMock = paper.source_kind === 'mock_or_review';
@@ -128,17 +132,13 @@ function buildG8ExamBundle({
       exam_type: isMock ? 'mock' : paper.exam_type,
       source_kind: paper.source_kind,
       source_relative_path: paper.source_relative_path,
-      paper: {
-        name: paper.paper.name,
-        sha256: original.digest,
-        byte_size: original.stat.size,
-      },
+      paper: original,
       answer,
     };
   });
 
   const importManifest = {
-    version: 'panpan-g8-exam-bundle-v1',
+    version: 'panpan-g8-exam-pdf-bundle-v2',
     generated_at: new Date().toISOString(),
     source_manifest_sha256: sha256(manifestPath),
     quality_report_sha256: sha256(auditPath),
@@ -151,14 +151,14 @@ function buildG8ExamBundle({
       grade_code: 'g8',
       subject_code: 'math',
     },
-    question_links: questionLinks(path.dirname(manifestPath)),
+    question_links: questionLinks(path.dirname(manifestPath), manifest),
     papers,
   };
   importManifest.expected.question_links = importManifest.question_links.length;
   if (importManifest.expected.answers !== 202
     || importManifest.expected.guangzhou_exam !== 192
     || importManifest.expected.mock_or_review !== 14
-    || (requireQuestionLinks && importManifest.expected.question_links !== 989)) {
+    || (requireQuestionLinks && importManifest.expected.question_links !== 987)) {
     throw new Error(`八上来源统计异常：${JSON.stringify(importManifest.expected)}`);
   }
   fs.writeFileSync(
@@ -170,11 +170,14 @@ function buildG8ExamBundle({
 
 function main() {
   const packRoot = path.join(__dirname, '..', 'resources', 'choice-king', 'g8-source-pack');
+  const workingRoot = path.join(__dirname, '..', '..', 'z-rubbish', 'panpan-g8-exam-bank');
+  const output = value('--output');
+  if (!output) throw new Error('缺少 --output 输出目录');
   const result = buildG8ExamBundle({
     manifestPath: path.resolve(value('--manifest', path.join(packRoot, 'exam-manifest.json'))),
-    auditPath: path.resolve(value('--audit', path.join(packRoot, 'audit', 'audit-report.json'))),
-    sourceRoot: path.resolve(value('--source-root')),
-    outputRoot: path.resolve(value('--output')),
+    auditPath: path.resolve(value('--audit', path.join(workingRoot, 'pdf-quality-report.json'))),
+    pdfRoot: path.resolve(value('--pdf-root', path.join(workingRoot, 'pdfs'))),
+    outputRoot: path.resolve(output),
     requireQuestionLinks: true,
   });
   console.log(JSON.stringify(result.expected));

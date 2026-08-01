@@ -49,6 +49,7 @@ $scopeCatalog = Join-Path $PackageRoot 'scope-catalog.json'
 $classificationReview = Join-Path $auditRoot 'classification-review.json'
 $auditReport = Join-Path $auditRoot 'audit-report.json'
 $pdfRoot = Join-Path $WorkingRoot 'pdfs'
+$pdfAuditReport = Join-Path $WorkingRoot 'pdf-quality-report.json'
 $contactRoot = Join-Path $WorkingRoot 'contact-sheets'
 
 New-Item -ItemType Directory -Force -Path $WorkingRoot,$checkpointRoot,$PackageRoot,$auditRoot | Out-Null
@@ -70,6 +71,7 @@ function Write-TaskLog {
 $steps = @(
   [pscustomobject]@{ id='manifest'; description='扫描、配对、哈希并生成 G8 试卷清单' },
   [pscustomobject]@{ id='pdf-export'; description='只读转换原卷和解析为 PDF' },
+  [pscustomobject]@{ id='pdf-audit'; description='按七年级流程质检全部 PDF' },
   [pscustomobject]@{ id='choice'; description='拆分 1000 道客观题' },
   [pscustomobject]@{ id='terminal'; description='拆分每卷最后填空和最后两道大题' },
   [pscustomobject]@{ id='classify'; description='映射八上范围并补齐来源字段' },
@@ -190,6 +192,14 @@ foreach ($step in $steps) {
         if ($Force) { $params.Force = $true }
         & (Join-Path $scriptRoot 'export-wps-pdf-batch.ps1') @params
         if (-not $?) { throw 'PDF export failed' }
+      }
+    }
+    'pdf-audit' {
+      {
+        & $PythonExe (Join-Path $scriptRoot 'verify-exam-pdfs.py') `
+          --manifest $examManifest --pdf-root $pdfRoot --output $pdfAuditReport `
+          --replacement-glyphs-warning
+        Assert-ExitCode -Label 'G8 PDF audit'
       }
     }
     'choice' {
