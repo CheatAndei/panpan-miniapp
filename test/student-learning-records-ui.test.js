@@ -60,23 +60,23 @@ test('学习记录页连接教师汇总与单生详情接口并覆盖加载、�
 
 test('学习记录页使用蓝色与珊瑚双色教学系统并支持窄屏与减弱动效', () => {
   for (const token of [
-    '--primary: #527CC9',
-    '--primary-strong: #315EA8',
-    '--gold: #E98577',
-    '--coral: #E98577',
-    '--info: #315EA8',
-    '--ink: #24324A',
-    '--page-bg: #F6FAFF',
+    '--primary: #0B789A',
+    '--primary-strong: #050505',
+    '--gold: #FFF48A',
+    '--coral: #F79BC0',
+    '--info: #0B789A',
+    '--ink: #050505',
+    '--page-bg: #F7FCFE',
   ]) {
     assert.match(finalTheme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(finalTheme, /\.hero\s*\{[\s\S]*?background:\s*#FFFFFF !important/);
-  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(1\)[\s\S]*?#FFF0ED/);
-  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(2\)[\s\S]*?#F8FBFF/);
-  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(3\)[\s\S]*?#F8FBFF/);
-  assert.match(finalTheme, /\.channel-card\.tone-mint[\s\S]*?#527CC9/);
-  assert.match(finalTheme, /\.channel-card\.tone-yellow[\s\S]*?#527CC9/);
-  assert.match(finalTheme, /\.channel-card\.tone-coral[\s\S]*?#E98577/);
+  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(1\)[\s\S]*?#FFF0F6/);
+  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(2\)[\s\S]*?#F8FCFD/);
+  assert.match(finalTheme, /\.overview-secondary > view:nth-child\(3\)[\s\S]*?#F8FCFD/);
+  assert.match(finalTheme, /\.channel-card\.tone-mint[\s\S]*?#0B789A/);
+  assert.match(finalTheme, /\.channel-card\.tone-yellow[\s\S]*?#0B789A/);
+  assert.match(finalTheme, /\.channel-card\.tone-coral[\s\S]*?#F79BC0/);
   assert.match(page, /motion="pop"/);
   assert.match(finalTheme, /@keyframes learning-record-enter/);
   assert.match(page, /@media\(max-width:340px\)/);

@@ -9,7 +9,13 @@ export function createApp() {
   // 注入品牌配置
   app.provide('brand', {
     name: BRAND,
-    colors: { primary: '#527CC9', accent: '#65BFA8' }
+    colors: {
+      primary: '#0B789A',
+      sky: '#99DEF4',
+      accent: '#F79BC0',
+      yellow: '#FFF48A',
+      ink: '#050505',
+    }
   });
   return { app };
 }

@@ -45,15 +45,15 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
 </script>
 
 <style scoped>
-.page{min-height:100vh;padding:0 24rpx 50rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 20rpx;padding:48rpx 34rpx 40rpx;border-radius:0 0 32rpx 32rpx;background:#FFFFFF;color:#fff}.eyebrow{display:block;color:#B8DED3;font-size:19rpx;font-weight:800;letter-spacing: 0}.hero-title{display:block;margin-top:8rpx;font-size:41rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D7ECE6;font-size:23rpx}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin-bottom:18rpx;padding:7rpx;border-radius:17rpx;background:#fff;border:1rpx solid var(--border)}.tabs button{min-height:66rpx;margin:0;border-radius:12rpx;background:transparent;color:var(--text-muted);font-size:23rpx}.tabs button::after,.asset-actions button::after,.result-actions button::after{border:0}.tabs button.on{background:var(--primary);color:#fff}.review-card{margin-bottom:18rpx;padding:26rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.review-head{display:flex;justify-content:space-between;gap:16rpx}.student{display:block;color:var(--ink);font-size:29rpx;font-weight:750}.meta,.source{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx}.state{padding:7rpx 13rpx;border-radius:999rpx;background:#EDF5FF;color:#315EA8;font-size:20rpx}.state.reviewed{background:#EDF5FF;color:#236756}.title{display:block;margin-top:18rpx;color:var(--ink);font-size:26rpx;font-weight:700;line-height:1.45}.asset-actions,.result-actions{display:flex;gap:12rpx;margin-top:18rpx}.asset-actions button{flex:1;min-height:70rpx;margin:0;border-radius:12rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:22rpx}.photos{margin-top:18rpx;white-space:nowrap}.photo-row{display:flex;gap:11rpx}.photo-row image{width:220rpx;height:220rpx;flex:none;border-radius:13rpx}.student-note{margin-top:16rpx;padding:16rpx 18rpx;border-left:5rpx solid var(--primary);background:var(--primary-soft)}.student-note-label,.student-note-copy{display:block}.student-note-label{color:var(--primary-strong);font-size:20rpx;font-weight:760}.student-note-copy{margin-top:5rpx;color:var(--ink);font-size:23rpx;line-height:1.55}.note{width:100%;min-height:126rpx;margin-top:18rpx;padding:17rpx;box-sizing:border-box;border:1rpx solid var(--border);border-radius:13rpx;background:#FBFDFF;font-size:23rpx}.result-actions button{flex:1;min-height:78rpx;margin:0;border-radius:13rpx;font-size:24rpx;font-weight:720}.wrong{background:#FFF0ED;color:#D66D62}.correct{background:var(--primary);color:#fff}
-.skip{background:#F1F3F2!important;color:#5C6C84!important}
-.answer-mask{position:fixed;z-index:30;inset:0;display:flex;align-items:flex-end;background:rgba(12,31,27,.48)}.answer-sheet{box-sizing:border-box;width:100%;padding:32rpx 28rpx calc(30rpx + env(safe-area-inset-bottom));border-radius:30rpx 30rpx 0 0;background:#fff}.answer-sheet-label{display:block;color:#315EA8;font-size:18rpx;font-weight:800;letter-spacing: 0}.answer-sheet-title{display:block;margin-top:5rpx;color:#24324A;font-size:34rpx;font-weight:800}.answer-sheet-math{display:flex;min-height:180rpx;margin-top:22rpx;padding:28rpx;border-radius:18rpx;background:#EDF5FF;color:#24324A;font-size:38rpx;font-weight:720;line-height:1.55}.answer-sheet-close{min-height:84rpx;margin-top:20rpx;border-radius:14rpx;background:#527CC9;color:#fff;font-size:26rpx;font-weight:740}.answer-sheet-close::after{border:0}
+.page{min-height:100vh;padding:0 24rpx 50rpx;background:var(--page-bg)}.hero{margin:0 -24rpx 20rpx;padding:48rpx 34rpx 40rpx;border-radius:0 0 32rpx 32rpx;background:#FFFFFF;color:#fff}.eyebrow{display:block;color:#B8DED3;font-size:19rpx;font-weight:800;letter-spacing: 0}.hero-title{display:block;margin-top:8rpx;font-size:41rpx;font-weight:780}.hero-sub{display:block;margin-top:7rpx;color:#D7ECE6;font-size:23rpx}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin-bottom:18rpx;padding:7rpx;border-radius:17rpx;background:#fff;border:1rpx solid var(--border)}.tabs button{min-height:66rpx;margin:0;border-radius:12rpx;background:transparent;color:var(--text-muted);font-size:23rpx}.tabs button::after,.asset-actions button::after,.result-actions button::after{border:0}.tabs button.on{background:var(--primary);color:#fff}.review-card{margin-bottom:18rpx;padding:26rpx;border-radius:22rpx;background:#fff;border:1rpx solid var(--border);box-shadow:var(--shadow-sm)}.review-head{display:flex;justify-content:space-between;gap:16rpx}.student{display:block;color:var(--ink);font-size:29rpx;font-weight:750}.meta,.source{display:block;margin-top:5rpx;color:var(--text-muted);font-size:21rpx}.state{padding:7rpx 13rpx;border-radius:999rpx;background:#EDF9FC;color:#050505;font-size:20rpx}.state.reviewed{background:#EDF9FC;color:#236756}.title{display:block;margin-top:18rpx;color:var(--ink);font-size:26rpx;font-weight:700;line-height:1.45}.asset-actions,.result-actions{display:flex;gap:12rpx;margin-top:18rpx}.asset-actions button{flex:1;min-height:70rpx;margin:0;border-radius:12rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:22rpx}.photos{margin-top:18rpx;white-space:nowrap}.photo-row{display:flex;gap:11rpx}.photo-row image{width:220rpx;height:220rpx;flex:none;border-radius:13rpx}.student-note{margin-top:16rpx;padding:16rpx 18rpx;border-left:5rpx solid var(--primary);background:var(--primary-soft)}.student-note-label,.student-note-copy{display:block}.student-note-label{color:var(--primary-strong);font-size:20rpx;font-weight:760}.student-note-copy{margin-top:5rpx;color:var(--ink);font-size:23rpx;line-height:1.55}.note{width:100%;min-height:126rpx;margin-top:18rpx;padding:17rpx;box-sizing:border-box;border:1rpx solid var(--border);border-radius:13rpx;background:#FCFEFF;font-size:23rpx}.result-actions button{flex:1;min-height:78rpx;margin:0;border-radius:13rpx;font-size:24rpx;font-weight:720}.wrong{background:#FFF0F6;color:#B53A52}.correct{background:var(--primary);color:#fff}
+.skip{background:#F1F3F2!important;color:#50545B!important}
+.answer-mask{position:fixed;z-index:30;inset:0;display:flex;align-items:flex-end;background:rgba(12,31,27,.48)}.answer-sheet{box-sizing:border-box;width:100%;padding:32rpx 28rpx calc(30rpx + env(safe-area-inset-bottom));border-radius:30rpx 30rpx 0 0;background:#fff}.answer-sheet-label{display:block;color:#050505;font-size:18rpx;font-weight:800;letter-spacing: 0}.answer-sheet-title{display:block;margin-top:5rpx;color:#050505;font-size:34rpx;font-weight:800}.answer-sheet-math{display:flex;min-height:180rpx;margin-top:22rpx;padding:28rpx;border-radius:18rpx;background:#EDF9FC;color:#050505;font-size:38rpx;font-weight:720;line-height:1.55}.answer-sheet-close{min-height:84rpx;margin-top:20rpx;border-radius:14rpx;background:#0B789A;color:#fff;font-size:26rpx;font-weight:740}.answer-sheet-close::after{border:0}
 .page {
-  background-color: var(--page-bg, #F6FAFF);
+  background-color: var(--page-bg, #F7FCFE);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(82, 124, 201, .028) 64rpx 65rpx
+    rgba(153, 222, 244, .028) 64rpx 65rpx
   );
 }
 .hero { border-radius: 0 0 24rpx 24rpx; }
@@ -94,20 +94,20 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(82, 124, 201, .028) 64rpx 65rpx
+    rgba(153, 222, 244, .028) 64rpx 65rpx
   );
 }
 .hero {
   position: relative;
   overflow: hidden;
-  border-bottom: 1rpx solid rgba(82, 124, 201, .16);
+  border-bottom: 1rpx solid rgba(153, 222, 244, .16);
   background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(145deg, #FFFFFF, #EDF5FF 72%, #EDF5FF);
+    linear-gradient(rgba(153, 222, 244, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(153, 222, 244, .05) 1rpx, transparent 1rpx),
+    linear-gradient(145deg, #FFFFFF, #EDF9FC 72%, #EDF9FC);
   background-size: 34rpx 34rpx, 34rpx 34rpx, auto;
   color: var(--ink);
-  box-shadow: 0 12rpx 28rpx rgba(36, 50, 74, .07);
+  box-shadow: 0 12rpx 28rpx rgba(5, 5, 5, .07);
   animation: review-surface-in var(--motion-slow) var(--ease-out) both;
 }
 .hero::after {
@@ -139,7 +139,7 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   transition: none;
 }
 .review-card:active { transform: none; opacity: 1; }
-.state { background: var(--primary-soft); color: #315EA8; }
+.state { background: var(--primary-soft); color: #050505; }
 .state.reviewed { background: var(--success-soft); color: var(--success); }
 .asset-actions button {
   min-height: 80rpx;
@@ -149,20 +149,20 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
 }
 .photo-row image {
   border: 1rpx solid var(--border);
-  background: #F6FAFF;
+  background: #F7FCFE;
 }
 .note {
   border-color: var(--border);
-  background: #F6FAFF;
+  background: #F7FCFE;
   color: var(--ink);
 }
 .result-actions button { min-height: 88rpx; }
 .skip { background: #F1F4F8 !important; color: var(--text-secondary) !important; }
-.wrong { background: var(--coral-soft); color: #D66D62; }
+.wrong { background: var(--coral-soft); color: #B53A52; }
 .correct {
   background: var(--primary-strong);
   color: #FFFFFF;
-  box-shadow: 0 8rpx 18rpx rgba(49, 94, 168, .16);
+  box-shadow: 0 8rpx 18rpx rgba(5, 5, 5, .16);
 }
 .answer-mask { background: rgba(24, 55, 43, .48); }
 .answer-sheet {
@@ -170,7 +170,7 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   background: #FFFFFF;
   animation: review-sheet-in var(--motion-slow) var(--ease-out) both;
 }
-.answer-sheet-label { color: #315EA8; }
+.answer-sheet-label { color: #050505; }
 .answer-sheet-title { color: var(--ink); }
 .answer-sheet-math {
   border: 1rpx solid #CADCF2;
@@ -223,22 +223,22 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
 
 /* Student challenge theme v3: review desk uses white space, green action, coral correction. */
 .student-challenge-page {
-  --page-bg: #F6FAFF;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #6E7D91;
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EDF5FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --border: #DDE7F2;
+  --surface-muted: #FBFDFE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --border: #DCE9ED;
   min-height: 100vh;
   background-color: var(--page-bg);
-  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(82, 124, 201, .05) 56rpx 57rpx);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(153, 222, 244, .05) 56rpx 57rpx);
   color: var(--ink);
 }
 .student-challenge-page .hero {
@@ -246,7 +246,7 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   margin-bottom: 18rpx;
   padding: 34rpx 30rpx 28rpx;
   border: 0;
-  border-bottom: 6rpx solid var(--primary);
+  border-bottom: 6rpx solid var(--brand-sky);
   border-radius: 0;
   background: var(--surface);
   color: var(--ink);
@@ -268,7 +268,7 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   border-color: var(--border);
   border-radius: 16rpx;
   background: var(--surface);
-  box-shadow: 0 6rpx 18rpx rgba(36, 50, 74, .06);
+  box-shadow: 0 6rpx 18rpx rgba(5, 5, 5, .06);
 }
 .student-challenge-page .tabs { align-items: start; }
 .student-challenge-page .tabs button {
@@ -306,7 +306,7 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   color: #FFFFFF;
 }
 .student-challenge-page .correct {
-  box-shadow: 0 8rpx 18rpx rgba(49, 94, 168, .16);
+  box-shadow: 0 8rpx 18rpx rgba(5, 5, 5, .16);
 }
 .student-challenge-page .answer-mask {
   background: rgba(24, 55, 43, .48);

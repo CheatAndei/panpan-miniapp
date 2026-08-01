@@ -316,7 +316,7 @@ function retryOperation() {
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(82, 124, 201, .028) 64rpx 65rpx
+    rgba(153, 222, 244, .028) 64rpx 65rpx
   );
 }
 
@@ -325,13 +325,13 @@ function retryOperation() {
   margin: 0 -24rpx;
   padding: 50rpx 36rpx 38rpx;
   overflow: hidden;
-  border-bottom: 1rpx solid #DDE7F2;
+  border-bottom: 1rpx solid #DCE9ED;
   background:
-    linear-gradient(rgba(82, 124, 201, .055) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .055) 1rpx, transparent 1rpx),
-    linear-gradient(150deg, #FFFFFF 0%, #EDF5FF 100%);
+    linear-gradient(rgba(153, 222, 244, .055) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(153, 222, 244, .055) 1rpx, transparent 1rpx),
+    linear-gradient(150deg, #FFFFFF 0%, #EDF9FC 100%);
   background-size: 38rpx 38rpx, 38rpx 38rpx, auto;
-  color: #24324A;
+  color: #050505;
 }
 
 .hero::after {
@@ -343,7 +343,7 @@ function retryOperation() {
   height: 8rpx;
   border: 0;
   border-radius: 0;
-  background: #527CC9;
+  background: #0B789A;
   pointer-events: none;
 }
 
@@ -354,7 +354,7 @@ function retryOperation() {
   width: 106rpx;
   height: 12rpx;
   border-radius: 0 0 10rpx 10rpx;
-  background: #527CC9;
+  background: #0B789A;
 }
 
 .eyebrow,
@@ -366,7 +366,7 @@ function retryOperation() {
 }
 
 .eyebrow {
-  color: #315EA8;
+  color: #050505;
   font-size: 20rpx;
   font-weight: 760;
   letter-spacing: 0;
@@ -374,7 +374,7 @@ function retryOperation() {
 
 .hero-title {
   margin-top: 10rpx;
-  color: #24324A;
+  color: #050505;
   font-size: 48rpx;
   font-weight: 850;
   line-height: 1.25;
@@ -384,7 +384,7 @@ function retryOperation() {
 .hero-sub {
   max-width: 580rpx;
   margin-top: 11rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 24rpx;
   line-height: 1.65;
 }
@@ -401,10 +401,10 @@ function retryOperation() {
   align-items: center;
   gap: 10rpx;
   box-sizing: border-box;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, .82);
-  color: #315EA8;
+  color: #050505;
   font-size: 20rpx;
   font-weight: 650;
 }
@@ -414,8 +414,8 @@ function retryOperation() {
   height: 12rpx;
   flex: none;
   border-radius: 50%;
-  background: #527CC9;
-  box-shadow: 0 0 0 6rpx rgba(101, 191, 168, .14);
+  background: #0B789A;
+  box-shadow: 0 0 0 6rpx rgba(153, 222, 244, .32);
 }
 
 .content-shell {
@@ -434,10 +434,10 @@ function retryOperation() {
   align-items: center;
   gap: 18rpx;
   box-sizing: border-box;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 20rpx;
   background: #FFFFFF;
-  box-shadow: 0 8rpx 24rpx rgba(36, 50, 74, .06);
+  box-shadow: 0 8rpx 24rpx rgba(5, 5, 5, .06);
 }
 
 .privacy-mark {
@@ -448,8 +448,8 @@ function retryOperation() {
   justify-content: center;
   flex: none;
   border-radius: 18rpx;
-  background: #EDF5FF;
-  color: #315EA8;
+  background: #EDF9FC;
+  color: #050505;
   font-size: 23rpx;
   font-weight: 820;
 }
@@ -465,14 +465,14 @@ function retryOperation() {
 }
 
 .privacy-title {
-  color: #24324A;
+  color: #050505;
   font-size: 24rpx;
   font-weight: 750;
 }
 
 .privacy-detail {
   margin-top: 4rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 21rpx;
   line-height: 1.55;
 }
@@ -494,7 +494,7 @@ function retryOperation() {
 }
 
 .section-kicker {
-  color: #527CC9;
+  color: #0B789A;
   font-size: 19rpx;
   font-weight: 780;
   letter-spacing: 0;
@@ -502,7 +502,7 @@ function retryOperation() {
 
 .section-title {
   margin-top: 4rpx;
-  color: #24324A;
+  color: #050505;
   font-size: 32rpx;
   font-weight: 820;
   line-height: 1.35;
@@ -510,7 +510,7 @@ function retryOperation() {
 
 .section-count {
   flex: none;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 21rpx;
 }
 
@@ -519,8 +519,8 @@ function retryOperation() {
 }
 
 .achievement-card {
-  --tone: #527CC9;
-  --tone-soft: #EDF5FF;
+  --tone: #0B789A;
+  --tone-soft: #EDF9FC;
   position: relative;
   width: 100%;
   min-height: 190rpx;
@@ -528,15 +528,15 @@ function retryOperation() {
   padding: 24rpx 24rpx 22rpx 34rpx;
   overflow: hidden;
   box-sizing: border-box;
-  border: 2rpx solid #DDE7F2;
+  border: 2rpx solid #DCE9ED;
   border-radius: 22rpx;
   background:
-    linear-gradient(rgba(82, 124, 201, .035) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(153, 222, 244, .035) 1rpx, transparent 1rpx),
     #FFFFFF;
   background-size: 100% 36rpx;
-  color: #24324A;
+  color: #050505;
   text-align: left;
-  box-shadow: 0 8rpx 24rpx rgba(36, 50, 74, .055);
+  box-shadow: 0 8rpx 24rpx rgba(5, 5, 5, .055);
   transition: transform 120ms ease, opacity 120ms ease;
 }
 
@@ -546,20 +546,20 @@ function retryOperation() {
 
 .achievement-card.category-choice,
 .workspace-chip.category-choice {
-  --tone: #527CC9;
-  --tone-soft: #EDF5FF;
+  --tone: #0B789A;
+  --tone-soft: #EDF9FC;
 }
 
 .achievement-card.category-mental,
 .workspace-chip.category-mental {
-  --tone: #315EA8;
-  --tone-soft: #EDF5FF;
+  --tone: #050505;
+  --tone-soft: #EDF9FC;
 }
 
 .achievement-card.category-challenge,
 .workspace-chip.category-challenge {
-  --tone: #D66D62;
-  --tone-soft: #FFF0ED;
+  --tone: #B53A52;
+  --tone-soft: #FFF0F6;
 }
 
 .achievement-card:active {
@@ -568,7 +568,7 @@ function retryOperation() {
 
 .achievement-card.selected {
   border-color: var(--tone);
-  box-shadow: 0 13rpx 32rpx rgba(36, 50, 74, .1);
+  box-shadow: 0 13rpx 32rpx rgba(5, 5, 5, .1);
 }
 
 .achievement-card[disabled] {
@@ -615,7 +615,7 @@ function retryOperation() {
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 2rpx solid #DDE7F2;
+  border: 2rpx solid #DCE9ED;
   border-radius: 50%;
   background: #FFFFFF;
   color: #FFFFFF;
@@ -636,7 +636,7 @@ function retryOperation() {
 
 .headline {
   margin-top: 13rpx;
-  color: #24324A;
+  color: #050505;
   font-size: 30rpx;
   font-weight: 810;
   line-height: 1.42;
@@ -644,14 +644,14 @@ function retryOperation() {
 
 .meta {
   margin-top: 7rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 23rpx;
   line-height: 1.55;
 }
 
 .date {
   margin-top: 9rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 19rpx;
 }
 
@@ -659,10 +659,10 @@ function retryOperation() {
   margin-top: 26rpx;
   padding: 28rpx 24rpx 24rpx;
   box-sizing: border-box;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 26rpx;
   background: #FFFFFF;
-  box-shadow: 0 16rpx 42rpx rgba(36, 50, 74, .08);
+  box-shadow: 0 16rpx 42rpx rgba(5, 5, 5, .08);
 }
 
 .workspace-head {
@@ -671,19 +671,19 @@ function retryOperation() {
   justify-content: space-between;
   gap: 18rpx;
   padding-bottom: 20rpx;
-  border-bottom: 1rpx dashed #DDE7F2;
+  border-bottom: 1rpx dashed #DCE9ED;
 }
 
 .workspace-title {
   margin-top: 4rpx;
-  color: #24324A;
+  color: #050505;
   font-size: 31rpx;
   font-weight: 820;
 }
 
 .workspace-chip {
-  --tone: #527CC9;
-  --tone-soft: #EDF5FF;
+  --tone: #0B789A;
+  --tone-soft: #EDF9FC;
   min-height: 48rpx;
   padding: 5rpx 15rpx;
   flex: none;
@@ -698,9 +698,9 @@ function retryOperation() {
   align-items: center;
   gap: 16rpx;
   box-sizing: border-box;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 18rpx;
-  background: #F6FAFF;
+  background: #F7FCFE;
 }
 
 .operation-status.is-error,
@@ -719,8 +719,8 @@ function retryOperation() {
   height: 42rpx;
   flex: none;
   box-sizing: border-box;
-  border: 4rpx solid rgba(82, 124, 201, .18);
-  border-top-color: #527CC9;
+  border: 4rpx solid rgba(153, 222, 244, .18);
+  border-top-color: #0B789A;
   border-radius: 50%;
   animation: achievement-spin .75s linear infinite;
 }
@@ -733,15 +733,15 @@ function retryOperation() {
   justify-content: center;
   flex: none;
   border-radius: 15rpx;
-  background: #FFF0ED;
-  color: #D66D62;
+  background: #FFF0F6;
+  color: #B53A52;
   font-size: 26rpx;
   font-weight: 850;
 }
 
 .is-ready .status-badge {
-  background: #EDF5FF;
-  color: #315EA8;
+  background: #EDF9FC;
+  color: #050505;
 }
 
 .status-copy {
@@ -755,14 +755,14 @@ function retryOperation() {
 }
 
 .status-title {
-  color: #24324A;
+  color: #050505;
   font-size: 24rpx;
   font-weight: 750;
 }
 
 .status-detail {
   margin-top: 3rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 20rpx;
   line-height: 1.5;
 }
@@ -775,7 +775,7 @@ function retryOperation() {
   padding: 12rpx 20rpx;
   flex: none;
   border-radius: 14rpx;
-  background: #D66D62;
+  background: #B53A52;
   color: #FFFFFF;
   font-size: 22rpx;
   font-weight: 740;
@@ -810,9 +810,9 @@ function retryOperation() {
 }
 
 .generate {
-  background: #315EA8;
+  background: #050505;
   color: #FFFFFF;
-  box-shadow: 0 10rpx 24rpx rgba(49, 94, 168, .18);
+  box-shadow: 0 10rpx 24rpx rgba(5, 5, 5, .18);
 }
 
 .secondary-actions {
@@ -823,12 +823,12 @@ function retryOperation() {
 
 .preview {
   border: 1rpx solid #CADCF2;
-  background: #EDF5FF;
-  color: #315EA8;
+  background: #EDF9FC;
+  color: #050505;
 }
 
 .save {
-  background: #527CC9;
+  background: #0B789A;
   color: #FFFFFF;
 }
 
@@ -843,7 +843,7 @@ function retryOperation() {
 .generate[disabled],
 .preview[disabled],
 .save[disabled] {
-  background: #DDE7F2;
+  background: #DCE9ED;
   color: #FFFFFF;
   box-shadow: none;
   opacity: .74;
@@ -853,8 +853,8 @@ function retryOperation() {
   display: block;
   margin-top: 17rpx;
   padding-top: 17rpx;
-  border-top: 1rpx dashed #DDE7F2;
-  color: #5C6C84;
+  border-top: 1rpx dashed #DCE9ED;
+  color: #50545B;
   font-size: 20rpx;
   line-height: 1.62;
 }
@@ -900,29 +900,29 @@ function retryOperation() {
 
 /* Student challenge theme v3: achievement studio in warm paper and teaching green. */
 .student-challenge-page {
-  --page-bg: #F6FAFF;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #6E7D91;
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EDF5FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --border: #DDE7F2;
+  --surface-muted: #FBFDFE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --border: #DCE9ED;
   min-height: 100vh;
   background-color: var(--page-bg);
-  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(82, 124, 201, .05) 56rpx 57rpx);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(153, 222, 244, .05) 56rpx 57rpx);
   color: var(--ink);
 }
 .student-challenge-page .hero {
   min-height: 0;
   padding: 34rpx 30rpx 28rpx;
   border: 0;
-  border-bottom: 6rpx solid var(--primary);
+  border-bottom: 6rpx solid var(--brand-sky);
   border-radius: 0;
   background: var(--surface);
   color: var(--ink);
@@ -952,7 +952,7 @@ function retryOperation() {
   border-radius: 16rpx;
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 6rpx 18rpx rgba(36, 50, 74, .06);
+  box-shadow: 0 6rpx 18rpx rgba(5, 5, 5, .06);
 }
 .student-challenge-page .achievement-list,
 .student-challenge-page .secondary-actions { align-items: start; }

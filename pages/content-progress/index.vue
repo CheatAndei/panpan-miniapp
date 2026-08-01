@@ -226,10 +226,10 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   min-height: 100vh;
   box-sizing: border-box;
   padding: 24rpx 24rpx 170rpx;
-  color: #24324A;
+  color: #050505;
   background:
-    repeating-linear-gradient(180deg, transparent 0, transparent 55rpx, rgba(82, 124, 201, .045) 56rpx),
-    #F6FAFF;
+    repeating-linear-gradient(180deg, transparent 0, transparent 55rpx, rgba(153, 222, 244, .045) 56rpx),
+    #F7FCFE;
 }
 
 .hero {
@@ -237,11 +237,11 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   align-items: center;
   gap: 22rpx;
   padding: 30rpx;
-  border: 1rpx solid #DDE7F2;
-  border-left: 8rpx solid #527CC9;
+  border: 1rpx solid #DCE9ED;
+  border-left: 8rpx solid #0B789A;
   border-radius: 24rpx;
   background: #FFFFFF;
-  box-shadow: 0 10rpx 28rpx rgba(49, 94, 168, .08);
+  box-shadow: 0 10rpx 28rpx rgba(5, 5, 5, .08);
 }
 
 .hero-mark {
@@ -252,8 +252,8 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   justify-content: center;
   flex: 0 0 auto;
   border-radius: 22rpx;
-  color: #315EA8;
-  background: #EAF2FF;
+  color: #050505;
+  background: #E5F8FE;
 }
 
 .hero-copy,
@@ -267,7 +267,7 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
 .eyebrow,
 .section-kicker {
   display: block;
-  color: #527CC9;
+  color: #0B789A;
   font-size: 20rpx;
   font-weight: 760;
   letter-spacing: 2rpx;
@@ -283,7 +283,7 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
 .hero-sub {
   display: block;
   margin-top: 7rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 23rpx;
   line-height: 1.55;
 }
@@ -294,7 +294,7 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
 .toolbar,
 .rule-note {
   margin-top: 20rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 20rpx;
   background: #FFFFFF;
 }
@@ -307,8 +307,8 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   flex: 0 0 auto;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  color: #315EA8;
-  background: #EAF2FF;
+  color: #050505;
+  background: #E5F8FE;
   font-size: 21rpx;
   font-weight: 720;
 }
@@ -320,15 +320,15 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   justify-content: space-between;
   margin-top: 18rpx;
   padding: 0 20rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 16rpx;
-  background: #F9FBFF;
+  background: #FBFDFE;
 }
 
 .class-name { display: block; font-size: 28rpx; font-weight: 760; }
-.class-meta { display: block; margin-top: 5rpx; color: #5C6C84; font-size: 21rpx; }
+.class-meta { display: block; margin-top: 5rpx; color: #50545B; font-size: 21rpx; }
 .state-card { padding: 24rpx; }
-.unsupported-card { border-left: 6rpx solid #E98577; }
+.unsupported-card { border-left: 6rpx solid #F79BC0; }
 
 .summary-card {
   display: flex;
@@ -337,11 +337,11 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   padding: 24rpx;
 }
 
-.summary-title { display: block; margin-top: 4rpx; color: #315EA8; font-size: 36rpx; font-weight: 820; }
-.summary-desc { display: block; margin-top: 6rpx; color: #5C6C84; font-size: 21rpx; line-height: 1.5; }
+.summary-title { display: block; margin-top: 4rpx; color: #050505; font-size: 36rpx; font-weight: 820; }
+.summary-desc { display: block; margin-top: 6rpx; color: #50545B; font-size: 21rpx; line-height: 1.5; }
 .summary-counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8rpx; flex: 0 0 auto; }
-.summary-counts view { min-width: 78rpx; text-align: center; color: #5C6C84; font-size: 18rpx; }
-.count-number { display: block; color: #24324A; font-size: 27rpx; font-weight: 800; }
+.summary-counts view { min-width: 78rpx; text-align: center; color: #50545B; font-size: 18rpx; }
+.count-number { display: block; color: #050505; font-size: 27rpx; font-weight: 800; }
 
 .toolbar {
   display: flex;
@@ -357,8 +357,8 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   padding: 0 22rpx;
   border: 1rpx solid #BFD0EA;
   border-radius: 14rpx;
-  color: #315EA8;
-  background: #EAF2FF;
+  color: #050505;
+  background: #E5F8FE;
   font-size: 23rpx;
   font-weight: 730;
 }
@@ -366,8 +366,8 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
 .tool-btn::after,
 .topic-card::after,
 .save-btn::after { border: 0; }
-.tool-btn.pause { border-color: #F1C6BF; color: #A24E43; background: #FFF0ED; }
-.toolbar-note { width: 100%; color: #7A879B; font-size: 20rpx; }
+.tool-btn.pause { border-color: #F1C6BF; color: #A24E43; background: #FFF0F6; }
+.toolbar-note { width: 100%; color: #6B7078; font-size: 20rpx; }
 
 .topic-list { display: grid; gap: 14rpx; margin-top: 18rpx; }
 .topic-card {
@@ -379,13 +379,13 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   margin: 0;
   padding: 20rpx;
   text-align: left;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 18rpx;
-  color: #24324A;
+  color: #050505;
   background: #FFFFFF;
 }
 
-.topic-card.enabled { border-color: #9EB7E2; background: #F5F9FF; box-shadow: inset 6rpx 0 #527CC9; }
+.topic-card.enabled { border-color: #9EB7E2; background: #F5F9FF; box-shadow: inset 6rpx 0 #0B789A; }
 .topic-check {
   width: 42rpx;
   height: 42rpx;
@@ -401,21 +401,21 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   font-size: 25rpx;
   font-weight: 800;
 }
-.topic-card.enabled .topic-check { border-color: #315EA8; background: #527CC9; }
+.topic-card.enabled .topic-check { border-color: #050505; background: #0B789A; }
 .topic-title-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 12rpx; }
 .topic-title { flex: 1; font-size: 26rpx; font-weight: 760; line-height: 1.45; }
-.topic-short { display: block; margin-top: 4rpx; color: #5C6C84; font-size: 20rpx; }
+.topic-short { display: block; margin-top: 4rpx; color: #50545B; font-size: 20rpx; }
 .ready-chip { flex: 0 0 auto; padding: 5rpx 10rpx; border-radius: 999rpx; color: #8A6230; background: #FFF3DE; font-size: 18rpx; }
 .ready-chip.ready { color: #26705D; background: #E6F5F0; }
 .count-row { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 12rpx; }
-.count-row text { padding: 5rpx 9rpx; border-radius: 8rpx; color: #5C6C84; background: #EDF3FA; font-size: 18rpx; }
+.count-row text { padding: 5rpx 9rpx; border-radius: 8rpx; color: #50545B; background: #EDF3FA; font-size: 18rpx; }
 
 .rule-note {
   display: flex;
   align-items: flex-start;
   gap: 12rpx;
   padding: 20rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 21rpx;
   line-height: 1.6;
 }
@@ -433,9 +433,9 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   border: 1rpx solid #CAD9EE;
   border-radius: 20rpx;
   background: rgba(255, 255, 255, .97);
-  box-shadow: 0 14rpx 38rpx rgba(36, 50, 74, .14);
+  box-shadow: 0 14rpx 38rpx rgba(5, 5, 5, .14);
 }
-.save-copy text { display: block; color: #5C6C84; font-size: 21rpx; }
+.save-copy text { display: block; color: #50545B; font-size: 21rpx; }
 .save-copy .withdraw-note { margin-top: 4rpx; color: #A24E43; font-size: 19rpx; }
 .save-btn {
   min-width: 190rpx;
@@ -444,7 +444,7 @@ function openClasses() { uni.navigateTo({ url: '/pages/teacher-classes/index' })
   padding: 0 24rpx;
   border-radius: 16rpx;
   color: #FFFFFF;
-  background: #315EA8;
+  background: #050505;
   font-size: 25rpx;
   font-weight: 780;
 }

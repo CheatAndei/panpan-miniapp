@@ -43,7 +43,7 @@ defineProps({
 .brief-rail { width: 7rpx; flex-shrink: 0; background: var(--primary); }
 .brief-main { flex: 1; min-width: 0; padding: 18rpx 21rpx 17rpx; }
 .brief-head { display: flex; align-items: center; min-height: 58rpx; }
-.brief-icon { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1rpx solid #D1DFF0; border-radius: 12rpx; background: var(--primary-soft); color: var(--primary-strong); }
+.brief-icon { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1rpx solid #DCE9ED; border-radius: 12rpx; background: var(--primary-soft); color: var(--primary-strong); }
 .brief-heading { flex: 1; min-width: 0; margin-left: 14rpx; }
 .brief-kicker { display: block; color: var(--primary-strong); font-size: 18rpx; font-weight: 700; letter-spacing: 0; }
 .brief-title { display: block; margin-top: 1rpx; color: var(--ink); font-size: 28rpx; font-weight: 760; }

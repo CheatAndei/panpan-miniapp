@@ -592,8 +592,8 @@ function scheduleLabel(schedule) {
     to bottom,
     transparent 0,
     transparent 51rpx,
-    rgba(82, 124, 201, .09) 52rpx,
-    rgba(82, 124, 201, .09) 53rpx
+    rgba(153, 222, 244, .09) 52rpx,
+    rgba(153, 222, 244, .09) 53rpx
   );
   box-shadow: var(--shadow-sm);
   animation: parent-enter var(--motion-slow) var(--ease-out) both;
@@ -606,7 +606,7 @@ function scheduleLabel(schedule) {
   bottom: 0;
   left: 24rpx;
   width: 2rpx;
-  background: rgba(233, 133, 119, .42);
+  background: rgba(247, 155, 192, .42);
 }
 
 .hero-tab {
@@ -701,7 +701,7 @@ function scheduleLabel(schedule) {
   right: 2rpx;
   width: 44rpx;
   height: 52rpx;
-  border: 2rpx solid rgba(214, 109, 98, .42);
+  border: 2rpx solid rgba(247, 155, 192, .7);
   border-radius: 4rpx;
   background: rgba(255, 255, 255, .74);
   transform: rotate(8deg);
@@ -714,8 +714,8 @@ function scheduleLabel(schedule) {
   left: 9rpx;
   width: 24rpx;
   height: 2rpx;
-  background: rgba(82, 124, 201, .26);
-  box-shadow: 0 9rpx 0 rgba(82, 124, 201, .18), 0 18rpx 0 rgba(82, 124, 201, .18);
+  background: rgba(153, 222, 244, .26);
+  box-shadow: 0 9rpx 0 rgba(153, 222, 244, .18), 0 18rpx 0 rgba(153, 222, 244, .18);
 }
 
 .doodle-dot {
@@ -818,7 +818,7 @@ function scheduleLabel(schedule) {
   border: 1rpx solid var(--border);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: 0 3rpx 10rpx rgba(49, 94, 168, .035);
+  box-shadow: 0 3rpx 10rpx rgba(5, 5, 5, .035);
 }
 
 .parent-nav-item {
@@ -853,7 +853,7 @@ function scheduleLabel(schedule) {
   gap: 16rpx;
   margin-top: 18rpx;
   padding: 16rpx 20rpx;
-  border: 1rpx solid #EFC9C2;
+  border: 1rpx solid #F2C8D5;
   border-radius: 14rpx;
   background: var(--danger-soft);
   color: #A65147;
@@ -879,7 +879,7 @@ function scheduleLabel(schedule) {
 .guest-home {
   margin-top: 20rpx;
   padding: 32rpx;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #CDE8F0;
   border-radius: 16rpx;
   background: #FFFFFF;
   box-shadow: var(--shadow);
@@ -926,7 +926,7 @@ function scheduleLabel(schedule) {
 .guest-primary {
   background: var(--primary-strong);
   color: #FFFFFF;
-  box-shadow: 0 8rpx 0 #C9DAF0;
+  box-shadow: 0 8rpx 0 #CDE8F0;
 }
 
 .guest-bind {
@@ -951,7 +951,7 @@ function scheduleLabel(schedule) {
   min-height: 74rpx;
   margin: 12rpx 0 0;
   padding: 0 22rpx;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #CDE8F0;
   border-radius: 12rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -1017,13 +1017,13 @@ function scheduleLabel(schedule) {
   justify-content: center;
   flex: none;
   padding-top: 9rpx;
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   background: #FFFFFF;
   border-radius: 13rpx;
   box-sizing: border-box;
   color: var(--primary-strong);
   font-size: 17rpx;
-  box-shadow: 0 4rpx 10rpx rgba(49, 94, 168, .05);
+  box-shadow: 0 4rpx 10rpx rgba(5, 5, 5, .05);
 }
 
 .today-percent .num {
@@ -1035,7 +1035,7 @@ function scheduleLabel(schedule) {
   position: relative;
   height: 6rpx;
   overflow: hidden;
-  background: #EDF5FF;
+  background: #EDF9FC;
 }
 
 .today-progress-fill {
@@ -1102,21 +1102,21 @@ function scheduleLabel(schedule) {
   border: 2rpx solid #FFFFFF;
   border-radius: 8rpx;
   background: var(--coral);
-  color: #FFFFFF;
+  color: #050505;
   font-size: 15rpx;
   line-height: 1;
   box-sizing: border-box;
 }
 
 .task-position.done {
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 
 .task-position.pending {
-  background: #FFF0ED;
-  color: #B85D51;
+  background: #FFF0F6;
+  color: var(--danger);
 }
 
 .task-copy {
@@ -1156,7 +1156,7 @@ function scheduleLabel(schedule) {
   align-items: center;
   gap: 12rpx;
   padding: 15rpx 22rpx 17rpx;
-  background: #F8FBFF;
+  background: #F8FCFD;
   color: var(--text-muted);
   font-size: 19rpx;
 }
@@ -1217,7 +1217,7 @@ function scheduleLabel(schedule) {
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 1rpx solid #D1DFF0;
+  border: 1rpx solid #DCE9ED;
   border-radius: 14rpx;
   background: var(--primary-soft);
 }
@@ -1418,13 +1418,13 @@ function scheduleLabel(schedule) {
 }
 
 .card-title-icon.mint {
-  border-color: #C9DAF0;
+  border-color: #CDE8F0;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 
 .card-title-icon.yellow {
-  border-color: #C9DAF0;
+  border-color: #CDE8F0;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -1436,7 +1436,7 @@ function scheduleLabel(schedule) {
 }
 
 .card-title-icon.sky {
-  border-color: #C9DAF0;
+  border-color: #CDE8F0;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -1508,7 +1508,7 @@ function scheduleLabel(schedule) {
   padding: 19rpx;
   border: 1rpx solid #DDEEFF;
   border-radius: 14rpx;
-  background: #F8FBFF;
+  background: #F8FCFD;
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
 }
@@ -1624,7 +1624,7 @@ function scheduleLabel(schedule) {
   padding: 16rpx;
   border: 1rpx solid #DDEEFF;
   border-radius: 15rpx;
-  background: #F8FBFF;
+  background: #F8FCFD;
   color: var(--ink);
   text-align: left;
   transition: transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) var(--ease-out);
@@ -1690,7 +1690,7 @@ function scheduleLabel(schedule) {
   z-index: 99;
   display: flex;
   align-items: flex-end;
-  background: rgba(36, 50, 74, .46);
+  background: rgba(5, 5, 5, .46);
   animation: modal-mask-enter var(--motion-base) ease-out both;
 }
 
@@ -1757,7 +1757,7 @@ function scheduleLabel(schedule) {
   width: 100%;
   min-height: 160rpx;
   padding: 18rpx;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #CDE8F0;
   border-radius: 14rpx;
   background: #FBFEFC;
   box-sizing: border-box;
@@ -1921,4 +1921,40 @@ function scheduleLabel(schedule) {
     transform: none;
   }
 }
+
+/* Candy workbook palette: bright blocks, black anchors, calm white reading surfaces. */
+.parent-home {
+  --brand-sky: #99DEF4;
+  --brand-pink: #F79BC0;
+  --brand-yellow: #FFF48A;
+}
+.parent-hero {
+  border: 3rpx solid #050505;
+  border-top: 14rpx solid #99DEF4;
+  box-shadow: none;
+}
+.hero-tab { background: #F79BC0; color: #050505; }
+.mental-hero-mini {
+  border: 2rpx solid #050505;
+  background: #FFFBE0;
+}
+.mental-mini-icon { border-color: #050505; background: #FFF48A; }
+.parent-section-nav { border: 2rpx solid #050505; box-shadow: none; }
+.parent-nav-item.active { background: #99DEF4; color: #050505; }
+.today-learning-card {
+  border: 2rpx solid #050505;
+  border-top: 14rpx solid #99DEF4;
+  box-shadow: none;
+}
+.today-learning-head { background: #FFF0F6; }
+.today-progress { background: #E5F8FE; }
+.today-progress-fill { background: #050505; }
+.card-title-icon.sky { background: #99DEF4; color: #050505; }
+.card-title-icon.coral { background: #F79BC0; color: #050505; }
+.card-title-icon.yellow { background: #FFF48A; color: #050505; }
+.card-title-icon.mint { background: #E5F8FE; color: #050505; }
+.learning-shortcut:first-child { border-top: 8rpx solid #F79BC0; }
+.learning-shortcut:last-child { border-top: 8rpx solid #99DEF4; }
+.tool-item:first-child .tool-icon { background: #FFF48A; color: #050505; }
+.tool-item:last-child .tool-icon { background: #F79BC0; color: #050505; }
 </style>

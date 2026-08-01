@@ -225,7 +225,7 @@ export default {
   height: 8rpx;
   border-radius: 8rpx;
   background: var(--coral);
-  box-shadow: 0 17rpx 0 rgba(82, 124, 201, .16);
+  box-shadow: 0 17rpx 0 rgba(153, 222, 244, .16);
 }
 
 .hero-mark {
@@ -237,7 +237,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #C9DAF0;
+  border: 1rpx solid #CDE8F0;
   border-radius: 14rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);

@@ -197,7 +197,7 @@ export default {
       const msg=notify.ok
         ? `${title} ${res.count} 节并提醒家长${skipped}`
         : `${title} ${res.count} 节，提醒未送达${notifyReason?'：'+notifyReason:''}${skipped}`;
-    uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#315EA8'});
+    uni.showModal({title:notify.ok?'发布完成':'课程已发布',content:msg,showCancel:false,confirmColor:'#050505'});
     }
   }
 };
@@ -213,7 +213,7 @@ export default {
 }
 .hero {
   padding: 30rpx 28rpx 24rpx;
-  border-bottom: 6rpx solid var(--primary);
+  border-bottom: 6rpx solid var(--brand-sky);
   box-shadow: none;
   animation: none;
 }
@@ -312,7 +312,7 @@ export default {
   min-height: 52rpx;
   padding: 4rpx 13rpx;
   gap: 3rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 8rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -344,7 +344,7 @@ export default {
   margin: 0 -8rpx;
   padding-right: 12rpx;
   padding-left: 12rpx;
-  border-top-color: #DDE7F2;
+  border-top-color: #DCE9ED;
   border-left: 5rpx solid var(--primary);
   background: var(--primary-soft);
 }
@@ -438,7 +438,7 @@ export default {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(36, 50, 74, .44);
+  background: rgba(5, 5, 5, .44);
 }
 .modal {
   width: 100%;
@@ -469,7 +469,7 @@ export default {
   padding: 0 18rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F6FAFF;
+  background: #F7FCFE;
   color: var(--ink);
   font-size: 27rpx;
   line-height: 80rpx;
@@ -543,34 +543,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EAF2FF;
-  --accent: #527CC9;
-  --accent-strong: #315EA8;
-  --accent-soft: #EAF2FF;
-  --success: #315EA8;
-  --success-soft: #EAF2FF;
-  --gold: #527CC9;
-  --gold-soft: #EAF2FF;
-  --warning: #315EA8;
-  --warning-soft: #EAF2FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --danger-soft: #FFF0ED;
-  --info: #527CC9;
-  --info-soft: #EAF2FF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #5C6C84;
-  --page-bg: #F6FAFF;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --accent: #F79BC0;
+  --accent-strong: #9B2F5F;
+  --accent-soft: #FFF0F6;
+  --success: #15755F;
+  --success-soft: #E9F8F3;
+  --gold: #FFF48A;
+  --gold-soft: #FFFBE0;
+  --warning: #8A6B00;
+  --warning-soft: #FFFBE0;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --danger-soft: #FFF0F3;
+  --info: #0B789A;
+  --info-soft: #E5F8FE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --border: #DDE7F2;
-  --hairline: #E9F0F8;
-  background-color: #F6FAFF;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
+  --surface-muted: #FBFDFE;
+  --border: #DCE9ED;
+  --hairline: #EDF3F5;
+  background-color: #F7FCFE;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(153, 222, 244, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -580,7 +580,7 @@ export default {
   position: relative;
   padding: 28rpx 28rpx 22rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #DDE7F2;
+  border-bottom: 1rpx solid #DCE9ED;
   background: #FFFFFF !important;
 }
 .hero::before {
@@ -590,7 +590,7 @@ export default {
   left: 20rpx;
   width: 6rpx;
   border-radius: 3rpx;
-  background: #527CC9;
+  background: #0B789A;
   content: "";
 }
 .hero::after {
@@ -598,14 +598,14 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #527CC9;
+  background: #0B789A;
 }
-.hero .eyebrow { color: #315EA8; }
-.hero-title { color: #24324A; }
-.hero-sub { color: #5C6C84; }
+.hero .eyebrow { color: #050505; }
+.hero-title { color: #050505; }
+.hero-sub { color: #50545B; }
 .state-card,
 .page > .card {
-  border-color: #DDE7F2;
+  border-color: #DCE9ED;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
@@ -613,11 +613,11 @@ export default {
   min-height: 0;
   padding: 15rpx 18rpx;
   align-items: flex-start;
-  border-left-color: #527CC9;
+  border-left-color: #0B789A;
 }
 .special-icon {
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
 }
 .day-header {
   min-height: 0;
@@ -627,9 +627,9 @@ export default {
   height: 54rpx;
   min-height: 0;
   padding: 0 13rpx;
-  border-color: #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #C7DDE4;
+  background: #E5F8FE;
+  color: #050505;
   line-height: 54rpx;
 }
 .sc-card {
@@ -637,33 +637,33 @@ export default {
   padding: 15rpx 4rpx;
 }
 .sc-card.selected {
-  border-top-color: #BFD0EC;
-  border-left-color: #527CC9;
-  background: #EAF2FF;
+  border-top-color: #C7DDE4;
+  border-left-color: #0B789A;
+  background: #E5F8FE;
 }
 .checkbox.on {
-  border-color: #527CC9;
-  background: #527CC9;
+  border-color: #0B789A;
+  background: #0B789A;
 }
 .bg0,
 .bg5 {
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
 }
 .bg1,
 .bg4,
 .bg6,
 .bg9 {
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
 }
 .bg3 {
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
 }
 .bg8 {
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
 }
 .publish-dock { background: rgba(248, 252, 249, .98); }
 .publish-dock .btn-accent,
@@ -671,7 +671,7 @@ export default {
   height: 82rpx;
   min-height: 0;
   padding: 0 18rpx;
-  background: #527CC9;
+  background: #0B789A;
   color: #FFFFFF;
   line-height: 82rpx;
 }
@@ -680,8 +680,8 @@ export default {
   background: #FFFFFF;
 }
 .input {
-  border-color: #DDE7F2;
-  background: #F6FAFF;
+  border-color: #DCE9ED;
+  background: #F7FCFE;
 }
 .row {
   align-items: flex-start;

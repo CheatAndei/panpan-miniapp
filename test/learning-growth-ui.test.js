@@ -43,5 +43,6 @@ test('成长页包含日历、周统计、薄弱项、六徽章、周报和匿�
   }
   assert.match(growth, /summary\.badges/);
   assert.match(growth, /open-type="share"/);
-  assert.match(growth, /path: '\/pages\/index\/index'/);
+  assert.match(growth, /import \{ buildShareEntryPath \} from '@\/utils\/welcome-entry'/);
+  assert.match(growth, /path: buildShareEntryPath\('home'\)/);
 });

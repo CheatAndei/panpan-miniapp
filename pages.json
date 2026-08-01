@@ -1,7 +1,8 @@
 {
   "pages": [
     { "path": "pages/index/index", "style": { "navigationBarTitleText": "番番记录", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
-    { "path": "pages/maintenance/index", "style": { "navigationBarTitleText": "系统维护", "navigationBarBackgroundColor": "#F6FAFF", "navigationBarTextStyle": "black", "disableScroll": true } },
+    { "path": "pages/share-entry/index", "style": { "navigationBarTitleText": "番番记录", "navigationStyle": "custom", "disableScroll": true } },
+    { "path": "pages/maintenance/index", "style": { "navigationBarTitleText": "系统维护", "navigationBarBackgroundColor": "#F7FCFE", "navigationBarTextStyle": "black", "disableScroll": true } },
     { "path": "pages/bind/bind", "style": { "navigationBarTitleText": "绑定孩子" } },
     { "path": "pages/guest-experience/index", "style": { "navigationBarTitleText": "免费体验" } },
     { "path": "pages/parent-home/index", "style": { "navigationBarTitleText": "学习动态" } },
@@ -14,7 +15,7 @@
     { "path": "pages/learning-session/index", "style": { "navigationBarTitleText": "专项练习", "disableScroll": true } },
     { "path": "pages/growth/index", "style": { "navigationBarTitleText": "成长记录", "enablePullDownRefresh": true, "enableShareAppMessage": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/achievements/index", "style": { "navigationBarTitleText": "学习成就海报" } },
-    { "path": "pages/promotion-posters/index", "style": { "navigationBarTitleText": "宣传海报工作台", "navigationBarBackgroundColor": "#FFF9EC", "navigationBarTextStyle": "black" } },
+    { "path": "pages/promotion-posters/index", "style": { "navigationBarTitleText": "宣传海报工作台", "navigationBarBackgroundColor": "#FFFBE0", "navigationBarTextStyle": "black" } },
     { "path": "pages/mental-arena/index", "style": { "navigationBarTitleText": "口算王" } },
     { "path": "pages/mental-arena/challenge", "style": { "navigationBarTitleText": "口算挑战", "disableScroll": true } },
     { "path": "pages/mental-arena/result", "style": { "navigationBarTitleText": "挑战战绩" } },
@@ -46,12 +47,12 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "番番记录",
-    "navigationBarBackgroundColor": "#F6FAFF",
-    "backgroundColor": "#F6FAFF"
+    "navigationBarBackgroundColor": "#F7FCFE",
+    "backgroundColor": "#F7FCFE"
   },
   "tabBar": {
-    "color": "#7A879B",
-    "selectedColor": "#315EA8",
+    "color": "#6B7078",
+    "selectedColor": "#050505",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "list": [

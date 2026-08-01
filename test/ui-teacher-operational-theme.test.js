@@ -50,19 +50,19 @@ function cssRules(css) {
   }));
 }
 
-test('teacher operational pages use the restored blue Panpan learning palette', () => {
+test('teacher operational pages use the Panpan candy learning palette', () => {
   for (const file of files) {
     const source = read(file);
     const theme = finalTheme(source, file);
 
     for (const token of [
-      '--primary: #527CC9',
-      '--primary-strong: #315EA8',
-      '--gold: #527CC9',
-      '--coral: #E98577',
-      '--info: #527CC9',
-      '--ink: #24324A',
-      '--page-bg: #F6FAFF',
+      '--primary: #0B789A',
+      '--primary-strong: #050505',
+      '--gold: #FFF48A',
+      '--coral: #F79BC0',
+      '--info: #0B789A',
+      '--ink: #050505',
+      '--page-bg: #F7FCFE',
     ]) {
       assert.match(theme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${file} should define ${token}`);
     }
@@ -114,12 +114,12 @@ test('teacher operation layouts use coherent blue-coral roles', () => {
   const history = finalTheme(read('pages/class-history/index.vue'), 'class-history');
   const student = finalTheme(read('pages/student-detail/index.vue'), 'student-detail');
 
-  assert.match(checkin, /\.stat:nth-child|\.stat\.green[\s\S]*?#EAF2FF/);
-  assert.match(checkin, /\.stat\.gray[\s\S]*?#FFF0ED/);
-  assert.match(tools, /\.tool-card-2,[\s\S]*?\.tool-card-3,[\s\S]*?#527CC9/);
-  assert.match(tools, /\.tool-card-4[\s\S]*?#E98577/);
-  assert.match(history, /\.summary-cell\.tone-mint[\s\S]*?#527CC9/);
-  assert.match(history, /\.summary-cell\.tone-practice[\s\S]*?#315EA8/);
+  assert.match(checkin, /\.stat:nth-child|\.stat\.green[\s\S]*?#E5F8FE/);
+  assert.match(checkin, /\.stat\.gray[\s\S]*?#FFF0F6/);
+  assert.match(tools, /\.tool-card-2,[\s\S]*?\.tool-card-3,[\s\S]*?#0B789A/);
+  assert.match(tools, /\.tool-card-4[\s\S]*?#F79BC0/);
+  assert.match(history, /\.summary-cell\.tone-mint[\s\S]*?#0B789A/);
+  assert.match(history, /\.summary-cell\.tone-practice[\s\S]*?#050505/);
   assert.doesNotMatch(tools + history, /#5B9DF7|#FFC94A|#B27600/);
   assert.match(student, /grid-template-areas:[\s\S]*?"avatar status"/);
   assert.match(student, /\.hero\.hero-navy[\s\S]*?background:\s*#FFFFFF !important/);

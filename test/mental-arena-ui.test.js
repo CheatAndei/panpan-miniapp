@@ -82,8 +82,8 @@ test('口算王海报恢复 404baa8 的深色画布和蓝金弹层', () => {
   assert.match(poster, /#E7C365/);
   assert.match(poster, /#F2ECDD/);
   assert.doesNotMatch(poster, /MENTAL_POSTER_THEME|#F8FCF9|#20B486|#FF7468/);
-  assert.match(result, /\.student-challenge-page \.poster-btn\s*\{[\s\S]*?background:\s*#FFF5D7;[\s\S]*?color:\s*#765410;/);
-  assert.match(result, /\.student-challenge-page \.poster-overlay\s*\{\s*background:\s*rgba\(36,\s*50,\s*74,\s*\.56\);/);
-  assert.match(result, /\.student-challenge-page \.save-poster\s*\{[\s\S]*?background:\s*#F4C75B;/);
-  assert.match(result, /\.student-challenge-page \.share-poster\s*\{[\s\S]*?background:\s*#315EA8;/);
+  assert.match(result, /\.student-challenge-page \.poster-btn\s*\{[\s\S]*?background:\s*#FFFBE0;[\s\S]*?color:\s*#765410;/);
+  assert.match(result, /\.student-challenge-page \.poster-overlay\s*\{\s*background:\s*rgba\(5,\s*5,\s*5,\s*\.56\);/);
+  assert.match(result, /\.student-challenge-page \.save-poster\s*\{[\s\S]*?background:\s*#FFF48A;/);
+  assert.match(result, /\.student-challenge-page \.share-poster\s*\{[\s\S]*?background:\s*#050505;/);
 });

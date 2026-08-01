@@ -122,6 +122,7 @@ import { computed, getCurrentInstance, nextTick, ref } from 'vue';
 import { onLoad, onShareAppMessage, onUnload } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
+import { buildShareEntryPath } from '@/utils/welcome-entry';
 import {
   mentalArenaAward,
   mentalPosterPermissionDenied,
@@ -174,7 +175,7 @@ onLoad((options) => {
 onUnload(clearIntroTimers);
 onShareAppMessage(() => ({
   title: `${displayName.value}完成口算王：${challenge.value?.score || 0}分`,
-  path: '/pages/guest-experience/index',
+  path: buildShareEntryPath('guest'),
   imageUrl: posterPath.value || undefined,
 }));
 
@@ -389,36 +390,36 @@ async function savePoster() {
 
 /* Student challenge theme v3: warm paper and one energetic teaching green. */
 .student-challenge-page {
-  --page-bg: #F6FAFF;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #6E7D91;
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EDF5FF;
-  --accent: #527CC9;
-  --accent-strong: #315EA8;
-  --accent-soft: #EDF5FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --border: #DDE7F2;
-  --hairline: #E9F0F8;
+  --surface-muted: #FBFDFE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --accent: #F79BC0;
+  --accent-strong: #9B2F5F;
+  --accent-soft: #FFF0F6;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --border: #DCE9ED;
+  --hairline: #EDF3F5;
   --r: 16rpx;
   --r-sm: 14rpx;
   --r-xs: 10rpx;
   --r-lg: 16rpx;
-  --shadow-sm: 0 6rpx 18rpx rgba(36, 50, 74, .06);
-  --shadow: 0 10rpx 28rpx rgba(36, 50, 74, .08);
+  --shadow-sm: 0 6rpx 18rpx rgba(5, 5, 5, .06);
+  --shadow: 0 10rpx 28rpx rgba(5, 5, 5, .08);
   overflow-x: hidden;
   overflow-y: visible;
   background-color: var(--page-bg);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 55rpx,
-    rgba(82, 124, 201, .045) 56rpx 57rpx
+    rgba(153, 222, 244, .045) 56rpx 57rpx
   );
   color: var(--ink);
 }
@@ -434,7 +435,7 @@ async function savePoster() {
   min-height: 0;
   margin: 0 -24rpx;
   padding: 32rpx 30rpx 28rpx;
-  border-bottom: 7rpx solid var(--primary);
+  border-bottom: 7rpx solid var(--brand-sky);
   border-radius: 0;
   background: var(--surface);
   color: var(--ink);
@@ -523,11 +524,11 @@ async function savePoster() {
 .student-challenge-page .fish-tag {
   margin-top: 13rpx;
   padding: 8rpx 12rpx;
-  border: 1rpx solid #EFC9C2;
+  border: 1rpx solid #F2C8D5;
   border-left: 5rpx solid var(--coral);
   border-radius: var(--r-xs);
   background: var(--coral-soft);
-  color: #D66D62;
+  color: #B53A52;
 }
 
 .student-challenge-page .motion-block {
@@ -622,7 +623,7 @@ async function savePoster() {
   min-height: 112rpx;
   border: 1rpx solid #E6CF88;
   border-radius: 14rpx;
-  background: #FFF5D7;
+  background: #FFFBE0;
   color: #765410;
   box-shadow: none;
   transition: transform 120ms cubic-bezier(.16, 1, .3, 1), opacity 120ms cubic-bezier(.16, 1, .3, 1);
@@ -678,7 +679,7 @@ async function savePoster() {
 .student-challenge-page .wrong-count {
   border-radius: var(--r-xs);
   background: var(--coral-soft);
-  color: #D66D62;
+  color: #B53A52;
 }
 
 .student-challenge-page .wrong-count.perfect {
@@ -722,7 +723,7 @@ async function savePoster() {
 .student-challenge-page .answer-no {
   border-radius: var(--r-xs);
   background: var(--coral-soft);
-  color: #D66D62;
+  color: #B53A52;
 }
 
 .student-challenge-page .answer-row.correct .answer-no {
@@ -736,7 +737,7 @@ async function savePoster() {
 
 .student-challenge-page .your-answer,
 .student-challenge-page .correct-answer {
-  color: #D66D62;
+  color: #B53A52;
 }
 
 .student-challenge-page .answer-row.correct .your-answer,
@@ -769,14 +770,14 @@ async function savePoster() {
 }
 
 .student-challenge-page .poster-overlay {
-  background: rgba(36, 50, 74, .56);
+  background: rgba(5, 5, 5, .56);
 }
 
 .student-challenge-page .poster-sheet {
   padding: 32rpx 24rpx calc(30rpx + env(safe-area-inset-bottom));
   border-radius: 30rpx 30rpx 0 0;
-  background: #F6FAFF;
-  box-shadow: 0 -24rpx 60rpx rgba(36, 50, 74, .2);
+  background: #F7FCFE;
+  box-shadow: 0 -24rpx 60rpx rgba(5, 5, 5, .2);
 }
 
 .student-challenge-page .poster-close {
@@ -784,35 +785,35 @@ async function savePoster() {
   height: 88rpx;
   min-width: 88rpx;
   min-height: 88rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 50%;
   background: #FFFFFF;
-  color: #315EA8;
+  color: #050505;
   line-height: 82rpx;
 }
 
 .student-challenge-page .poster-eyebrow {
-  color: #C48A20;
+  color: #8A6B00;
   letter-spacing: 3rpx;
 }
 
 .student-challenge-page .poster-title {
-  color: #24324A;
+  color: #050505;
   letter-spacing: -1rpx;
 }
 
 .student-challenge-page .poster-sub,
 .student-challenge-page .share-note {
-  color: #6E7D91;
+  color: #6B7078;
 }
 
 .student-challenge-page .poster-loading,
 .student-challenge-page .poster-error {
   min-height: 520rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 18rpx;
   background: #FFFFFF;
-  color: #5C6C84;
+  color: #50545B;
 }
 
 .student-challenge-page .loading-crown {
@@ -821,11 +822,11 @@ async function savePoster() {
 }
 
 .student-challenge-page .poster-error-title {
-  color: #24324A;
+  color: #050505;
 }
 
 .student-challenge-page .poster-error-copy {
-  color: #5C6C84;
+  color: #50545B;
 }
 
 .student-challenge-page .retry-poster,
@@ -838,20 +839,20 @@ async function savePoster() {
 
 .student-challenge-page .retry-poster,
 .student-challenge-page .save-poster {
-  background: #F4C75B;
+  background: #FFF48A;
   color: #493000;
 }
 
 .student-challenge-page .share-poster {
-  background: #315EA8;
+  background: #050505;
   color: #FFFFFF;
 }
 
 .student-challenge-page .poster-preview {
   border: 0;
   border-radius: 18rpx;
-  background: #F9FBFF;
-  box-shadow: 0 14rpx 38rpx rgba(49, 94, 168, .09);
+  background: #FBFDFE;
+  box-shadow: 0 14rpx 38rpx rgba(5, 5, 5, .09);
 }
 
 @keyframes result-row-in {

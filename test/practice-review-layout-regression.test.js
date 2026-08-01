@@ -100,7 +100,7 @@ test('学生前后切换使用可收缩两列网格且按钮不会横向溢出',
 });
 
 test('批改台恢复浅蓝珊瑚教学色板，同时保持紧凑圆角与无装饰光斑', () => {
-  for (const color of ['#527CC9', '#315EA8', '#E98577', '#F6FAFF', '#24324A']) {
+  for (const color of ['#E5F8FE', '#0B789A', '#F79BC0', '#F7FCFE', '#050505']) {
     assert.match(style, new RegExp(color, 'u'));
   }
   assert.doesNotMatch(style, /#20B486|#15946D|#FF7468|#F8FCF9|#26352F/iu);

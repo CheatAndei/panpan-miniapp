@@ -102,10 +102,10 @@ test('通用成就工作台使用浅蓝白纸教学风并保留三类选择', ()
   const page = read('pages/achievements/index.vue');
   assert.match(page, /PANPAN · LEARNING NOTES/);
   assert.match(page, /background-color:\s*var\(--page-bg\)/);
-  assert.match(page, /#F6FAFF/);
-  assert.match(page, /#527CC9/);
-  assert.match(page, /#315EA8/);
-  assert.match(page, /#24324A/);
+  assert.match(page, /#F7FCFE/);
+  assert.match(page, /#0B789A/);
+  assert.match(page, /#F79BC0/);
+  assert.match(page, /#050505/);
   assert.match(page, /category-choice/);
   assert.match(page, /category-mental/);
   assert.match(page, /category-challenge/);

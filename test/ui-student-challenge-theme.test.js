@@ -27,7 +27,7 @@ const pages = [
 const replacedPalette =
   /#20B486|#15946D|#FF7468|#F8FCF9|#26352F|rgba?\(\s*32\s*,\s*180\s*,\s*134/i;
 
-test('all student challenge pages use the unified pale-blue teaching theme', () => {
+test('all student challenge pages use the unified candy teaching theme', () => {
   const sources = pages.map((file) => [file, read(file)]);
 
   for (const [file, source] of sources) {
@@ -52,11 +52,11 @@ test('all student challenge pages use the unified pale-blue teaching theme', () 
       /letter-spacing\s*:\s*-/i,
       `${file} should not use negative tracking outside the restored poster interface`,
     );
-    assert.match(source, /#F6FAFF/i, `${file} should define the pale blue paper background`);
-    assert.match(source, /#527CC9/i, `${file} should define the learning blue`);
-    assert.match(source, /#315EA8/i, `${file} should define the strong action blue`);
-    assert.match(source, /#24324A/i, `${file} should define blue-charcoal body text`);
-    assert.match(source, /#5C6C84/i, `${file} should define secondary blue-gray text`);
+    assert.match(source, /#F7FCFE/i, `${file} should define the pale cyan paper background`);
+    assert.match(source, /#0B789A/i, `${file} should define accessible cyan actions`);
+    assert.match(source, /#050505/i, `${file} should define near-black anchors`);
+    assert.match(source, /#F79BC0/i, `${file} should define candy pink emphasis`);
+    assert.match(source, /#50545B/i, `${file} should define secondary neutral text`);
     assert.match(source, /prefers-reduced-motion:\s*reduce/, `${file} should respect motion settings`);
 
     const v3 = source.slice(source.indexOf('Student challenge theme v3:'));

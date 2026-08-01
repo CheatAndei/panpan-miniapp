@@ -146,6 +146,7 @@ import { getCurrentInstance, nextTick, ref } from 'vue';
 import { onLoad, onShareAppMessage, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError, toastError } from '@/utils/ui';
+import { buildShareEntryPath } from '@/utils/welcome-entry';
 import { promotionPosterPermissionDenied, renderPromotionPoster, savePromotionPoster } from '@/utils/promotion-poster';
 
 const promotions = ref([]);
@@ -181,7 +182,7 @@ onShow(() => { if (!previewMode.value) loadPromotions(); });
 onShareAppMessage(() => ({
   title:selected.value?.event_type === 'mental_first'
     ? `${selected.value.student_name}成为本周口算王` : `${selected.value?.student_name || '同学'}成功攻下一道压轴题`,
-  path:'/pages/guest-experience/index',
+  path:buildShareEntryPath('guest'),
   imageUrl:posterFile.value || undefined,
 }));
 
@@ -325,7 +326,7 @@ async function savePoster() {
 
 /* Light poster studio: cream base × sky blue / apricot */
 .studio-page{background:#F7F2E9;color:#2D3F51}
-.studio-hero{min-height:430rpx;border:1rpx solid #E3ECF2;border-top:0;border-radius:0 0 42rpx 42rpx;background:#FFF9EC;color:#2D3F51}
+.studio-hero{min-height:430rpx;border:1rpx solid #E3ECF2;border-top:0;border-radius:0 0 42rpx 42rpx;background:#FFFBE0;color:#2D3F51}
 .studio-hero::after{opacity:1;background:radial-gradient(circle at 88% 22%,#E6F2FF 0 106rpx,transparent 108rpx),radial-gradient(circle at 78% 30%,#F8D982 0 30rpx,transparent 32rpx)}
 .studio-kicker{color:#4C8FD8}.studio-title{color:#213B55}.studio-rule{background:#6FA9E6}.studio-copy{color:#667A8D}.studio-serial{color:#D36F43}
 .hero-orbit{border-color:rgba(76,143,216,.22)}.section-kicker,.workspace-label{color:#4C8FD8}.section-title,.workspace-title{color:#2D3F51}.archive-count,.share-tip{color:#758493}
@@ -399,26 +400,26 @@ async function savePoster() {
 <style scoped>
 .studio-page {
   background:
-    radial-gradient(circle at 96% 0%, rgba(244, 199, 91, .18), transparent 22%),
-    linear-gradient(180deg, #F7FBFF, var(--page-bg, #F6FAFF));
-  color: var(--ink, #24324A);
+    radial-gradient(circle at 96% 0%, rgba(255, 244, 138, .22), transparent 22%),
+    linear-gradient(180deg, #F7FBFF, var(--page-bg, #F7FCFE));
+  color: var(--ink, #050505);
 }
 
 .studio-hero {
   border-color: #D6E3F2;
   background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(153, 222, 244, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(153, 222, 244, .05) 1rpx, transparent 1rpx),
     linear-gradient(145deg, #FFFFFF, #FFF8E9);
   background-size: 42rpx 42rpx, 42rpx 42rpx, auto;
-  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(49, 94, 168, .055));
+  box-shadow: var(--shadow-sm, 0 5rpx 16rpx rgba(5, 5, 5, .055));
   animation: studio-enter var(--motion-slow, 240ms) var(--ease-out, ease-out) both;
 }
 
 .poster-workspace {
-  border-color: var(--border, #DDE7F2);
+  border-color: var(--border, #DCE9ED);
   background: #FFFFFF;
-  box-shadow: var(--shadow, 0 14rpx 38rpx rgba(49, 94, 168, .09));
+  box-shadow: var(--shadow, 0 14rpx 38rpx rgba(5, 5, 5, .09));
   animation: studio-enter var(--motion-slow, 240ms) var(--ease-out, ease-out) both;
 }
 
@@ -462,20 +463,20 @@ async function savePoster() {
 /* mei final pass: light editing desk; poster artwork remains independently themed */
 .studio-page {
   background:
-    radial-gradient(circle at 96% 3%, rgba(244, 199, 91, .18), transparent 22%),
-    linear-gradient(180deg, #F8FBFF, var(--page-bg));
+    radial-gradient(circle at 96% 3%, rgba(255, 244, 138, .22), transparent 22%),
+    linear-gradient(180deg, #F8FCFD, var(--page-bg));
   color: var(--ink);
 }
 .studio-hero {
   border-color: var(--border);
   background:
-    linear-gradient(rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(82, 124, 201, .05) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(153, 222, 244, .05) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(153, 222, 244, .05) 1rpx, transparent 1rpx),
     radial-gradient(circle at 86% 22%, var(--warning-soft) 0 90rpx, transparent 92rpx),
-    linear-gradient(145deg, #FFFFFF, #EDF5FF);
+    linear-gradient(145deg, #FFFFFF, #EDF9FC);
   background-size: 34rpx 34rpx, 34rpx 34rpx, auto, auto;
   color: var(--ink);
-  box-shadow: 0 12rpx 28rpx rgba(49, 94, 168, .08);
+  box-shadow: 0 12rpx 28rpx rgba(5, 5, 5, .08);
 }
 .studio-kicker { color: var(--primary-strong); }
 .studio-title { color: var(--ink); }
@@ -540,10 +541,10 @@ async function savePoster() {
 .save-action {
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   color: #FFFFFF;
-  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .18);
+  box-shadow: 0 10rpx 22rpx rgba(5, 5, 5, .18);
 }
 .share-action {
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }

@@ -13,19 +13,22 @@ const listVueFiles = (directory) => fs.readdirSync(path.join(root, directory), {
     return entry.isFile() && entry.name.endsWith('.vue') ? [relative] : [];
   });
 
-test('global theme uses the restored blue-mint Panpan learning palette', () => {
+test('global theme uses the sky-pink-yellow Panpan candy palette', () => {
   const app = read('App.vue');
   const main = read('main.js');
   const pages = read('pages.json');
   const ui = read('utils/ui.js');
 
   for (const token of [
-    '--primary: #527CC9',
-    '--primary-strong: #315EA8',
-    '--accent: #65BFA8',
-    '--gold: #F4C75B',
-    '--coral: #E98577',
-    '--bg: #F6FAFF',
+    '--brand-sky: #99DEF4',
+    '--brand-pink: #F79BC0',
+    '--brand-yellow: #FFF48A',
+    '--primary: #0B789A',
+    '--primary-strong: #050505',
+    '--accent: #F79BC0',
+    '--gold: #FFF48A',
+    '--coral: #F79BC0',
+    '--bg: #F7FCFE',
     '--page-bg: var(--bg)',
     '--motion-fast: 120ms',
   ]) {
@@ -33,12 +36,12 @@ test('global theme uses the restored blue-mint Panpan learning palette', () => {
   }
 
   assert.doesNotMatch(app, /--primary:\s*#(?:183A36|20B486|15946D)/i);
-  assert.match(main, /primary:\s*'#527CC9'/);
-  assert.match(main, /accent:\s*'#65BFA8'/);
-  assert.match(pages, /"selectedColor":\s*"#315EA8"/);
-  assert.match(pages, /"backgroundColor":\s*"#F6FAFF"/);
+  assert.match(main, /primary:\s*'#0B789A'/);
+  assert.match(main, /accent:\s*'#F79BC0'/);
+  assert.match(pages, /"selectedColor":\s*"#050505"/);
+  assert.match(pages, /"backgroundColor":\s*"#F7FCFE"/);
   assert.doesNotMatch(app + main, /#(?:20B486|15946D|FF7468|F8FCF9|26352F)/i);
-  assert.match(ui, /confirmColor:\s*danger\s*\?\s*'#D66D62'\s*:\s*'#315EA8'/);
+  assert.match(ui, /confirmColor:\s*danger\s*\?\s*'#B53A52'\s*:\s*'#050505'/);
 });
 
 test('global box model prevents native button whitespace and width overflow regressions', () => {
@@ -92,8 +95,8 @@ test('education icons stay local and state feedback respects reduced motion', ()
     .map((file) => fs.readFileSync(path.join(svgIconDir, file), 'utf8'))
     .join('\n');
 
-  assert.match(svgIcons, /#315EA8/i);
-  assert.match(svgIcons, /#D66D62/i);
+  assert.match(svgIcons, /#050505/i);
+  assert.match(svgIcons, /#F79BC0/i);
   assert.doesNotMatch(svgIcons, /#(?:20B486|15946D|FF7468|F8FCF9)/i);
 
   const icon = read('components/pp-icon/pp-icon.vue');
@@ -104,13 +107,13 @@ test('education icons stay local and state feedback respects reduced motion', ()
   assert.match(icon, /motion:\s*\{/);
   assert.match(icon, /pp-icon--motion-(?:pop|ring|shine)/);
   assert.match(icon, /prefers-reduced-motion:\s*reduce/);
-  assert.match(tabIconBuild, /home-tab-active\.png', color: '#315EA8'/);
-  assert.match(tabIconBuild, /user-tab-active\.png', color: '#315EA8'/);
+  assert.match(tabIconBuild, /home-tab-active\.png', color: '#050505'/);
+  assert.match(tabIconBuild, /user-tab-active\.png', color: '#050505'/);
   assert.doesNotMatch(tabIconBuild, /#(?:20B486|15946D|3268D6|1E4EA8)/i);
   assert.match(state, /prefers-reduced-motion:\s*reduce/);
   assert.match(state, /pp-state--error/);
   assert.match(state, /pp-state--success/);
-  assert.match(state, /var\(--primary,\s*#527CC9\)/);
+  assert.match(state, /var\(--primary,\s*#0B789A\)/);
   assert.match(state, /\.pp-state__action[\s\S]*?min-height:\s*80rpx/);
   assert.match(state, /\.pp-state__action[\s\S]*?padding:\s*0 28rpx/);
   assert.doesNotMatch(state, /\.pp-state\s*\{[\s\S]*?min-height:\s*236rpx/);

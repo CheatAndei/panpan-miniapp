@@ -67,35 +67,35 @@ function preview(){
   margin-top: 20rpx;
   padding: 16rpx;
   overflow: hidden;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 16rpx;
-  background: #F6FAFF;
+  background: #F7FCFE;
 }
 .reader-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-bottom: 14rpx; }
 .reader-heading { min-width: 0; display: flex; align-items: center; gap: 10rpx; }
-.reader-heading-icon { width: 46rpx; height: 46rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; background: #EAF2FF; }
+.reader-heading-icon { width: 46rpx; height: 46rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; background: #E5F8FE; }
 .reader-label,
 .reader-hint { display: block; }
-.reader-label { color: #24324A; font-size: 23rpx; font-weight: 760; }
-.reader-hint { max-width: 340rpx; margin-top: 3rpx; color: #5C6C84; font-size: 18rpx; line-height: 1.4; }
+.reader-label { color: #050505; font-size: 23rpx; font-weight: 760; }
+.reader-hint { max-width: 340rpx; margin-top: 3rpx; color: #50545B; font-size: 18rpx; line-height: 1.4; }
 .reader-modes { display: flex; flex: none; padding: 4rpx; border: 1rpx solid #D9E5F3; border-radius: 10rpx; background: #FFFFFF; }
-.reader-mode { min-height: 56rpx; margin: 0; padding: 0 12rpx; border-radius: 7rpx; background: transparent; color: #5C6C84; font-size: 19rpx; font-weight: 650; line-height: 56rpx; }
+.reader-mode { min-height: 56rpx; margin: 0; padding: 0 12rpx; border-radius: 7rpx; background: transparent; color: #50545B; font-size: 19rpx; font-weight: 650; line-height: 56rpx; }
 .reader-mode::after,
 .reader-retry::after { border: 0; }
-.reader-mode.active { background: #EAF2FF; color: #315EA8; }
+.reader-mode.active { background: #E5F8FE; color: #050505; }
 .reader-mode:active,
 .reader-retry:active { transform: scale(var(--tap-scale)); }
 .reader-scroll { width: 100%; border-radius: 10rpx; background: #FFFFFF; white-space: nowrap; }
 .reader-image { display: block; min-height: 150rpx; border-radius: 8rpx; background: #FFFFFF; transition: width var(--motion-base) var(--ease-out); }
 .reader-image.fit { width: 100%; }
 .reader-image.zoom { width:165%; max-width:none; }
-.reader-state { min-height: 180rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10rpx; background: #FFFFFF; color: #5C6C84; font-size: 21rpx; }
-.reader-skeleton { width: 86%; height: 112rpx; margin-bottom: 16rpx; border-radius: 8rpx; background: linear-gradient(100deg, #E9F0F8 20%, #F6FAFF 40%, #E9F0F8 60%); background-size: 200% 100%; animation: reader-shimmer 1.2s linear infinite; }
-.reader-error { padding: 22rpx; text-align: center; background: #FFF0ED; }
-.reader-error-title { color: #D66D62; font-size: 24rpx; font-weight: 740; }
-.reader-error-copy { max-width: 480rpx; margin-top: 6rpx; color: #5C6C84; font-size: 20rpx; line-height: 1.5; }
-.reader-retry { min-height: 72rpx; margin: 16rpx 0 0; padding: 0 22rpx; border: 1rpx solid #FFB9B3; border-radius: 8rpx; background: #FFFFFF; color: #D66D62; font-size: 21rpx; line-height: 72rpx; }
-.reader-preview-tip { display: block; padding: 13rpx 4rpx 2rpx; color: #315EA8; font-size: 19rpx; text-align: center; }
+.reader-state { min-height: 180rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10rpx; background: #FFFFFF; color: #50545B; font-size: 21rpx; }
+.reader-skeleton { width: 86%; height: 112rpx; margin-bottom: 16rpx; border-radius: 8rpx; background: linear-gradient(100deg, #EDF3F5 20%, #F7FCFE 40%, #EDF3F5 60%); background-size: 200% 100%; animation: reader-shimmer 1.2s linear infinite; }
+.reader-error { padding: 22rpx; text-align: center; background: #FFF0F6; }
+.reader-error-title { color: #B53A52; font-size: 24rpx; font-weight: 740; }
+.reader-error-copy { max-width: 480rpx; margin-top: 6rpx; color: #50545B; font-size: 20rpx; line-height: 1.5; }
+.reader-retry { min-height: 72rpx; margin: 16rpx 0 0; padding: 0 22rpx; border: 1rpx solid #FFB9B3; border-radius: 8rpx; background: #FFFFFF; color: #B53A52; font-size: 21rpx; line-height: 72rpx; }
+.reader-preview-tip { display: block; padding: 13rpx 4rpx 2rpx; color: #050505; font-size: 19rpx; text-align: center; }
 .reader-preview-tip:active { opacity: .65; }
 @keyframes reader-shimmer { to { background-position: -200% 0; } }
 @media (max-width: 360px) {

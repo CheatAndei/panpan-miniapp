@@ -167,9 +167,9 @@ test('教师首页快捷工作使用按列重复的三种等深语义色', () =>
     'action-tone-coral',
     'action-tone-mint',
   ]);
-  assert.match(teacherHome, /\.action-tone-blue \.action-icon\s*\{[\s\S]*?color:\s*#315EA8/u);
-  assert.match(teacherHome, /\.action-tone-coral \.action-icon\s*\{[\s\S]*?color:\s*#A94F48/u);
-  assert.match(teacherHome, /\.action-tone-mint \.action-icon\s*\{[\s\S]*?color:\s*#2F796B/u);
+  assert.match(teacherHome, /\.action-tone-blue \.action-icon\s*\{[\s\S]*?background:\s*#99DEF4;[\s\S]*?color:\s*#050505/u);
+  assert.match(teacherHome, /\.action-tone-coral \.action-icon\s*\{[\s\S]*?background:\s*#F79BC0;[\s\S]*?color:\s*#050505/u);
+  assert.match(teacherHome, /\.action-tone-mint \.action-icon\s*\{[\s\S]*?background:\s*#FFF48A;[\s\S]*?color:\s*#050505/u);
   assert.doesNotMatch(teacherHome, /\.action-item:nth-child\(/u);
 });
 

@@ -51,7 +51,7 @@ defineEmits(['dismiss', 'open']);
   justify-content: center;
   padding: 36rpx 24rpx calc(36rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
-  background: rgba(36, 50, 74, .38);
+  background: rgba(5, 5, 5, .38);
   animation: notice-mask-enter var(--motion-base) ease-out both;
 }
 
@@ -66,15 +66,15 @@ defineEmits(['dismiss', 'open']);
   overflow-y: auto;
   border: 1rpx solid #D9E5F3;
   border-radius: 16rpx;
-  background-color: #F6FAFF;
+  background-color: #F7FCFE;
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 53rpx,
-    rgba(82, 124, 201, .075) 54rpx,
-    rgba(82, 124, 201, .075) 55rpx
+    rgba(153, 222, 244, .075) 54rpx,
+    rgba(153, 222, 244, .075) 55rpx
   );
-  box-shadow: 0 24rpx 64rpx rgba(36, 50, 74, .18);
+  box-shadow: 0 24rpx 64rpx rgba(5, 5, 5, .18);
   animation: notice-card-enter 280ms var(--ease-out) both;
 }
 
@@ -85,7 +85,7 @@ defineEmits(['dismiss', 'open']);
   bottom: 0;
   left: 28rpx;
   width: 2rpx;
-  background: rgba(233, 133, 119, .42);
+  background: rgba(247, 155, 192, .42);
 }
 
 .notice-tab {
@@ -94,7 +94,7 @@ defineEmits(['dismiss', 'open']);
   right: 30rpx;
   padding: 10rpx 18rpx 12rpx;
   border-radius: 0 0 10rpx 10rpx;
-  background: #527CC9;
+  background: #0B789A;
   color: #FFFFFF;
   font-size: 19rpx;
   font-weight: 800;
@@ -107,10 +107,10 @@ defineEmits(['dismiss', 'open']);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   border-radius: 14rpx;
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
   font-size: 32rpx;
   font-weight: 850;
 }
@@ -124,7 +124,7 @@ defineEmits(['dismiss', 'open']);
 
 .homework-notice-kicker {
   margin-top: 20rpx;
-  color: #315EA8;
+  color: #050505;
   font-size: 21rpx;
   font-weight: 800;
   letter-spacing: 0;
@@ -133,7 +133,7 @@ defineEmits(['dismiss', 'open']);
 .homework-notice-title {
   max-width: 540rpx;
   margin-top: 12rpx;
-  color: #24324A;
+  color: #050505;
   font-size: 35rpx;
   font-weight: 820;
   line-height: 1.45;
@@ -142,7 +142,7 @@ defineEmits(['dismiss', 'open']);
 
 .homework-notice-more {
   margin-top: 16rpx;
-  color: #5C6C84;
+  color: #50545B;
   font-size: 24rpx;
   line-height: 1.6;
 }
@@ -178,15 +178,15 @@ defineEmits(['dismiss', 'open']);
 }
 
 .homework-notice-later {
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   background: #FFFFFF;
-  color: #315EA8;
+  color: #050505;
 }
 
 .homework-notice-open {
-  background: #315EA8;
+  background: #050505;
   color: #FFFFFF;
-  box-shadow: 0 10rpx 22rpx rgba(49, 94, 168, .2);
+  box-shadow: 0 10rpx 22rpx rgba(5, 5, 5, .2);
 }
 
 @keyframes notice-mask-enter {

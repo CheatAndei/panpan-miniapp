@@ -433,34 +433,34 @@ function openAchievements() {
 
 /* Student challenge theme v3: warm paper and one energetic teaching green. */
 .student-challenge-page {
-  --page-bg: #F6FAFF;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #6E7D91;
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EDF5FF;
-  --accent: #527CC9;
-  --accent-strong: #315EA8;
-  --accent-soft: #EDF5FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --border: #DDE7F2;
-  --hairline: #E9F0F8;
+  --surface-muted: #FBFDFE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --accent: #F79BC0;
+  --accent-strong: #9B2F5F;
+  --accent-soft: #FFF0F6;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --border: #DCE9ED;
+  --hairline: #EDF3F5;
   --r: 16rpx;
   --r-sm: 14rpx;
   --r-xs: 10rpx;
   --r-lg: 16rpx;
-  --shadow-sm: 0 6rpx 18rpx rgba(36, 50, 74, .06);
-  --shadow: 0 10rpx 28rpx rgba(36, 50, 74, .08);
+  --shadow-sm: 0 6rpx 18rpx rgba(5, 5, 5, .06);
+  --shadow: 0 10rpx 28rpx rgba(5, 5, 5, .08);
   background-color: var(--page-bg);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 55rpx,
-    rgba(82, 124, 201, .045) 56rpx 57rpx
+    rgba(153, 222, 244, .045) 56rpx 57rpx
   );
   color: var(--ink);
 }
@@ -470,7 +470,7 @@ function openAchievements() {
   align-items: center;
   margin: 0 -24rpx;
   padding: 34rpx 30rpx 28rpx;
-  border-bottom: 7rpx solid var(--primary);
+  border-bottom: 7rpx solid var(--brand-sky);
   border-radius: 0;
   background-color: var(--surface);
   box-shadow: none;
@@ -672,7 +672,7 @@ function openAchievements() {
 }
 
 .student-challenge-page .result-card.wrong {
-  border-color: #EFC9C2;
+  border-color: #F2C8D5;
   border-left-color: var(--coral);
   background: var(--coral-soft);
 }
@@ -682,7 +682,7 @@ function openAchievements() {
 }
 
 .student-challenge-page .wrong .result-kicker {
-  color: #D66D62;
+  color: #B53A52;
 }
 
 .student-challenge-page .result-title {
@@ -729,7 +729,7 @@ function openAchievements() {
 .student-challenge-page .poster-button {
   border-color: #DDEEFF;
   background: var(--primary-soft);
-  color: #315EA8;
+  color: #050505;
 }
 
 .student-challenge-page .helper-row,
@@ -755,7 +755,7 @@ function openAchievements() {
 }
 
 .student-challenge-page .report-mask {
-  background: rgba(36, 50, 74, .46);
+  background: rgba(5, 5, 5, .46);
 }
 
 .student-challenge-page .report-sheet {

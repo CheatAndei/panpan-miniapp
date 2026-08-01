@@ -161,7 +161,7 @@ export default {
 }
 .hero.hero-navy {
   padding: 26rpx 28rpx 24rpx;
-  border-bottom: 6rpx solid var(--primary);
+  border-bottom: 6rpx solid var(--brand-sky);
   box-shadow: none;
   animation: none;
 }
@@ -181,7 +181,7 @@ export default {
 .char-img {
   margin: 6rpx auto 10rpx;
   border: 4rpx solid #FFFFFF;
-  box-shadow: 0 4rpx 12rpx rgba(36, 50, 74, .1);
+  box-shadow: 0 4rpx 12rpx rgba(5, 5, 5, .1);
 }
 .hero-title {
   display: block;
@@ -269,7 +269,7 @@ export default {
   overflow: hidden;
   height: 8rpx;
   border-radius: 4rpx;
-  background: #E9F0F8;
+  background: #EDF3F5;
 }
 .bind-fill {
   height: 100%;
@@ -284,7 +284,7 @@ export default {
 }
 .parent-chip {
   padding: 5rpx 10rpx;
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   border-radius: 7rpx;
   background: var(--success-soft);
   color: var(--success);
@@ -304,7 +304,7 @@ export default {
 }
 .tag {
   padding: 6rpx 10rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 7rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -367,7 +367,7 @@ export default {
 .btn-ai {
   min-height: 60rpx;
   padding: 7rpx 16rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-radius: 8rpx;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -386,7 +386,7 @@ export default {
   padding: 16rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F6FAFF;
+  background: #F7FCFE;
   color: var(--ink);
   font-size: 26rpx;
   line-height: 1.55;
@@ -436,34 +436,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EAF2FF;
-  --accent: #527CC9;
-  --accent-strong: #315EA8;
-  --accent-soft: #EAF2FF;
-  --success: #315EA8;
-  --success-soft: #EAF2FF;
-  --gold: #527CC9;
-  --gold-soft: #EAF2FF;
-  --warning: #315EA8;
-  --warning-soft: #EAF2FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --danger-soft: #FFF0ED;
-  --info: #527CC9;
-  --info-soft: #EAF2FF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #5C6C84;
-  --page-bg: #F6FAFF;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --accent: #F79BC0;
+  --accent-strong: #9B2F5F;
+  --accent-soft: #FFF0F6;
+  --success: #15755F;
+  --success-soft: #E9F8F3;
+  --gold: #FFF48A;
+  --gold-soft: #FFFBE0;
+  --warning: #8A6B00;
+  --warning-soft: #FFFBE0;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --danger-soft: #FFF0F3;
+  --info: #0B789A;
+  --info-soft: #E5F8FE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --border: #DDE7F2;
-  --hairline: #E9F0F8;
-  background-color: #F6FAFF;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
+  --surface-muted: #FBFDFE;
+  --border: #DCE9ED;
+  --hairline: #EDF3F5;
+  background-color: #F7FCFE;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(153, 222, 244, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -481,10 +481,10 @@ export default {
   align-items: center;
   padding: 26rpx 28rpx 24rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #DDE7F2;
-  border-left: 8rpx solid #527CC9;
+  border-bottom: 1rpx solid #DCE9ED;
+  border-left: 8rpx solid #0B789A;
   background: #FFFFFF !important;
-  color: #24324A;
+  color: #050505;
   text-align: left;
 }
 .hero.hero-navy::after {
@@ -492,13 +492,13 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #527CC9;
+  background: #0B789A;
 }
 .char-img {
   grid-area: avatar;
   margin: 0;
-  border-color: #EAF2FF;
-  box-shadow: 0 5rpx 14rpx rgba(49, 94, 168, .1);
+  border-color: #E5F8FE;
+  box-shadow: 0 5rpx 14rpx rgba(5, 5, 5, .1);
 }
 .dossier-kicker {
   grid-area: kicker;
@@ -507,42 +507,42 @@ export default {
   gap: 8rpx;
 }
 .eyebrow {
-  color: #315EA8;
+  color: #050505;
 }
 .hero-title {
   grid-area: title;
-  color: #24324A;
+  color: #050505;
 }
 .hero-sub {
   grid-area: sub;
-  color: #5C6C84;
+  color: #50545B;
 }
 .parent-status {
   grid-area: status;
   width: fit-content;
 }
 .parent-status.on {
-  background: #EAF2FF;
-  color: #315EA8;
+  background: #E5F8FE;
+  color: #050505;
 }
 .parent-status.off {
-  background: #FFF0ED;
-  color: #D66D62;
+  background: #FFF0F6;
+  color: #B53A52;
 }
 .state-card,
 .page > .card {
-  border-color: #DDE7F2;
+  border-color: #DCE9ED;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
 .page > .card:not(.bind-card) {
-  border-top: 4rpx solid #527CC9;
+  border-top: 4rpx solid #0B789A;
 }
 .page > .card:last-child {
-  border-top-color: #527CC9;
+  border-top-color: #0B789A;
 }
 .bind-card {
-  border-left-color: #315EA8;
+  border-left-color: #050505;
 }
 .bind-head,
 .s-hd,
@@ -551,32 +551,32 @@ export default {
 }
 .bind-count.on,
 .parent-chip {
-  border-color: #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #C7DDE4;
+  background: #E5F8FE;
+  color: #050505;
 }
 .bind-count.off {
-  background: #FFF0ED;
-  color: #D66D62;
+  background: #FFF0F6;
+  color: #B53A52;
 }
-.bind-meter { background: #DDE7F2; }
-.bind-fill { background: #527CC9; }
+.bind-meter { background: #DCE9ED; }
+.bind-fill { background: #0B789A; }
 .tag {
-  border-color: #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #C7DDE4;
+  background: #E5F8FE;
+  color: #050505;
 }
 .cat-head {
-  background: #F8FBFF;
+  background: #F8FCFD;
 }
 .trait-btn {
   min-height: 0;
   padding: 8rpx 12rpx;
 }
 .trait-btn.on {
-  border-color: #527CC9;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #0B789A;
+  background: #E5F8FE;
+  color: #050505;
 }
 .btn-ai {
   height: 58rpx;
@@ -586,14 +586,14 @@ export default {
   justify-content: center;
   gap: 8rpx;
   padding: 0 16rpx;
-  border-color: #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #C7DDE4;
+  background: #E5F8FE;
+  color: #050505;
   line-height: 58rpx;
 }
 .textarea {
-  border-color: #DDE7F2;
-  background: #F6FAFF;
+  border-color: #DCE9ED;
+  background: #F7FCFE;
 }
 .btn-primary {
   height: 80rpx;
@@ -603,7 +603,7 @@ export default {
   justify-content: center;
   gap: 8rpx;
   padding: 0 18rpx;
-  background: #527CC9;
+  background: #0B789A;
   color: #FFFFFF;
   line-height: 80rpx;
 }

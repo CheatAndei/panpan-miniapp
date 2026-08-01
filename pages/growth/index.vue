@@ -100,6 +100,7 @@ import { computed, ref } from 'vue';
 import { onLoad, onPullDownRefresh, onShareAppMessage, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { logError } from '@/utils/ui';
+import { buildShareEntryPath } from '@/utils/welcome-entry';
 
 const studentId = ref(0);
 const summary = ref(null);
@@ -112,7 +113,7 @@ onShow(() => { if (studentId.value) loadSummary(); });
 onPullDownRefresh(async () => { try { await loadSummary(); } finally { uni.stopPullDownRefresh(); } });
 onShareAppMessage(() => ({
   title: summary.value?.share?.subtitle ? `本周学习成长卡｜${summary.value.share.subtitle}` : '番番记录 · 学习成长卡',
-  path: '/pages/index/index',
+  path: buildShareEntryPath('home'),
 }));
 
 async function loadSummary() {
@@ -132,7 +133,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 </script>
 
 <style scoped>
-.growth-hero{padding-bottom:44rpx}.hero-title{display:block;margin-top:8rpx;color:var(--ink);font-size:44rpx;font-weight:780;letter-spacing: 0}.hero-sub{display:block;margin-top:8rpx;color:var(--text-secondary);font-size:25rpx}.section-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin:20rpx 24rpx 0;padding:8rpx;border:1rpx solid var(--border);border-radius:18rpx;background:#fff}.nav-item{min-height:78rpx;border-radius:13rpx;background:transparent;color:var(--text-muted);font-size:27rpx;font-weight:650}.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.14)}.streak-card{display:flex;align-items:center;justify-content:space-between;margin:20rpx 24rpx 0;padding:32rpx;border-radius:26rpx;background:#FFFFFF;color:#fff;box-shadow:0 18rpx 40rpx rgba(24,58,54,.16)}.streak-label{display:block;color:#B8DDD3;font-size:21rpx;font-weight:750;letter-spacing: 0}.streak-value{display:block;margin-top:2rpx;font-size:30rpx;font-weight:700}.streak-value .num{font-size:62rpx;font-weight:820;line-height:1.1}.streak-copy{display:block;margin-top:7rpx;color:#D7EBE5;font-size:22rpx}.streak-seal{width:96rpx;height:96rpx;display:flex;align-items:center;justify-content:center;border:2rpx solid rgba(255,255,255,.45);border-radius:50%;color:#fff;font-size:24rpx;font-weight:780;letter-spacing: 0}.calendar-card{padding-bottom:26rpx}.card-heading{display:flex;align-items:center;justify-content:space-between}.card-title{font-size:29rpx;font-weight:740}.card-note{color:var(--text-muted);font-size:21rpx}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:14rpx 10rpx;margin-top:22rpx}.day-dot{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface-muted);color:var(--faint);font-size:21rpx}.day-dot.on{background:var(--accent);color:#fff;font-weight:750;box-shadow:0 5rpx 12rpx rgba(47,125,107,.18)}.day-dot.today{outline:3rpx solid #A9CEC4;outline-offset:3rpx}.section-heading{margin:40rpx 28rpx 16rpx}.section-kicker{display:block;color:var(--accent-strong);font-size:20rpx;font-weight:750;letter-spacing: 0}.section-title{display:block;margin-top:3rpx;font-size:32rpx;font-weight:760}.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin:0 24rpx}.metric{min-height:140rpx;padding:22rpx;border:1rpx solid var(--border);border-radius:20rpx;background:#fff;box-shadow:var(--shadow-sm)}.metric-value{display:block;color:var(--ink);font-size:42rpx;font-weight:790}.metric-label{display:block;margin-top:2rpx;color:var(--text-muted);font-size:22rpx}.mastered{color:var(--accent-strong);font-size:23rpx;font-weight:700}.mastered .num{font-size:30rpx}.topic-list{margin-top:18rpx}.topic-row{display:flex;align-items:center;gap:14rpx;min-height:72rpx;border-bottom:1rpx solid var(--hairline)}.topic-rank{color:#A8B6B2;font-size:20rpx;font-weight:780}.topic-name{flex:1;color:var(--ink);font-size:26rpx;font-weight:650}.topic-errors{color:var(--warning);font-size:21rpx}.empty-copy{padding:30rpx 0;color:var(--text-muted);font-size:24rpx;line-height:1.65;text-align:center}.wrong-action{min-height:82rpx;margin-top:20rpx;border-radius:14rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:26rpx;font-weight:720}.badges-heading{margin-top:44rpx}.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12rpx;margin:0 24rpx}.badge-card{min-height:190rpx;padding:18rpx 12rpx;border:1rpx dashed #C9D5D1;border-radius:18rpx;background:#F4F7F6;text-align:center;opacity:.66}.badge-card.unlocked{border-style:solid;border-color:#BFD7D0;background:#fff;opacity:1;box-shadow:var(--shadow-sm)}.badge-mark{width:54rpx;height:54rpx;margin:0 auto 10rpx;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#E2E9E6;color:#8A9994;font-size:28rpx;font-weight:800}.unlocked .badge-mark{background:var(--accent);color:#fff}.badge-title{display:block;color:var(--ink);font-size:23rpx;font-weight:720}.badge-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:19rpx;line-height:1.45}.report-card{margin-top:36rpx;background:linear-gradient(145deg,#FFFFFF,#F3F8F6)}.report-label{color:var(--accent-strong);font-size:20rpx;font-weight:760;letter-spacing: 0}.report-title{display:block;margin-top:8rpx;color:var(--ink);font-size:31rpx;font-weight:760}.report-copy{display:block;margin-top:12rpx;color:var(--text-secondary);font-size:25rpx;line-height:1.8}.share-card{margin:22rpx 24rpx 0;padding:32rpx;border-radius:24rpx;background:#527CC9;color:#fff}.share-eyebrow{display:block;color:#A8D2C6;font-size:20rpx;font-weight:750;letter-spacing: 0}.share-title{display:block;margin-top:8rpx;font-size:34rpx;font-weight:760}.share-note{display:block;margin-top:7rpx;color:#CFE4DE;font-size:22rpx}.share-btn{min-height:84rpx;margin-top:24rpx;border-radius:14rpx;background:#fff;color:#24324A;font-size:26rpx;font-weight:720}
+.growth-hero{padding-bottom:44rpx}.hero-title{display:block;margin-top:8rpx;color:var(--ink);font-size:44rpx;font-weight:780;letter-spacing: 0}.hero-sub{display:block;margin-top:8rpx;color:var(--text-secondary);font-size:25rpx}.section-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8rpx;margin:20rpx 24rpx 0;padding:8rpx;border:1rpx solid var(--border);border-radius:18rpx;background:#fff}.nav-item{min-height:78rpx;border-radius:13rpx;background:transparent;color:var(--text-muted);font-size:27rpx;font-weight:650}.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 7rpx 18rpx rgba(24,58,54,.14)}.streak-card{display:flex;align-items:center;justify-content:space-between;margin:20rpx 24rpx 0;padding:32rpx;border-radius:26rpx;background:#FFFFFF;color:#fff;box-shadow:0 18rpx 40rpx rgba(24,58,54,.16)}.streak-label{display:block;color:#B8DDD3;font-size:21rpx;font-weight:750;letter-spacing: 0}.streak-value{display:block;margin-top:2rpx;font-size:30rpx;font-weight:700}.streak-value .num{font-size:62rpx;font-weight:820;line-height:1.1}.streak-copy{display:block;margin-top:7rpx;color:#D7EBE5;font-size:22rpx}.streak-seal{width:96rpx;height:96rpx;display:flex;align-items:center;justify-content:center;border:2rpx solid rgba(255,255,255,.45);border-radius:50%;color:#fff;font-size:24rpx;font-weight:780;letter-spacing: 0}.calendar-card{padding-bottom:26rpx}.card-heading{display:flex;align-items:center;justify-content:space-between}.card-title{font-size:29rpx;font-weight:740}.card-note{color:var(--text-muted);font-size:21rpx}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:14rpx 10rpx;margin-top:22rpx}.day-dot{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface-muted);color:var(--faint);font-size:21rpx}.day-dot.on{background:var(--accent);color:#fff;font-weight:750;box-shadow:0 5rpx 12rpx rgba(47,125,107,.18)}.day-dot.today{outline:3rpx solid #A9CEC4;outline-offset:3rpx}.section-heading{margin:40rpx 28rpx 16rpx}.section-kicker{display:block;color:var(--accent-strong);font-size:20rpx;font-weight:750;letter-spacing: 0}.section-title{display:block;margin-top:3rpx;font-size:32rpx;font-weight:760}.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin:0 24rpx}.metric{min-height:140rpx;padding:22rpx;border:1rpx solid var(--border);border-radius:20rpx;background:#fff;box-shadow:var(--shadow-sm)}.metric-value{display:block;color:var(--ink);font-size:42rpx;font-weight:790}.metric-label{display:block;margin-top:2rpx;color:var(--text-muted);font-size:22rpx}.mastered{color:var(--accent-strong);font-size:23rpx;font-weight:700}.mastered .num{font-size:30rpx}.topic-list{margin-top:18rpx}.topic-row{display:flex;align-items:center;gap:14rpx;min-height:72rpx;border-bottom:1rpx solid var(--hairline)}.topic-rank{color:#A8B6B2;font-size:20rpx;font-weight:780}.topic-name{flex:1;color:var(--ink);font-size:26rpx;font-weight:650}.topic-errors{color:var(--warning);font-size:21rpx}.empty-copy{padding:30rpx 0;color:var(--text-muted);font-size:24rpx;line-height:1.65;text-align:center}.wrong-action{min-height:82rpx;margin-top:20rpx;border-radius:14rpx;background:var(--accent-soft);color:var(--accent-strong);font-size:26rpx;font-weight:720}.badges-heading{margin-top:44rpx}.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12rpx;margin:0 24rpx}.badge-card{min-height:190rpx;padding:18rpx 12rpx;border:1rpx dashed #C9D5D1;border-radius:18rpx;background:#F4F7F6;text-align:center;opacity:.66}.badge-card.unlocked{border-style:solid;border-color:#BFD7D0;background:#fff;opacity:1;box-shadow:var(--shadow-sm)}.badge-mark{width:54rpx;height:54rpx;margin:0 auto 10rpx;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#E2E9E6;color:#8A9994;font-size:28rpx;font-weight:800}.unlocked .badge-mark{background:var(--accent);color:#fff}.badge-title{display:block;color:var(--ink);font-size:23rpx;font-weight:720}.badge-desc{display:block;margin-top:5rpx;color:var(--text-muted);font-size:19rpx;line-height:1.45}.report-card{margin-top:36rpx;background:linear-gradient(145deg,#FFFFFF,#F3F8F6)}.report-label{color:var(--accent-strong);font-size:20rpx;font-weight:760;letter-spacing: 0}.report-title{display:block;margin-top:8rpx;color:var(--ink);font-size:31rpx;font-weight:760}.report-copy{display:block;margin-top:12rpx;color:var(--text-secondary);font-size:25rpx;line-height:1.8}.share-card{margin:22rpx 24rpx 0;padding:32rpx;border-radius:24rpx;background:#0B789A;color:#fff}.share-eyebrow{display:block;color:#A8D2C6;font-size:20rpx;font-weight:750;letter-spacing: 0}.share-title{display:block;margin-top:8rpx;font-size:34rpx;font-weight:760}.share-note{display:block;margin-top:7rpx;color:#CFE4DE;font-size:22rpx}.share-btn{min-height:84rpx;margin-top:24rpx;border-radius:14rpx;background:#fff;color:#050505;font-size:26rpx;font-weight:720}
 .achievement-btn{min-height:84rpx;margin-top:12rpx;border:1rpx solid rgba(255,255,255,.4);border-radius:14rpx;background:transparent;color:#fff;font-size:26rpx;font-weight:720}.achievement-btn::after{border:0}
 
 /* 家长成长页：浅色学习档案，不使用整块深色成绩卡。 */
@@ -143,7 +144,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(82, 124, 201, .028) 64rpx 65rpx
+    rgba(153, 222, 244, .028) 64rpx 65rpx
   );
 }
 
@@ -154,7 +155,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   overflow: hidden;
   border-bottom: 1rpx solid var(--border);
   background:
-    linear-gradient(rgba(82, 124, 201, .045) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(153, 222, 244, .045) 1rpx, transparent 1rpx),
     linear-gradient(145deg, #FFFFFF, var(--primary-soft));
   background-size: 42rpx 42rpx, auto;
 }
@@ -211,7 +212,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   border-left: 8rpx solid var(--primary);
   border-radius: var(--r);
   background:
-    linear-gradient(rgba(233, 133, 119, .07) 1rpx, transparent 1rpx),
+    linear-gradient(rgba(247, 155, 192, .07) 1rpx, transparent 1rpx),
     linear-gradient(145deg, #FFFFFF, var(--primary-soft));
   background-size: 100% 42rpx, auto;
   color: var(--ink);
@@ -300,11 +301,11 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 
 .share-card {
   margin-bottom: 24rpx;
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   border-top: 7rpx solid var(--primary);
   border-radius: var(--r);
   background:
-    linear-gradient(90deg, rgba(82, 124, 201, .055) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(153, 222, 244, .055) 1rpx, transparent 1rpx),
     var(--surface);
   background-size: 44rpx 100%, auto;
   color: var(--ink);
@@ -330,7 +331,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 .achievement-btn {
   border-color: #CADCF2;
   background: var(--primary-soft);
-  color: #315EA8;
+  color: #050505;
 }
 
 .share-btn::after,
@@ -383,29 +384,29 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
 
 /* Student challenge theme v3: progress feels lively through rhythm, not a color collage. */
 .student-challenge-page {
-  --page-bg: #F6FAFF;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #6E7D91;
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EDF5FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --border: #DDE7F2;
+  --surface-muted: #FBFDFE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --border: #DCE9ED;
   min-height: 100vh;
   background-color: var(--page-bg);
-  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(82, 124, 201, .05) 56rpx 57rpx);
+  background-image: repeating-linear-gradient(0deg, transparent 0 55rpx, rgba(153, 222, 244, .05) 56rpx 57rpx);
   color: var(--ink);
 }
 .student-challenge-page .growth-hero {
   min-height: 0;
   padding: 34rpx 30rpx 28rpx;
   border: 0;
-  border-bottom: 6rpx solid var(--primary);
+  border-bottom: 6rpx solid var(--brand-sky);
   border-radius: 0;
   background: var(--surface);
   color: var(--ink);
@@ -436,7 +437,7 @@ function openAchievements() { uni.navigateTo({ url: `/pages/achievements/index?s
   border-radius: 16rpx;
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 6rpx 18rpx rgba(36, 50, 74, .06);
+  box-shadow: 0 6rpx 18rpx rgba(5, 5, 5, .06);
 }
 .student-challenge-page .metrics-grid,
 .student-challenge-page .badges-grid { align-items: start; }

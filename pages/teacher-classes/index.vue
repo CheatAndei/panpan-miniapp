@@ -150,6 +150,7 @@
 
 <script>
 import { api } from '@/utils/api';
+import { buildShareEntryPath } from '@/utils/welcome-entry';
 import { confirmAction, toastError, logError } from '@/utils/ui';
 import { PERSONALITY_CATEGORIES } from '@/utils/traits';
 
@@ -178,12 +179,12 @@ export default {
     if (!inviteCode) {
       return {
         title: '番番记录',
-        path: '/pages/index/index'
+        path: buildShareEntryPath('home')
       };
     }
     return {
       title: `绑定${studentName}的番番记录`,
-      path: `/pages/bind/bind?code=${encodeURIComponent(inviteCode)}`
+      path: buildShareEntryPath('bind', { code: inviteCode })
     };
   },
   methods: {
@@ -357,7 +358,7 @@ export default {
 }
 .hero {
   padding: 30rpx 28rpx 24rpx;
-  border-bottom: 6rpx solid var(--primary);
+  border-bottom: 6rpx solid var(--brand-sky);
   box-shadow: none;
   animation: none;
 }
@@ -561,12 +562,12 @@ export default {
 }
 .btn-xs.copy,
 .btn-xs.share {
-  border-color: #DDE7F2;
+  border-color: #DCE9ED;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 .btn-xs.del {
-  border-color: #EFC9C2;
+  border-color: #F2C8D5;
   background: var(--coral-soft);
   color: var(--danger);
 }
@@ -595,13 +596,13 @@ export default {
 }
 .btn-transfer-stu[disabled] { opacity: .42; }
 .btn-add-stu {
-  border: 1rpx solid #DDE7F2;
+  border: 1rpx solid #DCE9ED;
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
 .btn-transfer-stu {
   margin-bottom: 18rpx;
-  border: 1rpx solid #BFD0EC;
+  border: 1rpx solid #C7DDE4;
   background: var(--gold-soft);
   color: var(--warning);
 }
@@ -636,7 +637,7 @@ export default {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(36, 50, 74, .44);
+  background: rgba(5, 5, 5, .44);
 }
 .modal {
   width: 100%;
@@ -670,7 +671,7 @@ export default {
   padding: 0 20rpx;
   border: 1rpx solid var(--border);
   border-radius: 9rpx;
-  background: #F6FAFF;
+  background: #F7FCFE;
   color: var(--ink);
   font-size: 28rpx;
   line-height: 82rpx;
@@ -846,34 +847,34 @@ export default {
 
 /* Teacher operations theme: bright learning studio v2. */
 .page {
-  --primary: #527CC9;
-  --primary-strong: #315EA8;
-  --primary-soft: #EAF2FF;
-  --accent: #527CC9;
-  --accent-strong: #315EA8;
-  --accent-soft: #EAF2FF;
-  --success: #315EA8;
-  --success-soft: #EAF2FF;
-  --gold: #527CC9;
-  --gold-soft: #EAF2FF;
-  --warning: #315EA8;
-  --warning-soft: #EAF2FF;
-  --coral: #E98577;
-  --coral-soft: #FFF0ED;
-  --danger: #D66D62;
-  --danger-soft: #FFF0ED;
-  --info: #527CC9;
-  --info-soft: #EAF2FF;
-  --ink: #24324A;
-  --text-secondary: #5C6C84;
-  --text-muted: #5C6C84;
-  --page-bg: #F6FAFF;
+  --primary: #0B789A;
+  --primary-strong: #050505;
+  --primary-soft: #E5F8FE;
+  --accent: #F79BC0;
+  --accent-strong: #9B2F5F;
+  --accent-soft: #FFF0F6;
+  --success: #15755F;
+  --success-soft: #E9F8F3;
+  --gold: #FFF48A;
+  --gold-soft: #FFFBE0;
+  --warning: #8A6B00;
+  --warning-soft: #FFFBE0;
+  --coral: #F79BC0;
+  --coral-soft: #FFF0F6;
+  --danger: #B53A52;
+  --danger-soft: #FFF0F3;
+  --info: #0B789A;
+  --info-soft: #E5F8FE;
+  --ink: #050505;
+  --text-secondary: #50545B;
+  --text-muted: #6B7078;
+  --page-bg: #F7FCFE;
   --surface: #FFFFFF;
-  --surface-muted: #F8FBFF;
-  --border: #DDE7F2;
-  --hairline: #E9F0F8;
-  background-color: #F6FAFF;
-  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx);
+  --surface-muted: #FBFDFE;
+  --border: #DCE9ED;
+  --hairline: #EDF3F5;
+  background-color: #F7FCFE;
+  background-image: repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(153, 222, 244, .035) 64rpx 65rpx);
 }
 .page {
   box-sizing: border-box;
@@ -883,7 +884,7 @@ export default {
   position: relative;
   padding: 28rpx 28rpx 22rpx 36rpx;
   border: 0;
-  border-bottom: 1rpx solid #DDE7F2;
+  border-bottom: 1rpx solid #DCE9ED;
   background: #FFFFFF !important;
 }
 .hero::before {
@@ -893,7 +894,7 @@ export default {
   left: 20rpx;
   width: 6rpx;
   border-radius: 3rpx;
-  background: #527CC9;
+  background: #0B789A;
   content: "";
 }
 .hero::after {
@@ -901,31 +902,31 @@ export default {
   right: 28rpx;
   width: 112rpx;
   height: 8rpx;
-  background: #527CC9;
+  background: #0B789A;
 }
-.hero .eyebrow { color: #315EA8; }
+.hero .eyebrow { color: #050505; }
 .hero-title-line {
   display: flex;
   align-items: center;
   gap: 10rpx;
   margin-top: 6rpx;
 }
-.hero-title { margin-top: 0; color: #24324A; }
-.hero-sub { color: #5C6C84; }
+.hero-title { margin-top: 0; color: #050505; }
+.hero-sub { color: #50545B; }
 .state-card,
 .class-card {
-  border-color: #DDE7F2;
+  border-color: #DCE9ED;
   border-radius: 14rpx;
   background: #FFFFFF;
 }
-.class-card::before { background: #527CC9; }
+.class-card::before { background: #0B789A; }
 .c-header {
   min-height: 0;
   padding: 17rpx 18rpx 15rpx 24rpx;
   align-items: flex-start;
 }
-.c-toggle { color: #315EA8; }
-.stu-list { border-top-color: #E9F0F8; }
+.c-toggle { color: #050505; }
+.stu-list { border-top-color: #EDF3F5; }
 .stu-row {
   min-height: 0;
   padding: 14rpx 0;
@@ -943,7 +944,7 @@ export default {
   order: -1;
   max-width: none;
   margin-right: auto;
-  color: #5C6C84;
+  color: #50545B;
 }
 .btn-xs,
 .share-btn {
@@ -954,14 +955,14 @@ export default {
 }
 .btn-xs.copy,
 .btn-xs.share {
-  border-color: #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #C7DDE4;
+  background: #E5F8FE;
+  color: #050505;
 }
 .btn-xs.del {
-  border-color: #EFC9C2;
-  background: #FFF0ED;
-  color: #D66D62;
+  border-color: #F2C8D5;
+  background: #FFF0F6;
+  color: #B53A52;
 }
 .btn-add-stu,
 .btn-transfer-stu {
@@ -971,14 +972,14 @@ export default {
   line-height: 68rpx;
 }
 .btn-add-stu {
-  border-color: #BFD0EC;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #C7DDE4;
+  background: #E5F8FE;
+  color: #050505;
 }
 .btn-transfer-stu {
-  border-color: #BFD0EC;
+  border-color: #C7DDE4;
   background: #FFFFFF;
-  color: #315EA8;
+  color: #050505;
 }
 .create-wrap { background: rgba(248, 252, 249, .98); }
 .btn-create,
@@ -986,7 +987,7 @@ export default {
   height: 82rpx;
   min-height: 0;
   padding: 0 18rpx;
-  background: #527CC9;
+  background: #0B789A;
   color: #FFFFFF;
   line-height: 82rpx;
 }
@@ -995,8 +996,8 @@ export default {
   background: #FFFFFF;
 }
 .input {
-  background: #F6FAFF;
-  border-color: #DDE7F2;
+  background: #F7FCFE;
+  border-color: #DCE9ED;
 }
 .gender-btn,
 .lv-btn {
@@ -1007,13 +1008,13 @@ export default {
 .gender-btn.on,
 .lv-btn.on,
 .trait-tag.on {
-  border-color: #527CC9;
-  background: #EAF2FF;
-  color: #315EA8;
+  border-color: #0B789A;
+  background: #E5F8FE;
+  color: #050505;
 }
 .cat-head {
   align-items: flex-start;
-  background: #F8FBFF;
+  background: #F8FCFD;
 }
 .btn-cancel {
   height: 64rpx;

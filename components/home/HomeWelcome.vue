@@ -79,9 +79,8 @@ defineEmits(['login', 'repair']);
   padding: 36rpx 32rpx 64rpx;
   box-sizing: border-box;
   overflow: hidden;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 63rpx, rgba(82, 124, 201, .035) 64rpx 65rpx),
-    var(--page-bg);
+  color: #050505;
+  background: #FFFFFF;
 }
 
 .welcome-topline {
@@ -109,7 +108,7 @@ defineEmits(['login', 'repair']);
 }
 
 .welcome-code {
-  color: var(--accent-strong);
+  color: #050505;
   font-size: 19rpx;
   font-weight: 750;
   letter-spacing: 0;
@@ -122,8 +121,8 @@ defineEmits(['login', 'repair']);
   padding: 54rpx 38rpx 44rpx;
   overflow: hidden;
   box-sizing: border-box;
-  border-top: 1rpx solid #C9DAF0;
-  border-bottom: 8rpx solid var(--primary);
+  border-top: 12rpx solid #F79BC0;
+  border-bottom: 16rpx solid #99DEF4;
   background: #FFFFFF;
   animation: welcome-enter var(--motion-slow) var(--ease-out) both;
 }
@@ -135,7 +134,7 @@ defineEmits(['login', 'repair']);
   right: 42rpx;
   width: 150rpx;
   height: 12rpx;
-  background: var(--primary);
+  background: #99DEF4;
 }
 
 .welcome-hero::after {
@@ -145,7 +144,7 @@ defineEmits(['login', 'repair']);
   right: 192rpx;
   width: 54rpx;
   height: 12rpx;
-  background: var(--coral);
+  background: #FFF48A;
 }
 
 .hero-copy {
@@ -156,7 +155,7 @@ defineEmits(['login', 'repair']);
 
 .hero-kicker {
   display: block;
-  color: var(--primary-strong);
+  color: #0B789A;
   font-size: 21rpx;
   font-weight: 750;
   letter-spacing: 0;
@@ -195,10 +194,10 @@ defineEmits(['login', 'repair']);
   width: 188rpx;
   height: 220rpx;
   box-sizing: border-box;
-  border: 1rpx solid #BFD0EC;
+  border: 4rpx solid #050505;
   border-radius: 10rpx;
   background: #FFFFFF;
-  box-shadow: 0 12rpx 26rpx rgba(36, 50, 74, .1);
+  box-shadow: 10rpx 12rpx 0 rgba(153, 222, 244, .5);
 }
 
 .sheet-back {
@@ -222,13 +221,13 @@ defineEmits(['login', 'repair']);
 .sheet-copy {
   height: 8rpx;
   border-radius: 4rpx;
-  background: #DCEBE3;
+  background: #99DEF4;
 }
 
 .sheet-rule + .sheet-rule { margin-top: 18rpx; }
 .sheet-rule.short,
 .sheet-copy.short { width: 58%; }
-.sheet-index { color: var(--accent-strong); font-size: 17rpx; font-weight: 760; }
+.sheet-index { color: #050505; font-size: 17rpx; font-weight: 850; }
 .sheet-mark {
   width: 72rpx;
   height: 72rpx;
@@ -237,10 +236,10 @@ defineEmits(['login', 'repair']);
   justify-content: center;
   margin: 20rpx 0 18rpx;
   border-radius: 50%;
-  background: var(--primary-soft);
+  background: #FFF48A;
   animation: sheet-mark-pop 420ms 430ms var(--ease-out) both;
 }
-.sheet-title { width: 76%; height: 10rpx; background: #BFD0EC; }
+.sheet-title { width: 76%; height: 10rpx; background: #F79BC0; }
 .sheet-copy { width: 100%; margin-top: 14rpx; }
 .sheet-accent {
   position: absolute;
@@ -248,7 +247,7 @@ defineEmits(['login', 'repair']);
   bottom: 14rpx;
   width: 44rpx;
   height: 8rpx;
-  background: var(--coral);
+  background: #050505;
 }
 
 .welcome-signals {
@@ -267,30 +266,27 @@ defineEmits(['login', 'repair']);
   justify-content: center;
   gap: 7rpx;
   padding: 10rpx 6rpx;
-  border: 1rpx solid var(--border);
+  border: 3rpx solid #050505;
   border-radius: var(--r);
   background: #FFFFFF;
-  color: var(--text-secondary);
+  color: #050505;
   font-size: 22rpx;
   font-weight: 650;
   animation: signal-enter 340ms var(--ease-out) both;
 }
 
 .signal-item:nth-child(1) {
-  border-color: #C9DAF0;
-  background: #F8FBFF;
+  background: #99DEF4;
   animation-delay: 220ms;
 }
 
 .signal-item:nth-child(2) {
-  border-color: #C9DAF0;
-  background: #F8FBFF;
+  background: #F79BC0;
   animation-delay: 280ms;
 }
 
 .signal-item:nth-child(3) {
-  border-color: #C9DAF0;
-  background: #F8FBFF;
+  background: #FFF48A;
   animation-delay: 340ms;
 }
 
@@ -304,8 +300,8 @@ defineEmits(['login', 'repair']);
 }
 
 .signal-icon.blue,
-.signal-icon.yellow { background: var(--primary-soft); color: var(--primary-strong); }
-.signal-icon.mint { background: var(--coral-soft); color: var(--danger); }
+.signal-icon.yellow,
+.signal-icon.mint { background: #FFFFFF; color: #050505; }
 
 .welcome-actions {
   margin-top: 34rpx;
@@ -325,18 +321,18 @@ defineEmits(['login', 'repair']);
 }
 
 .login-btn {
-  background: var(--primary-strong);
+  background: #050505;
   color: #FFFFFF;
   font-size: 30rpx;
-  box-shadow: 0 12rpx 26rpx rgba(49, 94, 168, .18);
+  box-shadow: none;
 }
 
 .repair-login-btn {
   min-height: 78rpx;
   margin-top: 14rpx;
-  border: 1rpx solid #BFD0EC;
+  border: 3rpx solid #050505;
   background: #FFFFFF;
-  color: var(--primary-strong);
+  color: #050505;
   font-size: 26rpx;
 }
 

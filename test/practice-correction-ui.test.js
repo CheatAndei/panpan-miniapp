@@ -130,7 +130,7 @@ test('保存区移除刻意隐私说明并支持相册拒权后前往设置恢�
 test('批改台保持浅蓝主视觉，计算打卡海报单独使用绿色主题', () => {
   const poster = read('utils/practice-review-poster.js');
 
-  for (const color of ['#527CC9', '#315EA8', '#EAF2FF', '#F6FAFF', '#24324A', '#D66D62']) {
+  for (const color of ['#0B789A', '#050505', '#E5F8FE', '#F7FCFE', '#F79BC0', '#B53A52']) {
     assert.match(review, new RegExp(color, 'u'));
   }
   for (const color of ['#34B98A', '#187A5D', '#E8F8F1', '#F4FBF8', '#234039']) {

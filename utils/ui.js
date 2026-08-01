@@ -25,7 +25,7 @@ export function confirmAction({ title = '请确认', content, confirmText = '确
       title,
       content,
       confirmText,
-      confirmColor: danger ? '#D66D62' : '#315EA8',
+      confirmColor: danger ? '#B53A52' : '#050505',
       success: (result) => resolve(Boolean(result.confirm)),
       fail: () => resolve(false)
     });

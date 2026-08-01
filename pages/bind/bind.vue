@@ -85,14 +85,14 @@ export default {
 
 <style scoped>
 .page {
-  --panpan-green: #527CC9;
-  --panpan-green-strong: #315EA8;
-  --panpan-sprout: #527CC9;
-  --panpan-coral: #E98577;
-  --panpan-leaf: #315EA8;
-  --panpan-paper: #F6FAFF;
-  --panpan-ink: #24324A;
-  --panpan-muted: #5C6C84;
+  --panpan-green: #0B789A;
+  --panpan-green-strong: #050505;
+  --panpan-sprout: #0B789A;
+  --panpan-coral: #F79BC0;
+  --panpan-leaf: #050505;
+  --panpan-paper: #F7FCFE;
+  --panpan-ink: #050505;
+  --panpan-muted: #50545B;
   --panpan-line: #D9E5F3;
   min-height: 100vh;
   display: flex;
@@ -104,7 +104,7 @@ export default {
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 63rpx,
-    rgba(82, 124, 201, .055) 64rpx 65rpx
+    rgba(153, 222, 244, .055) 64rpx 65rpx
   );
 }
 
@@ -128,7 +128,7 @@ export default {
   border: 2rpx solid var(--panpan-ink);
   border-radius: 14rpx;
   background: var(--panpan-sprout);
-  box-shadow: 8rpx 8rpx 0 rgba(36, 50, 74, .08);
+  box-shadow: 8rpx 8rpx 0 rgba(5, 5, 5, .08);
 }
 
 .hero-title {
@@ -154,7 +154,7 @@ export default {
   border-top: 7rpx solid var(--panpan-green);
   border-radius: 16rpx;
   background: #FFFFFF;
-  box-shadow: 0 12rpx 28rpx rgba(36, 50, 74, .08);
+  box-shadow: 0 12rpx 28rpx rgba(5, 5, 5, .08);
   animation: bind-card-enter var(--motion-slow) 50ms var(--ease-out) both;
 }
 
@@ -164,11 +164,11 @@ export default {
   gap: 9rpx;
   margin-bottom: 22rpx;
   padding: 16rpx 18rpx;
-  border: 1rpx solid rgba(233, 133, 119, .42);
+  border: 1rpx solid rgba(247, 155, 192, .42);
   border-left: 6rpx solid var(--panpan-coral);
   border-radius: 10rpx;
-  background: #FFF0ED;
-  color: #D66D62;
+  background: #FFF0F6;
+  color: #B53A52;
   font-size: 24rpx;
   line-height: 1.58;
 }
@@ -183,7 +183,7 @@ export default {
   padding: 0 18rpx;
   border: 2rpx solid var(--panpan-line);
   border-radius: 12rpx;
-  background: #F6FAFF;
+  background: #F7FCFE;
   color: var(--panpan-ink);
   font-size: 34rpx;
   font-weight: 740;
@@ -197,7 +197,7 @@ export default {
 .code-input:focus {
   border-color: var(--panpan-green);
   background: #FFFFFF;
-  box-shadow: 0 0 0 5rpx rgba(82, 124, 201, .14);
+  box-shadow: 0 0 0 5rpx rgba(153, 222, 244, .14);
 }
 
 .code-hint { display: flex; align-items: center; justify-content: center; gap: 7rpx; margin-top: 12rpx; color: var(--panpan-muted); font-size: 22rpx; text-align: center; }
@@ -214,10 +214,10 @@ export default {
   color: #FFFFFF;
   font-size: 27rpx;
   font-weight: 720;
-  box-shadow: 0 9rpx 18rpx rgba(49, 94, 168, .2);
+  box-shadow: 0 9rpx 18rpx rgba(5, 5, 5, .2);
 }
 .btn-primary::after { border: 0; }
-.btn-primary[disabled] { background: #C9DAF0; box-shadow: none; }
+.btn-primary[disabled] { background: #CDE8F0; box-shadow: none; }
 .result-card { text-align: center; }
 .result-icon { display: flex; justify-content: center; margin-bottom: 20rpx; }
 
@@ -229,7 +229,7 @@ export default {
   justify-content: center;
   border: 2rpx solid var(--panpan-green);
   border-radius: 16rpx;
-  background: #EAF2FF;
+  background: #E5F8FE;
   color: var(--panpan-green-strong);
   animation: pop 260ms var(--ease-out);
 }

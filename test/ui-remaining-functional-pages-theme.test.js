@@ -65,7 +65,7 @@ function assertCompactControls(source, file) {
   }
 }
 
-test('parent-adjacent pages use the restored blue-coral Panpan identity', () => {
+test('parent-adjacent pages use the sky-pink-yellow Panpan identity', () => {
   for (const file of pages) {
     const source = read(file);
     const styleBlocks = source.match(/<style scoped>/g) || [];
@@ -76,11 +76,10 @@ test('parent-adjacent pages use the restored blue-coral Panpan identity', () => 
       .filter((value) => value > 16);
 
     assert.equal(styleBlocks.length, 1, `${file} should have one scoped style block`);
-    assert.match(source, /#527CC9/i, `${file} should visibly use the restored learning blue`);
-    assert.match(source, /#315EA8/i, `${file} should visibly use strong blue actions`);
-    assert.match(source, /#F6FAFF/i, `${file} should use the pale blue paper background`);
-    assert.match(source, /#24324A/i, `${file} should use blue-charcoal text`);
-    assert.match(source, /#E98577|#D66D62|#FFF0ED/i, `${file} should reserve coral for feedback or emphasis`);
+    assert.match(source, /#0B789A/i, `${file} should visibly use accessible cyan actions`);
+    assert.match(source, /#050505/i, `${file} should visibly use near-black anchors`);
+    assert.match(source, /#F7FCFE/i, `${file} should use the pale cyan paper background`);
+    assert.match(source, /#F79BC0|#B53A52|#FFF0F6/i, `${file} should reserve candy pink for feedback or emphasis`);
     assert.doesNotMatch(source, forbiddenPalette, `${file} should not retain the replaced green-coral palette or stale saturated blue`);
     assert.doesNotMatch(source, /border-radius:\s*var\(--r/i, `${file} should not hide oversized global radii behind tokens`);
     assert.doesNotMatch(source, /radial-gradient|(?:hero|card|page)::after[^}]*border-radius:\s*50%/is, `${file} should not use radial or orb decoration`);

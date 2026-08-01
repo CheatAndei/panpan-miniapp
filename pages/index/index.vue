@@ -1,15 +1,25 @@
 <template>
   <view class="page">
-    <HomeWelcome
-      v-if="!user.role"
+    <BrandEntrance
+      v-if="entranceVisible"
       :brand="BRAND"
-      :loading="loginLoading"
-      @login="handleLogin"
-      @repair="handleLoginRepair"
+      :mode="entranceMode"
+      :phrase="entrancePhrase"
+      :loading-text="entranceLoadingText"
+      :leaving="entranceLeaving"
     />
 
-    <TeacherHomeView
-      v-else-if="user.role === 'teacher'"
+    <view class="home-stage" :class="{ 'is-waiting': entranceVisible }">
+      <HomeWelcome
+        v-if="!user.role"
+        :brand="BRAND"
+        :loading="loginLoading"
+        @login="handleLogin"
+        @repair="handleLoginRepair"
+      />
+
+      <TeacherHomeView
+        v-else-if="user.role === 'teacher'"
       v-model:classes-expanded="teacherClassesExpanded"
       :brand="BRAND"
       :teacher-name="currentTeacherName"
@@ -36,10 +46,10 @@
       @dismiss-choice-alert="dismissChoiceAlert"
       @reload="loadTeacherData"
       @open-promotion="openPromotionStudio"
-    />
+      />
 
-    <ParentHomeView
-      v-else
+      <ParentHomeView
+        v-else
       v-model:feedback-text="fbText"
       v-model:show-feedback="showFb"
       v-model:feedback-detail="showFbDetail"
@@ -75,29 +85,38 @@
       @open-pdf="openPdf"
       @preview-feedback-image="previewFbImg"
       @send-feedback="sendFeedback"
-    />
+      />
 
-    <HomeworkNoticeDialog
-      v-if="user.role === 'parent' && homeworkNotice"
+      <HomeworkNoticeDialog
+        v-if="user.role === 'parent' && homeworkNotice"
       :notice="homeworkNotice"
       :count="homeworkNoticeCount"
       :handling="homeworkNoticeHandling"
       @dismiss="dismissHomeworkNotice"
       @open="openHomeworkNotice"
-    />
+      />
 
-    <view class="footer">{{ FOOTER_TEXT }}<br />桂ICP备2026013218号-2</view>
+      <view class="footer">{{ FOOTER_TEXT }}<br />桂ICP备2026013218号-2</view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed, nextTick } from 'vue';
-import { onHide, onShow, onPullDownRefresh } from '@dcloudio/uni-app';
+import { onHide, onLoad, onShow, onPullDownRefresh, onUnload } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { clearLocalSession, doLogin, getUser } from '@/utils/auth';
 import { BRAND, CONTACT_MODE, FOOTER_TEXT, TEACHER_WECHAT, teacherDisplayName, teacherNameFromChild } from '@/utils/brand';
 import { toastError, logError } from '@/utils/ui';
 import { requestSubscribeBatches, subscribeResultTitle } from '@/utils/subscribe';
+import { nextWelcomeCopy } from '@/utils/welcome-copy';
+import {
+  clearEntranceTarget,
+  consumeWelcomePending,
+  peekEntranceTarget,
+  waitForMinimum,
+} from '@/utils/welcome-entry';
+import BrandEntrance from '@/components/home/BrandEntrance.vue';
 import HomeWelcome from '@/components/home/HomeWelcome.vue';
 import HomeworkNoticeDialog from '@/components/home/HomeworkNoticeDialog.vue';
 import ParentHomeView from '@/components/home/ParentHomeView.vue';
@@ -113,6 +132,119 @@ if (token && savedUser?.role) {
   uni.removeStorageSync('user');
   uni.removeStorageSync('activeChildId');
 }
+
+const entranceVisible = ref(false);
+const entranceLeaving = ref(false);
+const entranceMode = ref('returning');
+const entrancePhrase = ref('持之以恒');
+const entranceLoadingText = ref('正在同步学习记录');
+const entranceTarget = ref('');
+let entranceStartedAt = 0;
+let entranceCompleting = false;
+let entranceSession = 0;
+let pageAlive = true;
+let bypassHomeLoadForTarget = false;
+
+function beginEntrance(reason = 'cold', pendingPhrase = '') {
+  if (user.value.role === 'teacher') return;
+  entranceMode.value = user.value.role === 'parent' ? 'returning' : 'new';
+  entrancePhrase.value = entranceMode.value === 'returning'
+    ? pendingPhrase || nextWelcomeCopy()
+    : '初次见面';
+  entranceLoadingText.value = entranceMode.value === 'new'
+    ? '正在准备你的学习记录'
+    : reason === 'share' ? '正在打开分享内容' : '正在同步今日记录';
+  entranceStartedAt = Date.now();
+  entranceCompleting = false;
+  entranceLeaving.value = false;
+  entranceVisible.value = true;
+  uni.hideTabBar({ animation: false, fail: () => {} });
+}
+
+function openEntranceTarget() {
+  const target = entranceTarget.value;
+  entranceTarget.value = '';
+  if (!target) return;
+  if (target === '/pages/index/index') {
+    clearEntranceTarget();
+    return;
+  }
+  if (target.startsWith('/pages/index/index?')) {
+    clearEntranceTarget();
+    uni.reLaunch({
+      url: target,
+      fail: () => failEntranceTarget(),
+    });
+    return;
+  }
+  if (target.startsWith('/pages/mine/index')) {
+    uni.switchTab({
+      url: '/pages/mine/index',
+      success: completeEntranceTarget,
+      fail: () => failEntranceTarget(),
+    });
+    return;
+  }
+  setTimeout(() => {
+    if (!pageAlive) return;
+    uni.navigateTo({
+      url: target,
+      success: completeEntranceTarget,
+      fail: () => failEntranceTarget(),
+    });
+  }, 40);
+}
+
+function completeEntranceTarget() {
+  clearEntranceTarget();
+  bypassHomeLoadForTarget = false;
+}
+
+function failEntranceTarget() {
+  clearEntranceTarget();
+  bypassHomeLoadForTarget = false;
+  if (!pageAlive) return;
+  uni.showToast({ title: '页面打开失败，已返回首页', icon: 'none' });
+  setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 80);
+}
+
+async function completeEntranceAfter(request) {
+  if (!entranceVisible.value || entranceCompleting) return;
+  entranceCompleting = true;
+  const session = ++entranceSession;
+  try {
+    await Promise.resolve(request).catch(() => null);
+    const minimum = entranceMode.value === 'new' ? 1500 : 600;
+    await waitForMinimum(entranceStartedAt, minimum);
+    if (!pageAlive || session !== entranceSession) return;
+    entranceLeaving.value = true;
+    await new Promise((resolve) => setTimeout(resolve, 240));
+    if (!pageAlive || session !== entranceSession) return;
+    entranceVisible.value = false;
+    entranceLeaving.value = false;
+    uni.showTabBar({ animation: false, fail: () => {} });
+    openEntranceTarget();
+  } finally {
+    entranceCompleting = false;
+  }
+}
+
+onLoad(() => {
+  const pending = consumeWelcomePending(user.value.role);
+  entranceTarget.value = peekEntranceTarget();
+  if (!pending) {
+    if (entranceTarget.value === '/pages/index/index') {
+      clearEntranceTarget();
+      entranceTarget.value = '';
+    } else if (entranceTarget.value) {
+      bypassHomeLoadForTarget = true;
+      nextTick(openEntranceTarget);
+    }
+    return;
+  }
+  beginEntrance(pending.reason, pending.phrase);
+  if (user.value.role !== 'parent') completeEntranceAfter(Promise.resolve());
+});
 
 // 每次页面显示时刷新数据
 let parentRefreshTimer = null;
@@ -146,17 +278,26 @@ function resetHomeScroll() {
 onShow(() => {
   stopParentRefresh();
   stopTeacherRefresh();
+  if (bypassHomeLoadForTarget) return;
   if (user.value.role === 'teacher') {
     loadTeacherData({ announcePractice: true }).finally(startTeacherRefresh);
   }
   else if (user.value.role === 'parent') {
-    loadNotifyTemplates();
+    const notifyPromise = loadNotifyTemplates();
     // tabBar 页面会保留上次滚动位置；等异步孩子头部插入后再回顶，避免顶部看似被裁掉。
-    loadParentData().finally(resetHomeScroll);
+    const parentPromise = loadParentData().finally(resetHomeScroll);
+    if (entranceVisible.value) completeEntranceAfter(Promise.allSettled([notifyPromise, parentPromise]));
     parentRefreshTimer = setInterval(() => loadParentData(), 30000);
   }
 });
 onHide(() => {
+  stopParentRefresh();
+  stopTeacherRefresh();
+});
+onUnload(() => {
+  pageAlive = false;
+  entranceSession += 1;
+  if (entranceVisible.value) uni.showTabBar({ animation: false, fail: () => {} });
   stopParentRefresh();
   stopTeacherRefresh();
 });
@@ -606,7 +747,18 @@ async function loadParentData(childId) {
 .page {
   min-height: 100vh;
   padding-bottom: calc(44rpx + env(safe-area-inset-bottom));
-  background: var(--page-bg, #F8FBFF);
+  background: var(--page-bg, #F7FCFE);
+}
+
+.home-stage {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out);
+}
+
+.home-stage.is-waiting {
+  opacity: 0;
+  transform: translateY(12rpx);
 }
 
 .footer {
@@ -615,5 +767,10 @@ async function loadParentData(childId) {
   font-size: 24rpx;
   line-height: 1.6;
   text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-stage { transition-duration: .01ms !important; }
+  .home-stage.is-waiting { transform: none; }
 }
 </style>
