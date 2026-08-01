@@ -20,7 +20,10 @@ const {
   seedG8SourcePack,
 } = require('../services/g8-source-pack-seed');
 const { syncG8ExamPapers } = require('../services/g8-exam-sync');
-const { buildG8ExamBundle } = require('../scripts/build-g8-exam-bundle');
+const {
+  buildG8ExamBundle,
+  questionLinks,
+} = require('../scripts/build-g8-exam-bundle');
 
 test.before(async () => {
   fs.mkdirSync(rubbish, { recursive: true });
@@ -35,9 +38,48 @@ test.after(() => {
     process.env.EXAM_LIBRARY_DIR,
     path.join(rubbish, `g8-exam-sync-${suffix}`),
     path.join(rubbish, `g8-exam-bundle-${suffix}`),
+    path.join(rubbish, `g8-question-links-${suffix}`),
   ]) {
     try { fs.rmSync(target, { recursive: true, force: true }); } catch {}
   }
+});
+
+test('整卷关联仅包含实际可入库题，隔离未知 PDF 字符题', () => {
+  const root = path.join(rubbish, `g8-question-links-${suffix}`);
+  const choiceRoot = path.join(root, 'choice');
+  const terminalRoot = path.join(root, 'terminal');
+  fs.mkdirSync(choiceRoot, { recursive: true });
+  fs.mkdirSync(terminalRoot, { recursive: true });
+  const choice = (sourceKey, value) => ({
+    source_key: sourceKey,
+    exam_stable_code: 'GZ8-TEST-001',
+    topic_keys: ['g8-01-triangle-lines'],
+    scope_confidence: 'high',
+    source_options: { A: value, B: 'B', C: 'C', D: 'D' },
+    explanation: '正常解析',
+  });
+  fs.writeFileSync(path.join(choiceRoot, 'manifest.json'), `${JSON.stringify({
+    questions: [choice('GZ8-TEST-001-Q01', 'A'), choice('GZ8-TEST-001-Q02', '\uE123')],
+  })}\n`);
+  fs.writeFileSync(path.join(terminalRoot, 'manifest.json'), `${JSON.stringify({
+    questions: [{
+      source_key: 'gz8-terminal-GZ8-TEST-001-Q20',
+      exam_stable_code: 'GZ8-TEST-001',
+      topic_keys: ['g8-01-triangle-lines'],
+      scope_confidence: 'high',
+    }],
+  })}\n`);
+  const staleManifest = {
+    question_links: [
+      { kind: 'choice', question_key: 'GZ8-TEST-001-Q01', exam_stable_code: 'GZ8-TEST-001' },
+      { kind: 'choice', question_key: 'GZ8-TEST-001-Q02', exam_stable_code: 'GZ8-TEST-001' },
+      { kind: 'terminal', question_key: 'gz8-terminal-GZ8-TEST-001-Q20', exam_stable_code: 'GZ8-TEST-001' },
+    ],
+  };
+  assert.deepEqual(questionLinks(root, staleManifest), [
+    { kind: 'choice', question_key: 'GZ8-TEST-001-Q01', exam_stable_code: 'GZ8-TEST-001' },
+    { kind: 'terminal', question_key: 'gz8-terminal-GZ8-TEST-001-Q20', exam_stable_code: 'GZ8-TEST-001' },
+  ]);
 });
 
 test('八上整卷部署包复用七年级流程，只发布质检后的 PDF', () => {

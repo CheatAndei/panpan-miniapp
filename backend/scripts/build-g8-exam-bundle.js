@@ -45,18 +45,29 @@ function copyAsset(file, kind, expected, originalName, outputRoot) {
 }
 
 function questionLinks(packRoot, manifest = {}) {
-  if (Array.isArray(manifest.question_links) && manifest.question_links.length) {
-    return manifest.question_links;
-  }
-  const { mappedTopics } = require('../services/g8-source-pack-seed');
+  const {
+    mappedTopics,
+    normalizePdfMathText,
+    hasUnsupportedPdfGlyph,
+  } = require('../services/g8-source-pack-seed');
   const sources = [
     { file: path.join(packRoot, 'choice', 'manifest.json'), kind: 'choice' },
     { file: path.join(packRoot, 'terminal', 'manifest.json'), kind: 'terminal' },
   ];
-  if (sources.some(({ file }) => !fs.existsSync(file))) return [];
+  if (sources.some(({ file }) => !fs.existsSync(file))) {
+    return Array.isArray(manifest.question_links) ? manifest.question_links : [];
+  }
   return sources.flatMap(({ file, kind }) => (
     (readJson(file).questions || [])
-      .filter((item) => mappedTopics(item).length > 0)
+      .filter((item) => {
+        if (!mappedTopics(item).length) return false;
+        if (kind !== 'choice') return true;
+        const values = [
+          ...Object.values(item.source_options || {}).map(normalizePdfMathText),
+          normalizePdfMathText(item.explanation),
+        ];
+        return !values.some(hasUnsupportedPdfGlyph);
+      })
       .map((item) => ({
         kind,
         question_key: item.source_key,
@@ -194,4 +205,5 @@ if (require.main === module) {
 
 module.exports = {
   buildG8ExamBundle,
+  questionLinks,
 };
