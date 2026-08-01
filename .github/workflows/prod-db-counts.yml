@@ -5,10 +5,10 @@ on:
 
 jobs:
   inspect:
-    name: Count production DB rows
+    name: Inspect Zhilin challenge assignments
     runs-on: ubuntu-latest
     steps:
-      - name: Count production DB rows
+      - name: Inspect production DB read-only
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: 134.175.69.59
@@ -19,29 +19,37 @@ jobs:
             docker exec -i panpan-api node --input-type=module <<'NODE'
             import fs from 'fs';
             import initSqlJs from 'sql.js';
+
             const SQL = await initSqlJs();
-            const files = [
-              '/app/data/teach.db',
-              '/opt/panpan-miniapp/data/teach.db'
-            ];
-            for (const file of files) {
-              if (!fs.existsSync(file)) {
-                console.log(file, 'missing');
-                continue;
-              }
-              const db = new SQL.Database(fs.readFileSync(file));
-              const tables = ['users','classes','students','bindings','schedules','sessions','checkins','feedbacks','leaves','parent_feedbacks'];
-              const counts = {};
-              for (const table of tables) {
-                try {
-                  const stmt = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`);
-                  stmt.step();
-                  counts[table] = stmt.getAsObject().c;
-                  stmt.free();
-                } catch {
-                  counts[table] = 'n/a';
-                }
-              }
-              console.log(file, fs.statSync(file).size, JSON.stringify(counts));
+            const file = '/app/data/teach.db';
+            if (!fs.existsSync(file)) throw new Error(`database missing: ${file}`);
+            const db = new SQL.Database(fs.readFileSync(file));
+
+            function all(sql, params = []) {
+              const statement = db.prepare(sql);
+              statement.bind(params);
+              const rows = [];
+              while (statement.step()) rows.push(statement.getAsObject());
+              statement.free();
+              return rows;
+            }
+
+            const students = all(`SELECT s.id,s.name,s.grade,c.name class_name
+              FROM students s LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+              WHERE s.deleted_at IS NULL AND s.name LIKE ? ORDER BY s.id`, ['%芷邻%']);
+            const result = students.map((student) => ({
+              student,
+              assignments: all(`SELECT a.id,a.question_id,a.grade_code,a.subject_code,a.question_type,
+                  a.status,a.assigned_on,a.replaced_by_id,a.created_at,a.updated_at,
+                  q.title,q.source_label,
+                  (SELECT COUNT(*) FROM challenge_submissions_v2 sub WHERE sub.assignment_id=a.id) submission_count
+                FROM challenge_assignments_v2 a
+                JOIN weekly_challenge_questions q ON q.id=a.question_id
+                WHERE a.student_id=?
+                ORDER BY a.id DESC LIMIT 12`, [student.id]),
+            }));
+            console.log('PANPAN_ZHILIN_AUDIT=' + JSON.stringify(result));
+            if (students.length !== 1) {
+              throw new Error(`expected exactly one active student matching 芷邻; found ${students.length}`);
             }
             NODE
