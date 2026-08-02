@@ -15,6 +15,7 @@ const parentHome = read('components/home/ParentHomeView.vue');
 const noticeDialog = read('components/home/HomeworkNoticeDialog.vue');
 const home = homePage + teacherHome + parentHome + noticeDialog;
 const api = read('utils/api.js');
+const messageIcon = read('static/icons/message.svg');
 
 test('每日打卡家长教师页面已注册', () => {
   assert.match(pages, /pages\/practice-parent\/index/);
@@ -91,6 +92,8 @@ test('计划页使用四类可选初中计算题库，批改台独立且只处�
   assert.match(teacher, /搜索计划、班级或学生姓名/);
   assert.match(teacher, /reviewed&limit=50/);
   assert.match(teacher, /correction_required&limit=50/);
+  assert.match(teacher, /reviewed_submission_count/);
+  assert.match(teacher, /已批/);
   assert.match(teacher, /\['published','student_curriculum'\]\.includes\(item\.status\)/);
   assert.match(teacher, /plans\/\$\{pdfPlan\.value\.id\}\/pdf\?student_id=/);
   assert.doesNotMatch(teacher, /api\.downloadPrivate/);
@@ -119,6 +122,15 @@ test('计划页使用四类可选初中计算题库，批改台独立且只处�
   assert.match(teacherHome, /待批改/);
   assert.match(home, /\/practice\/todos\?limit=3/);
   assert.match(home, /submission_id=\$\{item\.submission_id\}/);
+});
+
+test('教师发反馈与家长反馈建议在粉色图标底上保持可见', () => {
+  assert.match(teacherHome, /action-tone-coral[\s\S]*?pp-icon name="message"/u);
+  assert.match(parentHome, /pp-icon name="message"[\s\S]*?反馈建议/u);
+  assert.match(teacherHome, /\.action-tone-coral \.action-icon\s*\{[\s\S]*?background:\s*#F79BC0/u);
+  assert.match(parentHome, /\.tool-item:last-child \.tool-icon\s*\{\s*background:\s*#F79BC0/u);
+  assert.match(messageIcon, /stroke="#050505"/i);
+  assert.doesNotMatch(messageIcon, /stroke="#F79BC0"/i);
 });
 
 test('私有图片先带 Authorization 下载到临时路径再预览', () => {

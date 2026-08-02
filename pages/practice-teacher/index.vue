@@ -103,7 +103,7 @@
               <text :class="['status-pill',planStatus(item)]">{{ planStatusText(item) }}</text>
             </view>
             <text class="plan-meta">{{ item.class_name }} · {{ item.start_date }} 至 {{ item.end_date }}</text>
-            <text class="plan-meta">{{ item.student_count }} 人 · {{ item.submission_count }} 份提交 · {{ item.pending_submission_count }} 待批</text>
+            <text class="plan-meta">{{ item.student_count }} 人 · {{ item.submission_count }} 份提交 · {{ item.pending_submission_count }} 待批 · {{ item.reviewed_submission_count }} 已批</text>
           </view>
           <text class="expand-arrow">{{ selectedPlanId===item.id?'⌃':'⌄' }}</text>
         </view>

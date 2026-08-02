@@ -95,6 +95,13 @@ function practiceUploadTargetRound(submission) {
   return submission?.status === 'correction_required' ? currentRound + 1 : currentRound;
 }
 
+function canParentContinuePracticeUpload(submission, parentId) {
+  if (Number(submission?.parent_id) === Number(parentId)) return true;
+  // assignment 已在路由入口校验当前绑定关系；家庭成员只可接力老师打回后的订正，
+  // 不能接管另一位家长尚未送达的首次作业草稿。
+  return submission?.status === 'correction_required';
+}
+
 function finishPracticeUploadRound(db, submission, assignmentId, targetRound) {
   db.run(`INSERT INTO practice_submission_rounds(submission_id,round_no,status,submitted_at)
     VALUES(?,?,'submitted',CURRENT_TIMESTAMP)
@@ -345,14 +352,27 @@ router.get('/plans', auth, teacherOnly, (req, res) => {
     JOIN classes c ON c.id=p.class_id WHERE ${where}`, params)?.count || 0);
   const plans = db.all(`SELECT p.*,c.name class_name,
     (SELECT COUNT(*) FROM practice_student_settings s WHERE s.plan_id=p.id) student_count,
-    (SELECT COUNT(*) FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id WHERE a.plan_id=p.id) submission_count,
+    (SELECT COUNT(*) FROM practice_submissions ps
+      JOIN practice_assignments a ON a.id=ps.assignment_id
+      JOIN students st ON st.id=a.student_id
+      LEFT JOIN classes current_class ON current_class.id=st.class_id
+      WHERE a.plan_id=p.id AND ps.status IN ('submitted','correction_required','reviewed')
+        AND COALESCE(st.teacher_id,current_class.teacher_id)=p.teacher_id
+        AND st.deleted_at IS NULL AND current_class.deleted_at IS NULL) submission_count,
     (SELECT COUNT(*) FROM practice_submissions ps
       JOIN practice_assignments a ON a.id=ps.assignment_id
       JOIN students st ON st.id=a.student_id
       LEFT JOIN classes current_class ON current_class.id=st.class_id
       WHERE a.plan_id=p.id AND ps.status='submitted'
         AND COALESCE(st.teacher_id,current_class.teacher_id)=p.teacher_id
-        AND st.deleted_at IS NULL AND current_class.deleted_at IS NULL) pending_submission_count
+        AND st.deleted_at IS NULL AND current_class.deleted_at IS NULL) pending_submission_count,
+    (SELECT COUNT(*) FROM practice_submissions ps
+      JOIN practice_assignments a ON a.id=ps.assignment_id
+      JOIN students st ON st.id=a.student_id
+      LEFT JOIN classes current_class ON current_class.id=st.class_id
+      WHERE a.plan_id=p.id AND ps.status IN ('correction_required','reviewed')
+        AND COALESCE(st.teacher_id,current_class.teacher_id)=p.teacher_id
+        AND st.deleted_at IS NULL AND current_class.deleted_at IS NULL) reviewed_submission_count
     FROM practice_plans p JOIN classes c ON c.id=p.class_id
     WHERE ${where} ORDER BY p.created_at DESC,p.id DESC LIMIT ? OFFSET ?`,
   [...params, limit, (page - 1) * limit]);
@@ -547,8 +567,8 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
           VALUES(?,?,?,1,0)`, [assignment.id, req.user.id, uploadComplete ? 'submitted' : 'uploading']);
         submission = db.get('SELECT * FROM practice_submissions WHERE id=?', [created.lastInsertRowid]);
       }
-      if (Number(submission.parent_id) !== Number(req.user.id)) return { wrongParent: true };
       if (submission.status === 'reviewed') return { completed: true };
+      if (!canParentContinuePracticeUpload(submission, req.user.id)) return { wrongParent: true };
       if (!['uploading', 'submitted', 'correction_required'].includes(submission.status)) return { invalidStatus: true };
       const targetRound = practiceUploadTargetRound(submission);
       const duplicate = db.get(`SELECT pa.id,pa.round_no,pa.created_at,
@@ -618,9 +638,9 @@ router.post('/assignments/:id/upload/complete', auth, parentOnly, (req, res) => 
     result = db.transaction(() => {
       let submission = db.get('SELECT * FROM practice_submissions WHERE assignment_id=?', [assignment.id]);
       if (!submission) return { noSubmission: true };
-      if (Number(submission.parent_id) !== Number(req.user.id)) return { wrongParent: true };
       if (submission.status === 'reviewed') return { completed: true };
       if (submission.status === 'submitted') return { submission, idempotent: true };
+      if (!canParentContinuePracticeUpload(submission, req.user.id)) return { wrongParent: true };
       if (!['uploading', 'correction_required'].includes(submission.status)) return { invalidStatus: true };
 
       const targetRound = practiceUploadTargetRound(submission);

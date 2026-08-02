@@ -158,6 +158,22 @@ test('打卡照片私有存储，未登录和跨学生跨老师都不可读取',
   assert.equal(partialUpload.payload.submission.status, 'uploading');
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
     '多图尚未传完时不能进入教师待批队列');
+  const draftPlanId = Number(getDB().get(
+    'SELECT plan_id FROM practice_assignments WHERE id=?', [assignmentId],
+  ).plan_id);
+  const draftPlan = (await request('GET', '/practice/plans', teacherToken)).payload.plans
+    .find((item) => Number(item.id) === draftPlanId);
+  assert.equal(Number(draftPlan.submission_count), 0, '仅暂存图片的草稿不能计为已提交');
+  assert.equal(Number(draftPlan.pending_submission_count), 0);
+  assert.equal(Number(draftPlan.reviewed_submission_count), 0);
+  const draftSecondParentId = getDB().get("SELECT id FROM users WHERE openid='practice-parent-2'").id;
+  getDB().run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [draftSecondParentId, studentId]);
+  const cannotClaimInitialDraft = await request(
+    'POST', `/practice/assignments/${assignmentId}/upload/complete`, otherParentToken, {},
+  );
+  assert.equal(cannotClaimInitialDraft.response.status, 403,
+    '另一位绑定家长只能接力订正，不能接管尚未送达的首次作业草稿');
+  getDB().run('DELETE FROM bindings WHERE parent_id=? AND student_id=?', [draftSecondParentId, studentId]);
   const completed = await request('POST', `/practice/assignments/${assignmentId}/upload/complete`, parentToken, {});
   assert.equal(completed.response.status, 200);
   assert.equal(completed.payload.idempotent, false);
@@ -166,6 +182,11 @@ test('打卡照片私有存储，未登录和跨学生跨老师都不可读取',
   assert.equal(completedAgain.response.status, 200);
   assert.equal(completedAgain.payload.idempotent, true);
   assert.equal(completedAgain.payload.submission.status, 'submitted');
+  const submittedPlan = (await request('GET', '/practice/plans', teacherToken)).payload.plans
+    .find((item) => Number(item.id) === draftPlanId);
+  assert.equal(Number(submittedPlan.submission_count), 1);
+  assert.equal(Number(submittedPlan.pending_submission_count), 1);
+  assert.equal(Number(submittedPlan.reviewed_submission_count), 0);
   const uploaded = await request('POST', `/practice/assignments/${assignmentId}/upload?upload_complete=1`, parentToken, {
     base64: png, fileName: 'practice.png', mimeType: 'image/png',
   });
@@ -266,6 +287,12 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(today.payload.assignment.submission.total_attachment_count, 1);
   assert.equal(today.payload.assignment.submission.rounds[0].attachments.length, 1);
   assert.equal(today.payload.assignment.submission.rounds[0].status, 'correction_required');
+  const reviewedPlan = (await request('GET', '/practice/plans', teacherToken)).payload.plans
+    .find((item) => Number(item.id) === Number(planId));
+  assert.equal(Number(reviewedPlan.submission_count), 1);
+  assert.equal(Number(reviewedPlan.pending_submission_count), 0);
+  assert.equal(Number(reviewedPlan.reviewed_submission_count), 1,
+    '已批后待订正的记录仍应计入已批，不能显示为 1 提交、0 待批、0 已批');
   const correctionToday = await request('GET', `/learning/today?student_id=${studentId}`, parentToken);
   const correctionTask = correctionToday.payload.tasks.find((task) => task.key === 'practice');
   assert.equal(correctionTask.status, 'correction_required');
@@ -276,8 +303,10 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   const correctionPhoto = (await sharp({
     create: { width: 8, height: 8, channels: 3, background: '#C2784A' },
   }).png().toBuffer()).toString('base64');
+  const secondParentId = getDB().get("SELECT id FROM users WHERE openid='practice-parent-2'").id;
+  getDB().run('INSERT INTO bindings(parent_id,student_id) VALUES(?,?)', [secondParentId, studentId]);
   const partialCorrectionUpload = await request('POST',
-    `/practice/assignments/${submission.assignment_id}/upload?upload_complete=0`, parentToken, {
+    `/practice/assignments/${submission.assignment_id}/upload?upload_complete=0`, otherParentToken, {
       base64: correctionPhoto, fileName: 'correction-2.png', mimeType: 'image/png',
     });
   assert.equal(partialCorrectionUpload.response.status, 201);
@@ -291,7 +320,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal((await request('GET', '/practice/todos', teacherToken)).payload.count, 0,
     '订正照片整批上传完成前不能进入教师待批队列');
   const correctionUpload = await request('POST',
-    `/practice/assignments/${submission.assignment_id}/upload/complete`, parentToken, {});
+    `/practice/assignments/${submission.assignment_id}/upload/complete`, otherParentToken, {});
   assert.equal(correctionUpload.response.status, 200);
   assert.equal(correctionUpload.payload.idempotent, false);
   assert.equal(partialCorrectionUpload.payload.attachment.round_no, 2);
@@ -303,6 +332,7 @@ test('所属教师可完整复核，其他教师不可查看或提交复核', as
   assert.equal(correctionUpload.payload.submission.attachments.length, 1, '当前轮只返回本轮照片');
   assert.equal(correctionUpload.payload.submission.total_attachment_count, 2);
   assert.equal(correctionUpload.payload.submission.rounds.length, 2);
+  getDB().run('DELETE FROM bindings WHERE parent_id=? AND student_id=?', [secondParentId, studentId]);
 
   const correctionTodos = await request('GET', '/practice/todos', teacherToken);
   assert.equal(correctionTodos.payload.count, 1);
