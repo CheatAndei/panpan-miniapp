@@ -242,6 +242,16 @@
             <text class="edit-impact-copy">{{ editImpactText }}</text>
           </view>
           <view :class="['review-save-actions',{editing:activeSubmission._editing}]">
+            <input
+              v-model="activeSubmission._teacherNote"
+              class="review-note-input"
+              type="text"
+              maxlength="80"
+              placeholder="批语（可不填，建议一句话）"
+              aria-label="给学生的批语，可不填写"
+              confirm-type="done"
+              :disabled="activeSubmission._saving"
+            />
             <button v-if="activeSubmission._editing" class="cancel-edit" :disabled="activeSubmission._saving" @tap="cancelReviewEdit">取消修改</button>
             <button
               class="save-only"
@@ -402,6 +412,7 @@ onShow(() => {
       || current?._saving
       || current?._posterBusy
       || current?._posterSaving
+      || (!current?._saved && Boolean(current?._teacherNote?.trim()))
       || (!current?._saved && current?.items?.some((item) => item._correct === false)),
   );
   if (!firstShow && hasUnsavedChanges) {
@@ -487,7 +498,10 @@ async function openRecentReview(record) {
   }
   const current = activeSubmission.value;
   const hasUnsavedChanges = current?._editing
-    || (current && !current._saved && current.items.some((item) => item._correct === false));
+    || (current && !current._saved && (
+      Boolean(current._teacherNote?.trim())
+      || current.items.some((item) => item._correct === false)
+    ));
   if (hasUnsavedChanges) {
     const confirmed = await confirmAction({
       title: '切换到已批改记录？',
@@ -543,6 +557,8 @@ function prepareSubmission(submission, { history = false } = {}) {
     _history: isHistorical,
     _editing: false,
     _editSnapshot: [],
+    _teacherNote: String(submission.teacher_note || ''),
+    _teacherNoteSnapshot: '',
     _reviewEditable: isHistorical
       ? (explicitReviewEditable === undefined || explicitReviewEditable === null
         ? true
@@ -733,6 +749,7 @@ function beginReviewEdit() {
     id: item.id,
     correct: item._correct !== false,
   }));
+  submission._teacherNoteSnapshot = submission._teacherNote;
   submission._editing = true;
 }
 
@@ -744,9 +761,11 @@ function cancelReviewEdit({ restore = true, force = false } = {}) {
     submission.items.forEach((item) => {
       if (snapshot.has(String(item.id))) item._correct = snapshot.get(String(item.id));
     });
+    submission._teacherNote = submission._teacherNoteSnapshot;
   }
   submission._editing = false;
   submission._editSnapshot = [];
+  submission._teacherNoteSnapshot = '';
 }
 
 async function saveReviewRevision(submission) {
@@ -759,6 +778,7 @@ async function saveReviewRevision(submission) {
   submission._saving = true;
   try {
     const result = await api.put(`/practice/submissions/${submission.id}/review/revision`, {
+      teacher_note: submission._teacherNote.trim(),
       results: submission.items.map((item) => ({
         item_id: item.id,
         is_correct: item._correct,
@@ -781,8 +801,11 @@ async function saveReviewRevision(submission) {
     submission._reviewLockReason = result.revision_lock_reason || result.review_lock_reason || '';
     submission._posterPath = '';
     submission._posterError = '';
+    submission.teacher_note = submission._teacherNote.trim();
+    submission._teacherNote = submission.teacher_note;
     submission._editing = false;
     submission._editSnapshot = [];
+    submission._teacherNoteSnapshot = '';
     submission._saved = true;
     await loadRecentReviews();
     uni.showToast({ title: '批改结果已更新', icon: 'success' });
@@ -815,7 +838,7 @@ async function saveReview() {
   submission._saving = true;
   try {
     const result = await api.put(`/practice/submissions/${submission.id}/review`, {
-      teacher_note: '',
+      teacher_note: submission._teacherNote.trim(),
       results: submission.items.map((item) => ({ item_id: item.id, is_correct: item._correct })),
       round_no: submission._correctionRound,
       correction_round: submission._correctionRound,
@@ -825,6 +848,8 @@ async function saveReview() {
     submission._isCorrection = booleanField(result.is_correction ?? submission._isCorrection);
     submission._needsCorrection = booleanField(result.needs_correction ?? (submission.status === 'correction_required'));
     submission.needs_correction = submission._needsCorrection;
+    submission.teacher_note = submission._teacherNote.trim();
+    submission._teacherNote = submission.teacher_note;
     submission._saved = true;
     todoCount.value = Math.max(0, todoCount.value - 1);
     uni.showToast({
@@ -1792,8 +1817,34 @@ async function nextAfterSave() {
   font-weight: 750;
 }
 
+.review-save-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.review-note-input {
+  min-width: 0;
+  height: 82rpx;
+  box-sizing: border-box;
+  padding: 0 18rpx;
+  border: 2rpx solid #B9D6DF;
+  border-radius: 12rpx;
+  background: #FFFFFF;
+  color: var(--review-ink);
+  font-size: 23rpx;
+}
+
+.review-note-input:focus {
+  border-color: var(--review-green);
+  box-shadow: 0 0 0 4rpx rgba(11, 120, 154, .12);
+}
+
 .save-only {
-  width: 100%;
+  width: auto;
+  min-width: 224rpx;
+  padding: 0 22rpx;
   background: var(--review-green-strong);
   color: #FFFFFF;
 }
@@ -1825,9 +1876,7 @@ async function nextAfterSave() {
 }
 
 .review-save-actions.editing {
-  display: grid;
-  grid-template-columns: minmax(0, .8fr) minmax(0, 1.35fr);
-  gap: 10rpx;
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .cancel-edit {

@@ -108,6 +108,16 @@ test('订正批改只展示上一轮错题并把轮次带入保存与海报', ()
   assert.match(review, /correctCount:\s*submission\.items\.filter/);
 });
 
+test('批改台用紧凑可选批语与通过或打回结果一起保存', () => {
+  assert.match(review, /v-model="activeSubmission\._teacherNote"/);
+  assert.match(review, /placeholder="批语（可不填，建议一句话）"/);
+  assert.match(review, /maxlength="80"/);
+  assert.match(review, /teacher_note:\s*submission\._teacherNote\.trim\(\)/);
+  assert.match(review, /_teacherNote:\s*String\(submission\.teacher_note \|\| ''\)/);
+  assert.match(review, /\.review-save-actions\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto;/u);
+  assert.match(review, /\.save-only\s*\{[\s\S]*?width:\s*auto;/u);
+});
+
 test('保存区移除刻意隐私说明并支持相册拒权后前往设置恢复', () => {
   assert.match(review, /鼓励文案会随机更新，预览满意后保存/);
   assert.doesNotMatch(review, /含姓名和作业照片，仅供私下发给家长/);
@@ -184,6 +194,15 @@ test('家长页明确待订正状态且照片数只取当前轮', () => {
   assert.match(parent, /v-if="deliveredToTeacher && attachmentCount"/);
   assert.match(home, /task\.status === 'correction_required'/);
   assert.match(home, /return '去订正'/);
+});
+
+test('家长订正题单把上一轮错题做成明显浅红警示卡', () => {
+  assert.match(parent, /:class="\['question-row',\{\s*'correction-target':\s*isCorrectionTarget\(item\)\s*\}\]"/u);
+  assert.match(parent, /class="correction-flag">需订正/);
+  assert.match(parent, /focus_item_ids/);
+  assert.match(parent, /function isCorrectionTarget\(item\)/);
+  assert.match(parent, /\.question-row\.correction-target\s*\{[\s\S]*?border:\s*2rpx solid #E97C8C;[\s\S]*?background:\s*#FFF0F2;/u);
+  assert.match(parent, /\.question-row\.correction-target \.question-no\s*\{[\s\S]*?background:\s*#E85C72;/u);
 });
 
 test('家长页先处理历史订正，确认教师收件后自动进入今日题单', () => {

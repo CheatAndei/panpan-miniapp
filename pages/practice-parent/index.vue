@@ -34,7 +34,11 @@
           <view class="section-title"><pp-icon name="book" :size="28" /><text>{{ isOverdueCorrection ? '待订正题单' : '今日题目' }}</text></view>
           <text class="section-note">建议写在纸上</text>
         </view>
-        <view v-for="item in assignment.items" :key="item.id" class="question-row">
+        <view
+          v-for="item in assignment.items"
+          :key="item.id"
+          :class="['question-row',{ 'correction-target': isCorrectionTarget(item) }]"
+        >
           <text class="question-no">{{ item.position }}</text>
           <view class="question-copy">
             <pp-math-text
@@ -43,6 +47,7 @@
               :blocks="item.render && item.render.blocks"
             />
             <text class="question-type">{{ item.question_type }}</text>
+            <text v-if="isCorrectionTarget(item)" class="correction-flag">需订正</text>
           </view>
         </view>
       </view>
@@ -92,7 +97,7 @@
         <view v-if="assignment.submission" class="submit-note">
           <text>{{ submissionNote }}</text>
           <text v-if="isCorrection" class="round-note">当前为第 {{ correctionRound }} 轮订正</text>
-          <text v-if="assignment.submission.teacher_note" class="teacher-note">{{ assignment.submission.teacher_note }}</text>
+          <text v-if="assignment.submission.teacher_note" class="teacher-note">老师批语：{{ assignment.submission.teacher_note }}</text>
         </view>
       </view>
 
@@ -166,6 +171,9 @@ const isCorrection = computed(() => (
   || correctionRound.value > 1
 ));
 const needsCorrection = computed(() => recordNeedsCorrection(submission.value));
+const correctionTargetIds = computed(() => new Set(
+  (submission.value?.focus_item_ids || []).map((item) => Number(item)),
+));
 const isOverdueCorrection = computed(() => (
   blockedByCorrection.value
   && Boolean(practiceDate.value)
@@ -219,6 +227,10 @@ const submissionNote = computed(() => {
   }
   return isCorrection.value ? '订正提交成功，等待老师复核上一轮错题' : '提交成功，等待老师对照答案复核';
 });
+
+function isCorrectionTarget(item) {
+  return needsCorrection.value && correctionTargetIds.value.has(Number(item?.id));
+}
 
 onLoad((options) => { studentId.value = String(options?.student_id || ''); });
 onShow(() => {
@@ -502,10 +514,13 @@ function previewPhotos(index) {
 .photo-index { position: absolute; right: 7rpx; bottom: 7rpx; min-width: 30rpx; height: 30rpx; display: flex; align-items: center; justify-content: center; border-radius: 15rpx; background: rgba(5, 5, 5, .78); color: #FFFFFF; font-size: 17rpx; }
 .question-row { display: flex; gap: 15rpx; padding: 18rpx 0; border-bottom: 1rpx solid #EDF3F5; }
 .question-row:last-child { border-bottom: 0; }
+.question-row.correction-target { margin: 10rpx 0; padding: 18rpx 16rpx; border: 2rpx solid #E97C8C; border-radius: 13rpx; background: #FFF0F2; box-shadow: 0 5rpx 14rpx rgba(181, 58, 82, .10); }
+.question-row.correction-target .question-no { background: #E85C72; color: #FFFFFF; box-shadow: 0 4rpx 9rpx rgba(181, 58, 82, .18); }
 .question-no { width: 44rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; flex: none; border-radius: 10rpx; background: #E5F8FE; color: #050505; font-size: 22rpx; font-weight: 760; }
 .question-copy { flex: 1; min-width: 0; }
 .question-text { display: flex; color: var(--panpan-ink); font-size: 28rpx; line-height: 1.62; }
 .question-type { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 20rpx; }
+.correction-flag { display: inline-flex; margin-top: 8rpx; padding: 4rpx 12rpx; border-radius: 8rpx; background: #E85C72; color: #FFFFFF; font-size: 19rpx; font-weight: 780; letter-spacing: 0; }
 
 .primary-btn,
 .confirm-btn,
