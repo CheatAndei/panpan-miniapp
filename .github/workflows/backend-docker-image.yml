@@ -563,7 +563,8 @@ jobs:
                 older: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND stable_code LIKE 'GZ7-%' AND source_period='older'"),
                 terminal: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND source_key LIKE 'gz7-terminal-%'"),
                 g8_choice: scalar("SELECT COUNT(*) FROM choice_king_questions WHERE is_active=1 AND grade_code='g8'"),
-                g8_terminal: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND grade_code='g8'"),
+                g8_terminal_real: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND grade_code='g8' AND source_key LIKE 'gz8-terminal-GZ8-%'"),
+                g8_terminal_original: scalar("SELECT COUNT(*) FROM weekly_challenge_questions WHERE is_active=1 AND grade_code='g8' AND source_key LIKE 'g8-original-%'"),
                 g8_practice: scalar("SELECT COUNT(*) FROM practice_questions WHERE is_active=1 AND grade_code='g8'"),
                 g8_missing_terminal_assets: g8TerminalAssets.filter((asset) => {
                   const file = path.resolve(examRoot, String(asset.storage_key || ''));
@@ -572,7 +573,8 @@ jobs:
               };
               console.log(JSON.stringify(counts));
               if (counts.choice !== 1000 || counts.recent !== 500 || counts.older !== 500 || counts.terminal !== 710
-                || counts.g8_choice !== 1320 || counts.g8_terminal !== 723 || counts.g8_practice !== 480
+                || counts.g8_choice !== 1320 || counts.g8_terminal_real !== 435 || counts.g8_terminal_original !== 0
+                || counts.g8_practice !== 480
                 || counts.g8_missing_terminal_assets !== 0) process.exit(1);
             }).catch((error) => { console.error(error); process.exit(1); });
             NODE
