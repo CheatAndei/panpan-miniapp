@@ -206,6 +206,17 @@ function teacherCalculationReports(db, { teacherId, sourceType = '', status = 'o
   }));
 }
 
+function teacherCalculationReportCount(db, { teacherId, sourceType = '', status = 'open' }) {
+  const clauses = ['COALESCE(c.teacher_id,s.teacher_id)=?', 's.deleted_at IS NULL'];
+  const params = [teacherId];
+  if (SOURCE_TYPES.has(sourceType)) { clauses.push('r.source_type=?'); params.push(sourceType); }
+  if (REPORT_STATUSES.has(status)) { clauses.push('r.status=?'); params.push(status); }
+  return Number(db.get(`SELECT COUNT(*) count FROM calculation_question_reports r
+    JOIN students s ON s.id=r.student_id
+    LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+    WHERE ${clauses.join(' AND ')}`, params)?.count || 0);
+}
+
 function updateCalculationReport(db, {
   teacherId, reportId, status, teacherNote, stopQuestion, now = new Date(),
 }) {
@@ -244,6 +255,7 @@ module.exports = {
   REPORT_STATUSES,
   createCalculationReport,
   teacherCalculationReports,
+  teacherCalculationReportCount,
   updateCalculationReport,
   sourceSnapshot,
   questionBankIdentity,

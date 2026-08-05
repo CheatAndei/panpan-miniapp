@@ -53,6 +53,18 @@ test('教师批阅页用明确错误态代替接口失败后的空状态', () =>
   assert.doesNotMatch(review, /每周挑战批阅/);
 });
 
+test('压轴批阅只保留待批阅和最近已批阅，默认展示三份并按需加载照片', () => {
+  const review = read('pages/weekly-review/index.vue');
+  assert.match(review, /最近已批阅/);
+  assert.doesNotMatch(review, /value:'all',label:'全部'/);
+  assert.match(review, /status\.value==='reviewed'\?10:30/);
+  assert.match(review, /items\.value\.slice\(0,3\)/);
+  assert.match(review, /async function loadPhotos/);
+  assert.doesNotMatch(review, /items\.value=await Promise\.all/);
+  assert.match(review, /align-items:flex-start/);
+  assert.match(review, /justify-content:center/);
+});
+
 test('教学工具入口统一使用压轴挑战名称', () => {
   const tools = read('pages/teacher-tools/index.vue');
   assert.match(tools, /压轴挑战批阅/);

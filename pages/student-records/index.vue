@@ -128,12 +128,15 @@
       <template v-else-if="detail">
         <view class="overview-band">
           <view class="overview-primary">
-            <text class="overview-kicker">累计做题</text>
+            <view class="overview-primary-head">
+              <text class="overview-kicker">累计做题</text>
+              <button class="archive-button" aria-label="查阅该学生全部提交" @tap="openSubmissionArchive"><pp-icon name="history" :size="24" decorative />查阅</button>
+            </view>
             <view class="overview-number-line">
               <text class="overview-number num">{{ detail.stats.total_questions }}</text>
               <text class="overview-unit">题</text>
             </view>
-            <text class="overview-copy">已统计打卡、选择、口算与学习中心</text>
+            <text class="overview-copy">已统计全部学习提交与做题记录</text>
           </view>
           <view class="overview-secondary">
             <view>
@@ -388,6 +391,11 @@ async function loadDetail() {
   }
 }
 
+function openSubmissionArchive() {
+  if (!selectedStudent.value?.id) return;
+  uni.navigateTo({ url: `/pages/student-submissions/index?student_id=${selectedStudent.value.id}` });
+}
+
 function accuracyLabel(value) {
   return value === null || value === undefined ? '—' : `${value}%`;
 }
@@ -567,6 +575,7 @@ function sourceLabel(source) {
   padding: 22rpx;
   background: #E5F8FE;
 }
+.overview-primary-head{display:flex;align-items:center;justify-content:space-between;gap:16rpx}.archive-button{min-width:112rpx;height:58rpx;min-height:0;display:flex;align-items:center;justify-content:center;gap:5rpx;margin:0;padding:0 14rpx;border:1rpx solid #9DCFDA;border-radius:9rpx;background:#fff;color:#050505;font-size:20rpx;font-weight:720;line-height:58rpx}.archive-button::after{border:0}
 .overview-kicker { color: #050505; }
 .overview-number { color: #050505; }
 .overview-secondary {

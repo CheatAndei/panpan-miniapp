@@ -41,8 +41,9 @@
     { "path": "pages/practice-teacher/index", "style": { "navigationBarTitleText": "打卡计划" } },
     { "path": "pages/practice-review/index", "style": { "navigationBarTitleText": "批改台", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/teacher-schedule/index", "style": { "navigationBarTitleText": "课表管理" } },
-    { "path": "pages/teacher-leaves/index", "style": { "navigationBarTitleText": "请假审批" } },
+    { "path": "pages/teacher-leaves/index", "style": { "navigationBarTitleText": "审批中心" } },
     { "path": "pages/student-records/index", "style": { "navigationBarTitleText": "学习记录", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
+    { "path": "pages/student-submissions/index", "style": { "navigationBarTitleText": "提交档案", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } },
     { "path": "pages/student-detail/index", "style": { "navigationBarTitleText": "学习印象" } },
     { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的", "enablePullDownRefresh": true, "backgroundTextStyle": "dark" } }
   ],

@@ -162,6 +162,7 @@ test('学习计算题报错支持权限、去重、限频、教师停题与历�
   assert.equal(limited.response.status, 429);
 
   const queue = await request('GET', '/calculation-reports?source_type=learning_attempt&status=pending', undefined, teacherToken);
+  assert.equal(queue.payload.count, 5);
   const report = queue.payload.reports.find((item) => Number(item.id) === Number(first.payload.report.id));
   assert.ok(report);
   const practiceQuestionId = Number(String(questions[0].id).split(':')[1]);

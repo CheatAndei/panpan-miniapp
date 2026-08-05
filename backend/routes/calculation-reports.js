@@ -5,6 +5,7 @@ const { parentBoundStudent } = require('../utils/scope');
 const {
   createCalculationReport,
   teacherCalculationReports,
+  teacherCalculationReportCount,
   updateCalculationReport,
 } = require('../services/calculation-reports');
 
@@ -38,10 +39,13 @@ router.post('/', auth, parentOnly, (req, res) => {
 router.get('/', auth, teacherOnly, (req, res) => {
   const rawStatus = String(req.query.status || 'pending');
   const status = rawStatus === 'pending' ? 'open' : (rawStatus === 'all' ? '' : rawStatus);
+  const db = getDB();
+  const sourceType = String(req.query.source_type || '');
   return res.json({
-    reports: teacherCalculationReports(getDB(), {
+    count: teacherCalculationReportCount(db, { teacherId: req.user.id, sourceType, status }),
+    reports: teacherCalculationReports(db, {
       teacherId: req.user.id,
-      sourceType: String(req.query.source_type || ''),
+      sourceType,
       status,
       limit: req.query.limit,
     }),

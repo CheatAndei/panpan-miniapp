@@ -35,6 +35,8 @@
       :answer-request-count="answerRequestCount"
       :answer-request-todos="answerRequestTodos"
       :pending-leaves="pendingLeaves"
+      :pending-question-report-count="pendingQuestionReportCount"
+      :pending-question-reports="pendingQuestionReports"
       :today-session-count="todaySessions.length"
       :choice-alerts="choiceAlerts"
       :dismissing-alert-id="dismissingAlertId"
@@ -252,6 +254,7 @@ onLoad(() => {
 let parentRefreshTimer = null;
 let teacherRefreshTimer = null;
 let teacherTodoRequesting = false;
+let teacherReportRequesting = false;
 let autoOpenedPromotionId = 0;
 let queuedParentChildId = null;
 function stopParentRefresh() {
@@ -268,7 +271,10 @@ function startTeacherRefresh() {
   stopTeacherRefresh();
   if (user.value.role !== 'teacher') return;
   teacherRefreshTimer = setInterval(
-    () => loadTeacherPracticeTodos({ announce: true }),
+    () => Promise.allSettled([
+      loadTeacherPracticeTodos({ announce: true }),
+      loadTeacherQuestionReports({ announce: true }),
+    ]),
     15000,
   );
 }
@@ -324,6 +330,8 @@ const pendingChallengeCount = ref(0);
 const pendingChallengeTodos = ref([]);
 const answerRequestCount = ref(0);
 const answerRequestTodos = ref([]);
+const pendingQuestionReportCount = ref(0);
+const pendingQuestionReports = ref([]);
 const choiceAlerts = ref([]);
 const promotionItems = ref([]);
 const promotionUnseen = ref(0);
@@ -363,6 +371,7 @@ const totalPending = computed(() => Number(pendingLeaves.value || 0)
   + Number(pendingMasteryCount.value || 0)
   + Number(pendingChallengeCount.value || 0)
   + Number(answerRequestCount.value || 0)
+  + Number(pendingQuestionReportCount.value || 0)
   + choiceAlerts.value.length);
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
@@ -580,12 +589,40 @@ async function loadTeacherPracticeTodos({ announce = false } = {}) {
   }
 }
 
+async function loadTeacherQuestionReports({ announce = false } = {}) {
+  if (teacherReportRequesting || user.value.role !== 'teacher') return false;
+  teacherReportRequesting = true;
+  try {
+    const previousCount = Number(pendingQuestionReportCount.value || 0);
+    const [choiceResult, calculationResult] = await Promise.all([
+      api.get('/choice-king/reports?status=pending&limit=3'),
+      api.get('/calculation-reports?status=pending&limit=3'),
+    ]);
+    const nextCount = Number(choiceResult.count || 0) + Number(calculationResult.count || 0);
+    pendingQuestionReportCount.value = nextCount;
+    pendingQuestionReports.value = [
+      ...(choiceResult.reports || []).map((item) => ({ ...item, report_kind: 'choice' })),
+      ...(calculationResult.reports || []).map((item) => ({ ...item, report_kind: item.report_kind || 'calculation' })),
+    ].sort((left, right) => String(right.created_at || '').localeCompare(String(left.created_at || ''))).slice(0, 3);
+    if (announce && nextCount > previousCount) {
+      uni.showToast({ title: `收到 ${nextCount - previousCount} 条新题目报错`, icon: 'none' });
+    }
+    return true;
+  } catch (error) {
+    logError('loadTeacherQuestionReports', error);
+    return false;
+  } finally {
+    teacherReportRequesting = false;
+  }
+}
+
 async function loadTeacherData({ announcePractice = false } = {}) {
   if (teacherLoading.value) return;
   teacherLoading.value = true;
   teacherError.value = '';
   try {
     const practicePromise = loadTeacherPracticeTodos({ announce: announcePractice });
+    const reportPromise = loadTeacherQuestionReports({ announce: announcePractice });
     const results = await Promise.allSettled([
       api.get('/classes'),
       api.get('/leaves'),
@@ -621,9 +658,9 @@ async function loadTeacherData({ announcePractice = false } = {}) {
       promotionItems.value = promotionResult.value.promotions || [];
       promotionUnseen.value = Number(promotionResult.value.unseen || 0);
     }
-    const practiceLoaded = await practicePromise;
+    const [practiceLoaded, reportLoaded] = await Promise.all([practicePromise, reportPromise]);
     const fulfilledCount = results.filter((result) => result.status === 'fulfilled').length;
-    if (!practiceLoaded && fulfilledCount === 0) {
+    if (!practiceLoaded && !reportLoaded && fulfilledCount === 0) {
       const firstFailure = results.find((result) => result.status === 'rejected');
       throw firstFailure?.reason || new Error('教师工作台加载失败');
     }

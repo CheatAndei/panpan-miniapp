@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const page = read('pages/student-records/index.vue');
+const archive = read('pages/student-submissions/index.vue');
 const pages = read('pages.json');
 const teacherHome = read('components/home/TeacherHomeView.vue');
 const teacherTools = read('pages/teacher-tools/index.vue');
@@ -56,6 +57,26 @@ test('学习记录页连接教师汇总与单生详情接口并覆盖加载、�
   assert.match(page, /没有找到学生/);
   assert.match(page, /当前没有待掌握题目/);
   assert.match(page, /onPullDownRefresh/);
+});
+
+test('累计做题卡右侧提供查阅入口并分页展示学习提交和题目报错', () => {
+  assert.match(page, /查阅该学生全部提交/);
+  assert.match(page, /\/pages\/student-submissions\/index\?student_id=/);
+  assert.match(pages, /"path":\s*"pages\/student-submissions\/index"/);
+  assert.match(archive, /提交档案/);
+  assert.match(archive, /学习提交/);
+  assert.match(archive, /题目报错/);
+  assert.match(archive, /\/students\/\$\{studentId\.value\}\/submissions\?type=\$\{kind\.value\}&page=\$\{targetPage\}&limit=20/);
+  assert.match(archive, /onReachBottom/);
+  assert.match(archive, /item\.photo_count/);
+});
+
+test('提交档案后端覆盖八类学习来源且不在列表阶段下载照片', () => {
+  const service = read('backend/services/student-submission-archive.js');
+  for (const source of ['homework', 'practice', 'challenge', 'weekend_mastery', 'choice', 'mental', 'learning', 'knowledge']) {
+    assert.match(service, new RegExp(`'${source}'`));
+  }
+  assert.doesNotMatch(archive, /downloadPrivate/);
 });
 
 test('学习记录页使用蓝色与珊瑚双色教学系统并支持窄屏与减弱动效', () => {

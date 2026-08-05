@@ -53,10 +53,10 @@
         <view class="action-icon"><pp-icon name="calendar" :size="40" motion="pop" :delay="240" decorative /></view>
         <text>课表</text>
       </button>
-      <button class="action-item action-tone-coral" aria-label="处理请假审批" @tap="navigate('/pages/teacher-leaves/index')">
+      <button class="action-item action-tone-coral" aria-label="处理审批事项" @tap="navigate('/pages/teacher-leaves/index')">
         <view class="action-icon">
-          <pp-icon name="clipboard" :size="40" :motion="pendingLeaves > 0 ? 'ring' : 'pop'" :delay="300" decorative />
-          <view v-if="pendingLeaves > 0" class="red-dot">{{ pendingLeaves }}</view>
+          <pp-icon name="clipboard" :size="40" :motion="approvalCount > 0 ? 'ring' : 'pop'" :delay="300" decorative />
+          <view v-if="approvalCount > 0" class="red-dot">{{ approvalCount }}</view>
         </view>
         <text>审批</text>
       </button>
@@ -235,17 +235,42 @@
         <button class="todo-all" @tap="navigate('/pages/teacher-leaves/index')">查看请假申请</button>
       </view>
 
+      <view v-if="pendingQuestionReportCount" class="todo-card tone-coral">
+        <view class="todo-head">
+          <view>
+            <text class="todo-kicker">题目报错</text>
+            <text class="todo-title">有 {{ pendingQuestionReportCount }} 条等待审批</text>
+          </view>
+          <text class="todo-badge">待核对</text>
+        </view>
+        <button
+          v-for="item in pendingQuestionReports"
+          :key="`${item.report_kind}-${item.id}`"
+          class="todo-row"
+          :aria-label="`核对${item.student_name || '学生'}反馈的题目`"
+          @tap="navigate('/pages/choice-reports/index')"
+        >
+          <view class="todo-copy">
+            <text class="todo-name">{{ item.student_name || '学生反馈' }} · {{ item.class_name || '未分组' }}</text>
+            <text class="todo-meta">{{ item.source_label || item.question_stem || '题目或答案需要核对' }}</text>
+          </view>
+          <text class="todo-action">审批</text>
+          <pp-icon name="arrow" :size="28" decorative />
+        </button>
+        <button class="todo-all" @tap="navigate('/pages/choice-reports/index')">进入题目报错审批</button>
+      </view>
+
       <view v-if="choiceAlerts.length" class="todo-card tone-mint">
         <view class="todo-head">
           <view>
-            <text class="todo-kicker">选择刷题王提醒</text>
-            <text class="todo-title">有学生完成 800 道不同选择题</text>
+            <text class="todo-kicker">重要提醒</text>
+            <text class="todo-title">学习进度与多人反馈提醒</text>
           </view>
           <text class="todo-badge">里程碑</text>
         </view>
         <view v-for="item in choiceAlerts" :key="item.id" class="choice-alert-row">
           <view class="todo-copy">
-            <text class="todo-name">{{ item.student_name }} · {{ item.class_name || '未分组' }}</text>
+            <text class="todo-name">{{ item.title || item.student_name }} · {{ item.class_name || '未分组' }}</text>
             <text class="todo-meta">{{ item.message }}</text>
           </view>
           <button
@@ -392,6 +417,8 @@ const props = defineProps({
   answerRequestCount: { type: Number, default: 0 },
   answerRequestTodos: { type: Array, default: () => [] },
   pendingLeaves: { type: Number, default: 0 },
+  pendingQuestionReportCount: { type: Number, default: 0 },
+  pendingQuestionReports: { type: Array, default: () => [] },
   todaySessionCount: { type: Number, default: 0 },
   choiceAlerts: { type: Array, default: () => [] },
   dismissingAlertId: { type: [Number, String], default: null },
@@ -417,9 +444,11 @@ const priorityCount = computed(() => Number(props.pendingPracticeCount || 0)
   + Number(props.pendingChallengeCount || 0)
   + Number(props.answerRequestCount || 0)
   + Number(props.pendingLeaves || 0)
+  + Number(props.pendingQuestionReportCount || 0)
   + props.choiceAlerts.length);
 
 const hasPriority = computed(() => priorityCount.value > 0);
+const approvalCount = computed(() => Number(props.pendingLeaves || 0) + Number(props.pendingQuestionReportCount || 0));
 
 function navigate(url) {
   emit('navigate', url);

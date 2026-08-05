@@ -56,7 +56,7 @@ test.before(async () => {
       const question = db.run(`INSERT INTO weekly_challenge_questions
         (source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
         VALUES(?,?,?,?,?,'g8','math',1)`, [
-        `alternate-${type}-${index}`,
+        `gz8-terminal-GZ8-TEST-${type}-${index}`,
         type,
         `${type}-${index}`,
         asset.lastInsertRowid,
@@ -229,4 +229,47 @@ test('图片解码完成后在写入事务内重新确认挑战仍可提交', ()
   assert.ok(freshCheck > transactionStart);
   assert.ok(statusWrite > freshCheck);
   assert.match(route, /if\(result\.staleStatus\)return res\.status\(409\)/);
+});
+
+test('八年级未提交自命题自动换成真题，已有提交历史保持原题', () => {
+  const db = getDB();
+  const assetId = db.get('SELECT id FROM exam_assets ORDER BY id LIMIT 1').id;
+  const freshStudent = db.run(`INSERT INTO students(teacher_id,name,grade,invite_code)
+    VALUES(?,?,?,?)`, [teacherId, '真题替换学生', '八年级', 'ALT003']);
+  const original = db.run(`INSERT INTO weekly_challenge_questions
+    (source_key,question_type,title,question_asset_id,source_label,grade_code,subject_code,is_active)
+    VALUES('g8-original-retire-test','fill','自命题待替换',?,'原创改编','g8','math',1)`, [assetId]);
+  replaceQuestionTopics(db, {
+    relationTable: 'weekly_challenge_question_topics',
+    questionId: original.lastInsertRowid,
+    topicKeys: [topicKeys[0]],
+  });
+  const oldAssignment = db.run(`INSERT INTO challenge_assignments_v2
+    (student_id,question_id,grade_code,subject_code,question_type,status,assigned_on)
+    VALUES(?,?,'g8','math','fill','active',?)`, [freshStudent.lastInsertRowid, original.lastInsertRowid, practiceDateAt(new Date())]);
+
+  const replaced = currentState(db, {
+    studentId: freshStudent.lastInsertRowid,
+    gradeCode: 'g8',
+    subjectCode: 'math',
+  });
+  assert.notEqual(replaced.assignment.id, oldAssignment.lastInsertRowid);
+  assert.equal(db.get('SELECT status FROM challenge_assignments_v2 WHERE id=?', [oldAssignment.lastInsertRowid]).status, 'skipped');
+  assert.match(db.get(`SELECT q.source_key FROM challenge_assignments_v2 a
+    JOIN weekly_challenge_questions q ON q.id=a.question_id WHERE a.id=?`, [replaced.assignment.id]).source_key, /^gz8-terminal-GZ8-/);
+
+  const historyStudent = db.run(`INSERT INTO students(teacher_id,name,grade,invite_code)
+    VALUES(?,?,?,?)`, [teacherId, '历史保留学生', '八年级', 'ALT004']);
+  const historyAssignment = db.run(`INSERT INTO challenge_assignments_v2
+    (student_id,question_id,grade_code,subject_code,question_type,status,assigned_on)
+    VALUES(?,?,'g8','math','fill','submitted',?)`, [historyStudent.lastInsertRowid, original.lastInsertRowid, practiceDateAt(new Date())]);
+  db.run(`INSERT INTO challenge_submissions_v2(assignment_id,parent_id,attempt_no,status)
+    VALUES(?,?,1,'submitted')`, [historyAssignment.lastInsertRowid, parentId]);
+  const preserved = currentState(db, {
+    studentId: historyStudent.lastInsertRowid,
+    gradeCode: 'g8',
+    subjectCode: 'math',
+  });
+  assert.equal(preserved.assignment.id, historyAssignment.lastInsertRowid);
+  assert.equal(db.get('SELECT status FROM challenge_assignments_v2 WHERE id=?', [historyAssignment.lastInsertRowid]).status, 'submitted');
 });

@@ -571,6 +571,16 @@ function teacherReports(db, { teacherId, status = 'open', limit = 100 }) {
   ]);
 }
 
+function teacherReportCount(db, { teacherId, status = 'open' }) {
+  const clauses = ['COALESCE(c.teacher_id,s.teacher_id)=?', 's.deleted_at IS NULL'];
+  const params = [teacherId];
+  if (REPORT_STATUSES.has(status)) { clauses.push('r.status=?'); params.push(status); }
+  return Number(db.get(`SELECT COUNT(*) count FROM choice_king_reports r
+    JOIN students s ON s.id=r.student_id
+    LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+    WHERE ${clauses.join(' AND ')}`, params)?.count || 0);
+}
+
 function updateReport(db, { teacherId, reportId, status, teacherNote, stopQuestion, now = new Date() }) {
   const report = db.get(`SELECT r.* FROM choice_king_reports r JOIN students s ON s.id=r.student_id
     LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
@@ -627,6 +637,7 @@ module.exports = {
   leaderboard,
   createReport,
   teacherReports,
+  teacherReportCount,
   updateReport,
   teacherAlerts,
   markAlertRead,

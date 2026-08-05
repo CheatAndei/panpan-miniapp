@@ -10,6 +10,7 @@ const {
   leaderboard,
   createReport,
   teacherReports,
+  teacherReportCount,
   updateReport,
   teacherAlerts,
   markAlertRead,
@@ -125,8 +126,10 @@ router.get('/leaderboard', auth, parentOnly, (req, res) => {
 router.get('/reports', auth, teacherOnly, (req, res) => {
   const rawStatus = String(req.query.status || 'pending');
   const status = rawStatus === 'pending' ? 'open' : (rawStatus === 'all' ? '' : rawStatus);
+  const db = getDB();
   return res.json({
-    reports: teacherReports(getDB(), {
+    count: teacherReportCount(db, { teacherId: req.user.id, status }),
+    reports: teacherReports(db, {
       teacherId: req.user.id,
       status,
       limit: req.query.limit,

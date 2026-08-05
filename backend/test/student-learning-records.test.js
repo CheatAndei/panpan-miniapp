@@ -461,3 +461,28 @@ test('学生题库同时返回通用错题和选择错题，并与 open wrong �
   });
   assert.equal(payload.stats.open_wrong_count, payload.question_bank.summary.open);
 });
+
+test('教师可分页查阅学生全部学习提交，家长和其他教师不能访问', async () => {
+  const firstPage = await request(`/students/${studentId}/submissions?type=submissions&page=1&limit=2`, teacherToken);
+  assert.equal(firstPage.response.status, 200);
+  assert.equal(firstPage.payload.items.length, 2);
+  assert.equal(firstPage.payload.total, 6);
+  assert.equal(firstPage.payload.submission_count, 6);
+  assert.equal(firstPage.payload.report_count, 0);
+  assert.equal(firstPage.payload.has_more, true);
+
+  const all = await request(`/students/${studentId}/submissions?type=submissions&page=1&limit=20`, teacherToken);
+  assert.deepEqual(new Set(all.payload.items.map((item) => item.source_type)), new Set([
+    'practice', 'choice', 'mental', 'learning', 'knowledge',
+  ]));
+  assert.ok(all.payload.items.find((item) => item.source_type === 'practice')?.route.includes('/pages/practice-review/index'));
+
+  const reports = await request(`/students/${studentId}/submissions?type=reports`, teacherToken);
+  assert.equal(reports.response.status, 200);
+  assert.equal(reports.payload.total, 0);
+
+  const parentDenied = await request(`/students/${studentId}/submissions`, parentToken);
+  assert.equal(parentDenied.response.status, 403);
+  const otherDenied = await request(`/students/${studentId}/submissions`, otherTeacherToken);
+  assert.equal(otherDenied.response.status, 404);
+});

@@ -283,6 +283,7 @@ test('题目报错去重、限频，教师只能处理自己学生的记录并�
   const queue = await request('GET', '/choice-king/reports?status=pending', undefined, teacherToken);
   assert.equal(queue.response.status, 200);
   assert.equal(queue.payload.reports.length, 5);
+  assert.equal(queue.payload.count, 5);
   const otherQueue = await request('GET', '/choice-king/reports?status=all', undefined, otherTeacherToken);
   assert.equal(otherQueue.payload.reports.length, 0);
   const forbidden = await request('PUT', `/choice-king/reports/${first.payload.report.id}`, {

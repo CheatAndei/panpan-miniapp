@@ -29,6 +29,16 @@ test('家长首页与七年级学习中心均可直达周末攻坚战', () => {
   assert.match(learningCenter, /`\/pages\/weekend-mastery\/index\?student_id=\$\{studentId\.value\}`/);
 });
 
+test('家长首页攻坚战入口使用明亮糖果色，不出现黑块和粗黑边', () => {
+  const parentHome = read('components/home/ParentHomeView.vue');
+
+  assert.match(parentHome, /\.learning-shortcut\.featured-mastery\s*\{[^}]*border:\s*1rpx solid #CDE8F0/);
+  assert.match(parentHome, /\.learning-shortcut\.featured-mastery \.shortcut-icon\s*\{[^}]*background:\s*#FFF48A/);
+  assert.match(parentHome, /\.learning-shortcut\.featured-mastery \.shortcut-icon\s*\{[^}]*box-shadow:\s*5rpx 5rpx 0 #E5F8FE/);
+  assert.doesNotMatch(parentHome, /\.learning-shortcut\.featured-mastery\s*\{[^}]*border:\s*2rpx solid #050505/);
+  assert.doesNotMatch(parentHome, /\.learning-shortcut\.featured-mastery \.shortcut-icon\s*\{[^}]*background:\s*#050505/);
+});
+
 test('非七年级不会被误导，新客户端门禁能力与旧正式版安全隔离', () => {
   const page = read('pages/weekend-mastery/index.vue');
   const api = read('utils/api.js');

@@ -271,7 +271,6 @@ async function seedG8Content(db) {
       seededChoices += 1;
     }
 
-    const activeTerminalKeys = new Set();
     for (const item of terminals) {
       const prepared = assets.prepared.get(item.source_key);
       let assetId = prepared.assetId;
@@ -295,12 +294,12 @@ async function seedG8Content(db) {
       db.run(`INSERT INTO weekly_challenge_questions
         (source_key,question_type,title,question_asset_id,answer_text,source_label,
           grade_code,subject_code,topic_key,difficulty,is_active)
-        VALUES(?,?,?,?,?,?,'g8','math',?,?,1)
+        VALUES(?,?,?,?,?,?,'g8','math',?,?,0)
         ON CONFLICT(source_key) DO UPDATE SET
           question_type=excluded.question_type,title=excluded.title,
           question_asset_id=excluded.question_asset_id,answer_text=excluded.answer_text,
           source_label=excluded.source_label,grade_code='g8',subject_code='math',
-          topic_key=excluded.topic_key,difficulty=excluded.difficulty,is_active=1`, [
+          topic_key=excluded.topic_key,difficulty=excluded.difficulty,is_active=0`, [
         item.source_key, item.question_type, item.title, assetId, item.answer_text,
         item.source_label, item.topic_key, item.difficulty,
       ]);
@@ -311,7 +310,6 @@ async function seedG8Content(db) {
         topicKeys: item.topic_keys,
         primaryTopicKey: item.topic_key,
       });
-      activeTerminalKeys.add(item.source_key);
       seededTerminals += 1;
     }
 
@@ -321,11 +319,8 @@ async function seedG8Content(db) {
       deactivated += Number(db.run(`UPDATE choice_king_questions SET is_active=0,updated_at=CURRENT_TIMESTAMP
         WHERE stable_code=?`, [row.stable_code]).changes || 0);
     }
-    for (const row of db.all(`SELECT source_key FROM weekly_challenge_questions
-      WHERE source_key LIKE 'g8-original-%' AND is_active=1`)) {
-      if (activeTerminalKeys.has(row.source_key)) continue;
-      deactivated += Number(db.run('UPDATE weekly_challenge_questions SET is_active=0 WHERE source_key=?', [row.source_key]).changes || 0);
-    }
+    deactivated += Number(db.run(`UPDATE weekly_challenge_questions SET is_active=0
+      WHERE source_key LIKE 'g8-original-%' AND is_active=1`).changes || 0);
   });
   return {
     choice: seededChoices,

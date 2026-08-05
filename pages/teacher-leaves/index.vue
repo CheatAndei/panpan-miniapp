@@ -4,15 +4,22 @@
     <view class="hero-meta">
       <text class="eyebrow">TEACHER INBOX</text>
       <view class="pending-count">
-        <pp-icon name="bell" :size="28" :motion="pending.length > 0 ? 'ring' : 'none'" />
-        <text class="num">{{ pending.length }}</text>
+        <pp-icon name="bell" :size="28" :motion="totalPending > 0 ? 'ring' : 'none'" />
+        <text class="num">{{ totalPending }}</text>
         <text>待处理</text>
       </view>
     </view>
-    <text class="hero-title">请假与反馈</text>
-    <text class="hero-sub">家长申请与建议集中处理，处理结果会保留在全部记录中。</text>
+    <text class="hero-title">审批中心</text>
+    <text class="hero-sub">请假、家长建议和题目报错集中提醒，处理结果会保留记录。</text>
     <view class="hero-rule" aria-hidden="true"></view>
   </view>
+
+  <button class="report-entry" aria-label="进入题目报错审批" @tap="openQuestionReports">
+    <view class="report-entry-icon"><pp-icon name="report" :size="34" :motion="reportCount ? 'ring' : 'pop'" decorative /></view>
+    <view class="report-entry-copy"><text>题目报错审批</text><text>{{ reportCount ? `有 ${reportCount} 条题目或答案等待核对` : '当前没有待处理报错' }}</text></view>
+    <text v-if="reportCount" class="report-entry-count num">{{ reportCount }}</text>
+    <pp-icon name="arrow" :size="28" decorative />
+  </button>
 
   <view class="workspace-head">
     <view><text class="section-kicker">家长来信</text><text class="section-title">选择要查看的记录</text></view>
@@ -94,12 +101,13 @@ import { api } from '@/utils/api';
 import { confirmAction, toastSuccess, toastError, logError } from '@/utils/ui';
 export default {
   data(){return{
-    leaves:[],filter:'pending',loading:false,error:'',
+    leaves:[],filter:'pending',loading:false,error:'',reportCount:0,
     statusMap:{pending:'待审批',approved:'已批准',rejected:'已拒绝'},
     replying:null,replyText:''
   };},
   computed:{
     pending(){return this.leaves.filter(l=>l.status==='pending');},
+    totalPending(){return this.pending.length+Number(this.reportCount||0);},
     filtered(){return this.filter==='pending'?this.pending:this.leaves;}
   },
   onShow(){this.loadData();},
@@ -109,11 +117,17 @@ export default {
       this.loading=true;
       this.error='';
       try{
-        const data=await api.get('/leaves');
+        const [data,choiceReports,calculationReports]=await Promise.all([
+          api.get('/leaves'),
+          api.get('/choice-king/reports?status=pending&limit=1').catch(()=>({count:0})),
+          api.get('/calculation-reports?status=pending&limit=1').catch(()=>({count:0}))
+        ]);
         this.leaves=(data.leaves||[]).map(l=>({...l,_swiped:false,_busy:false}));
+        this.reportCount=Number(choiceReports.count||0)+Number(calculationReports.count||0);
       }catch(e){this.error=e?.error||'请检查网络后重试';logError('teacherLeaves.loadData',e);}
       finally{this.loading=false;}
     },
+    openQuestionReports(){uni.navigateTo({url:'/pages/choice-reports/index'});},
     statusText(item){
       if(item.item_type==='feedback'){
         return item.status==='pending'?'待处理':item.status==='approved'?'已处理':'已忽略';
@@ -306,6 +320,30 @@ export default {
   margin: 30rpx 28rpx 14rpx;
   animation: inbox-enter var(--motion-slow, 240ms) 45ms var(--ease-out, ease-out) both;
 }
+
+.report-entry {
+  width: calc(100% - 48rpx);
+  min-height: 106rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin: 18rpx 24rpx 0;
+  padding: 16rpx 18rpx;
+  border: 1rpx solid #F2C8D5;
+  border-left: 6rpx solid #F79BC0;
+  border-radius: 14rpx;
+  background: #FFFFFF;
+  box-sizing: border-box;
+  color: #050505;
+  text-align: left;
+}
+.report-entry::after { border: 0; }
+.report-entry-icon { width: 58rpx; height: 58rpx; display:flex; align-items:center; justify-content:center; flex:none; border-radius:11rpx; background:#FFF0F6; }
+.report-entry-copy { min-width:0; flex:1; }
+.report-entry-copy text { display:block; }
+.report-entry-copy text:first-child { font-size:25rpx; font-weight:760; }
+.report-entry-copy text:last-child { margin-top:3rpx; color:#6B7078; font-size:19rpx; }
+.report-entry-count { min-width:38rpx; padding:4rpx 8rpx; border-radius:8rpx; background:#FFF0F6; color:#B53A52; font-size:19rpx; text-align:center; }
 
 .section-kicker { display: block; }
 

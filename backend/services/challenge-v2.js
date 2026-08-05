@@ -8,9 +8,18 @@ const {
 
 const ACTIVE_STATUSES = ['active', 'submitted', 'reviewed_wrong'];
 const TYPES = new Set(['fill', 'subjective']);
+const G8_REAL_SOURCE_PREFIX = 'gz8-terminal-GZ8-';
 
 function fileUrl(token) { return token ? `/api/private-files/${token}` : null; }
 function oppositeType(questionType) { return questionType === 'fill' ? 'subjective' : 'fill'; }
+function realSourceSql(gradeCode, alias = 'q') {
+  return normalizeGradeCode(gradeCode) === 'g8' ? ` AND ${alias}.source_key LIKE '${G8_REAL_SOURCE_PREFIX}%'` : '';
+}
+function isChallengeQuestionSourceAllowed(db, { gradeCode, questionId }) {
+  if (normalizeGradeCode(gradeCode) !== 'g8') return true;
+  return Boolean(db.get(`SELECT id FROM weekly_challenge_questions
+    WHERE id=? AND source_key LIKE '${G8_REAL_SOURCE_PREFIX}%'`, [questionId]));
+}
 
 function lastPassedOn(db, { studentId, gradeCode, subjectCode, logicalDate }) {
   const grade = normalizeGradeCode(gradeCode);
@@ -80,7 +89,7 @@ function switchPartner(db,current){
   const partner=db.get(`SELECT a.id,a.question_id FROM challenge_assignments_v2 a
     JOIN weekly_challenge_questions q ON q.id=a.question_id
     WHERE a.student_id=? AND a.grade_code=? AND a.subject_code=? AND a.question_type=?
-      AND a.status='replaced' AND a.replaced_by_id=? AND q.is_active=1
+      AND a.status='replaced' AND a.replaced_by_id=? AND q.is_active=1${realSourceSql(current.grade_code,'q')}
       AND NOT EXISTS(SELECT 1 FROM challenge_submissions_v2 sub WHERE sub.assignment_id=a.id)
     ORDER BY a.updated_at DESC,a.id DESC LIMIT 1`,[
     current.student_id,current.grade_code,current.subject_code,current.question_type,current.id,
@@ -98,6 +107,7 @@ function availableCounts(db,{studentId,gradeCode,subjectCode}){
   if(scope.empty)return {};
   const rows=db.all(`SELECT q.question_type,COUNT(*) count FROM weekly_challenge_questions q
     WHERE q.grade_code=? AND q.subject_code=? AND q.is_active=1 AND q.question_type IN ('fill','subjective')
+      ${realSourceSql(grade,'q')}
       AND NOT EXISTS(SELECT 1 FROM challenge_assignments_v2 a WHERE a.student_id=? AND a.question_id=q.id AND a.status='passed')
       ${scope.clause}
     GROUP BY q.question_type`,[grade,subject,studentId,...scope.params]);
@@ -113,8 +123,12 @@ function progress(db,{studentId,gradeCode,subjectCode}){
 
 function currentState(db,{studentId,gradeCode='g7',subjectCode='math'}){
   const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
+  const retiredType=retireUnsubmittedG8OriginalAssignments(db,{studentId,gradeCode:grade,subjectCode:subject});
   withdrawScopedActiveAssignments(db,{studentId,gradeCode:grade,subjectCode:subject});
-  const current=currentAssignment(db,{studentId,gradeCode:grade,subjectCode:subject});
+  let current=currentAssignment(db,{studentId,gradeCode:grade,subjectCode:subject});
+  if(!current&&retiredType){
+    try{const replacement=createAssignment(db,{studentId,gradeCode:grade,subjectCode:subject,questionType:retiredType});current={id:replacement.id};}catch{}
+  }
   const lastPassed=db.get(`SELECT id FROM challenge_assignments_v2 WHERE student_id=? AND grade_code=? AND subject_code=?
     AND status='passed' ORDER BY passed_on DESC,id DESC LIMIT 1`,[studentId,grade,subject]);
   const today=practiceDateAt(new Date());
@@ -144,9 +158,23 @@ function pickQuestion(db,{studentId,grade,subject,questionType,excludeId=0}){
   if(scope.empty)return null;
   return db.get(`SELECT q.id FROM weekly_challenge_questions q WHERE q.grade_code=? AND q.subject_code=?
     AND q.question_type=? AND q.is_active=1 AND q.id<>?
+    ${realSourceSql(grade,'q')}
     AND NOT EXISTS(SELECT 1 FROM challenge_assignments_v2 a WHERE a.student_id=? AND a.question_id=q.id AND a.status='passed')
     ${scope.clause}
     ORDER BY RANDOM() LIMIT 1`,[grade,subject,questionType,excludeId,studentId,...scope.params]);
+}
+
+function retireUnsubmittedG8OriginalAssignments(db,{studentId,gradeCode,subjectCode}){
+  const grade=normalizeGradeCode(gradeCode);const subject=normalizeSubjectCode(subjectCode);
+  if(grade!=='g8')return null;
+  const rows=db.all(`SELECT a.id,a.question_type FROM challenge_assignments_v2 a
+    JOIN weekly_challenge_questions q ON q.id=a.question_id
+    WHERE a.student_id=? AND a.grade_code=? AND a.subject_code=? AND a.status='active'
+      AND q.source_key NOT LIKE '${G8_REAL_SOURCE_PREFIX}%'
+      AND NOT EXISTS(SELECT 1 FROM challenge_submissions_v2 sub WHERE sub.assignment_id=a.id)
+    ORDER BY a.id DESC`,[studentId,grade,subject]);
+  for(const row of rows)db.run("UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='active'",[row.id]);
+  return rows[0]?.question_type||null;
 }
 
 function withdrawScopedActiveAssignments(db,{studentId,gradeCode,subjectCode}){
@@ -188,6 +216,10 @@ function createAssignment(db,{studentId,gradeCode='g7',subjectCode='math',questi
 function changeAssignment(db,{studentId,assignmentId}){
   const current=assignmentRow(db,assignmentId);
   if(!current||Number(current.student_id)!==Number(studentId))throw new Error('挑战不存在');
+  if(!isChallengeQuestionSourceAllowed(db,{gradeCode:current.grade_code,questionId:current.question_id})&&!submissionsForAssignment(db,current.id).length){
+    db.run("UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='active'",[current.id]);
+    throw new Error('该题已自动更换，请刷新后继续');
+  }
   if(!questionAllowedForStudent(db,{studentId,gradeCode:current.grade_code,subjectCode:current.subject_code,
     relationTable:'weekly_challenge_question_topics',questionId:current.question_id})){
     db.run("UPDATE challenge_assignments_v2 SET status='skipped',updated_at=CURRENT_TIMESTAMP WHERE id=?",[current.id]);
@@ -234,10 +266,13 @@ function teacherQueue(db,{teacherId,status='submitted',limit=100}){
   const currentClause=status==='reviewed'?'':` AND (sub.status='reviewed' OR (
     a.status='submitted' AND sub.id=(SELECT latest.id FROM challenge_submissions_v2 latest
       WHERE latest.assignment_id=a.id ORDER BY latest.attempt_no DESC,latest.id DESC LIMIT 1)))`;
+  const orderBy=status==='reviewed'
+    ? 'COALESCE(sub.reviewed_at,sub.submitted_at) DESC,sub.id DESC'
+    : 'sub.submitted_at ASC,sub.id ASC';
   const ids=db.all(`SELECT sub.id FROM challenge_submissions_v2 sub JOIN challenge_assignments_v2 a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
     WHERE s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}${currentClause}
-    ORDER BY CASE sub.status WHEN 'submitted' THEN 0 ELSE 1 END,sub.submitted_at ASC,sub.id ASC LIMIT ?`,[teacherId,Math.max(1,Math.min(100,Number(limit)||100))]);
+    ORDER BY ${orderBy} LIMIT ?`,[teacherId,Math.max(1,Math.min(100,Number(limit)||100))]);
   return ids.map(({id})=>{
     const submission=db.get('SELECT assignment_id FROM challenge_submissions_v2 WHERE id=?',[id]);
     const item=serializeAssignment(db,assignmentRow(db,submission.assignment_id),'teacher');
@@ -302,5 +337,5 @@ function reviewSubmission(db,{teacherId,submissionId,isCorrect,teacherNote}){
 module.exports={
   TYPES,ACTIVE_STATUSES,assignmentRow,serializeAssignment,submissionsForAssignment,currentState,
   createAssignment,changeAssignment,teacherQueue,teacherQueueCount,reviewSubmission,refreshProgress,
-  withdrawScopedActiveAssignments,
+  withdrawScopedActiveAssignments,retireUnsubmittedG8OriginalAssignments,isChallengeQuestionSourceAllowed,
 };

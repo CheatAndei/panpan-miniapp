@@ -75,7 +75,7 @@ test('1008 道正式题完整入库，288 张题卡可读且重复同步幂等',
   assert.equal(Number(db.get(`SELECT COUNT(*) count FROM choice_king_questions
     WHERE stable_code LIKE 'GZ8-ORIGINAL-%' AND is_active=1`).count), 720);
   assert.equal(Number(db.get(`SELECT COUNT(*) count FROM weekly_challenge_questions
-    WHERE source_key LIKE 'g8-original-%' AND is_active=1`).count), 288);
+    WHERE source_key LIKE 'g8-original-%' AND is_active=1`).count), 0);
 
   for (const topic of topics) {
     assert.equal(Number(db.get(`SELECT COUNT(*) count FROM choice_king_questions q
@@ -85,12 +85,12 @@ test('1008 道正式题完整入库，288 张题卡可读且重复同步幂等',
       JOIN weekly_challenge_question_topics qt ON qt.question_id=q.id
       WHERE q.topic_key=? AND qt.topic_key=? AND q.question_type='fill' AND q.is_active=1`, [
       topic.topic_key, topic.topic_key,
-    ]).count), 12);
+    ]).count), 0);
     assert.equal(Number(db.get(`SELECT COUNT(*) count FROM weekly_challenge_questions q
       JOIN weekly_challenge_question_topics qt ON qt.question_id=q.id
       WHERE q.topic_key=? AND qt.topic_key=? AND q.question_type='subjective' AND q.is_active=1`, [
       topic.topic_key, topic.topic_key,
-    ]).count), 12);
+    ]).count), 0);
   }
 
   const asset = db.get(`SELECT a.storage_key,a.mime_type,a.byte_size FROM weekly_challenge_questions q

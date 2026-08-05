@@ -1970,11 +1970,19 @@ function scheduleLabel(schedule) {
 .learning-shortcut.featured-mastery {
   grid-column: 1 / -1;
   min-height: 132rpx;
-  border: 2rpx solid #050505;
+  border: 1rpx solid #CDE8F0;
   border-top: 10rpx solid #FFF48A;
-  background: #FFFDF0;
+  background: linear-gradient(135deg, #FFFDF0 0%, #F7FCFE 100%);
+  box-shadow: 0 8rpx 20rpx rgba(11, 120, 154, .08);
 }
-.learning-shortcut.featured-mastery .shortcut-icon { background: #050505; }
+.learning-shortcut.featured-mastery .shortcut-icon {
+  border: 1rpx solid #E8DA6A;
+  background: #FFF48A;
+  box-shadow: 5rpx 5rpx 0 #E5F8FE;
+}
+.learning-shortcut.featured-mastery .shortcut-title {
+  font-weight: 800;
+}
 .learning-shortcut.terminal-shortcut { border-top: 8rpx solid #F79BC0; }
 .learning-shortcut.exam-shortcut { border-top: 8rpx solid #99DEF4; }
 .tool-item:first-child .tool-icon { background: #FFF48A; color: #050505; }

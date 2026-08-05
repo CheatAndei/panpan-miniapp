@@ -7,6 +7,7 @@ const {
   teacherStudentRecords,
   teacherStudentRecord,
 } = require('../services/student-learning-records');
+const { teacherStudentSubmissionArchive } = require('../services/student-submission-archive');
 
 function shanghaiDate() {
   return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -43,6 +44,23 @@ router.get('/:id/learning-record', auth, (req, res) => {
   });
   if (!record) return res.status(404).json({ error: '学生不存在' });
   return res.json(record);
+});
+
+router.get('/:id/submissions', auth, (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: '仅教师可查阅学生提交档案' });
+  const studentId = Number(req.params.id);
+  if (!Number.isInteger(studentId) || studentId < 1) {
+    return res.status(400).json({ error: '学生编号无效' });
+  }
+  const archive = teacherStudentSubmissionArchive(getDB(), {
+    teacherId: req.user.id,
+    studentId,
+    kind: String(req.query.type || 'submissions'),
+    page: req.query.page,
+    limit: req.query.limit,
+  });
+  if (!archive) return res.status(404).json({ error: '学生不存在' });
+  return res.json(archive);
 });
 
 router.get('/', auth, (req, res) => {
