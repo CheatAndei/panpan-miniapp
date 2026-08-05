@@ -563,6 +563,8 @@ async function initDB() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   _db.run(schema);
   runMigrations();
+  // 小型版本化内容清单每次启动幂等同步；已有学生作答的题组受内容哈希保护，不会被覆盖。
+  require('../services/weekend-mastery').seedWeekendMastery(getDB());
   require('../services/content-progress').seedCurriculumTopics(getDB());
   // The full generated banks are intentionally exercised by their dedicated
   // seed tests. Avoid importing 2,420 image-backed resources again for every

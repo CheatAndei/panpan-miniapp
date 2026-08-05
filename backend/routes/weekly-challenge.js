@@ -13,6 +13,7 @@ const {
   reviewSubmission: reviewSubmissionV2,
 } = require('../services/challenge-v2');
 const { recordChallengePass, serializeEvent } = require('../services/promotions');
+const { terminalGateState } = require('../services/weekend-mastery');
 
 const router = express.Router();
 const TYPES = new Set(['fill', 'subjective']);
@@ -41,6 +42,33 @@ function ownsStudent(db, teacherId, studentId) {
 
 function fileUrl(token) {
   return token ? `/api/private-files/${token}` : null;
+}
+
+function supportsWeekendMasteryGate(req) {
+  if (process.env.WEEKEND_MASTERY_GATE_LEGACY_CLIENTS === '1') return true;
+  const capabilities = String(req.get('X-Panpan-Client-Capabilities') || '')
+    .split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
+  return capabilities.includes('weekend-mastery-v1');
+}
+
+function blockForWeekendMastery(db, req, res, studentId) {
+  // 旧正式版没有攻坚战页面与 423 引导；仅对声明支持该能力的新客户端启用门禁。
+  if (!supportsWeekendMasteryGate(req)) return false;
+  const gate = terminalGateState(db, { studentId });
+  if (gate.allowed) return false;
+  const messages = {
+    stage1_not_passed: '先完成周末攻坚战第一关并等待老师批对，才能进入压轴挑战',
+    stage2_not_submitted: '第一关已通过，请完成难度升级并提交第二关',
+    stage2_correction_required: '第二关需要订正，重新提交后才能进入压轴挑战',
+  };
+  res.status(423).json({
+    error: messages[gate.reason] || '请先完成周末攻坚战',
+    code: 'WEEKEND_MASTERY_REQUIRED',
+    reason: gate.reason,
+    target: gate.target,
+    gate,
+  });
+  return true;
 }
 
 function serializeAssignment(db, assignment, role) {
@@ -78,6 +106,7 @@ router.get('/v2/current', auth, parentOnly, (req, res) => {
   const db=getDB();
   const studentId=boundStudent(db,req.user.id,req.query.student_id);
   if(!studentId)return res.status(403).json({error:'无权查看该学生的挑战'});
+  if(blockForWeekendMastery(db,req,res,studentId))return;
   return res.json(currentStateV2(db,{studentId,gradeCode:req.query.grade,subjectCode:req.query.subject}));
 });
 
@@ -85,6 +114,7 @@ router.post('/v2/assignments', auth, parentOnly, (req, res) => {
   const db=getDB();
   const studentId=boundStudent(db,req.user.id,req.body?.student_id);
   if(!studentId)return res.status(403).json({error:'无权为该学生领取挑战'});
+  if(blockForWeekendMastery(db,req,res,studentId))return;
   try{return res.status(201).json({assignment:createAssignmentV2(db,{
     studentId,gradeCode:req.body?.grade,subjectCode:req.body?.subject,questionType:String(req.body?.question_type||''),
   })});}catch(error){return res.status(400).json({error:error.message||'领取失败'});}
@@ -95,6 +125,7 @@ router.post('/v2/assignments/:id/change', auth, parentOnly, (req, res) => {
   const row=assignmentRowV2(db,Number(req.params.id));
   const studentId=row?boundStudent(db,req.user.id,row.student_id):0;
   if(!studentId)return res.status(404).json({error:'挑战不存在'});
+  if(blockForWeekendMastery(db,req,res,studentId))return;
   try{return res.json({assignment:changeAssignmentV2(db,{studentId,assignmentId:row.id})});}
   catch(error){return res.status(400).json({error:error.message||'更换失败'});}
 });
@@ -103,6 +134,7 @@ router.post('/v2/assignments/:id/upload', auth, parentOnly, async (req, res) => 
   const db=getDB();
   const assignment=assignmentRowV2(db,Number(req.params.id));
   if(!assignment||!boundStudent(db,req.user.id,assignment.student_id))return res.status(404).json({error:'挑战不存在'});
+  if(blockForWeekendMastery(db,req,res,assignment.student_id))return;
   const uploadCompleteValue=req.query?.upload_complete??req.body?.upload_complete;
   const uploadComplete=uploadCompleteValue===undefined
     || !['0','false'].includes(String(uploadCompleteValue).toLowerCase());
@@ -154,6 +186,7 @@ router.post('/v2/assignments/:id/submit', auth, parentOnly, (req, res) => {
   const db=getDB();
   const assignment=assignmentRowV2(db,Number(req.params.id));
   if(!assignment||!boundStudent(db,req.user.id,assignment.student_id))return res.status(404).json({error:'挑战不存在'});
+  if(blockForWeekendMastery(db,req,res,assignment.student_id))return;
   const studentNote=String(req.body?.student_note||'').trim().slice(0,500);
   try{
     const result=db.transaction(()=>{
@@ -224,6 +257,7 @@ router.get('/current', auth, parentOnly, (req, res) => {
   const db = getDB();
   const studentId = boundStudent(db, req.user.id, req.query.student_id);
   if (!studentId) return res.status(403).json({ error: '无权查看该学生的挑战' });
+  if (blockForWeekendMastery(db, req, res, studentId)) return;
   const weekStart = weekStartKey();
   const row = db.get(`SELECT a.*,q.title,q.question_asset_id,q.answer_asset_id,q.answer_text,q.source_label
     FROM weekly_challenge_assignments a JOIN weekly_challenge_questions q ON q.id=a.question_id
@@ -239,6 +273,7 @@ router.post('/assignments', auth, parentOnly, (req, res) => {
   const studentId = boundStudent(db, req.user.id, req.body?.student_id);
   const questionType = String(req.body?.question_type || '');
   if (!studentId) return res.status(403).json({ error: '无权为该学生领取挑战' });
+  if (blockForWeekendMastery(db, req, res, studentId)) return;
   if (!TYPES.has(questionType)) return res.status(400).json({ error: '压轴挑战只可选择填空题或解答题' });
   const weekStart = weekStartKey();
   let existing = db.get('SELECT id FROM weekly_challenge_assignments WHERE student_id=? AND week_start=?', [studentId, weekStart]);
@@ -259,6 +294,7 @@ router.post('/assignments/:id/upload', auth, parentOnly, async (req, res) => {
   const db = getDB();
   const assignment = assignmentRow(db, Number(req.params.id));
   if (!assignment || !boundStudent(db, req.user.id, assignment.student_id)) return res.status(404).json({ error: '挑战不存在' });
+  if (blockForWeekendMastery(db, req, res, assignment.student_id)) return;
   let decoded;
   try { decoded = await decodePrivateImage(req.body?.base64); }
   catch (error) { return res.status(400).json({ error: error.message }); }

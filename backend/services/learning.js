@@ -18,7 +18,7 @@ const TASKS = {
   wrong: { title: '错题清零', count: 3, description: '同类题连续答对 2 次即掌握' },
   weekly: { title: '压轴挑战', count: 3, description: '最后一道填空与最后两道大题，完成后拍照提交' },
   context: { title: '广州真题大全', count: 8, description: '广州七年级上学期原卷与配套答案' },
-  weekend: { title: '周末小测', count: 10, description: '用 10 题检查本周掌握情况' },
+  weekend: { title: '周末攻坚战', count: 2, description: '两道同型大题，方法熟练后难度升级' },
 };
 
 function parseJson(value, fallback) {
@@ -466,7 +466,7 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
     { type: 'warmup', ...TASKS.warmup, accent: 'mint' },
     { type: 'weakness', ...TASKS.weakness, accent: 'blue' },
     { type: 'wrong', ...TASKS.wrong, title: overview.stats.open_wrong_count ? `错题清零 · ${overview.stats.open_wrong_count} 待掌握` : '错题清零 · 今日巩固', accent: 'amber' },
-    { type: 'weekend', ...TASKS.weekend, accent: 'purple', locked: ![0, 6].includes(weekday), lock_text: '周末开放' },
+    { type: 'weekend', ...TASKS.weekend, route: 'weekend_mastery', accent: 'gold', weekend_required: [0, 5, 6].includes(weekday) },
     { type: 'practice', title: '老师每日打卡', description: '完成老师发布的练习，拍照等待复核', route: 'practice', accent: 'green' },
     { type: 'arena', title: '口算王', description: '20 题限时挑战与本周排行', route: 'arena', accent: 'gold' },
   );
@@ -503,6 +503,7 @@ function catalog(db, { studentId, gradeCode, subjectCode = 'math', now = new Dat
       knowledge_challenge: knowledgeCount > 0,
       choice_king: choiceCount > 0,
       weekly_challenge: challengeCount > 0,
+      weekend_mastery: grade === 'g7',
       exams: examCount > 0,
     },
     content_scope: {

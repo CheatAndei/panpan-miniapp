@@ -29,7 +29,7 @@ test('今日三任务、学习内容与错题两次掌握规则均有明确呈�
   const session = read('pages/learning-session/index.vue');
   assert.match(home, /今日学习任务/);
   assert.match(home, /learningToday\.tasks/);
-  for (const copy of ['每日 5 题热身', '薄弱点刷题', '错题清零', '压轴挑战', '广州真题大全', '周末小测', '口算王']) {
+  for (const copy of ['每日 5 题热身', '薄弱点刷题', '错题清零', '压轴挑战', '广州真题大全', '周末攻坚战', '口算王']) {
     assert.match(learning + learningService, new RegExp(copy));
   }
   assert.match(session, /连续答对 2 次/);

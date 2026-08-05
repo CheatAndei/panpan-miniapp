@@ -24,8 +24,8 @@ function blockSegments(blocks) {
   return blocks.flatMap((block) => {
     if (!block || typeof block !== 'object') return [];
     if (block.type === 'fraction') {
-      const numerator = String(block.numerator ?? '');
-      const denominator = String(block.denominator ?? '');
+      const numerator = normalizeMathPowers(block.numerator);
+      const denominator = normalizeMathPowers(block.denominator);
       if (!numerator || !denominator) return [];
       return [{
         type: 'fraction',

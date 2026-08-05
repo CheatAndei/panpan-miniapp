@@ -26,7 +26,14 @@
         </button>
       </view>
     </view>
-    <pp-state v-if="loading && !assignment" type="loading" title="正在准备本周压轴题" />
+    <pp-state
+      v-if="gateBlocked"
+      title="先完成周末攻坚战"
+      description="完成第一关并提交第二关后，周末即可进入压轴挑战。"
+      action-text="进入周末攻坚战"
+      @action="openWeekendMastery"
+    />
+    <pp-state v-else-if="loading && !assignment" type="loading" title="正在准备本周压轴题" />
     <pp-state v-else-if="error && !assignment" type="error" title="挑战加载失败" :description="error" action-text="重试" @action="reloadPage" />
     <pp-state
       v-else-if="scopeEmpty && !assignment"
@@ -34,7 +41,7 @@
       description="开放后即可领取填空或解答题；每日打卡和试卷库不受影响。"
     />
 
-    <view v-if="gradeCode && !loading && !assignment && !error && !scopeEmpty && !nextQuestionType" class="choose-card">
+    <view v-if="gradeCode && !gateBlocked && !loading && !assignment && !error && !scopeEmpty && !nextQuestionType" class="choose-card">
       <view class="section-title-row"><pp-icon name="book" :size="30" motion="pop" :delay="180" /><text class="section-title">想挑战哪类压轴题？</text></view>
       <text class="section-desc">每天首次可自选；通关后两类题交替，首次换题后可在两题间来回对比。</text>
       <button v-for="(item,index) in types" :key="item.value" class="type-card" :disabled="!available[item.value] || claiming" @tap="claim(item.value)">
@@ -98,7 +105,9 @@ const studentId=ref(0),loading=ref(false),claiming=ref(false),uploading=ref(fals
 const error=ref(''),uploadProgress=ref(''),answerText=ref(''),assignment=ref(null),lastPassed=ref(null),questionImage=ref(''),available=ref({}),localPhotos=ref([]);
 const gradeCode=ref(''),progress=ref({}),canChange=ref(false),canSwitchBack=ref(false),changeRemaining=ref(0),nextQuestionType=ref(null);
 const scopeEmpty=ref(false);
+const gateBlocked=ref(false);
 let allowBack=false,loadPromise=null,reloadCurrent=false,gradeInitPromise=null,initialGrade='';
+let gatePromptOpen=false;
 const gradeTabs=[
   {value:'g7',label:'七年级'},
   {value:'g8',label:'八年级'},
@@ -151,8 +160,8 @@ async function runCurrentLoads(){
   try{
     do{
       reloadCurrent=false;error.value='';
-      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;scopeEmpty.value=Boolean(data.scope_empty);canChange.value=Boolean(data.can_change);canSwitchBack.value=Boolean(data.can_switch_back);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
-      catch(e){error.value=e?.error||'请检查网络后重试';}
+      try{const previousAssignmentId=assignment.value?.id;const previousAnswerText=answerText.value;const data=await api.get(`/weekly-challenge/v2/current?student_id=${studentId.value}&grade=${gradeCode.value}&subject=math`);gateBlocked.value=false;available.value=data.available||{};progress.value=data.progress||{};assignment.value=data.assignment||null;lastPassed.value=data.last_passed||null;nextQuestionType.value=data.next_question_type||null;scopeEmpty.value=Boolean(data.scope_empty);canChange.value=Boolean(data.can_change);canSwitchBack.value=Boolean(data.can_switch_back);changeRemaining.value=Number(data.change_remaining||0);if(assignment.value){const keepDraftText=Number(previousAssignmentId)===Number(assignment.value.id)&&assignment.value.status!=='submitted';answerText.value=keepDraftText?previousAnswerText:String(assignment.value.submission?.student_note||'');await loadImages();}else{questionImage.value='';localPhotos.value=[];answerText.value='';}}
+      catch(e){if(!handleMasteryGate(e))error.value=e?.error||'请检查网络后重试';}
     }while(reloadCurrent);
   }finally{loading.value=false;}
 }
@@ -178,24 +187,24 @@ async function loadImages(){
 async function claim(type){
   if(claiming.value)return;claiming.value=true;
   try{if(loadPromise)await loadPromise;const data=await api.post('/weekly-challenge/v2/assignments',{student_id:studentId.value,grade:gradeCode.value,subject:'math',question_type:type});answerText.value='';assignment.value=data.assignment;lastPassed.value=null;await loadCurrent();}
-  catch(e){uni.showToast({title:e?.error||'领取失败',icon:'none'});}finally{claiming.value=false;}
+  catch(e){if(!handleMasteryGate(e))uni.showToast({title:e?.error||'领取失败',icon:'none'});}finally{claiming.value=false;}
 }
 function chooseImages(){return new Promise((resolve,reject)=>{const count=Math.max(1,4-photoCount.value);if(uni.chooseMedia)uni.chooseMedia({count,mediaType:['image'],sourceType:['camera','album'],success:r=>resolve((r.tempFiles||[]).map(f=>f.tempFilePath)),fail:reject});else uni.chooseImage({count,sourceType:['camera','album'],success:r=>resolve(r.tempFilePaths||[]),fail:reject});});}
 async function chooseAndUpload(){
   try{const files=await chooseImages();if(!files.length)return;uploading.value=true;for(let i=0;i<files.length;i++){uploadProgress.value=`${i+1}/${files.length}`;await api.upload(`/weekly-challenge/v2/assignments/${assignment.value.id}/upload?upload_complete=0`,files[i],'image');}uni.showToast({title:'图片已暂存',icon:'success'});await loadCurrent();}
-  catch(e){if(!/cancel/i.test(e?.errMsg||''))uni.showToast({title:e?.error||'上传失败',icon:'none'});}finally{uploading.value=false;uploadProgress.value='';}
+  catch(e){if(!handleMasteryGate(e)&&!/cancel/i.test(e?.errMsg||''))uni.showToast({title:e?.error||'上传失败',icon:'none'});}finally{uploading.value=false;uploadProgress.value='';}
 }
 async function submitChallenge(){
   if(submitting.value||uploading.value||photoCount.value<1||!assignment.value)return;
   submitting.value=true;
   try{const data=await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/submit`,{student_note:answerText.value.trim()});assignment.value=data.assignment;uni.showToast({title:'挑战已提交',icon:'success'});await loadCurrent();}
-  catch(e){uni.showToast({title:e?.error||'提交失败，请重试',icon:'none'});}finally{submitting.value=false;}
+  catch(e){if(!handleMasteryGate(e))uni.showToast({title:e?.error||'提交失败，请重试',icon:'none'});}finally{submitting.value=false;}
 }
 async function changeQuestion(){
   if(!assignment.value||(!canChange.value&&!canSwitchBack.value)||claiming.value)return;
   const switchingBack=canSwitchBack.value;claiming.value=true;
   try{await api.post(`/weekly-challenge/v2/assignments/${assignment.value.id}/change`,{});answerText.value='';uni.showToast({title:switchingBack?'已切到另一题':'已更换题目',icon:'success'});await loadCurrent();}
-  catch(e){uni.showToast({title:e?.error||'更换失败',icon:'none'});}finally{claiming.value=false;}
+  catch(e){if(!handleMasteryGate(e))uni.showToast({title:e?.error||'更换失败',icon:'none'});}finally{claiming.value=false;}
 }
 async function changeGrade(nextGrade){
   if(gradeBusy.value||gradeCode.value===nextGrade||!gradeTabs.some(item=>item.value===nextGrade))return;
@@ -213,6 +222,26 @@ async function changeGrade(nextGrade){
 function typeLabel(type){return types.find(item=>item.value===type)?.label||'压轴题';}
 function previewPhotos(index){uni.previewImage({urls:localPhotos.value,current:localPhotos.value[index]});}
 function openAchievements(){uni.navigateTo({url:`/pages/achievements/index?student_id=${studentId.value}`});}
+function openWeekendMastery(){uni.redirectTo({url:`/pages/weekend-mastery/index?student_id=${studentId.value}`});}
+function handleMasteryGate(requestError){
+  if(Number(requestError?.statusCode)!==423||requestError?.code!=='WEEKEND_MASTERY_REQUIRED')return false;
+  gateBlocked.value=true;assignment.value=null;lastPassed.value=null;questionImage.value='';localPhotos.value=[];error.value='';reloadCurrent=false;
+  if(gatePromptOpen)return true;
+  gatePromptOpen=true;
+  uni.showModal({
+    title:'先完成周末攻坚战',
+    content:requestError?.error||'完成第一关并提交第二关后，才能进入本周压轴挑战。',
+    confirmText:'去完成',
+    cancelText:'暂不挑战',
+    success:(result)=>{
+      gatePromptOpen=false;
+      if(result.confirm)openWeekendMastery();
+      else uni.navigateBack({fail:()=>uni.switchTab({url:'/pages/index/index'})});
+    },
+    fail:()=>{gatePromptOpen=false;},
+  });
+  return true;
+}
 </script>
 
 <style scoped>

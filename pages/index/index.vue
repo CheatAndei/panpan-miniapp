@@ -28,6 +28,8 @@
       :total-pending="totalPending"
       :pending-practice-count="pendingPracticeCount"
       :pending-practice-todos="pendingPracticeTodos"
+      :pending-mastery-count="pendingMasteryCount"
+      :pending-mastery-todos="pendingMasteryTodos"
       :pending-challenge-count="pendingChallengeCount"
       :pending-challenge-todos="pendingChallengeTodos"
       :answer-request-count="answerRequestCount"
@@ -316,6 +318,8 @@ const teacherClassesExpanded = ref(false);
 const pendingLeaves = ref(0);
 const pendingPracticeCount = ref(0);
 const pendingPracticeTodos = ref([]);
+const pendingMasteryCount = ref(0);
+const pendingMasteryTodos = ref([]);
 const pendingChallengeCount = ref(0);
 const pendingChallengeTodos = ref([]);
 const answerRequestCount = ref(0);
@@ -356,6 +360,7 @@ const childTeacherName = computed(() => teacherNameFromChild(child.value));
 const feedbackPlaceholder = computed(() => `有任何问题或建议告诉${childTeacherName.value}`);
 const totalPending = computed(() => Number(pendingLeaves.value || 0)
   + Number(pendingPracticeCount.value || 0)
+  + Number(pendingMasteryCount.value || 0)
   + Number(pendingChallengeCount.value || 0)
   + Number(answerRequestCount.value || 0)
   + choiceAlerts.value.length);
@@ -585,11 +590,12 @@ async function loadTeacherData({ announcePractice = false } = {}) {
       api.get('/classes'),
       api.get('/leaves'),
       api.get('/schedules/sessions'),
+      api.get('/weekend-mastery/teacher/submissions?status=submitted&limit=3'),
       api.get('/weekly-challenge/v2/teacher/submissions?status=submitted&limit=3'),
       api.get('/exams/teacher/answer-todos?limit=3'),
       api.get('/promotions?limit=12'),
     ]);
-    const [classResult, leaveResult, sessionResult, challengeResult, answerResult, promotionResult] = results;
+    const [classResult, leaveResult, sessionResult, masteryResult, challengeResult, answerResult, promotionResult] = results;
     if (classResult.status === 'fulfilled') classes.value = classResult.value.classes || [];
     if (leaveResult.status === 'fulfilled') {
       pendingLeaves.value = (leaveResult.value.leaves || []).filter((item) => item.status === 'pending').length;
@@ -598,6 +604,10 @@ async function loadTeacherData({ announcePractice = false } = {}) {
       todaySessions.value = (sessionResult.value.sessions || []).filter(
         (item) => item.class_date === localDateKey(),
       );
+    }
+    if (masteryResult.status === 'fulfilled') {
+      pendingMasteryCount.value = Number(masteryResult.value.count || 0);
+      pendingMasteryTodos.value = masteryResult.value.todos || masteryResult.value.submissions || [];
     }
     if (challengeResult.status === 'fulfilled') {
       pendingChallengeCount.value = Number(challengeResult.value.count || 0);

@@ -77,6 +77,13 @@
         </text>
       </view>
       <view class="focus-metrics">
+        <button class="focus-metric focus-mastery tone-mastery" aria-label="查看待批阅周末攻坚战" @tap="navigate('/pages/weekend-mastery-review/index')">
+          <view class="focus-metric-head">
+            <pp-icon name="target" :size="29" :motion="pendingMasteryCount ? 'shine' : 'pop'" decorative />
+            <text class="focus-number num">{{ pendingMasteryCount }}</text>
+          </view>
+          <text class="focus-copy">攻坚战批阅</text>
+        </button>
         <button class="focus-metric tone-blue" aria-label="查看待批改学生打卡" @tap="navigate('/pages/practice-review/index')">
           <view class="focus-metric-head">
             <pp-icon name="clipboard" :size="29" :motion="pendingPracticeCount ? 'breathe' : 'pop'" decorative />
@@ -117,6 +124,31 @@
     </view>
 
     <view class="priority-stack">
+      <view v-if="pendingMasteryCount" class="todo-card tone-mastery">
+        <view class="todo-head">
+          <view>
+            <text class="todo-kicker">周末攻坚战</text>
+            <text class="todo-title">待批阅 {{ pendingMasteryCount }} 份</text>
+          </view>
+          <text class="todo-badge">双关训练</text>
+        </view>
+        <button
+          v-for="item in pendingMasteryTodos"
+          :key="item.submission.id"
+          class="todo-row"
+          :aria-label="`批阅${item.student_name}的周末攻坚战`"
+          @tap="navigate('/pages/weekend-mastery-review/index')"
+        >
+          <view class="todo-copy">
+            <text class="todo-name">{{ item.student_name }} · 第 {{ item.stage }} 关</text>
+            <text class="todo-meta">{{ item.class_name || '未分组' }} · {{ item.title }}</text>
+          </view>
+          <text class="todo-action">批阅</text>
+          <pp-icon name="arrow" :size="28" decorative />
+        </button>
+        <button class="todo-all" @tap="navigate('/pages/weekend-mastery-review/index')">进入攻坚战批阅台</button>
+      </view>
+
       <view v-if="pendingPracticeCount" class="todo-card tone-blue">
         <view class="todo-head">
           <view>
@@ -353,6 +385,8 @@ const props = defineProps({
   totalPending: { type: Number, default: 0 },
   pendingPracticeCount: { type: Number, default: 0 },
   pendingPracticeTodos: { type: Array, default: () => [] },
+  pendingMasteryCount: { type: Number, default: 0 },
+  pendingMasteryTodos: { type: Array, default: () => [] },
   pendingChallengeCount: { type: Number, default: 0 },
   pendingChallengeTodos: { type: Array, default: () => [] },
   answerRequestCount: { type: Number, default: 0 },
@@ -379,6 +413,7 @@ const emit = defineEmits([
 ]);
 
 const priorityCount = computed(() => Number(props.pendingPracticeCount || 0)
+  + Number(props.pendingMasteryCount || 0)
   + Number(props.pendingChallengeCount || 0)
   + Number(props.answerRequestCount || 0)
   + Number(props.pendingLeaves || 0)
@@ -636,6 +671,21 @@ function toggleClasses() {
   background: #F8FCFD;
 }
 
+.tone-mastery {
+  border-color: #E6D65B;
+  background: #FFFBE0;
+}
+
+.focus-mastery {
+  grid-column: 1 / -1;
+  min-height: 102rpx;
+}
+
+.tone-mastery .focus-metric-head,
+.tone-mastery .todo-kicker {
+  color: #050505;
+}
+
 .tone-yellow {
   border-color: #CDE8F0;
   background: #F8FCFD;
@@ -726,6 +776,7 @@ function toggleClasses() {
 }
 
 .todo-card.tone-blue { border-left: 6rpx solid var(--primary); }
+.todo-card.tone-mastery { border-left: 8rpx solid #050505; }
 .todo-card.tone-yellow { border-left: 6rpx solid var(--primary); }
 .todo-card.tone-mint { border-left: 6rpx solid var(--primary); }
 .todo-card.tone-coral { border-left: 6rpx solid var(--coral); }

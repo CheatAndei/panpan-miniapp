@@ -11,7 +11,10 @@ function buildUrl(path) {
 function authHeader() {
   const token = uni.getStorageSync('token');
   if (token) redirectingToLogin = false;
-  return token ? { Authorization: 'Bearer ' + token } : {};
+  return {
+    'X-Panpan-Client-Capabilities': 'weekend-mastery-v1',
+    ...(token ? { Authorization: 'Bearer ' + token } : {}),
+  };
 }
 
 function clearExpiredSession() {
@@ -177,8 +180,7 @@ function downloadAndOpenPdf(fileUrl) {
 }
 
 function downloadPrivateByFileApi(fileUrl) {
-  return new Promise((resolve, reject) => {
-    uni.downloadFile({
+  return privateDownloadDeadline((resolve, reject) => uni.downloadFile({
       url: fileUrl,
       header: authHeader(),
       success: (res) => {
@@ -187,8 +189,7 @@ function downloadPrivateByFileApi(fileUrl) {
         resolve(res.tempFilePath);
       },
       fail: (err) => reject(friendlyNetworkError(err, '私有文件下载失败'))
-    });
-  });
+    }), '私有文件下载超时，请点击重读');
 }
 
 function responseHeader(headers, name) {
@@ -204,6 +205,35 @@ function privateImageExtension(headers) {
   return '.jpg';
 }
 
+const PRIVATE_DOWNLOAD_DEADLINE_MS = 16000;
+
+function privateDownloadDeadline(start, fallbackMessage) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let nativeTask = null;
+    const finish = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      handler(value);
+    };
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { nativeTask?.abort?.(); } catch {}
+      reject({ error: fallbackMessage, message: fallbackMessage, statusCode: 0 });
+    }, PRIVATE_DOWNLOAD_DEADLINE_MS);
+    try {
+      nativeTask = start(
+        (value) => finish(resolve, value),
+        (error) => finish(reject, error),
+      );
+    } catch (error) {
+      finish(reject, friendlyNetworkError(error, fallbackMessage));
+    }
+  });
+}
+
 function downloadPrivateByRequest(fileUrl) {
   const fs = uni.getFileSystemManager && uni.getFileSystemManager();
   const userDataPath = (typeof wx !== 'undefined' && wx.env && wx.env.USER_DATA_PATH)
@@ -211,8 +241,7 @@ function downloadPrivateByRequest(fileUrl) {
     || '';
   if (!fs || !userDataPath) return Promise.reject({ error: '当前环境无法读取私有照片' });
 
-  return new Promise((resolve, reject) => {
-    uni.request({
+  return privateDownloadDeadline((resolve, reject) => uni.request({
       url: fileUrl,
       method: 'GET',
       timeout: 15000,
@@ -233,8 +262,7 @@ function downloadPrivateByRequest(fileUrl) {
         });
       },
       fail: (err) => reject(friendlyNetworkError(err, '私有照片读取失败'))
-    });
-  });
+    }), '私有照片读取超时，请点击重读');
 }
 
 export async function downloadPrivateFile(url) {
@@ -243,6 +271,7 @@ export async function downloadPrivateFile(url) {
     // 真机只需配置 request 合法域名即可工作，避免 downloadFile 域名配置遗漏导致整页照片不可读。
     return await downloadPrivateByRequest(fileUrl);
   } catch (requestError) {
+    if (Number(requestError?.statusCode || 0) >= 400) throw requestError;
     try { return await downloadPrivateByFileApi(fileUrl); }
     catch { throw requestError; }
   }

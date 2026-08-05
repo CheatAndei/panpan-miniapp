@@ -244,6 +244,7 @@ function openSection(item) {
   if (item.route === 'practice') return uni.navigateTo({ url: `/pages/practice-parent/index?student_id=${studentId.value}` });
   if (item.route === 'arena') return uni.navigateTo({ url: `/pages/mental-arena/index?student_id=${studentId.value}` });
   if (item.route === 'weekly_challenge') return uni.navigateTo({ url: `/pages/weekly-challenge/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
+  if (item.route === 'weekend_mastery') return uni.navigateTo({ url: `/pages/weekend-mastery/index?student_id=${studentId.value}` });
   if (item.route === 'exams') return uni.navigateTo({ url: `/pages/exam-library/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
   if (item.route === 'knowledge_challenge') return uni.navigateTo({ url: `/pages/knowledge-challenge/index?student_id=${studentId.value}&grade=${selectedGrade.value}` });
   if (!item.type) return;

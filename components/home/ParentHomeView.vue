@@ -309,12 +309,17 @@
           <button class="card-link-button" @tap="navigate('/pages/learning-center/index?student_id=' + child.id)">进入学习中心</button>
         </view>
         <view class="shortcut-grid">
-          <button class="learning-shortcut" @tap="navigate('/pages/weekly-challenge/index?student_id=' + child.id)">
+          <button v-if="isGradeSevenChild" class="learning-shortcut featured-mastery" @tap="navigate('/pages/weekend-mastery/index?student_id=' + child.id)">
+            <view class="shortcut-icon" aria-hidden="true"><pp-icon name="target" :size="38" motion="shine" decorative /></view>
+            <text class="shortcut-title">周末攻坚战</text>
+            <text class="shortcut-desc">同型两关 · 先练方法再升级</text>
+          </button>
+          <button class="learning-shortcut terminal-shortcut" @tap="navigate('/pages/weekly-challenge/index?student_id=' + child.id)">
             <view class="shortcut-icon" aria-hidden="true"><pp-icon name="trophy" :size="38" motion="bob" decorative /></view>
             <text class="shortcut-title">压轴挑战</text>
             <text class="shortcut-desc">填空与大题 · 拍照提交</text>
           </button>
-          <button class="learning-shortcut" @tap="$emit('open-exam-library')">
+          <button class="learning-shortcut exam-shortcut" @tap="$emit('open-exam-library')">
             <view class="shortcut-icon" aria-hidden="true"><pp-icon name="exam" :size="38" motion="pop" :delay="120" decorative /></view>
             <text class="shortcut-title">广州真题大全</text>
             <text class="shortcut-desc">一模 · 期中 · 期末</text>
@@ -405,6 +410,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { feedbackHomework, feedbackSummaryWithoutHomework } from '@/utils/feedback';
 
 const props = defineProps({
@@ -450,6 +456,14 @@ const emit = defineEmits([
   'update:showFeedback',
   'update:feedbackDetail',
 ]);
+
+const isGradeSevenChild = computed(() => {
+  const explicitGrade = String(props.child?.grade || props.child?.class_grade || '').trim().toLowerCase();
+  const fallbackClass = String(props.child?.className || '').trim().toLowerCase();
+  if (explicitGrade) return /g7|七|7|初一/.test(explicitGrade);
+  if (fallbackClass) return /g7|七年级|初一/.test(fallbackClass);
+  return true;
+});
 
 const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -1953,8 +1967,16 @@ function scheduleLabel(schedule) {
 .card-title-icon.coral { background: #F79BC0; color: #050505; }
 .card-title-icon.yellow { background: #FFF48A; color: #050505; }
 .card-title-icon.mint { background: #E5F8FE; color: #050505; }
-.learning-shortcut:first-child { border-top: 8rpx solid #F79BC0; }
-.learning-shortcut:last-child { border-top: 8rpx solid #99DEF4; }
+.learning-shortcut.featured-mastery {
+  grid-column: 1 / -1;
+  min-height: 132rpx;
+  border: 2rpx solid #050505;
+  border-top: 10rpx solid #FFF48A;
+  background: #FFFDF0;
+}
+.learning-shortcut.featured-mastery .shortcut-icon { background: #050505; }
+.learning-shortcut.terminal-shortcut { border-top: 8rpx solid #F79BC0; }
+.learning-shortcut.exam-shortcut { border-top: 8rpx solid #99DEF4; }
 .tool-item:first-child .tool-icon { background: #FFF48A; color: #050505; }
 .tool-item:last-child .tool-icon { background: #F79BC0; color: #050505; }
 </style>

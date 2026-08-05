@@ -893,6 +893,84 @@ CREATE TABLE IF NOT EXISTS challenge_attachments_v2 (
   UNIQUE(submission_id,sha256)
 );
 
+-- 周末攻坚战：每周五 01:00（上海时间）切换一组两关大题。
+-- 本领域与连续压轴挑战完全隔离；题干使用结构化文本，图片仅保留独立示意图。
+CREATE TABLE IF NOT EXISTS weekend_mastery_sets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  stable_code TEXT UNIQUE NOT NULL,
+  cycle_start DATE NOT NULL,
+  cycle_end DATE NOT NULL,
+  grade_code TEXT NOT NULL DEFAULT 'g7' CHECK(grade_code IN ('g7','g8','g9')),
+  subject_code TEXT NOT NULL DEFAULT 'math',
+  topic_key TEXT NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
+  content_sha256 TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(cycle_start,grade_code,subject_code)
+);
+
+CREATE TABLE IF NOT EXISTS weekend_mastery_questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  set_id INTEGER NOT NULL REFERENCES weekend_mastery_sets(id),
+  stable_code TEXT UNIQUE NOT NULL,
+  stage INTEGER NOT NULL CHECK(stage IN (1,2)),
+  difficulty INTEGER NOT NULL CHECK(difficulty BETWEEN 3 AND 5),
+  title TEXT NOT NULL,
+  render_json TEXT NOT NULL,
+  diagram_json TEXT,
+  answer_json TEXT NOT NULL,
+  solution_json TEXT NOT NULL,
+  source_label TEXT,
+  source_url TEXT,
+  provenance_note TEXT,
+  content_sha256 TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(set_id,stage)
+);
+
+CREATE TABLE IF NOT EXISTS weekend_mastery_assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  set_id INTEGER NOT NULL REFERENCES weekend_mastery_sets(id),
+  question_id INTEGER NOT NULL REFERENCES weekend_mastery_questions(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  stage INTEGER NOT NULL CHECK(stage IN (1,2)),
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK(status IN ('active','submitted','reviewed_wrong','passed')),
+  passed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(student_id,set_id,stage)
+);
+
+CREATE TABLE IF NOT EXISTS weekend_mastery_submissions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  assignment_id INTEGER NOT NULL REFERENCES weekend_mastery_assignments(id),
+  parent_id INTEGER NOT NULL REFERENCES users(id),
+  attempt_no INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','submitted','reviewed')),
+  student_note TEXT,
+  teacher_note TEXT,
+  is_correct INTEGER CHECK(is_correct IN (0,1)),
+  submitted_at DATETIME,
+  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(assignment_id,attempt_no)
+);
+
+CREATE TABLE IF NOT EXISTS weekend_mastery_attachments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER NOT NULL REFERENCES weekend_mastery_submissions(id),
+  file_id INTEGER UNIQUE NOT NULL REFERENCES private_files(id),
+  sha256 TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(submission_id,sha256)
+);
+
 -- 教师可为学生设置真实冲榜目标，但目标不会生成或篡改挑战成绩。
 CREATE TABLE IF NOT EXISTS mental_rank_goals (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1159,6 +1237,12 @@ CREATE INDEX IF NOT EXISTS idx_challenge_v2_teacher_queue
   ON challenge_submissions_v2(status,submitted_at);
 CREATE INDEX IF NOT EXISTS idx_challenge_v2_history
   ON challenge_assignments_v2(student_id,grade_code,subject_code,question_type,status,created_at);
+CREATE INDEX IF NOT EXISTS idx_weekend_mastery_set_cycle
+  ON weekend_mastery_sets(grade_code,subject_code,status,cycle_start);
+CREATE INDEX IF NOT EXISTS idx_weekend_mastery_assignment_student
+  ON weekend_mastery_assignments(student_id,set_id,stage,status);
+CREATE INDEX IF NOT EXISTS idx_weekend_mastery_teacher_queue
+  ON weekend_mastery_submissions(status,submitted_at,assignment_id);
 CREATE INDEX IF NOT EXISTS idx_achievement_records_student
   ON achievement_records(student_id,achieved_at DESC,id DESC);
 CREATE INDEX IF NOT EXISTS idx_mental_rank_goals_student
