@@ -215,6 +215,7 @@ test('八上真题包写入 987 道可用题并清洗 PDF 私有数学字符', (
   for (const row of db.all(`SELECT options_json,explanation FROM choice_king_questions
     WHERE grade_code='g8' AND stable_code LIKE 'GZ8-%' AND is_active=1`)) {
     assert.doesNotMatch(`${row.options_json}\n${row.explanation || ''}`, /[\uE000-\uF8FF\uFFFD]/u);
+    assert.doesNotMatch(String(row.explanation || ''), /hece\.tmall\.com|加微咨询|学科网|侵权必究|\{#\{/u);
   }
   const multi = db.get(`SELECT question_id,COUNT(*) count FROM choice_king_question_topics
     GROUP BY question_id HAVING COUNT(*)>1 LIMIT 1`);

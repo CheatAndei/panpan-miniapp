@@ -6,6 +6,7 @@ const {
   ensureExamLibraryFile,
 } = require('../utils/exam-files');
 const { replaceQuestionTopics } = require('./content-progress');
+const { sanitizeChoiceExplanation } = require('../utils/choice-explanation');
 
 const PACK_ROOT = path.join(__dirname, '..', 'resources', 'choice-king', 'g8-source-pack');
 const CHOICE_MANIFEST = path.join(PACK_ROOT, 'choice', 'manifest.json');
@@ -216,7 +217,7 @@ function seedG8SourcePack(db, { packRoot = PACK_ROOT } = {}) {
       const primaryTopic = SOURCE_SCOPE_TO_TOPIC[item.primary_topic_key] || topicKeys[0];
       const options = Object.fromEntries(Object.entries(item.source_options || {})
         .map(([key, value]) => [key, normalizePdfMathText(value)]));
-      const explanation = normalizePdfMathText(item.explanation);
+      const explanation = sanitizeChoiceExplanation(normalizePdfMathText(item.explanation));
       if (!MANAGED_CHOICE_CODE.test(stableCode)
         || !['A', 'B', 'C', 'D'].every((key) => String(options?.[key] || '').trim())
         || !/^[A-D]$/.test(String(item.correct_option || ''))) {

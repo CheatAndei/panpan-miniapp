@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { shanghaiWeekStart, maskStudentName } = require('./mental-arena');
 const { normalizeGradeCode, normalizeSubjectCode } = require('../utils/content-dimensions');
+const { sanitizeChoiceExplanation } = require('../utils/choice-explanation');
 const {
   questionScopeFilter,
   questionAllowedForStudent,
@@ -85,7 +86,7 @@ function seedChoiceKingQuestions(db, manifestPath = CHOICE_KING_MANIFEST_PATH) {
           grade_code=excluded.grade_code,subject_code=excluded.subject_code,topic_key=excluded.topic_key,difficulty=excluded.difficulty,
           updated_at=CURRENT_TIMESTAMP`, [
         stableCode, String(item?.stem || '').trim().slice(0, 4000), JSON.stringify(options), correctOption,
-        String(item?.explanation || '').trim().slice(0, 8000), imagePublicUrl(item?.question_image),
+        sanitizeChoiceExplanation(item?.explanation).slice(0, 8000), imagePublicUrl(item?.question_image),
         String(item?.source_label || '').trim().slice(0, 240), sourceYear,
         normalizedSourcePeriod(item?.recent_bucket ?? item?.source_period, sourceYear),
         String(item?.source_question_no || item?.original_question_no || index + 1).trim().slice(0, 40),

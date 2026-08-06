@@ -1,0 +1,168 @@
+name: Production Question Report Triage
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type TRIAGE_REPORTS_20260806
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panpan-production
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: Archive six reports and verify content cleanup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        run: test '${{ inputs.confirm }}' = 'TRIAGE_REPORTS_20260806'
+
+      - name: Configure pinned production SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PANPAN_PROD_SSH_KEY }}
+          SSH_FINGERPRINT: ${{ secrets.PANPAN_PROD_SSH_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -T 10 134.175.69.59 2>/dev/null > "$RUNNER_TEMP/host-keys"
+          ssh-keygen -lf "$RUNNER_TEMP/host-keys" -E sha256 | awk '{print $2}' | sort -u > "$RUNNER_TEMP/host-fingerprints"
+          grep -Fxq "$SSH_FINGERPRINT" "$RUNNER_TEMP/host-fingerprints"
+          cat "$RUNNER_TEMP/host-keys" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Back up, triage, verify and restart
+        env:
+          BACKUP_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+          OPERATION_ID: question-report-triage-20260806
+        run: |
+          set -euo pipefail
+          printf 'BACKUP_ID=%s\n' "$BACKUP_ID" >> "$GITHUB_ENV"
+          ssh -o BatchMode=yes root@134.175.69.59 \
+            "BACKUP_ID='$BACKUP_ID' OPERATION_ID='$OPERATION_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+          case "$BACKUP_ID" in github-[0-9]*-[0-9]*) ;; *) echo 'Invalid backup id'; exit 1 ;; esac
+          test "$OPERATION_ID" = 'question-report-triage-20260806'
+          DEPLOY_DIR=/opt/panpan-miniapp
+          DATA_DIR="$(docker inspect panpan-api --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}{{.Source}}{{end}}{{end}}')"
+          IMAGE="$(docker inspect panpan-api --format '{{.Config.Image}}')"
+          test -n "$DATA_DIR"
+          test -n "$IMAGE"
+          test -f "$DATA_DIR/teach.db"
+          BACKUP_DIR="$DEPLOY_DIR/backups/$OPERATION_ID-$BACKUP_ID"
+          test ! -e "$BACKUP_DIR"
+          install -d -m 700 "$BACKUP_DIR"
+          BACKUP_DB="$BACKUP_DIR/teach.db"
+          RESTORE_REQUIRED=0
+
+          restart_service() {
+            (cd "$DEPLOY_DIR" && docker compose up -d --no-build --pull never panpan-api)
+          }
+          restore_and_restart() {
+            set +e
+            (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+            if [ "$RESTORE_REQUIRED" = "1" ] && [ -f "$BACKUP_DB" ]; then
+              cp -a "$BACKUP_DB" "$DATA_DIR/teach.db"
+            fi
+            restart_service
+          }
+          trap restore_and_restart ERR HUP INT TERM
+
+          (cd "$DEPLOY_DIR" && docker compose stop panpan-api)
+          cp -a "$DATA_DIR/teach.db" "$BACKUP_DB"
+          chmod 600 "$BACKUP_DB"
+          RESTORE_REQUIRED=1
+          BACKUP_BYTES="$(stat -c%s "$BACKUP_DB")"
+          BACKUP_SHA256="$(sha256sum "$BACKUP_DB" | awk '{print $1}')"
+          test "$BACKUP_BYTES" -gt 0
+          test "$(od -An -tx1 -N16 "$BACKUP_DB" | tr -d ' \n')" = '53514c69746520666f726d6174203300'
+          printf '{"operation_id":"%s","backup_id":"%s","bytes":%s,"sha256":"%s"}\n' \
+            "$OPERATION_ID" "$BACKUP_ID" "$BACKUP_BYTES" "$BACKUP_SHA256" > "$BACKUP_DIR/manifest.json"
+          chmod 600 "$BACKUP_DIR/manifest.json"
+
+          docker run --rm -i -v "$BACKUP_DIR:/verify:ro" "$IMAGE" node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const initSqlJs = require('sql.js');
+          (async () => {
+            const manifest = JSON.parse(fs.readFileSync('/verify/manifest.json', 'utf8'));
+            const bytes = fs.readFileSync('/verify/teach.db');
+            if (bytes.length !== manifest.bytes
+              || crypto.createHash('sha256').update(bytes).digest('hex') !== manifest.sha256) process.exit(1);
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(bytes);
+            const integrity = db.exec('PRAGMA integrity_check')[0]?.values?.flat() || [];
+            if (integrity.length !== 1 || integrity[0] !== 'ok') process.exit(1);
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+
+          docker run --rm -v "$DATA_DIR:/app/data" "$IMAGE" \
+            npm run reports:triage -- \
+              --plan /app/resources/operations/question-report-triage-20260806.json \
+              --database /app/data/teach.db
+          docker run --rm -v "$DATA_DIR:/app/data" "$IMAGE" \
+            npm run reports:triage -- \
+              --plan /app/resources/operations/question-report-triage-20260806.json \
+              --database /app/data/teach.db --apply --confirm "$OPERATION_ID"
+
+          docker run --rm -i -v "$DATA_DIR:/app/data:ro" "$IMAGE" node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const initSqlJs = require('sql.js');
+          (async () => {
+            const SQL = await initSqlJs();
+            const db = new SQL.Database(fs.readFileSync('/app/data/teach.db'));
+            const number = (sql) => Number(db.exec(sql)[0]?.values?.[0]?.[0] || 0);
+            const counts = {
+              integrity: db.exec('PRAGMA integrity_check')[0]?.values?.flat() || [],
+              choice_dismissed: number("SELECT COUNT(*) FROM choice_king_reports WHERE id IN (1,2,3,4) AND status='dismissed' AND length(teacher_note)>10"),
+              calculation_dismissed: number("SELECT COUNT(*) FROM calculation_question_reports WHERE id IN (1,2) AND status='dismissed' AND length(teacher_note)>10"),
+              active_questions: number("SELECT COUNT(*) FROM choice_king_questions WHERE stable_code IN ('GZ8-MID-5EC93498FF-Q02','GZ8-MID-AD10E1190F-Q03','GZ8-FIN-2EC43E8188-Q02','GZ8-MON-DC5914062F-Q03') AND is_active=1"),
+              correct_answers: number("SELECT COUNT(*) FROM choice_king_questions WHERE (stable_code='GZ8-MID-5EC93498FF-Q02' AND correct_option='B') OR (stable_code='GZ8-MID-AD10E1190F-Q03' AND correct_option='C') OR (stable_code='GZ8-FIN-2EC43E8188-Q02' AND correct_option='C') OR (stable_code='GZ8-MON-DC5914062F-Q03' AND correct_option='A')"),
+              calculation_answers: number("SELECT COUNT(*) FROM calculation_question_reports WHERE (id=1 AND snapshot_answer='-0.2') OR (id=2 AND snapshot_answer='8')"),
+              polluted_explanations: number("SELECT COUNT(*) FROM choice_king_questions WHERE lower(coalesce(explanation,'')) LIKE '%hece.tmall.com%' OR explanation LIKE '%{#{%' OR explanation LIKE '%加微咨询%' OR explanation LIKE '%学科网%' OR explanation LIKE '%侵权必究%'"),
+            };
+            console.log(JSON.stringify(counts));
+            if (counts.integrity.length !== 1 || counts.integrity[0] !== 'ok'
+              || counts.choice_dismissed !== 4 || counts.calculation_dismissed !== 2
+              || counts.active_questions !== 4 || counts.correct_answers !== 4
+              || counts.calculation_answers !== 2 || counts.polluted_explanations !== 0) process.exit(1);
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+
+          restart_service
+          for attempt in $(seq 1 60); do
+            if docker exec panpan-api wget -T 5 -qO- http://127.0.0.1:3000/api/health >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = "60" ]; then false; fi
+            sleep 2
+          done
+          RESTORE_REQUIRED=0
+          trap - ERR HUP INT TERM
+          REMOTE
+
+      - name: Download and validate pre-change backup
+        run: |
+          set -euo pipefail
+          install -d -m 700 production-backup
+          REMOTE_DIR="/opt/panpan-miniapp/backups/question-report-triage-20260806-$BACKUP_ID"
+          scp -o BatchMode=yes "root@134.175.69.59:$REMOTE_DIR/teach.db" production-backup/teach.db
+          scp -o BatchMode=yes "root@134.175.69.59:$REMOTE_DIR/manifest.json" production-backup/manifest.json
+          test "$(stat -c%s production-backup/teach.db)" = "$(node -p "require('./production-backup/manifest.json').bytes")"
+          test "$(sha256sum production-backup/teach.db | awk '{print $1}')" = "$(node -p "require('./production-backup/manifest.json').sha256")"
+
+      - name: Upload protected pre-change backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: panpan-question-report-triage-backup-${{ env.BACKUP_ID }}
+          path: production-backup/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

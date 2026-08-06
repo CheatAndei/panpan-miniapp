@@ -1,6 +1,7 @@
 const dataset = require('../resources/knowledge/g8-math-v1');
 const { topicKeys } = require('../resources/g8-content/topics');
 const { replaceQuestionTopics } = require('./content-progress');
+const { sanitizeChoiceExplanation } = require('../utils/choice-explanation');
 
 const SOURCE_LABEL = '八上旧知识点闯关·原创题（已审计迁移）';
 const TOPIC_MAPPINGS = Object.freeze({
@@ -54,7 +55,7 @@ function migrateLegacyKnowledgeQuestions(db) {
         item.stem,
         JSON.stringify(item.options),
         item.correct_option,
-        item.explanation,
+        sanitizeChoiceExplanation(item.explanation),
         SOURCE_LABEL,
         topicKey,
         Number(item.difficulty || 2),

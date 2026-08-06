@@ -8,6 +8,7 @@ const { choices, terminals } = require('../resources/g8-content/bank');
 const { topics } = require('../resources/g8-content/topics');
 const { assertG8ContentBank } = require('./g8-content-audit');
 const { replaceQuestionTopics } = require('./content-progress');
+const { sanitizeChoiceExplanation } = require('../utils/choice-explanation');
 
 const RENDER_VERSION = 'g8-card-v3';
 const TOPIC_BY_KEY = new Map(topics.map((topic) => [topic.topic_key, topic]));
@@ -258,7 +259,7 @@ async function seedG8Content(db) {
           topic_key=excluded.topic_key,difficulty=excluded.difficulty,
           is_active=1,updated_at=CURRENT_TIMESTAMP`, [
         item.stable_code, item.stem, JSON.stringify(item.options), item.correct_option,
-        item.explanation, item.source_label, item.topic_key, item.difficulty,
+        sanitizeChoiceExplanation(item.explanation), item.source_label, item.topic_key, item.difficulty,
       ]);
       const stored = db.get('SELECT id FROM choice_king_questions WHERE stable_code=?', [item.stable_code]);
       replaceQuestionTopics(db, {

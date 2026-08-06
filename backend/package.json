@@ -18,7 +18,8 @@
     "exams:mock:index": "node scripts/index-mock-exams.js",
     "exams:mock:import": "node scripts/import-mock-manifest.js",
     "notify:inspect": "node scripts/inspect-notification-templates.js",
-    "questions:audit": "node scripts/audit-calculation-questions.js"
+    "questions:audit": "node scripts/audit-calculation-questions.js",
+    "reports:triage": "node scripts/triage-question-reports.js"
   },
   "dependencies": {
     "@fontsource/noto-sans-sc": "^5.2.9",

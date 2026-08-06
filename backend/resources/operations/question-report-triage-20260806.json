@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "operation_id": "question-report-triage-20260806",
+  "student_feedback": false,
+  "stop_questions": false,
+  "change_answers": false,
+  "clean_choice_explanations": true,
+  "reports": [
+    {
+      "kind": "choice",
+      "report_id": 1,
+      "expected": {
+        "stable_code": "GZ8-MID-5EC93498FF-Q02",
+        "correct_option": "B",
+        "selected_answer": null,
+        "is_active": 1
+      },
+      "teacher_note": "核验不成立：20cm、30cm 两边时第三边须满足 10<x<50，正确选项 B（25cm）；历史判分一致。解析广告已净化。"
+    },
+    {
+      "kind": "choice",
+      "report_id": 2,
+      "expected": {
+        "stable_code": "GZ8-MID-AD10E1190F-Q03",
+        "correct_option": "C",
+        "selected_answer": "D",
+        "is_active": 1
+      },
+      "teacher_note": "核验不成立：2cm、5cm 两边时 3<x<7，正确选项 C；选择 D 均判错、选择 C 均判对，历史记录一致。"
+    },
+    {
+      "kind": "choice",
+      "report_id": 3,
+      "expected": {
+        "stable_code": "GZ8-FIN-2EC43E8188-Q02",
+        "correct_option": "C",
+        "selected_answer": "B",
+        "is_active": 1
+      },
+      "teacher_note": "核验不成立：点 M(1,2) 关于 x 轴的对称点为 (1,-2)，正确选项 C；提交时选择 B，判分正确。解析水印已净化。"
+    },
+    {
+      "kind": "choice",
+      "report_id": 4,
+      "expected": {
+        "stable_code": "GZ8-MON-DC5914062F-Q03",
+        "correct_option": "A",
+        "selected_answer": null,
+        "is_active": 1
+      },
+      "teacher_note": "核验不成立：角平分线上的点到角两边距离相等，PD=2，因此答案 A（2）；后续选择 A 判对。"
+    },
+    {
+      "kind": "calculation",
+      "report_id": 1,
+      "expected": {
+        "source_type": "learning_attempt",
+        "source_id": 123,
+        "source_question_id": "retry:13613:junior-056-a4f51068",
+        "snapshot_answer": "-0.2"
+      },
+      "teacher_note": "核验不成立：-4.6-4.1+8.5=-0.2；提交答案 9，原判分正确。"
+    },
+    {
+      "kind": "calculation",
+      "report_id": 2,
+      "expected": {
+        "source_type": "learning_attempt",
+        "source_id": 229,
+        "source_question_id": "mental:junior-047-9f8583da",
+        "snapshot_answer": "8"
+      },
+      "teacher_note": "核验不成立：|28-13|-|-7|=15-7=8；提交答案 22，原判分正确。"
+    }
+  ]
+}

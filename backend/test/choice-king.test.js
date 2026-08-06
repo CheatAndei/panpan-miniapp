@@ -113,7 +113,8 @@ test('manifest 仅同步 GZ7 generated 域：退役旧题、保留手工题与�
     source_key: 'GZ7-CURRENT-1', source_year: 2025, recent_bucket: 'recent',
     source_question_no: '6', question_image: 'images/sample.png',
     options: { A: '1', B: '2', C: '3', D: '4' }, correct_option: 'C',
-    explanation: '解析', source_label: '导入测试卷',
+    explanation: '解析步骤 小初高期中末 中考高考真题 加微咨询 天猫：hece.tmall.com 故选 C。',
+    source_label: '导入测试卷',
   }, {
     source_key: 'GZ7-TEACHER-STOPPED', source_year: 2020, recent_bucket: 'older',
     source_question_no: '8', question_image: 'images/stopped.png',
@@ -126,6 +127,7 @@ test('manifest 仅同步 GZ7 generated 域：退役旧题、保留手工题与�
   });
   const current = db.get(`SELECT * FROM choice_king_questions WHERE stable_code='GZ7-CURRENT-1'`);
   assert.equal(current.question_image_url, '/api/choice-king/assets/images/sample.png');
+  assert.equal(current.explanation, '解析步骤 故选 C。');
   assert.equal(Number(db.get('SELECT is_active FROM choice_king_questions WHERE id=?', [retired.lastInsertRowid]).is_active), 0);
   assert.equal(Number(db.get('SELECT is_active FROM choice_king_questions WHERE id=?', [manual.lastInsertRowid]).is_active), 1);
   assert.equal(Number(db.get('SELECT is_active FROM choice_king_questions WHERE id=?', [stopped.lastInsertRowid]).is_active), 0);
