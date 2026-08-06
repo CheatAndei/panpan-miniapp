@@ -22,7 +22,7 @@ const { start } = require('../server');
 const { getDB } = require('../db/init');
 const { importQuestionDataset, validateQuestionDataset } = require('../services/practice-question-import');
 const { generateAssignment } = require('../services/practice');
-const g8Dataset = require('../resources/practice/g8-calculation-v1');
+const g8Dataset = require('../resources/practice/g8-calculation-v2');
 
 let server;
 let base;
@@ -51,7 +51,9 @@ test.before(async () => {
   base = `http://127.0.0.1:${server.address().port}/api`;
   const db = getDB();
   assert.deepEqual(validateQuestionDataset(g8Dataset).errors, []);
-  assert.equal(importQuestionDataset(db, g8Dataset, { dryRun: false }).inserted, 480);
+  const repeatedImport = importQuestionDataset(db, g8Dataset, { dryRun: false });
+  assert.equal(repeatedImport.inserted, 0);
+  assert.equal(repeatedImport.existing, 1600);
   const teacher = db.run("INSERT INTO users(openid,role,nickname) VALUES('practice-grade-teacher','teacher','潘老师')");
   db.run("INSERT OR IGNORE INTO user_roles(user_id,role) VALUES(?,'teacher')", [teacher.lastInsertRowid]);
   const g7Class = db.run(`INSERT INTO classes(teacher_id,name,grade,subject)
@@ -82,7 +84,7 @@ test.after(async () => {
   }
 });
 
-test('打卡题库目录按班级年级返回，八年级四类各 120 题', async () => {
+test('打卡题库目录按班级年级返回，八年级四类各 400 题', async () => {
   const g7 = await request('GET', `/content-progress/practice-catalog?class_id=${g7ClassId}`);
   const g8 = await request('GET', `/content-progress/practice-catalog?class_id=${g8ClassId}`);
   assert.equal(g7.response.status, 200);
@@ -96,11 +98,21 @@ test('打卡题库目录按班级年级返回，八年级四类各 120 题', asy
     'g8_multiplication_formulas',
     'g8_factorization',
   ]);
-  assert.equal(g8.payload.total_questions, 480);
-  assert.ok(g8.payload.topics.every((topic) => topic.question_count === 120));
+  assert.equal(g8.payload.total_questions, 1600);
+  assert.ok(g8.payload.topics.every((topic) => topic.question_count === 400));
 });
 
 test('新计划继承班级年级，生成题目严格同年级，班级改年级不改历史计划', async () => {
+  const db = getDB();
+  db.run(`INSERT INTO practice_questions
+    (grade_band,grade_code,subject,module,question_type,difficulty,template_key,stem,answer,
+      estimated_seconds,signature,source_type,source_batch,source_title,source_region,
+      source_license,source_snapshot_sha256,content_sha256,copy_allowed,is_active)
+    SELECT grade_band,'g7',subject,module,question_type,difficulty,template_key,
+      '跨年级污染计数测试题',answer,estimated_seconds,signature || '-g7-count-contamination',
+      source_type,source_batch,source_title,source_region,source_license,
+      source_snapshot_sha256,content_sha256,copy_allowed,1
+    FROM practice_questions WHERE grade_code='g8' AND question_type='幂的运算' LIMIT 1`);
   const body = {
     class_id: g8ClassId,
     title: '初二计算打卡',
@@ -111,12 +123,11 @@ test('新计划继承班级年级，生成题目严格同年级，班级改年�
   };
   const preview = await request('POST', '/practice/plans/preview', body);
   assert.equal(preview.response.status, 200);
-  assert.equal(preview.payload.available_questions, 120);
+  assert.equal(preview.payload.available_questions, 400);
   const created = await request('POST', '/practice/plans', body);
   assert.equal(created.response.status, 201);
   assert.equal(created.payload.plan.grade_code, 'g8');
 
-  const db = getDB();
   const plan = db.get('SELECT * FROM practice_plans WHERE id=?', [created.payload.plan.id]);
   const assignment = generateAssignment(db, plan, g8StudentId, '2099-01-01');
   const grades = db.all(`SELECT DISTINCT q.grade_code FROM practice_assignment_items i

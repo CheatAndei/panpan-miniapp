@@ -102,8 +102,8 @@ test('教师只能给自己的小组创建固定初中计算连续计划', async
   assert.equal(preview.response.status, 200);
   assert.equal(preview.payload.days, 5);
   assert.equal(preview.payload.students, 1);
-  assert.equal(preview.payload.available_questions, 960);
-  assert.equal(preview.payload.guangzhou_questions, 960);
+  assert.equal(preview.payload.available_questions, 3200);
+  assert.equal(preview.payload.guangzhou_questions, 3200);
   const invalidDate = await request('POST', '/practice/plans/preview', teacherToken, { ...body, start_date: '2026-02-31' });
   assert.equal(invalidDate.response.status, 400);
   assert.match(invalidDate.payload.errors.join(' '), /日期/);
@@ -135,7 +135,7 @@ test('家长并发领取幂等且永不返回答案', async () => {
   const count = getDB().get('SELECT COUNT(*) count FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, logicalToday]);
   assert.equal(Number(count.count), 1);
   const meta = JSON.parse(getDB().get('SELECT selection_meta FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, logicalToday]).selection_meta);
-  assert.equal(meta.selected_guangzhou, results[0].payload.assignment.items.length, '每日题单应全部来自固定 960 题计算题库');
+  assert.equal(meta.selected_guangzhou, results[0].payload.assignment.items.length, '每日题单应全部来自当前 3200 题七年级题库');
   const forbidden = await request('GET', `/practice/today?student_id=${studentId}`, otherParentToken);
   assert.equal(forbidden.response.status, 403);
 });

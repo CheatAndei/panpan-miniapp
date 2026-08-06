@@ -416,9 +416,30 @@ CREATE TABLE IF NOT EXISTS practice_assignments (
   assignment_source TEXT NOT NULL DEFAULT 'adaptive'
     CHECK(assignment_source IN ('adaptive', 'student_curriculum')),
   curriculum_day_id INTEGER REFERENCES practice_student_curriculum_days(id),
+  is_frozen INTEGER NOT NULL DEFAULT 0 CHECK(is_frozen IN (0,1)),
+  frozen_at DATETIME,
+  freeze_source TEXT,
+  frozen_by INTEGER REFERENCES users(id),
   claimed_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(student_id, practice_date)
+);
+
+-- “生成并锁定剩余日期 PDF”的不可变清单。作业行负责保存题目快照，
+-- 本表独立保存冻结范围和能力快照，用于阻止缺页 PDF 被误判为完整文件。
+CREATE TABLE IF NOT EXISTS practice_pdf_freezes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER NOT NULL REFERENCES practice_plans(id),
+  student_id INTEGER NOT NULL REFERENCES students(id),
+  from_date DATE NOT NULL,
+  through_date DATE NOT NULL,
+  ability_source_assignment_id INTEGER,
+  ability_source_date DATE,
+  ability_wrong_count INTEGER,
+  ability_review_round INTEGER,
+  frozen_by INTEGER REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(plan_id, student_id)
 );
 
 -- 保存题目快照；题库更新不会改变历史练习。
@@ -1188,6 +1209,8 @@ CREATE INDEX IF NOT EXISTS idx_practice_assignment_student_date
   ON practice_assignments(student_id, practice_date);
 CREATE INDEX IF NOT EXISTS idx_practice_assignment_curriculum_day
   ON practice_assignments(curriculum_day_id);
+CREATE INDEX IF NOT EXISTS idx_practice_pdf_freeze_student
+  ON practice_pdf_freezes(student_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_practice_submission_status
   ON practice_submissions(status, submitted_at);
 CREATE INDEX IF NOT EXISTS idx_practice_attachment_submission

@@ -138,14 +138,35 @@
 
     <view v-if="pdfPlan" class="modal-mask" @tap="closePdfPicker">
       <view class="modal pdf-modal" @tap.stop>
-        <text class="modal-title">导出学生专属练习</text>
+        <text class="modal-title">生成学生专属练习</text>
         <text class="pdf-plan-name">{{ pdfPlan.title }}</text>
-        <text class="field-label">选择学生</text>
-        <picker :range="pdfStudents" range-key="student_name" :value="pdfStudentIndex" @change="pdfStudentIndex=Number($event.detail.value)">
-          <view class="field picker-field">{{ pdfStudents[pdfStudentIndex]?.student_name || '正在读取学生' }}<text>›</text></view>
-        </picker>
-        <text class="pdf-help">将导出该学生计划内全部日期：每天 1 张练习页，末尾教师答案紧凑排版。</text>
-        <button class="primary-btn pdf-download" :disabled="!pdfStudents.length || pdfBusy" @tap="downloadStudentPdf">{{ pdfBusy?'正在生成…':'打开 PDF' }}</button>
+        <view v-if="pdfLoading" class="pdf-status">正在读取学生与题单状态…</view>
+        <view v-else-if="pdfError" class="pdf-status pdf-error">
+          <text>{{ pdfError }}</text>
+          <button class="secondary-btn pdf-retry" @tap="retryPdfStudents">重新加载</button>
+        </view>
+        <view v-else-if="!pdfStudents.length" class="pdf-status">该计划暂无可生成 PDF 的学生。</view>
+        <template v-else>
+          <text class="field-label">选择学生</text>
+          <picker :range="pdfStudents" range-key="student_name" :value="pdfStudentIndex" @change="changePdfStudent">
+            <view class="field picker-field">{{ currentPdfStudent?.student_name }}<text>›</text></view>
+          </picker>
+          <view :class="['pdf-state', { frozen: currentPdfStudent?.pdf_frozen }]">
+            <text class="pdf-state-title">{{ currentPdfStudent?.pdf_frozen ? 'PDF 已锁定' : '生成依据' }}</text>
+            <text class="pdf-state-copy">{{ pdfAbilityText }}</text>
+            <text v-if="currentPdfStudent?.pdf_frozen" class="pdf-state-meta">
+              已固定 {{ currentPdfStudent.frozen_assignment_count }} 天（{{ currentPdfStudent.frozen_from_date }} 至 {{ currentPdfStudent.frozen_to_date }}）
+            </text>
+          </view>
+          <text class="pdf-help">
+            {{ currentPdfStudent?.pdf_frozen
+              ? '题目已固定，不再随之后的批改成绩变化；可重复打开同一份 PDF。'
+              : '将按最近一次完整首轮批改生成计划剩余日期。锁定后题目不再变化，且不能撤销。' }}
+          </text>
+          <button class="primary-btn pdf-download" :disabled="pdfBusy" @tap="downloadStudentPdf">
+            {{ pdfActionText }}
+          </button>
+        </template>
         <button class="btn-cancel" @tap="closePdfPicker">取消</button>
       </view>
     </view>
@@ -184,6 +205,8 @@ const pdfPlan = ref(null);
 const pdfStudents = ref([]);
 const pdfStudentIndex = ref(0);
 const pdfBusy = ref(false);
+const pdfLoading = ref(false);
+const pdfError = ref('');
 const form = reactive({
   title: '初中计算打卡',
   class_id: '',
@@ -212,6 +235,20 @@ const statusFilterIndex = computed(() => Math.max(0, statusOptions.findIndex((it
 const monthOptions = computed(() => [{ value: '', label: '全部月份' }, ...(serverFilters.value.months || []).map((value) => ({ value, label: value }))]);
 const monthFilterIndex = computed(() => Math.max(0, monthOptions.value.findIndex((item) => item.value === filters.month)));
 const visiblePlans = computed(() => (showOld.value || filters.keyword ? plans.value : plans.value.slice(0, 5)));
+const currentPdfStudent = computed(() => pdfStudents.value[pdfStudentIndex.value] || null);
+const pdfAbilityText = computed(() => {
+  const student = currentPdfStudent.value;
+  const ability = student?.pdf_frozen ? student.freeze_ability : student?.latest_first_round_ability;
+  if (!ability) return '暂无完整首轮批改：按每天 12 道普通题生成';
+  const wrongCount = Number(ability.wrong_count || 0);
+  return wrongCount < 2
+    ? `最近完整首轮错 ${wrongCount} 道：每天 6 道普通题 + 6 道加强题`
+    : `最近完整首轮错 ${wrongCount} 道：每天 12 道普通题`;
+});
+const pdfActionText = computed(() => {
+  if (pdfBusy.value) return currentPdfStudent.value?.pdf_frozen ? '正在打开…' : '正在锁定…';
+  return currentPdfStudent.value?.pdf_frozen ? '打开已锁定 PDF' : '生成并锁定剩余 PDF';
+});
 
 onShow(() => loadBase());
 onPullDownRefresh(async () => { try { await loadBase(); } finally { uni.stopPullDownRefresh(); } });
@@ -340,16 +377,52 @@ function openSavedReview(record){
   uni.navigateTo({url:`/pages/practice-review/index?plan_id=${planId}&submission_id=${submissionId}&history=1`});
 }
 async function openPdfPicker(item){
-  pdfPlan.value=item;pdfStudents.value=[];pdfStudentIndex.value=0;
-  try{const result=await api.get(`/practice/plans/${item.id}/settings`);pdfStudents.value=result.settings||[];}
-  catch(error){uni.showToast({title:error?.error||'学生列表加载失败',icon:'none'});}
+  pdfPlan.value=item;pdfStudents.value=[];pdfStudentIndex.value=0;pdfError.value='';
+  await loadPdfStudents();
 }
-function closePdfPicker(){if(pdfBusy.value)return;pdfPlan.value=null;pdfStudents.value=[];}
+async function loadPdfStudents(preserveStudentId=0,{silent=false}={}){
+  if(!pdfPlan.value)return false;
+  if(!silent){pdfLoading.value=true;pdfError.value='';}
+  try{
+    const result=await api.get(`/practice/plans/${pdfPlan.value.id}/settings`);
+    pdfStudents.value=result.settings||[];
+    const preservedIndex=pdfStudents.value.findIndex((student)=>Number(student.student_id)===Number(preserveStudentId));
+    pdfStudentIndex.value=preservedIndex>=0?preservedIndex:Math.min(pdfStudentIndex.value,Math.max(0,pdfStudents.value.length-1));
+    return true;
+  }catch(error){
+    if(!silent)pdfError.value=error?.error||'学生列表加载失败';
+    return false;
+  }finally{
+    if(!silent)pdfLoading.value=false;
+  }
+}
+function retryPdfStudents(){loadPdfStudents();}
+function changePdfStudent(event){pdfStudentIndex.value=Number(event.detail.value)||0;}
+function closePdfPicker(){if(pdfBusy.value)return;pdfPlan.value=null;pdfStudents.value=[];pdfLoading.value=false;pdfError.value='';}
+function confirmPdfFreeze(student){
+  return new Promise((resolve)=>uni.showModal({
+    title:'生成并锁定 PDF？',
+    content:`将按 ${student.student_name} 最近一次完整首轮批改，固定计划剩余日期的题目。锁定后不再随成绩变化，且不能撤销。`,
+    confirmText:'确认锁定',
+    cancelText:'再想想',
+    confirmColor:'#B53A52',
+    success:(result)=>resolve(Boolean(result.confirm)),
+    fail:()=>resolve(false),
+  }));
+}
 async function downloadStudentPdf(){
-  const student=pdfStudents.value[pdfStudentIndex.value];
+  const student=currentPdfStudent.value;
   if(!pdfPlan.value||!student||pdfBusy.value)return;
+  if(!student.pdf_frozen&&!(await confirmPdfFreeze(student)))return;
   pdfBusy.value=true;
-  try{await api.openPdf(`/api/practice/plans/${pdfPlan.value.id}/pdf?student_id=${student.student_id}`);}
+  try{
+    if(!student.pdf_frozen){
+      const frozen=await api.post(`/practice/plans/${pdfPlan.value.id}/students/${student.student_id}/freeze-remaining`,{});
+      Object.assign(student,frozen);
+      await loadPdfStudents(student.student_id,{silent:true});
+    }
+    await api.openPdf(`/api/practice/plans/${pdfPlan.value.id}/pdf?student_id=${student.student_id}`);
+  }
   catch(error){uni.showToast({title:error?.error||'PDF 打开失败',icon:'none'});}
   finally{pdfBusy.value=false;}
 }
@@ -464,8 +537,17 @@ button::after { border: 0; }
 
 .modal-mask { background: rgba(5, 5, 5, .42); }
 .modal { border-radius: 16rpx 16rpx 0 0; background: #FFFFFF; }
+.pdf-modal { max-width: 760px; overflow-y: auto; margin: 0 auto; }
 .modal-title { color: var(--panpan-ink); }
 .pdf-plan-name { display: block; padding: 14rpx 16rpx; border-left: 5rpx solid var(--panpan-green); border-radius: 8rpx; background: #E5F8FE; color: var(--panpan-green-strong); font-size: 24rpx; font-weight: 700; }
+.pdf-status { display: flex; flex-direction: column; align-items: stretch; gap: 12rpx; margin-top: 16rpx; padding: 20rpx 16rpx; border: 1rpx solid #DCE9ED; border-radius: 9rpx; background: #F8FCFD; color: var(--panpan-muted); font-size: 21rpx; line-height: 1.5; }
+.pdf-error { border-color: #F2C8D5; background: #FFF6F8; color: var(--panpan-coral-strong); }
+.pdf-retry { width: 100%; margin: 0; }
+.pdf-state { margin-top: 15rpx; padding: 14rpx 16rpx; border: 1rpx solid #DCE9ED; border-left: 5rpx solid var(--panpan-coral); border-radius: 9rpx; background: #FFF6F8; }
+.pdf-state.frozen { border-left-color: var(--panpan-green); background: #F0FAFD; }
+.pdf-state-title { display: block; color: var(--panpan-ink); font-size: 22rpx; font-weight: 760; }
+.pdf-state-copy { display: block; margin-top: 5rpx; color: var(--panpan-muted); font-size: 20rpx; line-height: 1.45; }
+.pdf-state-meta { display: block; margin-top: 5rpx; color: var(--panpan-green-strong); font-size: 19rpx; }
 .pdf-help { display: block; margin-top: 14rpx; color: var(--panpan-muted); font-size: 21rpx; line-height: 1.55; }
 .pdf-download { width: 100%; margin-top: 18rpx; }
 .btn-cancel { min-height: 76rpx; margin: 12rpx 0 0; border-radius: 10rpx; background: #F8FCFD; color: var(--panpan-muted); font-size: 24rpx; }

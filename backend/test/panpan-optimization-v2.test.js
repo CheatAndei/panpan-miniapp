@@ -157,7 +157,7 @@ test('答案批准后只对匹配家长、学生和试卷开放', async () => {
   assert.equal(stranger.response.status, 404);
 });
 
-test('计划可按学生搜索并导出全日期学生专属 PDF', async () => {
+test('计划可按学生搜索，并先锁定再重复导出剩余日期 PDF', async () => {
   const start = practiceDateAt();
   const endDate = new Date(`${start}T00:00:00Z`);
   endDate.setUTCDate(endDate.getUTCDate() + 1);
@@ -172,9 +172,160 @@ test('计划可按学生搜索并导出全日期学生专属 PDF', async () => {
   const searched = await request('GET', `/practice/plans?keyword=${encodeURIComponent('完整姓名')}`, teacherToken);
   assert.equal(searched.response.status, 200);
   assert.equal(searched.payload.plans[0].id, created.payload.plan.id);
+  const settingsBefore = await request('GET', `/practice/plans/${created.payload.plan.id}/settings`, teacherToken);
+  assert.equal(settingsBefore.response.status, 200);
+  assert.equal(settingsBefore.payload.settings[0].pdf_frozen, false);
+  assert.equal(settingsBefore.payload.settings[0].frozen_assignment_count, 0);
+  assert.equal(settingsBefore.payload.settings[0].latest_first_round_ability, null);
+  const prematurePdf = await request('GET', `/practice/plans/${created.payload.plan.id}/pdf?student_id=${studentId}`, teacherToken);
+  assert.equal(prematurePdf.response.status, 409);
+  assert.equal((await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    parentToken,
+    {},
+  )).response.status, 403);
+  const strangerTeacherId = getDB().run(
+    "INSERT INTO users(openid,role,nickname) VALUES('panpan-v2-stranger-teacher','teacher','其他老师')",
+  ).lastInsertRowid;
+  assert.equal((await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    token(strangerTeacherId, 'teacher'),
+    {},
+  )).response.status, 404);
+  assert.equal((await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/999999/freeze-remaining`,
+    teacherToken,
+    {},
+  )).response.status, 404);
+  assert.equal((await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    teacherToken,
+    { from_date: '2026-02-31' },
+  )).response.status, 400);
+  const afterEnd = new Date(endDate);
+  afterEnd.setUTCDate(afterEnd.getUTCDate() + 1);
+  assert.equal((await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    teacherToken,
+    { from_date: afterEnd.toISOString().slice(0, 10) },
+  )).response.status, 409);
+
+  const frozen = await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    teacherToken,
+    { from_date: '2000-01-01' },
+  );
+  assert.equal(frozen.response.status, 200);
+  assert.equal(frozen.payload.from_date, start);
+  assert.equal(frozen.payload.pdf_frozen, true);
+  assert.equal(frozen.payload.frozen_assignment_count, 2);
+  assert.equal(frozen.payload.freeze_ability, null);
+  assert.deepEqual(frozen.payload.frozen_dates, [start, endDate.toISOString().slice(0, 10)]);
+
+  const repeated = await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    teacherToken,
+    {},
+  );
+  assert.equal(repeated.response.status, 200);
+  assert.equal(repeated.payload.already_frozen, true);
+  assert.deepEqual(repeated.payload.frozen_dates, frozen.payload.frozen_dates);
+
+  const targetClassId = getDB().run(
+    'INSERT INTO classes(teacher_id,name,grade,subject) VALUES(?,?,?,?)',
+    [teacherId, 'PDF 冻结转班测试组', '七年级', '数学'],
+  ).lastInsertRowid;
+  const transferred = await request('POST', `/students/${studentId}/transfer`, teacherToken, {
+    target_class_id: targetClassId,
+    reason: '验证永久冻结题单',
+  });
+  assert.equal(transferred.response.status, 200);
+  assert.equal(transferred.payload.removed_future_assignments, 0);
+  assert.equal(Number(getDB().get(`SELECT COUNT(*) count FROM practice_assignments
+    WHERE plan_id=? AND student_id=? AND is_frozen=1`, [created.payload.plan.id, studentId]).count), 2);
+
+  const missing = getDB().get(`SELECT id,practice_date FROM practice_assignments
+    WHERE plan_id=? AND student_id=? AND is_frozen=1 ORDER BY practice_date DESC LIMIT 1`, [
+    created.payload.plan.id,
+    studentId,
+  ]);
+  getDB().run('DELETE FROM practice_assignment_items WHERE assignment_id=?', [missing.id]);
+  getDB().run('DELETE FROM practice_assignments WHERE id=?', [missing.id]);
+  const incompleteSettings = await request('GET', `/practice/plans/${created.payload.plan.id}/settings`, teacherToken);
+  assert.equal(incompleteSettings.response.status, 200);
+  assert.equal(incompleteSettings.payload.settings[0].pdf_frozen, false);
+  assert.equal(incompleteSettings.payload.settings[0].pdf_freeze_incomplete, true);
+  assert.deepEqual(incompleteSettings.payload.settings[0].missing_frozen_dates, [missing.practice_date]);
+  const incompletePdf = await request('GET', `/practice/plans/${created.payload.plan.id}/pdf?student_id=${studentId}`, teacherToken);
+  assert.equal(incompletePdf.response.status, 409);
+
+  const repaired = await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${studentId}/freeze-remaining`,
+    teacherToken,
+    { from_date: afterEnd.toISOString().slice(0, 10) },
+  );
+  assert.equal(repaired.response.status, 200);
+  assert.equal(repaired.payload.pdf_frozen, true);
+  assert.equal(repaired.payload.already_frozen, false);
+  assert.deepEqual(repaired.payload.frozen_dates, frozen.payload.frozen_dates);
+  const settingsAfter = await request('GET', `/practice/plans/${created.payload.plan.id}/settings`, teacherToken);
+  assert.equal(settingsAfter.payload.settings[0].pdf_frozen, true);
+  assert.equal(settingsAfter.payload.settings[0].frozen_assignment_count, 2);
+  assert.equal(Number(getDB().get(`SELECT COUNT(*) count FROM operation_logs
+    WHERE action='practice_remaining_pdf_frozen' AND entity_id=?`, [created.payload.plan.id]).count), 3);
+
   const pdf = await request('GET', `/practice/plans/${created.payload.plan.id}/pdf?student_id=${studentId}`, teacherToken);
   assert.equal(pdf.response.status, 200);
   assert.match(pdf.response.headers.get('content-type'), /application\/pdf/);
   assert.equal(pdf.payload.subarray(0, 4).toString(), '%PDF');
   assert.ok(pdf.payload.length > 5000);
+});
+
+test('未冻结学生转班后不能从旧计划首次生成题单', async () => {
+  const db = getDB();
+  const sourceClassId = db.run(
+    'INSERT INTO classes(teacher_id,name,grade,subject) VALUES(?,?,?,?)',
+    [teacherId, '转班冻结源班', '七年级', '数学'],
+  ).lastInsertRowid;
+  const targetClassId = db.run(
+    'INSERT INTO classes(teacher_id,name,grade,subject) VALUES(?,?,?,?)',
+    [teacherId, '转班冻结目标班', '七年级', '数学'],
+  ).lastInsertRowid;
+  const movedStudentId = db.run(
+    'INSERT INTO students(teacher_id,class_id,name,invite_code) VALUES(?,?,?,?)',
+    [teacherId, sourceClassId, '未冻结转班生', 'V2MOVE'],
+  ).lastInsertRowid;
+  db.run('INSERT INTO class_students(class_id,student_id) VALUES(?,?)', [sourceClassId, movedStudentId]);
+  const start = practiceDateAt();
+  const created = await request('POST', '/practice/plans', teacherToken, {
+    title: '未冻结转班计划',
+    class_id: sourceClassId,
+    start_date: start,
+    end_date: start,
+    target_minutes: 20,
+  });
+  assert.equal(created.response.status, 201);
+  const moved = await request('POST', `/students/${movedStudentId}/transfer`, teacherToken, {
+    target_class_id: targetClassId,
+    reason: '冻结前转班',
+  });
+  assert.equal(moved.response.status, 200);
+  const settings = await request('GET', `/practice/plans/${created.payload.plan.id}/settings`, teacherToken);
+  assert.equal(settings.response.status, 200);
+  assert.equal(settings.payload.settings.some((item) => Number(item.student_id) === Number(movedStudentId)), false);
+  const blocked = await request(
+    'POST',
+    `/practice/plans/${created.payload.plan.id}/students/${movedStudentId}/freeze-remaining`,
+    teacherToken,
+    {},
+  );
+  assert.equal(blocked.response.status, 409);
 });

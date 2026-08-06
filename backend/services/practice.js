@@ -15,6 +15,11 @@ const {
 const FIXED_GRADE = '初中';
 const FIXED_MODULE = '综合计算';
 const FIXED_DIFFICULTY = 3;
+const DAILY_QUESTION_COUNT = 12;
+const ENHANCED_QUESTION_COUNT = 6;
+const STANDARD_DIFFICULTY = 3;
+const ENHANCED_DIFFICULTY = 4;
+const TEMPLATE_DAILY_CAP = 4;
 const MODULES = { [FIXED_GRADE]: [FIXED_MODULE] };
 const G7_TOPICS = Object.freeze({
   rational_numbers: { label: '有理数运算', questionTypes: ['有理数加减', '有理数乘除', '有理数混合', '有理数巧算'] },
@@ -71,6 +76,13 @@ function dateRange(start, end, maxDays = 31) {
   return result;
 }
 
+function datePlus(start, offset = 1) {
+  const date = new Date(`${start}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setUTCDate(date.getUTCDate() + Number(offset || 0));
+  return date.toISOString().slice(0, 10);
+}
+
 function parseJson(value, fallback = []) {
   try { return JSON.parse(value || ''); } catch { return fallback; }
 }
@@ -124,6 +136,14 @@ function scopedQuestionPool(db, plan, setting, module = null) {
   return db.all(sql, params);
 }
 
+function normalizedQuestionText(value) {
+  return String(value || '').normalize('NFKC').replace(/\s+/gu, '').replace(/[。．]/gu, '');
+}
+
+function questionFingerprint(question) {
+  return `${normalizedQuestionText(question.stem || question.snapshot_stem)}|${normalizedQuestionText(question.answer || question.snapshot_answer)}`;
+}
+
 function historyTemplates(db, studentId, practiceDate) {
   const rows = db.all(`SELECT r.is_correct,r.reviewed_at,i.snapshot_module,i.template_key,a.practice_date
     FROM practice_reviews r
@@ -146,81 +166,290 @@ function historyTemplates(db, studentId, practiceDate) {
   return { wrong, mastered, latestCount: latest.size, intervalDays: 3 };
 }
 
-function recentSignatures(db, studentId, practiceDate) {
+function recentQuestions(db, studentId, practiceDate) {
   const from = new Date(`${practiceDate}T00:00:00Z`);
   from.setUTCDate(from.getUTCDate() - 14);
-  return new Set(db.all(`SELECT i.signature FROM practice_assignment_items i
+  const rows = db.all(`SELECT i.signature,i.snapshot_stem,i.snapshot_answer FROM practice_assignment_items i
     JOIN practice_assignments a ON a.id=i.assignment_id
     WHERE a.student_id=? AND a.practice_date>=? AND a.practice_date<?`, [
     studentId, from.toISOString().slice(0, 10), practiceDate,
-  ]).map((row) => row.signature));
+  ]);
+  return {
+    signatures: new Set(rows.map((row) => row.signature)),
+    fingerprints: new Set(rows.map(questionFingerprint)),
+  };
 }
 
-function selectQuestions(db, plan, setting, studentId, practiceDate) {
+function resolvePracticeAbilitySnapshot(db, plan, studentId, beforeDate) {
+  const gradeCode = String(plan?.grade_code || 'g7');
+  const row = db.get(`SELECT a.id assignment_id,a.practice_date,ps.id submission_id,
+      COUNT(i.id) total_count,
+      SUM(CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END) reviewed_count,
+      SUM(CASE WHEN r.id IS NOT NULL AND r.is_correct=0 THEN 1 ELSE 0 END) wrong_count
+    FROM practice_assignments a
+    JOIN practice_plans p ON p.id=a.plan_id
+    JOIN practice_submissions ps ON ps.assignment_id=a.id
+    JOIN practice_assignment_items i ON i.assignment_id=a.id
+    LEFT JOIN practice_review_rounds r ON r.submission_id=ps.id
+      AND r.assignment_item_id=i.id AND r.round_no=1
+    WHERE a.student_id=? AND p.grade_code=? AND a.assignment_source='adaptive'
+      AND a.practice_date<?
+    GROUP BY a.id,a.practice_date,ps.id
+    HAVING COUNT(i.id)>0
+      AND SUM(CASE WHEN r.id IS NOT NULL THEN 1 ELSE 0 END)=COUNT(i.id)
+    ORDER BY a.practice_date DESC,a.id DESC LIMIT 1`, [studentId, gradeCode, beforeDate]);
+  if (!row) return null;
+  const wrongCount = Number(row.wrong_count || 0);
+  return {
+    source_assignment_id: Number(row.assignment_id),
+    source_submission_id: Number(row.submission_id),
+    source_date: String(row.practice_date),
+    total_count: Number(row.total_count),
+    reviewed_count: Number(row.reviewed_count),
+    wrong_count: wrongCount,
+    review_round: 1,
+    enhanced: wrongCount < 2,
+  };
+}
+
+function prioritizedQuestionPool(pool, history, keyOf, seed) {
+  const wrong = deterministicSort(pool.filter((item) => history.wrong.has(keyOf(item))), `${seed}|wrong`);
+  const mastered = deterministicSort(pool.filter((item) => !history.wrong.has(keyOf(item))
+    && history.mastered.has(keyOf(item))), `${seed}|mastered`);
+  const fresh = deterministicSort(pool.filter((item) => !history.wrong.has(keyOf(item))
+    && !history.mastered.has(keyOf(item))), `${seed}|fresh`);
+  return [...wrong, ...mastered, ...fresh];
+}
+
+function selectQuestions(db, plan, setting, studentId, practiceDate, options = {}) {
   const currentPool = scopedQuestionPool(db, plan, setting, setting.current_module);
-  const allScopePool = scopedQuestionPool(db, plan, setting);
   if (!currentPool.length) throw new Error('当前题库范围没有可用题目');
   const targetSeconds = Number(plan.target_seconds || 1200);
-  const minSeconds = Math.round(targetSeconds * 0.9);
-  const maxSeconds = Math.round(targetSeconds * 1.1);
+  const minSeconds = 18 * 60;
+  const maxSeconds = 22 * 60;
   const history = historyTemplates(db, studentId, practiceDate);
-  const recent = recentSignatures(db, studentId, practiceDate);
+  const recent = recentQuestions(db, studentId, practiceDate);
+  // The rolling 14-day history is a hard exclusion. Batch exclusions are soft
+  // so a long frozen plan can reuse older questions after exhausting its pool.
+  const batchExcluded = {
+    signatures: new Set(Array.from(options.excludedSignatures || [], String)),
+    fingerprints: new Set(Array.from(options.excludedFingerprints || [], String)),
+  };
   const seed = `${studentId}|${practiceDate}|${plan.id}`;
   const selected = [];
   const picked = new Set();
   const templateCounts = new Map();
-  let selectedSeconds = 0;
-
-  const takeSeconds = (source, secondsBudget, allowRecent = false) => {
-    let addedSeconds = 0;
-    let addedCount = 0;
-    for (const question of localityAwareSort(source, seed)) {
-      if (addedSeconds >= secondsBudget || selected.length >= 24 || picked.has(question.id)) continue;
-      if (!allowRecent && recent.has(question.signature)) continue;
-      const template = `${question.module}|${question.template_key}`;
-      const used = templateCounts.get(template) || 0;
-      if (used >= 2) continue;
+  const historyKey = (q) => `${q.module}|${q.template_key}`;
+  const forcedAbility = Object.prototype.hasOwnProperty.call(options, 'abilitySnapshot')
+    ? options.abilitySnapshot
+    : undefined;
+  const ability = forcedAbility !== undefined
+    ? forcedAbility
+    : resolvePracticeAbilitySnapshot(db, plan, studentId, practiceDate);
+  const enhancedEnabled = Boolean(ability?.enhanced);
+  const standardTarget = enhancedEnabled
+    ? DAILY_QUESTION_COUNT - ENHANCED_QUESTION_COUNT
+    : DAILY_QUESTION_COUNT;
+  const enhancedTarget = enhancedEnabled ? ENHANCED_QUESTION_COUNT : 0;
+  const standardPool = currentPool.filter((item) => Number(item.difficulty) === STANDARD_DIFFICULTY);
+  const enhancedPool = currentPool.filter((item) => Number(item.difficulty) === ENHANCED_DIFFICULTY);
+  const averageSeconds = (source, fallback) => source.length
+    ? source.reduce((sum, item) => sum + Number(item.estimated_seconds || fallback), 0) / source.length
+    : fallback;
+  const standardAverage = enhancedTarget
+    ? averageSeconds(standardPool, 90)
+    : Math.max(averageSeconds(standardPool, 90), minSeconds / DAILY_QUESTION_COUNT);
+  const enhancedAverage = averageSeconds(enhancedPool, 125);
+  const rollingStandardDurationQuotas = (() => {
+    const cycleDays = 15;
+    const cycleQuestionCount = cycleDays * DAILY_QUESTION_COUNT;
+    if (enhancedTarget || standardPool.length < cycleQuestionCount) return null;
+    const cyclePool = [...standardPool]
+      .sort((left, right) => Number(right.estimated_seconds || 90) - Number(left.estimated_seconds || 90))
+      .slice(0, cycleQuestionCount);
+    const cohorts = Array.from({ length: cycleDays }, (_, index) => ({
+      index,
+      count: 0,
+      seconds: 0,
+      quotas: new Map(),
+    }));
+    for (const question of cyclePool) {
       const seconds = Number(question.estimated_seconds || 90);
-      if (selectedSeconds + seconds > maxSeconds) continue;
-      selected.push(question);
-      picked.add(question.id);
-      templateCounts.set(template, used + 1);
-      selectedSeconds += seconds;
-      addedSeconds += seconds;
-      addedCount++;
+      const cohort = cohorts
+        .filter((item) => item.count < DAILY_QUESTION_COUNT)
+        .sort((left, right) => left.count - right.count
+          || left.seconds - right.seconds
+          || left.index - right.index)[0];
+      if (!cohort) return null;
+      cohort.count += 1;
+      cohort.seconds += seconds;
+      cohort.quotas.set(seconds, Number(cohort.quotas.get(seconds) || 0) + 1);
     }
-    return { count: addedCount, seconds: addedSeconds };
+    if (cohorts.some((cohort) => cohort.count !== DAILY_QUESTION_COUNT
+      || cohort.seconds < minSeconds || cohort.seconds > maxSeconds)) return null;
+    const planStart = new Date(`${plan.start_date}T00:00:00Z`);
+    const currentDate = new Date(`${practiceDate}T00:00:00Z`);
+    if (Number.isNaN(planStart.getTime()) || Number.isNaN(currentDate.getTime())) return null;
+    const offset = Math.round((currentDate - planStart) / 86_400_000);
+    const cohortIndex = ((offset % cycleDays) + cycleDays) % cycleDays;
+    return cohorts[cohortIndex].quotas;
+  })();
+
+  const takeCount = (source, targetCount, tier, allowBatchReuse = false, relaxDurationQuota = false) => {
+    const startCount = selected.length;
+    const ordered = prioritizedQuestionPool(source, history, historyKey, `${seed}|${tier}`);
+    const difficulty = tier.startsWith('enhanced') ? ENHANCED_DIFFICULTY : STANDARD_DIFFICULTY;
+    const targetAverage = difficulty === ENHANCED_DIFFICULTY ? enhancedAverage : standardAverage;
+    while (selected.length - startCount < targetCount) {
+      const tierItems = selected.filter((item) => Number(item.difficulty) === difficulty);
+      const tierSeconds = tierItems.reduce((sum, item) => sum + Number(item.estimated_seconds || 90), 0);
+      const desiredCumulative = targetAverage * (tierItems.length + 1);
+      let best = null;
+      for (let candidateIndex = 0; candidateIndex < ordered.length; candidateIndex += 1) {
+        const question = ordered[candidateIndex];
+        if (picked.has(question.id)) continue;
+        const fingerprint = questionFingerprint(question);
+        if (recent.signatures.has(question.signature) || recent.fingerprints.has(fingerprint)) continue;
+        if (!allowBatchReuse
+            && (batchExcluded.signatures.has(question.signature)
+              || batchExcluded.fingerprints.has(fingerprint))) continue;
+        const template = historyKey(question);
+        const used = templateCounts.get(template) || 0;
+        if (used >= TEMPLATE_DAILY_CAP) continue;
+        const questionSeconds = Number(question.estimated_seconds || targetAverage);
+        if (!relaxDurationQuota && difficulty === STANDARD_DIFFICULTY && rollingStandardDurationQuotas) {
+          const quota = Number(rollingStandardDurationQuotas.get(questionSeconds) || 0);
+          const selectedAtDuration = tierItems.filter((item) => (
+            Number(item.estimated_seconds || 90) === questionSeconds
+          )).length;
+          if (selectedAtDuration >= quota) continue;
+        }
+        const nextSeconds = tierSeconds + questionSeconds;
+        const deviation = Math.abs(nextSeconds - desiredCumulative);
+        if (!best || deviation < best.deviation
+            || (deviation === best.deviation && candidateIndex < best.candidateIndex)) {
+          best = { question, template, used, deviation, candidateIndex };
+        }
+      }
+      if (!best) break;
+      selected.push(best.question);
+      picked.add(best.question.id);
+      templateCounts.set(best.template, best.used + 1);
+    }
+    return selected.length - startCount;
   };
 
-  const historyKey = (q) => `${q.module}|${q.template_key}`;
-  const wrongSelected = takeSeconds(allScopePool.filter((q) => history.wrong.has(historyKey(q))), targetSeconds * 0.25);
-  const masteredSelected = takeSeconds(
-    allScopePool.filter((q) => history.mastered.has(historyKey(q)) && !history.wrong.has(historyKey(q))),
-    targetSeconds * 0.15,
-  );
-  takeSeconds(currentPool, Math.max(0, targetSeconds - selectedSeconds));
-  if (selectedSeconds < minSeconds) takeSeconds(currentPool, targetSeconds - selectedSeconds, true);
-  if (selected.length < 8 || selectedSeconds < minSeconds || selectedSeconds > maxSeconds) {
-    throw new Error('题库时长不足 18-22 分钟，请扩大模块、题型或难度范围');
+  const fillTier = (source, targetCount, tier) => {
+    let added = takeCount(source, targetCount, tier, false);
+    if (added < targetCount) added += takeCount(source, targetCount - added, `${tier}|batch-reuse`, true);
+    if (added < targetCount && tier === 'standard' && rollingStandardDurationQuotas) {
+      added += takeCount(source, targetCount - added, `${tier}|quota-relaxed`, false, true);
+    }
+    if (added < targetCount && tier === 'standard' && rollingStandardDurationQuotas) {
+      added += takeCount(source, targetCount - added, `${tier}|all-relaxed`, true, true);
+    }
+    if (added !== targetCount) throw new Error(`${tier === 'enhanced' ? '加强' : '普通'}题库不足 ${targetCount} 题`);
+  };
+
+  fillTier(standardPool, standardTarget, 'standard');
+  if (enhancedTarget) fillTier(enhancedPool, enhancedTarget, 'enhanced');
+
+  const rebalanceSelectedSeconds = () => {
+    let total = selected.reduce((sum, question) => sum + Number(question.estimated_seconds || 90), 0);
+    if (total >= minSeconds && total <= maxSeconds) return total;
+    const candidates = prioritizedQuestionPool(currentPool, history, historyKey, `${seed}|time-balance`);
+    const tupleLess = (left, right) => left.some((value, index) => (
+      value < right[index] && left.slice(0, index).every((part, partIndex) => part === right[partIndex])
+    ));
+    for (let attempt = 0; attempt < DAILY_QUESTION_COUNT * 4; attempt += 1) {
+      if (total >= minSeconds && total <= maxSeconds) break;
+      const direction = total < minSeconds ? 1 : -1;
+      let best = null;
+      for (const allowBatchReuse of [false, true]) {
+        for (let selectedIndex = 0; selectedIndex < selected.length; selectedIndex += 1) {
+          const current = selected[selectedIndex];
+          const currentSeconds = Number(current.estimated_seconds || 90);
+          const currentTemplate = historyKey(current);
+          for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex += 1) {
+            const candidate = candidates[candidateIndex];
+            if (picked.has(candidate.id) || Number(candidate.difficulty) !== Number(current.difficulty)) continue;
+            const candidateSeconds = Number(candidate.estimated_seconds || 90);
+            const delta = candidateSeconds - currentSeconds;
+            if ((direction > 0 && delta <= 0) || (direction < 0 && delta >= 0)) continue;
+            const nextTotal = total + delta;
+            if (nextTotal < minSeconds && direction < 0) continue;
+            if (nextTotal > maxSeconds && direction > 0) continue;
+            const fingerprint = questionFingerprint(candidate);
+            if (recent.signatures.has(candidate.signature) || recent.fingerprints.has(fingerprint)) continue;
+            if (!allowBatchReuse
+                && (batchExcluded.signatures.has(candidate.signature)
+                  || batchExcluded.fingerprints.has(fingerprint))) continue;
+            const candidateTemplate = historyKey(candidate);
+            if (candidateTemplate !== currentTemplate
+                && Number(templateCounts.get(candidateTemplate) || 0) >= TEMPLATE_DAILY_CAP) continue;
+            const boundaryDistance = nextTotal < minSeconds
+              ? minSeconds - nextTotal
+              : nextTotal > maxSeconds
+                ? nextTotal - maxSeconds
+                : 0;
+            const score = [boundaryDistance, Math.abs(nextTotal - targetSeconds), selectedIndex, candidateIndex];
+            if (!best || tupleLess(score, best.score)) {
+              best = { candidate, current, selectedIndex, nextTotal, score };
+            }
+          }
+        }
+        if (best) break;
+      }
+      if (!best) break;
+      const currentTemplate = historyKey(best.current);
+      const candidateTemplate = historyKey(best.candidate);
+      picked.delete(best.current.id);
+      picked.add(best.candidate.id);
+      if (candidateTemplate !== currentTemplate) {
+        templateCounts.set(currentTemplate, Math.max(0, Number(templateCounts.get(currentTemplate) || 0) - 1));
+        templateCounts.set(candidateTemplate, Number(templateCounts.get(candidateTemplate) || 0) + 1);
+      }
+      selected[best.selectedIndex] = best.candidate;
+      total = best.nextTotal;
+    }
+    return total;
+  };
+
+  const selectedSeconds = rebalanceSelectedSeconds();
+  if (selected.length !== DAILY_QUESTION_COUNT || selectedSeconds < minSeconds || selectedSeconds > maxSeconds) {
+    throw new Error(`题单必须为 ${DAILY_QUESTION_COUNT} 题且保持 18-22 分钟（${practiceDate} 实际 ${selectedSeconds} 秒）`);
   }
+
+  const wrongSelected = selected.filter((question) => history.wrong.has(historyKey(question)));
+  const masteredSelected = selected.filter((question) => history.mastered.has(historyKey(question))
+    && !history.wrong.has(historyKey(question)));
 
   return {
     questions: selected,
     meta: {
-      version: 'adaptive-v1',
+      version: 'adaptive-v2',
+      policy_version: 'adaptive-v2',
       target_seconds: targetSeconds,
       actual_seconds: selectedSeconds,
       current_module: setting.current_module,
       wrong_templates: history.wrong.size,
-      selected_wrong_review: wrongSelected.count,
-      selected_wrong_seconds: wrongSelected.seconds,
-      selected_mastered_review: masteredSelected.count,
-      selected_mastered_seconds: masteredSelected.seconds,
-      selected_current: selected.length - wrongSelected.count - masteredSelected.count,
-      selected_current_seconds: selectedSeconds - wrongSelected.seconds - masteredSelected.seconds,
+      selected_wrong_review: wrongSelected.length,
+      selected_wrong_seconds: wrongSelected.reduce((sum, item) => sum + Number(item.estimated_seconds || 90), 0),
+      selected_mastered_review: masteredSelected.length,
+      selected_mastered_seconds: masteredSelected.reduce((sum, item) => sum + Number(item.estimated_seconds || 90), 0),
+      selected_current: selected.length - wrongSelected.length - masteredSelected.length,
+      standard_target_count: standardTarget,
+      standard_selected_count: selected.filter((item) => Number(item.difficulty) === STANDARD_DIFFICULTY).length,
+      enhanced_target_count: enhancedTarget,
+      enhanced_selected_count: selected.filter((item) => Number(item.difficulty) === ENHANCED_DIFFICULTY).length,
+      ability_source_assignment_id: ability?.source_assignment_id || null,
+      ability_source_date: ability?.source_date || null,
+      ability_wrong_count: ability ? Number(ability.wrong_count) : null,
+      ability_review_round: ability?.review_round || null,
       mastered_interval_days: history.intervalDays,
       recent_exclusion_days: 14,
-      template_daily_cap: 2,
+      semantic_recent_exclusion: true,
+      template_daily_cap: TEMPLATE_DAILY_CAP,
       selected_guangzhou: selected.filter((question) => question.source_region === '广州').length,
     },
   };
@@ -236,37 +465,285 @@ function ensureStudentSetting(db, plan, studentId) {
   return db.get('SELECT * FROM practice_student_settings WHERE plan_id=? AND student_id=?', [plan.id, studentId]);
 }
 
-function generateAssignment(db, plan, studentId, practiceDate) {
+function saveAdaptiveAssignmentItems(db, assignmentId, questions) {
+  questions.forEach((question, index) => {
+    db.run(`INSERT INTO practice_assignment_items
+      (assignment_id,question_id,position,snapshot_stem,snapshot_answer,snapshot_module,snapshot_type,
+       snapshot_difficulty,estimated_seconds,signature,template_key)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?)`, [
+      assignmentId, question.id, index + 1, question.stem, question.answer, question.module,
+      question.question_type, question.difficulty, question.estimated_seconds, question.signature, question.template_key,
+    ]);
+  });
+}
+
+function createAdaptiveAssignment(db, plan, studentId, practiceDate, options = {}) {
+  const setting = ensureStudentSetting(db, plan, studentId);
+  const selection = selectQuestions(db, plan, setting, studentId, practiceDate, options);
+  const estimated = selection.questions.reduce((sum, question) => (
+    sum + Number(question.estimated_seconds || 90)
+  ), 0);
+  const created = db.run(`INSERT INTO practice_assignments
+    (plan_id,student_id,practice_date,status,estimated_seconds,selection_meta,assignment_source)
+    VALUES(?,?,?,?,?,?,'adaptive')`, [
+    plan.id, studentId, practiceDate, 'ready', estimated, JSON.stringify(selection.meta),
+  ]);
+  saveAdaptiveAssignmentItems(db, created.lastInsertRowid, selection.questions);
+  return db.get('SELECT * FROM practice_assignments WHERE id=?', [created.lastInsertRowid]);
+}
+
+function generateAssignment(db, plan, studentId, practiceDate, options = {}) {
+  const existing = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [
+    studentId, practiceDate,
+  ]);
+  // PDF 锁定是永久快照，后续即使导入了专属课程也不能静默覆盖。
+  if (existing && Number(existing.is_frozen)) return existing;
   const curriculumAssignment = generateStudentCurriculumAssignment(db, studentId, practiceDate);
   if (curriculumAssignment) return curriculumAssignment;
-  const existing = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, practiceDate]);
   if (existing) return existing;
   try {
     return db.transaction(() => {
-      const repeated = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, practiceDate]);
+      const repeated = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [
+        studentId, practiceDate,
+      ]);
       if (repeated) return repeated;
-      const setting = ensureStudentSetting(db, plan, studentId);
-      const selection = selectQuestions(db, plan, setting, studentId, practiceDate);
-      const estimated = selection.questions.reduce((sum, q) => sum + Number(q.estimated_seconds || 90), 0);
-      const created = db.run(`INSERT INTO practice_assignments
-        (plan_id,student_id,practice_date,status,estimated_seconds,selection_meta)
-        VALUES(?,?,?,?,?,?)`, [plan.id, studentId, practiceDate, 'ready', estimated, JSON.stringify(selection.meta)]);
-      selection.questions.forEach((question, index) => {
-        db.run(`INSERT INTO practice_assignment_items
-          (assignment_id,question_id,position,snapshot_stem,snapshot_answer,snapshot_module,snapshot_type,
-           snapshot_difficulty,estimated_seconds,signature,template_key)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?)`, [
-          created.lastInsertRowid, question.id, index + 1, question.stem, question.answer, question.module,
-          question.question_type, question.difficulty, question.estimated_seconds, question.signature, question.template_key,
-        ]);
-      });
-      return db.get('SELECT * FROM practice_assignments WHERE id=?', [created.lastInsertRowid]);
+      return createAdaptiveAssignment(db, plan, studentId, practiceDate, options);
     });
   } catch (error) {
-    const concurrent = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [studentId, practiceDate]);
+    const concurrent = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [
+      studentId, practiceDate,
+    ]);
     if (concurrent) return concurrent;
     throw error;
   }
+}
+
+function adaptiveRebuildLockReason(db, assignment, plan) {
+  if (!assignment) return '';
+  if (Number(assignment.plan_id) !== Number(plan.id)) return 'different_plan';
+  if (assignment.assignment_source !== 'adaptive') return 'assignment_source';
+  if (Number(assignment.is_frozen)) return 'frozen';
+  if (assignment.claimed_at) return 'claimed';
+  if (String(assignment.status) !== 'ready') return 'status';
+  if (db.get('SELECT 1 locked FROM practice_submissions WHERE assignment_id=? LIMIT 1', [assignment.id])) {
+    return 'submission';
+  }
+  return '';
+}
+
+function rebuildAdaptiveAssignment(db, plan, studentId, practiceDate, options = {}) {
+  return db.transaction(() => {
+    const assignment = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [
+      studentId, practiceDate,
+    ]);
+    if (!assignment) {
+      const created = generateAssignment(db, plan, studentId, practiceDate, options);
+      return { assignment: created, created: true, rebuilt: false, reason: 'created' };
+    }
+    const lockReason = adaptiveRebuildLockReason(db, assignment, plan);
+    if (lockReason) {
+      return { assignment, created: false, rebuilt: false, reason: lockReason };
+    }
+    const setting = ensureStudentSetting(db, plan, studentId);
+    const selection = selectQuestions(db, plan, setting, studentId, practiceDate, options);
+    const estimated = selection.questions.reduce((sum, question) => (
+      sum + Number(question.estimated_seconds || 90)
+    ), 0);
+    db.run('DELETE FROM practice_assignment_items WHERE assignment_id=?', [assignment.id]);
+    db.run(`UPDATE practice_assignments SET status='ready',estimated_seconds=?,selection_meta=?
+      WHERE id=?`, [estimated, JSON.stringify(selection.meta), assignment.id]);
+    saveAdaptiveAssignmentItems(db, assignment.id, selection.questions);
+    return {
+      assignment: db.get('SELECT * FROM practice_assignments WHERE id=?', [assignment.id]),
+      created: false,
+      rebuilt: true,
+      reason: 'rebuilt',
+    };
+  });
+}
+
+function assignmentQuestionExclusions(db, assignmentId) {
+  const rows = db.all(`SELECT signature,snapshot_stem,snapshot_answer
+    FROM practice_assignment_items WHERE assignment_id=?`, [assignmentId]);
+  return {
+    signatures: rows.map((row) => String(row.signature)),
+    fingerprints: rows.map(questionFingerprint),
+  };
+}
+
+function frozenAbilityFromAssignments(assignments) {
+  for (const assignment of assignments) {
+    const meta = parseJson(assignment.selection_meta, {});
+    if (meta.policy_version !== 'adaptive-v2' || !meta.ability_source_assignment_id) continue;
+    const wrongCount = Number(meta.ability_wrong_count || 0);
+    return {
+      source_assignment_id: Number(meta.ability_source_assignment_id),
+      source_date: meta.ability_source_date,
+      wrong_count: wrongCount,
+      review_round: Number(meta.ability_review_round || 1),
+      enhanced: wrongCount < 2,
+    };
+  }
+  return null;
+}
+
+function freezeManifestAbility(manifest) {
+  if (!manifest || manifest.ability_wrong_count === null || manifest.ability_wrong_count === undefined) {
+    return null;
+  }
+  const wrongCount = Number(manifest.ability_wrong_count);
+  return {
+    source_assignment_id: manifest.ability_source_assignment_id
+      ? Number(manifest.ability_source_assignment_id)
+      : null,
+    source_date: manifest.ability_source_date || null,
+    wrong_count: wrongCount,
+    review_round: Number(manifest.ability_review_round || 1),
+    enhanced: wrongCount < 2,
+  };
+}
+
+function studentPdfFreezeState(db, plan, studentId) {
+  const manifest = db.get(`SELECT * FROM practice_pdf_freezes
+    WHERE plan_id=? AND student_id=?`, [plan.id, studentId]);
+  const rows = db.all(`SELECT practice_date,frozen_at FROM practice_assignments
+    WHERE plan_id=? AND student_id=? AND is_frozen=1 AND freeze_source='pdf_remaining'
+    ORDER BY practice_date,id`, [plan.id, studentId]);
+  const expectedDates = manifest
+    ? dateRange(String(manifest.from_date), String(manifest.through_date), 31)
+    : [];
+  const actualDates = new Set(rows.map((row) => String(row.practice_date)));
+  const missingDates = expectedDates.filter((date) => !actualDates.has(date));
+  const complete = Boolean(manifest && expectedDates.length > 0 && missingDates.length === 0);
+  return {
+    pdf_frozen: complete,
+    pdf_freeze_incomplete: Boolean(manifest || rows.length) && !complete,
+    frozen_assignment_count: rows.length,
+    expected_frozen_assignment_count: expectedDates.length,
+    missing_frozen_dates: missingDates,
+    frozen_from_date: manifest?.from_date || rows[0]?.practice_date || null,
+    frozen_to_date: manifest?.through_date || rows[rows.length - 1]?.practice_date || null,
+    frozen_at: manifest?.created_at || rows.reduce((latest, row) => (
+      String(row.frozen_at || '') > String(latest || '') ? row.frozen_at : latest
+    ), null),
+    freeze_ability: freezeManifestAbility(manifest),
+  };
+}
+
+function freezeStudentPracticeAssignments(db, plan, studentId, options = {}) {
+  return db.transaction(() => {
+    const requestedStart = String(options.fromDate || practiceDateAt());
+    let manifest = db.get(`SELECT * FROM practice_pdf_freezes
+      WHERE plan_id=? AND student_id=?`, [plan.id, studentId]);
+    if (!manifest) {
+      const legacyFrozen = db.all(`SELECT * FROM practice_assignments
+        WHERE plan_id=? AND student_id=? AND is_frozen=1 AND freeze_source='pdf_remaining'
+        ORDER BY practice_date,id`, [plan.id, studentId]);
+      const startDate = legacyFrozen[0]?.practice_date
+        || (requestedStart < plan.start_date ? plan.start_date : requestedStart);
+      const plannedDates = dateRange(startDate, plan.end_date, 31);
+      if (!plannedDates.length) {
+        return {
+          assignments: [], frozen_count: 0, dates: [], ability: null,
+          from_date: startDate, through_date: plan.end_date, already_frozen: true,
+        };
+      }
+      const initialAbility = legacyFrozen.length
+        ? frozenAbilityFromAssignments(legacyFrozen)
+        : resolvePracticeAbilitySnapshot(db, plan, studentId, datePlus(startDate, 1));
+      db.run(`INSERT OR IGNORE INTO practice_pdf_freezes
+        (plan_id,student_id,from_date,through_date,ability_source_assignment_id,
+         ability_source_date,ability_wrong_count,ability_review_round,frozen_by)
+        VALUES(?,?,?,?,?,?,?,?,?)`, [
+        plan.id,
+        studentId,
+        plannedDates[0],
+        plannedDates[plannedDates.length - 1],
+        initialAbility?.source_assignment_id || null,
+        initialAbility?.source_date || null,
+        initialAbility ? Number(initialAbility.wrong_count) : null,
+        initialAbility?.review_round || null,
+        options.actorId || null,
+      ]);
+      manifest = db.get(`SELECT * FROM practice_pdf_freezes
+        WHERE plan_id=? AND student_id=?`, [plan.id, studentId]);
+    }
+    const dates = dateRange(String(manifest.from_date), String(manifest.through_date), 31);
+    const ability = freezeManifestAbility(manifest);
+    const existingRows = db.all(`SELECT a.*,
+        EXISTS(SELECT 1 FROM practice_submissions ps WHERE ps.assignment_id=a.id) has_submission
+      FROM practice_assignments a
+      WHERE a.student_id=? AND a.practice_date>=? AND a.practice_date<=?
+      ORDER BY a.practice_date,a.id`, [studentId, dates[0], dates[dates.length - 1]]);
+    const existingByDate = new Map(existingRows.map((assignment) => [String(assignment.practice_date), assignment]));
+    const alreadyFrozen = dates.every((date) => {
+      const assignment = existingByDate.get(date);
+      return assignment && Number(assignment.is_frozen) && assignment.freeze_source === 'pdf_remaining';
+    });
+    if (alreadyFrozen) {
+      const assignments = dates.map((date) => existingByDate.get(date));
+      return {
+        assignments,
+        frozen_count: assignments.length,
+        dates,
+        ability,
+        from_date: dates[0],
+        through_date: dates[dates.length - 1],
+        already_frozen: true,
+      };
+    }
+
+    const excludedSignatures = new Set();
+    const excludedFingerprints = new Set();
+    const remember = (assignment) => {
+      const exclusions = assignmentQuestionExclusions(db, assignment.id);
+      exclusions.signatures.forEach((value) => excludedSignatures.add(value));
+      exclusions.fingerprints.forEach((value) => excludedFingerprints.add(value));
+    };
+    // 先保留所有不可重建快照，随后生成的日期主动避开这些题目。
+    existingRows.filter((assignment) => adaptiveRebuildLockReason(db, assignment, plan))
+      .forEach(remember);
+
+    const assignments = [];
+    for (const date of dates) {
+      let assignment = db.get('SELECT * FROM practice_assignments WHERE student_id=? AND practice_date=?', [
+        studentId, date,
+      ]);
+      const lockReason = adaptiveRebuildLockReason(db, assignment, plan);
+      if (lockReason === 'different_plan') {
+        throw new Error(`${date} 已由其他打卡计划占用，不能锁定当前计划`);
+      }
+      if (!assignment || !lockReason) {
+        const outcome = rebuildAdaptiveAssignment(db, plan, studentId, date, {
+          abilitySnapshot: ability,
+          excludedSignatures,
+          excludedFingerprints,
+        });
+        assignment = outcome.assignment;
+      }
+      if (Number(assignment.plan_id) !== Number(plan.id)) {
+        throw new Error(`${date} 已由其他打卡计划占用，不能锁定当前计划`);
+      }
+      if (!Number(assignment.is_frozen) || assignment.freeze_source !== 'pdf_remaining') {
+        db.run(`UPDATE practice_assignments SET is_frozen=1,frozen_at=CURRENT_TIMESTAMP,
+          freeze_source='pdf_remaining',frozen_by=? WHERE id=?`, [
+          options.actorId || null, assignment.id,
+        ]);
+        assignment = db.get('SELECT * FROM practice_assignments WHERE id=?', [assignment.id]);
+      }
+      assignments.push(assignment);
+      remember(assignment);
+    }
+    return {
+      assignments,
+      frozen_count: assignments.length,
+      dates,
+      ability,
+      from_date: dates[0],
+      through_date: dates[dates.length - 1],
+      already_frozen: false,
+    };
+  });
 }
 
 function preGenerateDate(db, practiceDate) {
@@ -303,8 +780,45 @@ function preGenerateDate(db, practiceDate) {
   return { plans: plans.length, curricula: curriculumStudents.size, generated, replaced };
 }
 
-function evaluateProgression(db, planId, studentId) {
-  return { advanced: false, reason: 'fixed_junior_calculation' };
+function evaluateProgression(db, planId, studentId, sourcePracticeDate = '') {
+  const plan = db.get('SELECT * FROM practice_plans WHERE id=?', [planId]);
+  if (!plan) return { advanced: false, reason: 'plan_missing' };
+  let sourceDate = String(sourcePracticeDate || '');
+  if (!sourceDate) {
+    sourceDate = resolvePracticeAbilitySnapshot(db, plan, studentId, '9999-12-31')?.source_date || '';
+  }
+  const nextDate = sourceDate ? datePlus(sourceDate, 1) : '';
+  if (!nextDate || nextDate < plan.start_date || nextDate > plan.end_date) {
+    return { advanced: false, reason: 'no_next_plan_date', next_date: nextDate || null };
+  }
+  const existing = db.get(`SELECT id,plan_id FROM practice_assignments
+    WHERE student_id=? AND practice_date=?`, [studentId, nextDate]);
+  if (!existing) {
+    return { advanced: false, reason: 'adaptive_next_day_pending', next_date: nextDate };
+  }
+  if (Number(existing.plan_id) !== Number(plan.id)) {
+    return { advanced: false, reason: 'adaptive_next_day_other_plan', next_date: nextDate };
+  }
+  let outcome;
+  try {
+    outcome = rebuildAdaptiveAssignment(db, plan, studentId, nextDate);
+  } catch (error) {
+    return {
+      advanced: false,
+      reason: 'adaptive_next_day_unavailable',
+      next_date: nextDate,
+      error: String(error?.message || error).slice(0, 160),
+    };
+  }
+  return {
+    advanced: false,
+    reason: outcome.reason === 'rebuilt' || outcome.reason === 'created'
+      ? 'adaptive_next_day_refreshed'
+      : `adaptive_next_day_${outcome.reason}`,
+    next_date: nextDate,
+    rebuilt: Boolean(outcome.rebuilt),
+    created: Boolean(outcome.created),
+  };
 }
 
 function practiceItemIds(db, assignmentId) {
@@ -670,18 +1184,26 @@ function drawPracticeQuestionColumn(doc, items, x, rowPitch, width = 243) {
 }
 
 function generateStudentPlanPdf(db, plan, student, response) {
-  const dates = dateRange(plan.start_date, plan.end_date, 31);
-  db.transaction(() => {
-    for (const date of dates) generateAssignment(db, plan, student.id, date);
-  });
-  const assignments = dates.map((date) => {
-    const assignment = db.get(`SELECT id FROM practice_assignments
-      WHERE plan_id=? AND student_id=? AND practice_date=?`, [plan.id, student.id, date]);
-    return {
-      date,
-      items: assignment ? loadPracticePdfItems(db, assignment.id) : [],
-    };
-  });
+  const freezeState = studentPdfFreezeState(db, plan, student.id);
+  if (!freezeState.pdf_frozen) {
+    throw new Error(freezeState.pdf_freeze_incomplete
+      ? '已锁定题单不完整，暂不能生成 PDF'
+      : '请先生成并锁定剩余日期题单');
+  }
+  const frozenAssignments = db.all(`SELECT id,practice_date FROM practice_assignments
+    WHERE plan_id=? AND student_id=? AND is_frozen=1 AND freeze_source='pdf_remaining'
+      AND practice_date>=? AND practice_date<=?
+    ORDER BY practice_date,id`, [
+    plan.id,
+    student.id,
+    freezeState.frozen_from_date,
+    freezeState.frozen_to_date,
+  ]);
+  const assignments = frozenAssignments.map((assignment) => ({
+    date: String(assignment.practice_date),
+    items: loadPracticePdfItems(db, assignment.id),
+  }));
+  const dates = assignments.map((assignment) => assignment.date);
   const topicLabel = normalizeTopicKeys(plan.topic_keys, plan.grade_code).map((key) => TOPICS[key].label).join(' · ');
   const dateRangeText = `${dates[0]}至${dates[dates.length - 1]}`;
   const title = `${student.name}定制计算打卡`;
@@ -757,7 +1279,11 @@ module.exports = {
   dateRange,
   normalizeTopicKeys,
   questionTypesForTopics,
+  resolvePracticeAbilitySnapshot,
   generateAssignment,
+  rebuildAdaptiveAssignment,
+  freezeStudentPracticeAssignments,
+  studentPdfFreezeState,
   preGenerateDate,
   resolveStudentPracticePlan,
   evaluateProgression,

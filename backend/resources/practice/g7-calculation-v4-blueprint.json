@@ -1,0 +1,37 @@
+{
+  "version": 4,
+  "batch_key": "panpan-g7-calculation-v4-20260806",
+  "title": "盼盼记录七年级计算专项自编题库 v4（3200题）",
+  "region": "广州",
+  "grade_code": "g7",
+  "retrieved_at": "2026-08-06",
+  "provenance": "self_authored",
+  "license": "project-original",
+  "copy_allowed": false,
+  "questions_per_type": 400,
+  "standard_seconds": 90,
+  "advanced_seconds": 125,
+  "authoring_rules": [
+    "仅覆盖七年级现有章节：有理数、绝对值、整式运算和一元一次方程，不引入竞赛或下一学期知识",
+    "每个题型固定 200 道标准题（difficulty=3）和 200 道加强题（difficulty=4）",
+    "加强题必须增加真实运算步骤、嵌套括号、数的形态或符号易错点，不以单纯放大数字冒充难度",
+    "标准题预计 90 秒，加强题预计 125 秒；12 道标准题为 1080 秒，6+6 为 1290 秒",
+    "题目由确定性参数工厂原创生成，答案使用最简整数、最简分数或规范整式",
+    "每题保留独立审计模型，使用 BigInt 有理数验算器逐题复核答案"
+  ],
+  "distribution": {
+    "有理数加减": { "standard": 200, "advanced": 200, "total": 400 },
+    "有理数乘除": { "standard": 200, "advanced": 200, "total": 400 },
+    "有理数混合": { "standard": 200, "advanced": 200, "total": 400 },
+    "绝对值计算": { "standard": 200, "advanced": 200, "total": 400 },
+    "有理数巧算": { "standard": 200, "advanced": 200, "total": 400 },
+    "整式化简": { "standard": 200, "advanced": 200, "total": 400 },
+    "整式求值": { "standard": 200, "advanced": 200, "total": 400 },
+    "一元一次方程": { "standard": 200, "advanced": 200, "total": 400 },
+    "total": 3200
+  },
+  "difficulty_distribution": {
+    "3": 1600,
+    "4": 1600
+  }
+}

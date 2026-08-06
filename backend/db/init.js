@@ -136,9 +136,8 @@ function retireLegacyJuniorPracticeQuestions() {
     WHERE grade_band='初中' AND (source_batch IS NULL OR source_batch='guangzhou-original-math-v1')`);
 }
 
-function seedJuniorCalculationQuestions() {
+function migrateLegacyJuniorCalculationQuestions() {
   const {
-    importQuestionDataset,
     migrateQuestionDatasetAnswers,
     migrateQuestionDatasetStems,
   } = require('../services/practice-question-import');
@@ -146,20 +145,26 @@ function seedJuniorCalculationQuestions() {
   const dataset = require('../resources/practice/junior-calculation-v3');
   migrateQuestionDatasetAnswers(getDB(), dataset, dataset.answerCorrectionSignatures);
   migrateQuestionDatasetStems(getDB(), dataset, normalizeLinearEquationDisplay);
+}
+
+function seedJuniorCalculationQuestions() {
+  const { importQuestionDataset } = require('../services/practice-question-import');
+  const dataset = require('../resources/practice/g7-calculation-v4');
   importQuestionDataset(getDB(), dataset, { dryRun: false });
 }
 
 function activateJuniorCalculationQuestions() {
-  _db.run(`UPDATE practice_questions SET is_active=CASE WHEN source_batch='panpan-junior-calculation-v3' THEN 1 ELSE 0 END
-    WHERE grade_band='初中' AND grade_code='g7'`);
+  const dataset = require('../resources/practice/g7-calculation-v4');
+  _db.run(`UPDATE practice_questions SET is_active=CASE WHEN source_batch=? THEN 1 ELSE 0 END
+    WHERE grade_band='初中' AND grade_code='g7'`, [dataset.metadata.batch_key]);
 }
 
 function seedG8PracticeQuestions() {
   const { importQuestionDataset } = require('../services/practice-question-import');
-  const dataset = require('../resources/practice/g8-calculation-v1');
+  const dataset = require('../resources/practice/g8-calculation-v2');
   importQuestionDataset(getDB(), dataset, { dryRun: false });
-  _db.run(`UPDATE practice_questions SET is_active=1
-    WHERE grade_code='g8' AND source_batch=?`, [dataset.metadata.batch_key]);
+  _db.run(`UPDATE practice_questions SET is_active=CASE WHEN source_batch=? THEN 1 ELSE 0 END
+    WHERE grade_band='初中' AND grade_code='g8'`, [dataset.metadata.batch_key]);
 }
 
 function ensureColumn(table, column, definition) {
@@ -376,6 +381,10 @@ function runMigrations() {
   ensureColumn('practice_attachments', 'round_no', 'INTEGER NOT NULL DEFAULT 1');
   ensureColumn('practice_assignments', 'assignment_source', "TEXT NOT NULL DEFAULT 'adaptive'");
   ensureColumn('practice_assignments', 'curriculum_day_id', 'INTEGER REFERENCES practice_student_curriculum_days(id)');
+  ensureColumn('practice_assignments', 'is_frozen', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('practice_assignments', 'frozen_at', 'DATETIME');
+  ensureColumn('practice_assignments', 'freeze_source', 'TEXT');
+  ensureColumn('practice_assignments', 'frozen_by', 'INTEGER REFERENCES users(id)');
   ensureColumn('practice_assignment_items', 'snapshot_payload', "TEXT NOT NULL DEFAULT '{}'");
   _db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_challenge_source_key ON weekly_challenge_questions(source_key)');
   _db.run('CREATE INDEX IF NOT EXISTS idx_classes_teacher_active ON classes(teacher_id, deleted_at)');
@@ -413,6 +422,8 @@ function runMigrations() {
     ON practice_student_curriculum_days(student_id, practice_date)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_assignment_curriculum_day
     ON practice_assignments(curriculum_day_id)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_practice_assignment_frozen
+    ON practice_assignments(plan_id,student_id,is_frozen,freeze_source,practice_date)`);
   _db.run(`CREATE INDEX IF NOT EXISTS idx_teacher_alert_unread
     ON teacher_alerts(teacher_id, read_at, created_at)`);
   _db.run(`UPDATE practice_plans SET topic_keys='["rational_numbers","absolute_value","algebra","linear_equation"]'
@@ -585,9 +596,10 @@ async function initDB() {
   seedPracticeQuestions();
   seedGuangzhouPracticeQuestions();
   retireLegacyJuniorPracticeQuestions();
+  migrateLegacyJuniorCalculationQuestions();
   seedJuniorCalculationQuestions();
   activateJuniorCalculationQuestions();
-  if (!skipStartupResourceSeed) seedG8PracticeQuestions();
+  seedG8PracticeQuestions();
   saveDB();
   const saveTimer = setInterval(saveDB, 30000);
   saveTimer.unref?.();

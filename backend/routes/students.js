@@ -126,7 +126,8 @@ router.post('/:id/transfer', auth, (req, res) => {
     JOIN practice_plans p ON p.id=a.plan_id
     LEFT JOIN practice_submissions ps ON ps.assignment_id=a.id
     WHERE a.student_id=? AND p.class_id=? AND a.practice_date>=?
-      AND a.claimed_at IS NULL AND ps.id IS NULL`, [student.id, student.class_id, today]);
+      AND a.claimed_at IS NULL AND ps.id IS NULL
+      AND COALESCE(a.is_frozen,0)=0`, [student.id, student.class_id, today]);
   db.transaction(() => {
     if (futureAssignments.length) {
       const placeholders = futureAssignments.map(() => '?').join(',');

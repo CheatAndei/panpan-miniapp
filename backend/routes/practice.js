@@ -3,13 +3,17 @@ const { getDB } = require('../db/init');
 const { authRequired: auth } = require('../middleware/auth');
 const { teacherOwnsClass, teacherOwnsStudent, parentBoundStudent } = require('../utils/scope');
 const {
-  MODULES, TOPICS, DEFAULT_TOPIC_KEYS, FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
+  MODULES, TOPICS, GRADE_TOPICS, DEFAULT_TOPIC_KEYS_BY_GRADE,
+  FIXED_GRADE, FIXED_MODULE, FIXED_DIFFICULTY,
   normalizeTopicKeys, questionTypesForTopics,
   practiceDateAt, oldestPendingPracticeCorrection,
   dateRange, generateAssignment, preGenerateDate, resolveStudentPracticePlan,
-  evaluateProgression, generatePlanPdf, generateStudentPlanPdf,
+  evaluateProgression, freezeStudentPracticeAssignments, studentPdfFreezeState,
+  resolvePracticeAbilitySnapshot,
+  generatePlanPdf, generateStudentPlanPdf,
   practiceFocusItemIds, practiceVisibleItemIds, serializePracticeSubmission,
 } = require('../services/practice');
+const { normalizeGradeCode } = require('../utils/content-dimensions');
 const {
   decodePrivateImage, storePrivateFile, removePrivateFile,
 } = require('../utils/private-files');
@@ -31,6 +35,12 @@ function validDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
   const parsed = new Date(`${text}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
+}
+
+function addPracticeDays(value, days) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function practiceItemRender(row) {
@@ -191,6 +201,9 @@ function validatePlan(db, teacherId, body) {
   const errors = [];
   const classId = Number(body.class_id);
   if (!teacherOwnsClass(db, teacherId, classId)) errors.push('无权操作该学习小组');
+  const scopedClass = db.get(`SELECT grade FROM classes
+    WHERE id=? AND teacher_id=? AND deleted_at IS NULL`, [classId, teacherId]);
+  const gradeCode = normalizeGradeCode(scopedClass?.grade);
   if (!validDate(body.start_date) || !validDate(body.end_date)) errors.push('日期格式应为 YYYY-MM-DD');
   const dates = dateRange(body.start_date, body.end_date, 32);
   if (!dates.length || dates.length > 31) errors.push('连续打卡应为 1-31 天');
@@ -199,24 +212,26 @@ function validatePlan(db, teacherId, body) {
   const difficulty = FIXED_DIFFICULTY;
   const targetMinutes = Number(body.target_minutes || 20);
   if (!Number.isFinite(targetMinutes) || targetMinutes < 18 || targetMinutes > 22) errors.push('目标时长应为 18-22 分钟');
+  const gradeTopics = GRADE_TOPICS[gradeCode] || GRADE_TOPICS.g7;
+  const defaultTopicKeys = DEFAULT_TOPIC_KEYS_BY_GRADE[gradeCode] || DEFAULT_TOPIC_KEYS_BY_GRADE.g7;
   const hasTopicSelection = Object.prototype.hasOwnProperty.call(body, 'topic_keys');
   const requestedTopics = hasTopicSelection
     ? (Array.isArray(body.topic_keys) ? body.topic_keys.map(String) : [])
-    : [...DEFAULT_TOPIC_KEYS];
-  const invalidTopics = requestedTopics.filter((key) => !TOPICS[key]);
+    : [...defaultTopicKeys];
+  const invalidTopics = requestedTopics.filter((key) => !gradeTopics[key]);
   if (hasTopicSelection && !requestedTopics.length) errors.push('请至少选择一个计算模块');
   if (invalidTopics.length) errors.push('包含无效的计算模块');
   const topicKeys = requestedTopics.length && !invalidTopics.length
-    ? [...new Set(requestedTopics)] : [...DEFAULT_TOPIC_KEYS];
-  const types = questionTypesForTopics(topicKeys);
+    ? [...new Set(requestedTopics)] : [...defaultTopicKeys];
+  const types = questionTypesForTopics(topicKeys, gradeCode);
   let count = 0;
   let guangzhouCount = 0;
   if (MODULES[grade]?.includes(module)) {
     const placeholders = types.map(() => '?').join(',');
     let sql = `SELECT template_key,estimated_seconds,source_region,question_type FROM practice_questions
-      WHERE grade_band=? AND subject='数学' AND module=? AND is_active=1
+      WHERE grade_band=? AND grade_code=? AND subject='数学' AND module=? AND is_active=1
       AND question_type IN (${placeholders})`;
-    const params = [grade, module, ...types];
+    const params = [grade, gradeCode, module, ...types];
     const candidates = db.all(sql, params);
     count = candidates.length;
     guangzhouCount = candidates.filter((item) => item.source_region === '广州').length;
@@ -231,7 +246,10 @@ function validatePlan(db, teacherId, body) {
     }
     if (availableSeconds < targetMinutes * 60 * 0.9) errors.push('初中计算题库不足 18 分钟，请联系管理员补充题库');
   }
-  return { errors, dates, classId, grade, module, difficulty, targetMinutes, types, topicKeys, questionCount: count, guangzhouQuestionCount: guangzhouCount };
+  return {
+    errors, dates, classId, grade, gradeCode, module, difficulty, targetMinutes, types, topicKeys,
+    questionCount: count, guangzhouQuestionCount: guangzhouCount,
+  };
 }
 
 router.get('/catalog', auth, teacherOnly, (req, res) => {
@@ -280,10 +298,11 @@ router.post('/plans', auth, teacherOnly, (req, res) => {
 
   const plan = db.transaction(() => {
     const created = db.run(`INSERT INTO practice_plans
-      (teacher_id,class_id,title,start_date,end_date,grade_band,subject,module,question_types,topic_keys,difficulty,target_seconds,auto_advance,status)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
+      (teacher_id,class_id,title,start_date,end_date,grade_band,grade_code,subject,module,question_types,topic_keys,difficulty,target_seconds,auto_advance,status)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [
       req.user.id, value.classId, String(body.title || '初中计算每日打卡').trim().slice(0, 60), body.start_date,
-      body.end_date, value.grade, '数学', value.module, JSON.stringify(value.types), JSON.stringify(value.topicKeys), value.difficulty,
+      body.end_date, value.grade, value.gradeCode, '数学', value.module,
+      JSON.stringify(value.types), JSON.stringify(value.topicKeys), value.difficulty,
       Math.round(value.targetMinutes * 60), 0, 'published',
     ]);
     for (const student of students) {
@@ -450,12 +469,105 @@ router.get('/plans/:id/settings', auth, teacherOnly, (req, res) => {
   if (!plan) return res.status(404).json({ error: '计划不存在' });
   const settings = db.all(`SELECT ps.*,s.name student_name FROM practice_student_settings ps
     JOIN students s ON s.id=ps.student_id
-    WHERE ps.plan_id=? AND s.deleted_at IS NULL ORDER BY s.name`, [plan.id]);
+    JOIN classes c ON c.id=s.class_id
+    WHERE ps.plan_id=? AND COALESCE(s.teacher_id,c.teacher_id)=?
+      AND s.deleted_at IS NULL AND c.deleted_at IS NULL
+      AND (s.class_id=? OR EXISTS(
+        SELECT 1 FROM practice_pdf_freezes pf WHERE pf.plan_id=ps.plan_id AND pf.student_id=ps.student_id
+      ))
+    ORDER BY s.name`, [plan.id, req.user.id, plan.class_id])
+    .map((setting) => ({
+      ...setting,
+      ...studentPdfFreezeState(db, plan, setting.student_id),
+      latest_first_round_ability: resolvePracticeAbilitySnapshot(
+        db,
+        plan,
+        setting.student_id,
+        addPracticeDays(practiceDateAt(), 1),
+      ),
+    }));
   res.json({
-    plan: { id: plan.id, grade_band: plan.grade_band, module: plan.module },
+    plan: {
+      id: plan.id,
+      grade_band: plan.grade_band,
+      grade_code: plan.grade_code,
+      module: plan.module,
+      start_date: plan.start_date,
+      end_date: plan.end_date,
+    },
     modules: MODULES[plan.grade_band] || [],
     settings,
   });
+});
+
+router.post('/plans/:planId/students/:studentId/freeze-remaining', auth, teacherOnly, (req, res, next) => {
+  const db = getDB();
+  const plan = db.get('SELECT * FROM practice_plans WHERE id=? AND teacher_id=?', [req.params.planId, req.user.id]);
+  if (!plan) return res.status(404).json({ error: '计划不存在' });
+  const studentId = Number(req.params.studentId);
+  if (!Number.isInteger(studentId) || studentId <= 0) return res.status(400).json({ error: '学生参数无效' });
+  const student = db.get(`SELECT s.id,s.name,s.class_id FROM students s
+    JOIN practice_student_settings pss ON pss.student_id=s.id AND pss.plan_id=?
+    JOIN classes c ON c.id=s.class_id
+    WHERE s.id=? AND COALESCE(s.teacher_id,c.teacher_id)=?
+      AND s.deleted_at IS NULL AND c.deleted_at IS NULL`, [plan.id, studentId, req.user.id]);
+  if (!student) return res.status(404).json({ error: '学生不在该计划中' });
+  const existingManifest = db.get(`SELECT id FROM practice_pdf_freezes
+    WHERE plan_id=? AND student_id=?`, [plan.id, studentId]);
+  if (!existingManifest && Number(student.class_id) !== Number(plan.class_id)) {
+    return res.status(409).json({ error: '学生已转出该计划班级，不能首次锁定题单' });
+  }
+
+  const requestedFromDate = String(req.body?.from_date || practiceDateAt());
+  if (!validDate(requestedFromDate)) return res.status(400).json({ error: 'PDF 起始日期无效' });
+  if (requestedFromDate > plan.end_date && !existingManifest) {
+    return res.status(409).json({ error: '计划已结束，没有可锁定的剩余日期' });
+  }
+  const fromDate = requestedFromDate < plan.start_date
+    ? plan.start_date
+    : requestedFromDate;
+  try {
+    const result = freezeStudentPracticeAssignments(db, plan, studentId, {
+      fromDate,
+      actorId: req.user.id,
+    });
+    const state = studentPdfFreezeState(db, plan, studentId);
+    const ability = state.freeze_ability || result?.ability || result?.ability_snapshot || null;
+    const frozenDates = db.all(`SELECT practice_date FROM practice_assignments
+      WHERE plan_id=? AND student_id=? AND is_frozen=1 AND freeze_source='pdf_remaining'
+      ORDER BY practice_date,id`, [plan.id, studentId]).map((row) => row.practice_date);
+    db.run(`INSERT INTO operation_logs(actor_id,action,entity_type,entity_id,detail)
+      VALUES(?,?,?,?,?)`, [
+      req.user.id,
+      'practice_remaining_pdf_frozen',
+      'practice_plan',
+      plan.id,
+      JSON.stringify({
+        student_id: studentId,
+        requested_from_date: requestedFromDate,
+        from_date: result?.from_date || state.frozen_from_date || fromDate,
+        through_date: result?.through_date || state.frozen_to_date || plan.end_date,
+        already_frozen: Boolean(result?.already_frozen),
+        frozen_assignment_count: state.frozen_assignment_count,
+        ability_wrong_count: ability ? Number(ability.wrong_count) : null,
+      }),
+    ]);
+    return res.json({
+      plan_id: Number(plan.id),
+      student_id: studentId,
+      student_name: student.name,
+      from_date: result?.from_date || state.frozen_from_date || fromDate,
+      already_frozen: Boolean(result?.already_frozen),
+      ...state,
+      freeze_ability: ability || null,
+      frozen_dates: frozenDates,
+    });
+  } catch (error) {
+    if (/题库|题单|冻结|日期|不可|不能|不足|占用|计划/u.test(String(error?.message || error))) {
+      return res.status(409).json({ error: error.message || '剩余日期暂时无法锁定' });
+    }
+    return next(error);
+  }
 });
 
 router.put('/plans/:planId/students/:studentId', auth, teacherOnly, (req, res) => {
@@ -788,7 +900,7 @@ router.get('/submissions', auth, teacherOnly, (req, res) => {
 
 router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
   const db = getDB();
-  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id
+  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.practice_date,a.id assignment_id
     FROM practice_submissions ps JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN students st ON st.id=a.student_id
     WHERE ps.id=? AND st.deleted_at IS NULL`, [req.params.id]);
@@ -884,7 +996,9 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
     return next(error);
   }
   if (!claimed) return res.status(409).json({ error: '批改轮次已更新，请刷新后重试' });
-  const progression = evaluateProgression(db, submission.plan_id, submission.student_id);
+  const progression = evaluateProgression(
+    db, submission.plan_id, submission.student_id, submission.practice_date,
+  );
   const state = serializePracticeSubmission(db, {
     ...submission,
     ...db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]),
@@ -905,7 +1019,7 @@ router.put('/submissions/:id/review', auth, teacherOnly, (req, res, next) => {
 
 router.put('/submissions/:id/review/revision', auth, teacherOnly, (req, res, next) => {
   const db = getDB();
-  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.id assignment_id
+  const submission = db.get(`SELECT ps.*,a.student_id,a.plan_id,a.practice_date,a.id assignment_id
     FROM practice_submissions ps
     JOIN practice_assignments a ON a.id=ps.assignment_id
     JOIN students st ON st.id=a.student_id
@@ -1063,6 +1177,10 @@ router.put('/submissions/:id/review/revision', auth, teacherOnly, (req, res, nex
   }
   if (outcome?.locked) return res.status(409).json({ error: outcome.error });
 
+  const progression = evaluateProgression(
+    db, submission.plan_id, submission.student_id, submission.practice_date,
+  );
+
   const state = serializePracticeSubmission(db, {
     ...submission,
     ...db.get('SELECT * FROM practice_submissions WHERE id=?', [submission.id]),
@@ -1087,6 +1205,7 @@ router.put('/submissions/:id/review/revision', auth, teacherOnly, (req, res, nex
     review_revision: Number(state.review_revision || outcome.nextRevision || 0),
     can_revise: !updatedLockReason,
     revision_lock_reason: updatedLockReason || null,
+    progression,
   });
 });
 
@@ -1098,8 +1217,14 @@ router.get('/plans/:id/pdf', auth, teacherOnly, (req, res) => {
   if (Number.isInteger(studentId) && studentId > 0) {
     const student = db.get(`SELECT s.id,s.name FROM students s
       JOIN practice_student_settings pss ON pss.student_id=s.id AND pss.plan_id=?
-      WHERE s.id=? AND s.deleted_at IS NULL`, [plan.id, studentId]);
+      JOIN classes c ON c.id=s.class_id
+      WHERE s.id=? AND COALESCE(s.teacher_id,c.teacher_id)=?
+        AND s.deleted_at IS NULL AND c.deleted_at IS NULL`, [plan.id, studentId, req.user.id]);
     if (!student) return res.status(404).json({ error: '学生不在该计划中' });
+    const freezeState = studentPdfFreezeState(db, plan, studentId);
+    if (!freezeState.pdf_frozen) {
+      return res.status(409).json({ error: '请先生成并锁定剩余日期 PDF' });
+    }
     try { generateStudentPlanPdf(db, plan, student, res); }
     catch (error) {
       if (!res.headersSent) res.status(500).json({ error: 'PDF 生成失败' });

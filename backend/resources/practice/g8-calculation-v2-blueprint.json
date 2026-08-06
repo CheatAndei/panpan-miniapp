@@ -1,0 +1,31 @@
+{
+  "batch_key": "panpan-g8-calculation-v2-20260806",
+  "version": "2.0.0",
+  "source_title": "潘潘数学八年级计算原创分层题库 v2",
+  "source_url": "https://xpytt.com/panpan/g8-calculation-v2",
+  "source_region": "通用",
+  "source_license": "project-original",
+  "source_retrieved_at": "2026-08-06",
+  "copy_allowed": false,
+  "provenance": "self_authored",
+  "grade_code": "g8",
+  "module": "综合计算",
+  "questions_per_topic": 400,
+  "standard_per_topic": 200,
+  "enhanced_per_topic": 200,
+  "difficulty_distribution": {
+    "3": 800,
+    "4": 800
+  },
+  "timing_seconds": {
+    "difficulty_3": [85, 95],
+    "difficulty_4": [120, 130]
+  },
+  "enhancement_policy": "加强题保持本章知识边界，以嵌套结构、多步运算和规则综合提高难度，不以单纯放大参数代替结构升级。",
+  "topics": [
+    "幂的运算",
+    "整式乘法",
+    "乘法公式",
+    "因式分解"
+  ]
+}

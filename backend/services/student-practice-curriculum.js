@@ -382,6 +382,7 @@ function sameStringList(left, right) {
 
 function assignmentIsLocked(db, assignment) {
   if (!assignment) return false;
+  if (Number(assignment.is_frozen)) return true;
   if (assignment.claimed_at) return true;
   if (String(assignment.status) !== 'ready') return true;
   return Boolean(db.get('SELECT 1 locked FROM practice_submissions WHERE assignment_id=? LIMIT 1', [assignment.id]));

@@ -7,7 +7,10 @@ const dbPath = path.resolve(__dirname, '..', '..', '..', '..', 'z-rubbish', `pra
 process.env.DATABASE_PATH = dbPath;
 
 const { initDB, getDB } = require('../db/init');
-const dataset = require('../resources/practice/junior-calculation-v3');
+const g7Dataset = require('../resources/practice/g7-calculation-v4');
+const g8Dataset = require('../resources/practice/g8-calculation-v2');
+const legacyG7Dataset = require('../resources/practice/junior-calculation-v3');
+const legacyG8Dataset = require('../resources/practice/g8-calculation-v1');
 const {
   auditCalculationQuestionBanks,
   distributiveLinearEquationAnswerMatches,
@@ -29,49 +32,57 @@ test.after(() => {
   try { fs.unlinkSync(dbPath); } catch {}
 });
 
-test('固定初中计算题库有 960 道、题干唯一且答案可审计', () => {
-  assert.equal(dataset.questions.length, 960);
-  assert.equal(new Set(dataset.questions.map((item) => item.signature)).size, 960);
-  assert.equal(new Set(dataset.questions.map((item) => item.stem)).size, 960);
-  assert.deepEqual([...new Set(dataset.questions.map((item) => item.module))], ['综合计算']);
-  assert.equal(new Set(dataset.questions.map((item) => item.question_type)).size, 8);
-  const typeCounts = dataset.questions.reduce((counts, item) => {
-    counts[item.question_type] = (counts[item.question_type] || 0) + 1;
-    return counts;
-  }, {});
-  assert.deepEqual(typeCounts, {
-    '有理数加减': 120, '有理数乘除': 120, '有理数混合': 150, '绝对值计算': 90,
-    '有理数巧算': 80, '整式化简': 150, '整式求值': 90, '一元一次方程': 160,
-  });
-  const difficultyCounts = dataset.questions.reduce((counts, item) => {
-    counts[item.difficulty] = (counts[item.difficulty] || 0) + 1;
-    return counts;
-  }, {});
-  assert.deepEqual(difficultyCounts, { 3: 960 });
-  assert.ok(dataset.questions.every((item) => item.answer.trim()));
-  assert.ok(dataset.questions.every((item) => !/购买|票价|路程|数轴|如图/.test(item.stem)), '只允许纯计算题');
-  assert.deepEqual(validateQuestionDataset(dataset).errors, []);
+function ensureLegacyG7Dataset(db) {
+  importQuestionDataset(db, legacyG7Dataset, { dryRun: false });
+  db.run('UPDATE practice_questions SET is_active=0 WHERE source_batch=?', [legacyG7Dataset.metadata.batch_key]);
+}
 
+test('两个年级只激活新版分层题库，题干与签名全局唯一', () => {
+  const specs = [
+    { dataset: g7Dataset, gradeCode: 'g7', total: 3200, typeCount: 8, tierCount: 1600, perType: 400 },
+    { dataset: g8Dataset, gradeCode: 'g8', total: 1600, typeCount: 4, tierCount: 800, perType: 400 },
+  ];
   const db = getDB();
-  const count = db.get(`SELECT COUNT(*) count FROM practice_questions
-    WHERE source_batch='panpan-junior-calculation-v3'`);
-  assert.equal(Number(count.count), 960);
-  const audit = db.get(`SELECT * FROM practice_question_imports
-    WHERE batch_key='panpan-junior-calculation-v3'`);
-  assert.equal(audit.source_region, '广州');
-  assert.equal(Number(audit.copy_allowed), 0);
-  assert.equal(audit.provenance, 'self_authored');
-  assert.match(audit.source_snapshot_sha256, /^[a-f0-9]{64}$/);
-  const activeLegacy = db.get(`SELECT COUNT(*) count FROM practice_questions
-    WHERE grade_band='初中' AND is_active=1 AND (source_batch IS NULL OR source_batch<>?)`, [dataset.metadata.batch_key]);
-  assert.equal(Number(activeLegacy.count), 0);
-  const active = db.get(`SELECT COUNT(*) count FROM practice_questions
-    WHERE grade_band='初中' AND is_active=1 AND source_batch=?`, [dataset.metadata.batch_key]);
-  assert.equal(Number(active.count), 960);
+  for (const spec of specs) {
+    const { dataset } = spec;
+    assert.equal(dataset.questions.length, spec.total);
+    assert.equal(new Set(dataset.questions.map((item) => item.signature)).size, spec.total);
+    assert.equal(new Set(dataset.questions.map((item) => item.stem)).size, spec.total);
+    assert.deepEqual([...new Set(dataset.questions.map((item) => item.module))], ['综合计算']);
+    assert.equal(new Set(dataset.questions.map((item) => item.question_type)).size, spec.typeCount);
+    const difficultyCounts = dataset.questions.reduce((counts, item) => {
+      counts[item.difficulty] = (counts[item.difficulty] || 0) + 1;
+      return counts;
+    }, {});
+    assert.deepEqual(difficultyCounts, { 3: spec.tierCount, 4: spec.tierCount });
+    const typeCounts = dataset.questions.reduce((counts, item) => {
+      counts[item.question_type] = (counts[item.question_type] || 0) + 1;
+      return counts;
+    }, {});
+    assert.ok(Object.values(typeCounts).every((count) => count === spec.perType));
+    assert.ok(dataset.questions.every((item) => item.answer.trim()));
+    assert.deepEqual(validateQuestionDataset(dataset).errors, []);
+
+    const imported = db.get('SELECT * FROM practice_question_imports WHERE batch_key=?', [dataset.metadata.batch_key]);
+    assert.equal(Number(imported.imported_count), spec.total);
+    assert.equal(Number(imported.copy_allowed), 0);
+    assert.equal(imported.provenance, 'self_authored');
+    assert.match(imported.source_snapshot_sha256, /^[a-f0-9]{64}$/);
+    const active = db.get(`SELECT COUNT(*) count FROM practice_questions
+      WHERE grade_band='初中' AND grade_code=? AND is_active=1 AND source_batch=?`, [
+      spec.gradeCode, dataset.metadata.batch_key,
+    ]);
+    assert.equal(Number(active.count), spec.total);
+    const activeOther = db.get(`SELECT COUNT(*) count FROM practice_questions
+      WHERE grade_band='初中' AND grade_code=? AND is_active=1 AND source_batch<>?`, [
+      spec.gradeCode, dataset.metadata.batch_key,
+    ]);
+    assert.equal(Number(activeOther.count), 0);
+  }
 });
 
-test('分配律一元一次方程的标准答案代回原式全部成立', () => {
-  const affected = dataset.questions.filter((item) => {
+test('退役 v3 分配律方程的标准答案代回原式仍全部成立', () => {
+  const affected = legacyG7Dataset.questions.filter((item) => {
     const serial = Number(item.signature.replace('junior-calc-v3-', ''));
     return serial >= 802 && serial <= 958 && (serial - 802) % 4 === 0;
   });
@@ -98,7 +109,8 @@ test('分配律一元一次方程的标准答案代回原式全部成立', () =>
 
 test('答案修正迁移只更新白名单题目及完全匹配的历史快照', () => {
   const db = getDB();
-  const target = dataset.questions.find((item) => item.signature === 'junior-calc-v3-0814');
+  ensureLegacyG7Dataset(db);
+  const target = legacyG7Dataset.questions.find((item) => item.signature === 'junior-calc-v3-0814');
   const bank = db.get('SELECT * FROM practice_questions WHERE signature=?', [target.signature]);
   const stale = { ...target, answer: 'x=12' };
   db.run('UPDATE practice_questions SET answer=?,content_sha256=? WHERE id=?', [
@@ -128,27 +140,38 @@ test('答案修正迁移只更新白名单题目及完全匹配的历史快照',
     target.difficulty, target.estimated_seconds, target.signature, target.template_key,
   ]).lastInsertRowid;
 
-  const result = migrateQuestionDatasetAnswers(db, dataset, [target.signature]);
+  const result = migrateQuestionDatasetAnswers(db, legacyG7Dataset, [target.signature]);
   assert.deepEqual(result, { updated: 1, snapshot_updated: 1, total: 1 });
   assert.equal(db.get('SELECT answer FROM practice_questions WHERE id=?', [bank.id]).answer, 'x=26');
   assert.equal(db.get('SELECT snapshot_answer FROM practice_assignment_items WHERE id=?', [itemId]).snapshot_answer, 'x=26');
 });
 
-test('全部 2720 道生成题不存在正负号连写', () => {
+test('全部 6560 道生成题包含两年级新库且全量审计通过', () => {
   const audit = auditCalculationQuestionBanks();
-  assert.equal(audit.total, 2720);
+  assert.equal(audit.total, 6560);
+  assert.deepEqual(audit.banks.map((bank) => ({
+    grade_code: bank.grade_code,
+    total: bank.total,
+    unique_stems: bank.unique_stems,
+    unique_signatures: bank.unique_signatures,
+    by_difficulty: bank.by_difficulty,
+  })), [
+    { grade_code: 'g7', total: 3200, unique_stems: 3200, unique_signatures: 3200, by_difficulty: { 3: 1600, 4: 1600 } },
+    { grade_code: 'g8', total: 1600, unique_stems: 1600, unique_signatures: 1600, by_difficulty: { 3: 800, 4: 800 } },
+  ]);
   assert.deepEqual(audit.failures, []);
 });
 
 test('题干格式迁移保留原数据库题目 ID 和签名', () => {
   const db = getDB();
-  const next = dataset.questions.find((item) => item.signature === 'junior-calc-v3-0804');
+  ensureLegacyG7Dataset(db);
+  const next = legacyG7Dataset.questions.find((item) => item.signature === 'junior-calc-v3-0804');
   const legacyStem = next.stem.replace(/ − /gu, '+-').replace(/ \+ /gu, '+').replace(/ = /gu, '=').replace(/−/gu, '-');
   const original = db.get('SELECT * FROM practice_questions WHERE signature=?', [next.signature]);
   db.run('UPDATE practice_questions SET stem=?,content_sha256=? WHERE id=?', [
     legacyStem, questionContentDigest({ ...next, stem: legacyStem }), original.id,
   ]);
-  const migrated = migrateQuestionDatasetStems(db, dataset, normalizeLinearEquationDisplay);
+  const migrated = migrateQuestionDatasetStems(db, legacyG7Dataset, normalizeLinearEquationDisplay);
   const updated = db.get('SELECT * FROM practice_questions WHERE signature=?', [next.signature]);
   assert.equal(migrated.updated, 1);
   assert.equal(updated.id, original.id);
@@ -156,21 +179,46 @@ test('题干格式迁移保留原数据库题目 ID 和签名', () => {
   assert.equal(updated.stem, next.stem);
 });
 
-test('题库导入默认可预检且重复提交幂等', () => {
+test('两个新版题库导入默认可预检且重复提交幂等', () => {
   const db = getDB();
-  const dryRun = importQuestionDataset(db, dataset);
-  assert.equal(dryRun.dry_run, true);
-  assert.equal(dryRun.existing, 960);
-  assert.equal(dryRun.inserted, 0);
+  for (const dataset of [g7Dataset, g8Dataset]) {
+    const dryRun = importQuestionDataset(db, dataset);
+    assert.equal(dryRun.dry_run, true);
+    assert.equal(dryRun.existing, dataset.questions.length);
+    assert.equal(dryRun.inserted, 0);
 
-  const repeated = importQuestionDataset(db, dataset, { dryRun: false });
-  assert.equal(repeated.inserted, 0);
-  assert.equal(Number(db.get(`SELECT COUNT(*) count FROM practice_question_imports
-    WHERE batch_key=?`, [dataset.metadata.batch_key]).count), 1);
+    const repeated = importQuestionDataset(db, dataset, { dryRun: false });
+    assert.equal(repeated.inserted, 0);
+    assert.equal(Number(db.get(`SELECT COUNT(*) count FROM practice_question_imports
+      WHERE batch_key=?`, [dataset.metadata.batch_key]).count), 1);
+  }
+});
+
+test('重启后自动退役 G7 v3 与 G8 v1，且新库不重复导入', async () => {
+  const db = getDB();
+  ensureLegacyG7Dataset(db);
+  importQuestionDataset(db, legacyG8Dataset, { dryRun: false });
+  db.run('UPDATE practice_questions SET is_active=1 WHERE source_batch IN (?,?)', [
+    legacyG7Dataset.metadata.batch_key,
+    legacyG8Dataset.metadata.batch_key,
+  ]);
+
+  await initDB();
+  const restarted = getDB();
+  for (const legacy of [legacyG7Dataset, legacyG8Dataset]) {
+    assert.equal(Number(restarted.get(`SELECT COUNT(*) count FROM practice_questions
+      WHERE source_batch=? AND is_active=1`, [legacy.metadata.batch_key]).count), 0);
+  }
+  for (const current of [g7Dataset, g8Dataset]) {
+    assert.equal(Number(restarted.get(`SELECT COUNT(*) count FROM practice_questions
+      WHERE source_batch=? AND is_active=1`, [current.metadata.batch_key]).count), current.questions.length);
+    assert.equal(Number(restarted.get(`SELECT COUNT(*) count FROM practice_question_imports
+      WHERE batch_key=?`, [current.metadata.batch_key]).count), 1);
+  }
 });
 
 test('公开但未授权的外部原题不能进入题库', () => {
-  const unsafe = JSON.parse(JSON.stringify(dataset));
+  const unsafe = JSON.parse(JSON.stringify(g7Dataset));
   unsafe.metadata.batch_key = 'unsafe-public-page-copy';
   unsafe.metadata.provenance = 'licensed';
   unsafe.metadata.source_license = 'project-original';
