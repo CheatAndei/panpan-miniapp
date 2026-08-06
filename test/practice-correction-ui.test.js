@@ -42,6 +42,12 @@ test('手机批改台使用上下布局、横向滑选题卡并用单图原生�
   assert.doesNotMatch(review, /@tap="previewPhoto/);
 });
 
+test('打卡批改切换学生后重建标准答案横滑区并回到最左题卡', () => {
+  assert.match(review, /:key="`answer-scroll-\$\{activeSubmission\.id\}`"/);
+  assert.match(review, /async function goSubmission\(delta\)[\s\S]*?activeSubmissionIndex\.value = target/u);
+  assert.match(review, /async function nextAfterSave\(\)[\s\S]*?activeSubmissionIndex\.value = Math\.min/u);
+});
+
 test('批改台每次安全 onShow 都刷新队列，同时保护未保存批改', () => {
   assert.match(review, /const hasShown = ref\(false\)/);
   assert.match(review, /onShow\(\(\) => \{[\s\S]*?const firstShow = !hasShown\.value[\s\S]*?hasUnsavedChanges[\s\S]*?loadQueue\(\)/u);

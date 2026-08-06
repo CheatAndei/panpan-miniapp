@@ -137,6 +137,19 @@ test('攻坚战不再用整题截图，图片仅用于学生作答与海报预�
   assert.match(page, /class="poster-preview"/);
 });
 
+test('攻坚战批阅仅默认展开第一位学生的大图，其他学生按需单独展开', () => {
+  const review = read('pages/weekend-mastery-review/index.vue');
+
+  assert.match(review, /photoExpanded:index===0/);
+  assert.match(review, /v-if="!item\.photoExpanded"/);
+  assert.match(review, /async function expandPhotos\(item\)/);
+  assert.match(review, /entry\.photoExpanded=entry===item/);
+  assert.match(review, /class="student-photo-main"/);
+  assert.match(review, /class="student-photo-thumbs"/);
+  assert.match(review, /\.student-photo-main\{[^}]*height:620rpx/);
+  assert.doesNotMatch(review, /<scroll-view scroll-x class="photos">/);
+});
+
 test('通关海报使用学生完整姓名并保持独立训练营文案', () => {
   const page = read('pages/weekend-mastery/index.vue');
   const poster = read('utils/weekend-mastery-poster.js');

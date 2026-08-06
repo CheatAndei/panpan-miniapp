@@ -70,3 +70,16 @@ test('教学工具入口统一使用压轴挑战名称', () => {
   assert.match(tools, /压轴挑战批阅/);
   assert.doesNotMatch(tools, /每周挑战/);
 });
+
+test('压轴批阅仅默认展开第一位学生的大图，其他学生按需单独展开', () => {
+  const review = read('pages/weekly-review/index.vue');
+
+  assert.match(review, /photoExpanded:index===0/);
+  assert.match(review, /v-if="!item\.photoExpanded"/);
+  assert.match(review, /async function expandPhotos\(item\)/);
+  assert.match(review, /entry\.photoExpanded=entry===item/);
+  assert.match(review, /class="student-photo-main"/);
+  assert.match(review, /class="student-photo-thumbs"/);
+  assert.match(review, /\.student-photo-main\{[^}]*height:620rpx/);
+  assert.doesNotMatch(review, /v-else scroll-x class="photos"/);
+});

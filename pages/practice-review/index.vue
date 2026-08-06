@@ -200,6 +200,7 @@
               <text class="wrong-count">错 {{ wrongCount }} 题</text>
             </view>
             <scroll-view
+              :key="`answer-scroll-${activeSubmission.id}`"
               class="answer-scroll"
               scroll-x
               :show-scrollbar="false"

@@ -13,10 +13,24 @@
       <view class="review-head"><view class="review-student"><view class="review-icon"><pp-icon name="report" :size="28" /></view><view><text class="student">{{ item.student_name }}</text><text class="meta">{{ item.class_name }} · {{ typeLabel(item.question_type) }} · 第 {{ item.submission.attempt_no }} 次提交</text></view></view><text :class="['state',item.submission.status]">{{ item.submission.status==='reviewed'?'已批阅':'待批阅' }}</text></view>
       <text class="title">{{ item.title }}</text><text class="source">{{ item.source_label }}</text>
       <view class="asset-actions"><button @tap="showAsset(item.question_url,'question')"><pp-icon name="book" :size="25" />查看题目</button><button @tap="showAnswer(item)"><pp-icon name="check" :size="25" />查看标准答案</button></view>
-      <button v-if="!item.photosLoaded" class="photo-loader" :disabled="item.photoLoading" @tap="loadPhotos(item)">
-        <pp-icon name="document" :size="25" />{{ item.photoLoading ? '正在读取照片…' : `查看学生照片（${item.submission.attachments?.length || 0} 张）` }}
+      <button v-if="!item.photoExpanded" class="photo-loader" @tap="expandPhotos(item)">
+        <pp-icon name="document" :size="25" />展开学生照片（{{ item.submission.attachments?.length || 0 }} 张）
       </button>
-      <scroll-view v-else scroll-x class="photos"><view class="photo-row"><image v-for="(photo,index) in item.localPhotos" :key="photo" :src="photo" mode="aspectFill" @tap="preview(item.localPhotos,index)" /></view></scroll-view>
+      <view v-else class="student-photo-panel">
+        <view class="student-photo-head"><text>学生作答图片</text><text>{{ item.localPhotos.length }} / {{ item.submission.attachments?.length || 0 }} 张</text></view>
+        <view v-if="item.photoLoading" class="student-photo-state">正在读取学生照片…</view>
+        <template v-else-if="item.localPhotos.length">
+          <image class="student-photo-main" :src="item.localPhotos[item.activePhotoIndex || 0]" mode="aspectFit" @tap="preview(item.localPhotos,item.activePhotoIndex || 0)" />
+          <scroll-view v-if="item.localPhotos.length > 1" scroll-x class="student-photo-thumbs">
+            <view class="student-photo-thumb-row">
+              <button v-for="(photo,index) in item.localPhotos" :key="photo" :class="['student-photo-thumb',{active:(item.activePhotoIndex || 0)===index}]" @tap="selectStudentPhoto(item,index)">
+                <image :src="photo" mode="aspectFill" /><text>{{ index + 1 }}</text>
+              </button>
+            </view>
+          </scroll-view>
+        </template>
+        <button v-else class="student-photo-retry" :disabled="item.photoLoading" @tap="loadPhotos(item)">照片未读取成功，点击重试</button>
+      </view>
       <view v-if="item.submission.student_note" class="student-note"><text class="student-note-label">学生说明</text><text class="student-note-copy">{{ item.submission.student_note }}</text></view>
       <template v-if="item.submission.status!=='reviewed'">
         <textarea v-model="item.note" class="note" maxlength="500" placeholder="给家长的批阅说明（可选）" />
@@ -50,8 +64,10 @@ const tabs=[{value:'submitted',label:'待批阅'},{value:'reviewed',label:'最�
 const visibleItems=computed(()=>status.value==='reviewed'&&!reviewedExpanded.value?items.value.slice(0,3):items.value);
 onShow(load);onPullDownRefresh(async()=>{try{await load();}finally{uni.stopPullDownRefresh();}});
 function selectStatus(value){if(status.value===value)return;status.value=value;reviewedExpanded.value=false;items.value=[];error.value='';load();}
-async function load(){if(loading.value)return;loading.value=true;error.value='';try{const limit=status.value==='reviewed'?10:30;const data=await api.get(`/weekly-challenge/v2/teacher/submissions?status=${status.value}&limit=${limit}`);items.value=(data.submissions||[]).map(item=>({...item,note:item.submission?.teacher_note||'',localPhotos:[],photosLoaded:false,photoLoading:false}));}catch(e){error.value=e?.error||'加载失败';}finally{loading.value=false;}}
+async function load(){if(loading.value)return;loading.value=true;error.value='';try{const limit=status.value==='reviewed'?10:30;const data=await api.get(`/weekly-challenge/v2/teacher/submissions?status=${status.value}&limit=${limit}`);items.value=(data.submissions||[]).map((item,index)=>({...item,note:item.submission?.teacher_note||'',localPhotos:[],photosLoaded:false,photoLoading:false,photoExpanded:index===0,activePhotoIndex:0}));if(items.value[0])await loadPhotos(items.value[0]);}catch(e){error.value=e?.error||'加载失败';}finally{loading.value=false;}}
 async function loadPhotos(item){if(item.photoLoading||item.photosLoaded)return;item.photoLoading=true;try{const attachments=item.submission?.attachments||[];const list=await Promise.all(attachments.map(photo=>api.downloadPrivate(photo.url).catch(()=>'')));item.localPhotos=list.filter(Boolean);item.photosLoaded=attachments.length===0||item.localPhotos.length>0;if(attachments.length&&!item.localPhotos.length)uni.showToast({title:'照片读取失败，请稍后重试',icon:'none'});}finally{item.photoLoading=false;}}
+async function expandPhotos(item){items.value.forEach(entry=>{entry.photoExpanded=entry===item;});await loadPhotos(item);}
+function selectStudentPhoto(item,index){item.activePhotoIndex=Math.max(0,Math.min(item.localPhotos.length-1,Number(index||0)));}
 function typeLabel(type){return type==='fill'?'填空题':type==='subjective'?'解答题':'历史题';}
 async function showAsset(url){try{const local=await api.downloadPrivate(url);uni.previewImage({urls:[local]});}catch(e){uni.showToast({title:e?.error||'图片读取失败',icon:'none'});}}
 async function showAnswer(item){if(item.answer_url)return showAsset(item.answer_url);answerPreview.value=item;}
@@ -376,4 +392,6 @@ function skipQuestion(item){uni.showModal({title:'跳过异常题',content:'该�
   background: var(--surface-muted);
   color: var(--ink);
 }
+/* First submission opens as a large preview; the remaining submissions stay folded. */
+.student-photo-panel{margin-top:18rpx;padding:16rpx;border:1rpx solid var(--border);border-radius:14rpx;background:#F7FCFE}.student-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12rpx;margin-bottom:12rpx;color:var(--text-secondary);font-size:20rpx}.student-photo-head text:first-child{color:var(--ink);font-size:23rpx;font-weight:760}.student-photo-main{display:block;width:100%;height:620rpx;border:1rpx solid var(--border);border-radius:12rpx;background:#FFFFFF}.student-photo-state{height:220rpx;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:21rpx}.student-photo-thumbs{margin-top:12rpx;white-space:nowrap}.student-photo-thumb-row{display:flex;gap:10rpx}.student-photo-thumb{position:relative;width:112rpx;height:112rpx;flex:none;margin:0;padding:0;border:2rpx solid transparent;border-radius:10rpx;background:#FFFFFF}.student-photo-thumb.active{border-color:var(--primary);box-shadow:3rpx 3rpx 0 var(--brand-sky)}.student-photo-thumb image{display:block;width:100%;height:100%;border-radius:8rpx}.student-photo-thumb text{position:absolute;right:4rpx;bottom:4rpx;min-width:28rpx;height:28rpx;line-height:28rpx;border-radius:6rpx;background:#050505;color:#FFFFFF;font-size:16rpx}.student-photo-retry{min-height:78rpx;margin:0;background:#FFF0F6;color:#B53A52;font-size:21rpx}
 </style>
