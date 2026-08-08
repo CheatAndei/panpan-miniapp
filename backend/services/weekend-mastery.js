@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 
 const DEFAULT_MANIFEST = require('../resources/weekend-mastery/g7-two-weeks-v1');
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
+const BROADCAST_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const GATE_WEEKDAYS = new Set([5, 6, 0]);
 const RENDER_SECTION_TYPES = new Set(['paragraph', 'formula', 'list', 'table', 'number_line', 'note']);
 
@@ -94,6 +95,10 @@ function weekendCycleAt(now = currentTime()) {
 
 function cleanText(value, max = 1000) {
   return String(value ?? '').trim().slice(0, max);
+}
+
+function sqlUtcTime(value) {
+  return new Date(value).toISOString().slice(0, 19).replace('T', ' ');
 }
 
 function validStructuredDocument(value) {
@@ -551,6 +556,9 @@ function teacherQueue(db, { teacherId, status = 'submitted', limit = 100 }) {
     : ' AND sub.status=?';
   const params = normalizedStatus === 'all' ? [teacherId] : [teacherId, normalizedStatus];
   const where = `s.deleted_at IS NULL AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?${clause}`;
+  const orderBy = normalizedStatus === 'all'
+    ? 'COALESCE(sub.reviewed_at,sub.submitted_at,sub.created_at) DESC,sub.id DESC'
+    : "CASE sub.status WHEN 'submitted' THEN 0 ELSE 1 END,COALESCE(sub.submitted_at,sub.created_at),sub.id";
   const count = Number(db.get(`SELECT COUNT(*) count FROM weekend_mastery_submissions sub
     JOIN weekend_mastery_assignments a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
@@ -559,7 +567,7 @@ function teacherQueue(db, { teacherId, status = 'submitted', limit = 100 }) {
     JOIN weekend_mastery_assignments a ON a.id=sub.assignment_id
     JOIN students s ON s.id=a.student_id LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
     WHERE ${where}
-    ORDER BY CASE sub.status WHEN 'submitted' THEN 0 ELSE 1 END,COALESCE(sub.submitted_at,sub.created_at),sub.id LIMIT ?`, [
+    ORDER BY ${orderBy} LIMIT ?`, [
     ...params, safeLimit,
   ]);
   const submissions = rows.map(({ id }) => {
@@ -612,6 +620,52 @@ function reviewSubmission(db, { teacherId, submissionId, isCorrect, teacherNote 
   });
 }
 
+function masteryBroadcasts(db, { userId, limit = 10, now = currentTime() }) {
+  const safeUserId = Number(userId);
+  const safeLimit = Math.max(1, Math.min(20, Number.parseInt(limit, 10) || 10));
+  if (!Number.isInteger(safeUserId) || safeUserId < 1) return [];
+  const cutoff = sqlUtcTime(new Date(now).getTime() - BROADCAST_LIFETIME_MS);
+  return db.all(`SELECT a.id assignment_id,a.passed_at,a.student_id,s.name student_name,
+      wm.stable_code cycle_code,wm.cycle_start,wm.cycle_end
+    FROM weekend_mastery_assignments a
+    JOIN students s ON s.id=a.student_id AND s.deleted_at IS NULL
+    JOIN weekend_mastery_sets wm ON wm.id=a.set_id
+    WHERE a.stage=2 AND a.status='passed' AND a.passed_at IS NOT NULL AND a.passed_at>=?
+      AND NOT EXISTS (SELECT 1 FROM weekend_mastery_broadcast_reads r
+        WHERE r.assignment_id=a.id AND r.user_id=?)
+      AND NOT EXISTS (SELECT 1 FROM bindings b
+        WHERE b.parent_id=? AND b.student_id=a.student_id)
+    ORDER BY a.passed_at DESC,a.id DESC LIMIT ?`, [cutoff, safeUserId, safeUserId, safeLimit])
+    .map((row) => ({
+      id: Number(row.assignment_id),
+      assignment_id: Number(row.assignment_id),
+      student_id: Number(row.student_id),
+      student_name: row.student_name,
+      passed_at: row.passed_at,
+      cycle_code: row.cycle_code,
+      cycle_start: row.cycle_start,
+      cycle_end: row.cycle_end,
+      message: `${row.student_name}同学双关制霸，拿下本周攻坚战！`,
+    }));
+}
+
+function markMasteryBroadcastRead(db, { userId, assignmentId, now = currentTime() }) {
+  const safeUserId = Number(userId);
+  const safeAssignmentId = Number(assignmentId);
+  const cutoff = sqlUtcTime(new Date(now).getTime() - BROADCAST_LIFETIME_MS);
+  const broadcast = db.get(`SELECT a.id FROM weekend_mastery_assignments a
+    JOIN students s ON s.id=a.student_id AND s.deleted_at IS NULL
+    WHERE a.id=? AND a.stage=2 AND a.status='passed' AND a.passed_at IS NOT NULL AND a.passed_at>=?`, [
+    safeAssignmentId, cutoff,
+  ]);
+  if (!broadcast || !Number.isInteger(safeUserId) || safeUserId < 1) {
+    throw new WeekendMasteryError('捷报不存在或已过期', 'WEEKEND_MASTERY_BROADCAST_NOT_FOUND', 404);
+  }
+  const result = db.run(`INSERT OR IGNORE INTO weekend_mastery_broadcast_reads(assignment_id,user_id)
+    VALUES(?,?)`, [safeAssignmentId, safeUserId]);
+  return { idempotent: Number(result.changes || 0) === 0, assignment_id: safeAssignmentId };
+}
+
 module.exports = {
   WeekendMasteryError,
   advanceAssignment,
@@ -622,6 +676,8 @@ module.exports = {
   dateOffset,
   draftSubmission,
   latestSubmission,
+  markMasteryBroadcastRead,
+  masteryBroadcasts,
   normalizeManifest,
   posterReady,
   resetNowProviderForTests,

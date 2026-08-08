@@ -124,6 +124,27 @@
     </view>
 
     <view class="priority-stack">
+      <view v-if="endingPracticePlans.length" class="todo-card tone-plan-end">
+        <view class="todo-head">
+          <view>
+            <text class="todo-kicker">计划到期提醒</text>
+            <text class="todo-title">今天有 {{ endingPracticePlans.length }} 个打卡计划结束</text>
+          </view>
+          <text class="todo-badge">今天结束</text>
+        </view>
+        <view v-for="plan in endingPracticePlans" :key="plan.id" class="plan-end-row">
+          <view class="todo-copy">
+            <text class="todo-name">{{ plan.class_name || '学习小组' }} · {{ plan.title }}</text>
+            <text class="todo-meta">计划最后一天是今天，可检查提交与批改情况。</text>
+          </view>
+          <button
+            class="plan-end-dismiss"
+            :aria-label="`确认${plan.class_name || '学习小组'}的打卡计划结束提醒`"
+            @tap="$emit('dismiss-plan-ending', plan)"
+          >知道了</button>
+        </view>
+      </view>
+
       <view v-if="pendingMasteryCount" class="todo-card tone-mastery">
         <view class="todo-head">
           <view>
@@ -420,6 +441,7 @@ const props = defineProps({
   pendingQuestionReportCount: { type: Number, default: 0 },
   pendingQuestionReports: { type: Array, default: () => [] },
   todaySessionCount: { type: Number, default: 0 },
+  endingPracticePlans: { type: Array, default: () => [] },
   choiceAlerts: { type: Array, default: () => [] },
   dismissingAlertId: { type: [Number, String], default: null },
   classes: { type: Array, default: () => [] },
@@ -433,6 +455,7 @@ const emit = defineEmits([
   'navigate',
   'open-practice-todo',
   'open-answer-requests',
+  'dismiss-plan-ending',
   'dismiss-choice-alert',
   'reload',
   'update:classesExpanded',
@@ -445,6 +468,7 @@ const priorityCount = computed(() => Number(props.pendingPracticeCount || 0)
   + Number(props.answerRequestCount || 0)
   + Number(props.pendingLeaves || 0)
   + Number(props.pendingQuestionReportCount || 0)
+  + props.endingPracticePlans.length
   + props.choiceAlerts.length);
 
 const hasPriority = computed(() => priorityCount.value > 0);
@@ -809,6 +833,7 @@ function toggleClasses() {
 .todo-card.tone-yellow { border-left: 6rpx solid var(--primary); }
 .todo-card.tone-mint { border-left: 6rpx solid var(--primary); }
 .todo-card.tone-coral { border-left: 6rpx solid var(--coral); }
+.todo-card.tone-plan-end { border-left: 8rpx solid #F79BC0; background: #FFF7FA; }
 
 .todo-head {
   display: flex;
@@ -915,6 +940,30 @@ function toggleClasses() {
   margin-top: 16rpx;
   padding-top: 16rpx;
   border-top: 1rpx solid #D7E9E4;
+}
+
+.plan-end-row {
+  min-height: 96rpx;
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 16rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid #F2C8D5;
+}
+
+.plan-end-dismiss {
+  min-width: 116rpx;
+  min-height: 68rpx;
+  flex: none;
+  margin: 0;
+  padding: 0 16rpx;
+  border: 2rpx solid #050505;
+  border-radius: 10rpx;
+  background: #FFF48A;
+  color: #050505;
+  font-size: 19rpx;
+  font-weight: 820;
 }
 
 .choice-alert-dismiss {

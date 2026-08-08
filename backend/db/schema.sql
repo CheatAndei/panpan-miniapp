@@ -992,6 +992,14 @@ CREATE TABLE IF NOT EXISTS weekend_mastery_attachments (
   UNIQUE(submission_id,sha256)
 );
 
+-- 双关通关后 24 小时内向其他已登录账号展示一次全服捷报。
+CREATE TABLE IF NOT EXISTS weekend_mastery_broadcast_reads (
+  assignment_id INTEGER NOT NULL REFERENCES weekend_mastery_assignments(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(assignment_id,user_id)
+);
+
 -- 教师可为学生设置真实冲榜目标，但目标不会生成或篡改挑战成绩。
 CREATE TABLE IF NOT EXISTS mental_rank_goals (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1266,6 +1274,8 @@ CREATE INDEX IF NOT EXISTS idx_weekend_mastery_assignment_student
   ON weekend_mastery_assignments(student_id,set_id,stage,status);
 CREATE INDEX IF NOT EXISTS idx_weekend_mastery_teacher_queue
   ON weekend_mastery_submissions(status,submitted_at,assignment_id);
+CREATE INDEX IF NOT EXISTS idx_weekend_mastery_broadcast_user
+  ON weekend_mastery_broadcast_reads(user_id,read_at);
 CREATE INDEX IF NOT EXISTS idx_achievement_records_student
   ON achievement_records(student_id,achieved_at DESC,id DESC);
 CREATE INDEX IF NOT EXISTS idx_mental_rank_goals_student

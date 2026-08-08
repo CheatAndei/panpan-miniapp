@@ -9,6 +9,12 @@
       :leaving="entranceLeaving"
     />
 
+    <MasteryBroadcastTicker
+      v-if="homeVisible && !entranceVisible && activeMasteryBroadcast"
+      :broadcast="activeMasteryBroadcast"
+      @complete="completeMasteryBroadcast"
+    />
+
     <view class="home-stage" :class="{ 'is-waiting': entranceVisible }">
       <HomeWelcome
         v-if="!user.role"
@@ -38,6 +44,7 @@
       :pending-question-report-count="pendingQuestionReportCount"
       :pending-question-reports="pendingQuestionReports"
       :today-session-count="todaySessions.length"
+      :ending-practice-plans="endingPracticePlans"
       :choice-alerts="choiceAlerts"
       :dismissing-alert-id="dismissingAlertId"
       :classes="classes"
@@ -47,6 +54,7 @@
       @navigate="navTo"
       @open-practice-todo="openPracticeTodo"
       @open-answer-requests="openAnswerRequests"
+      @dismiss-plan-ending="dismissEndingPracticePlan"
       @dismiss-choice-alert="dismissChoiceAlert"
       @reload="loadTeacherData"
       @open-promotion="openPromotionStudio"
@@ -125,6 +133,7 @@ import HomeWelcome from '@/components/home/HomeWelcome.vue';
 import HomeworkNoticeDialog from '@/components/home/HomeworkNoticeDialog.vue';
 import ParentHomeView from '@/components/home/ParentHomeView.vue';
 import TeacherHomeView from '@/components/home/TeacherHomeView.vue';
+import MasteryBroadcastTicker from '@/components/home/MasteryBroadcastTicker.vue';
 
 const user = ref({});
 // 启动时从storage恢复
@@ -138,6 +147,11 @@ if (token && savedUser?.role) {
 }
 
 const entranceVisible = ref(false);
+const homeVisible = ref(false);
+const masteryBroadcastQueue = ref([]);
+const masteryBroadcastLoading = ref(false);
+const activeMasteryBroadcast = computed(() => masteryBroadcastQueue.value[0] || null);
+let masteryBroadcastRequest = 0;
 const entranceLeaving = ref(false);
 const entranceMode = ref('returning');
 const entrancePhrase = ref('持之以恒');
@@ -284,11 +298,13 @@ function resetHomeScroll() {
 }
 
 onShow(() => {
+  homeVisible.value = true;
   stopParentRefresh();
   stopTeacherRefresh();
   if (bypassHomeLoadForTarget) return;
   if (user.value.role === 'teacher') {
     loadTeacherData({ announcePractice: true }).finally(startTeacherRefresh);
+    loadMasteryBroadcasts();
   }
   else if (user.value.role === 'parent') {
     const notifyPromise = loadNotifyTemplates();
@@ -296,13 +312,16 @@ onShow(() => {
     const parentPromise = loadParentData().finally(resetHomeScroll);
     if (entranceVisible.value) completeEntranceAfter(Promise.allSettled([notifyPromise, parentPromise]));
     parentRefreshTimer = setInterval(() => loadParentData(), 30000);
+    loadMasteryBroadcasts();
   }
 });
 onHide(() => {
+  homeVisible.value = false;
   stopParentRefresh();
   stopTeacherRefresh();
 });
 onUnload(() => {
+  homeVisible.value = false;
   pageAlive = false;
   entranceSession += 1;
   if (entranceVisible.value) uni.showTabBar({ animation: false, fail: () => {} });
@@ -332,6 +351,7 @@ const answerRequestCount = ref(0);
 const answerRequestTodos = ref([]);
 const pendingQuestionReportCount = ref(0);
 const pendingQuestionReports = ref([]);
+const endingPracticePlans = ref([]);
 const choiceAlerts = ref([]);
 const promotionItems = ref([]);
 const promotionUnseen = ref(0);
@@ -372,6 +392,7 @@ const totalPending = computed(() => Number(pendingLeaves.value || 0)
   + Number(pendingChallengeCount.value || 0)
   + Number(answerRequestCount.value || 0)
   + Number(pendingQuestionReportCount.value || 0)
+  + endingPracticePlans.value.length
   + choiceAlerts.value.length);
 const h = new Date().getHours();
 const greeting = h < 6 ? '夜深了' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
@@ -381,6 +402,52 @@ function localDateKey() {
   const date = new Date();
   const pad = (value) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+}
+
+function practicePlanEndReminderKey(plan) {
+  return `panpan:practice-plan-end:${Number(user.value?.id || 0)}:${Number(plan?.id || 0)}:${plan?.end_date || ''}`;
+}
+
+function isPracticePlanEndReminderDismissed(plan) {
+  return Boolean(uni.getStorageSync(practicePlanEndReminderKey(plan)));
+}
+
+function dismissEndingPracticePlan(plan) {
+  uni.setStorageSync(practicePlanEndReminderKey(plan), '1');
+  endingPracticePlans.value = endingPracticePlans.value.filter((item) => Number(item.id) !== Number(plan?.id));
+}
+
+async function loadMasteryBroadcasts() {
+  if (!user.value.role || masteryBroadcastLoading.value || masteryBroadcastQueue.value.length) return;
+  const requestId = ++masteryBroadcastRequest;
+  const requestedUserId = Number(user.value.id || 0);
+  masteryBroadcastLoading.value = true;
+  try {
+    const result = await api.get('/weekend-mastery/broadcasts?limit=10');
+    if (requestId === masteryBroadcastRequest && requestedUserId === Number(user.value.id || 0)) {
+      masteryBroadcastQueue.value = result.broadcasts || [];
+    }
+  } catch (requestError) {
+    logError('loadMasteryBroadcasts', requestError);
+  } finally {
+    if (requestId === masteryBroadcastRequest) masteryBroadcastLoading.value = false;
+  }
+}
+
+function resetMasteryBroadcasts() {
+  masteryBroadcastRequest += 1;
+  masteryBroadcastQueue.value = [];
+  masteryBroadcastLoading.value = false;
+}
+
+function completeMasteryBroadcast(item) {
+  const assignmentId = Number(item?.assignment_id || item?.id || 0);
+  masteryBroadcastQueue.value = masteryBroadcastQueue.value.filter(
+    (broadcast) => Number(broadcast.assignment_id || broadcast.id) !== assignmentId,
+  );
+  if (!assignmentId) return;
+  api.post(`/weekend-mastery/broadcasts/${assignmentId}/read`, {})
+    .catch((requestError) => logError('completeMasteryBroadcast', requestError));
 }
 
 function previewFbImg(list,i){ uni.previewImage({current:api.assetUrl(list[i]),urls:list.map(u=>api.assetUrl(u))}); }
@@ -522,6 +589,7 @@ async function handleLogin() {
   try {
     const loggedInUser = await doLogin();
     user.value = loggedInUser;
+    resetMasteryBroadcasts();
     if (loggedInUser.role === 'teacher') {
       await loadTeacherData({ announcePractice: true });
       startTeacherRefresh();
@@ -531,6 +599,7 @@ async function handleLogin() {
       const hasChild = await loadParentData();
       if (!hasChild) resetHomeScroll();
     }
+    await loadMasteryBroadcasts();
   } catch(e) {
     const message = e?.error || e?.message || '登录失败，请稍后重试';
     uni.showToast({ title: message, icon: 'none' });
@@ -543,6 +612,7 @@ async function handleLoginRepair() {
   if (loginLoading.value) return;
   loginLoading.value = true;
   stopParentRefresh();
+  resetMasteryBroadcasts();
   clearLocalSession();
   user.value = {};
   child.value = null;
@@ -558,6 +628,7 @@ async function handleLoginRepair() {
       const hasChild = await loadParentData();
       if (!hasChild) resetHomeScroll();
     }
+    await loadMasteryBroadcasts();
   } catch (e) {
     toastError(e, '修复登录失败，请稍后重试');
   } finally {
@@ -630,9 +701,10 @@ async function loadTeacherData({ announcePractice = false } = {}) {
       api.get('/weekend-mastery/teacher/submissions?status=submitted&limit=3'),
       api.get('/weekly-challenge/v2/teacher/submissions?status=submitted&limit=3'),
       api.get('/exams/teacher/answer-todos?limit=3'),
+      api.get('/practice/plans?status=current&limit=100'),
       api.get('/promotions?limit=12'),
     ]);
-    const [classResult, leaveResult, sessionResult, masteryResult, challengeResult, answerResult, promotionResult] = results;
+    const [classResult, leaveResult, sessionResult, masteryResult, challengeResult, answerResult, planResult, promotionResult] = results;
     if (classResult.status === 'fulfilled') classes.value = classResult.value.classes || [];
     if (leaveResult.status === 'fulfilled') {
       pendingLeaves.value = (leaveResult.value.leaves || []).filter((item) => item.status === 'pending').length;
@@ -653,6 +725,11 @@ async function loadTeacherData({ announcePractice = false } = {}) {
     if (answerResult.status === 'fulfilled') {
       answerRequestCount.value = Number(answerResult.value.count || 0);
       answerRequestTodos.value = answerResult.value.requests || [];
+    }
+    if (planResult.status === 'fulfilled') {
+      const todayKey = localDateKey();
+      endingPracticePlans.value = (planResult.value.plans || [])
+        .filter((plan) => plan.end_date === todayKey && !isPracticePlanEndReminderDismissed(plan));
     }
     if (promotionResult.status === 'fulfilled') {
       promotionItems.value = promotionResult.value.promotions || [];

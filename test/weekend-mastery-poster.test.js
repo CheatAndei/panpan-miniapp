@@ -97,13 +97,13 @@ test('周末攻坚战海报保留学生完整姓名并展示双关信息', async
   assert.equal(filePath, 'wxfile://weekend-mastery.png');
   assert.ok(harness.texts.includes('欧阳严木'));
   assert.ok(harness.texts.includes('周末攻坚战'));
-  assert.ok(harness.texts.includes('两关均通过'));
+  assert.ok(harness.texts.includes('双关制霸'));
   assert.ok(harness.texts.includes('2026.08.14 — 2026.08.20'));
   assert.ok(harness.texts.includes('找规律与字母式'));
   assert.ok(harness.texts.includes('配对规律综合应用'));
   assert.ok(harness.texts.includes('适中'));
   assert.ok(harness.texts.includes('偏难'));
-  assert.ok(harness.texts.includes('训练营通关证书'));
+  assert.ok(harness.texts.includes('WEEKEND VICTORY REPORT'));
 });
 
 test('海报以 720×960 画布导出 1080×1440 高清图片', async () => {
@@ -123,9 +123,9 @@ test('海报以 720×960 画布导出 1080×1440 高清图片', async () => {
   assert.equal(options.destWidth, 1080);
   assert.equal(options.destHeight, 1440);
   assert.equal(options.fileType, 'png');
-  assert.ok(harness.colors.includes('#FFF48A'));
-  assert.ok(harness.colors.includes('#050505'));
-  assert.ok(harness.colors.includes('#99DEF4'));
+  assert.ok(harness.colors.includes('#F6C445'));
+  assert.ok(harness.colors.includes('#070707'));
+  assert.ok(harness.colors.includes('#D94A3A'));
 });
 
 test('独立训练营海报不复用其他战报文案、题图或扫码模块', async () => {

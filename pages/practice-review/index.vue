@@ -90,7 +90,9 @@
             <text class="queue-name">{{ activeSubmission.student_name }}</text>
             <text v-if="activeSubmission._isCorrection" class="correction-badge">订正第 {{ activeSubmission._correctionRound }} 轮</text>
           </view>
-          <text class="queue-meta">{{ activeSubmission.practice_date }} · 第 {{ activeSubmissionIndex + 1 }} / {{ submissions.length }} 份</text>
+          <text class="queue-meta">
+            {{ activeSubmission.practice_date }} · {{ formatChinaSubmissionTime(activeSubmission.submitted_at, activeSubmission.practice_date) }} · 第 {{ activeSubmissionIndex + 1 }} / {{ submissions.length }} 份
+          </text>
         </view>
         <view class="queue-controls">
           <button :disabled="activeSubmissionIndex<=0 || activeSubmission._saved || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="goSubmission(-1)">上一位</button>
@@ -129,6 +131,12 @@
                 {{ activeSubmission._photoPaths.length ? activeSubmission._activePhoto + 1 : 0 }} / {{ activeSubmission.attachments.length }}
               </text>
             </view>
+            <view class="photo-actions photo-actions-top">
+              <button :disabled="!activeSubmission._photoPaths.length || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="resetCurrentPhoto">还原缩放</button>
+              <button :disabled="!activeSubmission._photoPaths.length || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="rotateCurrentPhoto">旋转 90°</button>
+              <button v-if="activeSubmission._photoFailures" :disabled="activeSubmission._photosLoading || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="retryPhotos">重读</button>
+            </view>
+            <text class="orientation-note orientation-note-top">图片在当前页原地缩放，不会打开原图或刷新批改记录。</text>
             <view
               :class="['photo-stage',{empty:!activeSubmission._photoPaths.length}]"
               :style="photoStageStyle"
@@ -183,12 +191,6 @@
                 </button>
               </view>
             </scroll-view>
-            <view class="photo-actions">
-              <button :disabled="!activeSubmission._photoPaths.length || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="resetCurrentPhoto">还原缩放</button>
-              <button :disabled="!activeSubmission._photoPaths.length || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="rotateCurrentPhoto">旋转 90°</button>
-              <button v-if="activeSubmission._photoFailures" :disabled="activeSubmission._photosLoading || activeSubmission._saving || activeSubmission._posterBusy || activeSubmission._posterSaving" @tap="retryPhotos">重读</button>
-            </view>
-            <text class="orientation-note">图片在当前页原地缩放，不会打开原图或刷新批改记录。</text>
           </view>
 
           <view class="answer-pane">
@@ -200,16 +202,17 @@
               <text class="wrong-count">错 {{ wrongCount }} 题</text>
             </view>
             <scroll-view
-              :key="`answer-scroll-${activeSubmission.id}`"
               class="answer-scroll"
               scroll-x
+              :scroll-into-view="answerScrollTarget"
               :show-scrollbar="false"
               :enable-flex="true"
             >
               <view class="answer-track">
                 <button
-                  v-for="item in activeSubmission.items"
+                  v-for="(item,index) in activeSubmission.items"
                   :key="item.id"
+                  :id="index === 0 ? answerScrollStartId : undefined"
                   :class="['answer-row',{wrong:item._correct===false}]"
                   :disabled="(activeSubmission._saved && !activeSubmission._editing) || activeSubmission._saving"
                   @tap="toggleWrong(item)"
@@ -322,10 +325,11 @@
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, ref } from 'vue';
+import { computed, getCurrentInstance, nextTick, ref } from 'vue';
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { teacherDisplayName } from '@/utils/brand';
+import { formatChinaSubmissionTime } from '@/utils/date-time';
 import { isAlbumPermissionError } from '@/utils/photo-album';
 import {
   inspectPracticePhoto,
@@ -338,6 +342,7 @@ const todos = ref([]);
 const todoCount = ref(0);
 const submissions = ref([]);
 const activeSubmissionIndex = ref(0);
+const answerScrollTarget = ref('');
 const loading = ref(false);
 const queueError = ref('');
 const recentReviews = ref([]);
@@ -354,6 +359,9 @@ const storedUser = (() => {
 })();
 const posterTeacherName = computed(() => teacherDisplayName(storedUser.nickname));
 const activeSubmission = computed(() => submissions.value[activeSubmissionIndex.value] || null);
+const answerScrollStartId = computed(() => (
+  activeSubmission.value?.id ? `answer-start-${activeSubmission.value.id}` : ''
+));
 const wrongCount = computed(() => activeSubmission.value?.items?.filter((item) => item._correct === false).length || 0);
 const editImpactText = computed(() => {
   const submission = activeSubmission.value;
@@ -450,6 +458,13 @@ function reviewedItemCorrect(item) {
 function formatReviewedAt(value) {
   const text = String(value || '');
   return text ? text.replace('T', ' ').slice(0, 16) : '刚刚批改';
+}
+
+async function resetAnswerScroll() {
+  answerScrollTarget.value = '';
+  await nextTick();
+  answerScrollTarget.value = answerScrollStartId.value;
+  await nextTick();
 }
 
 function recentReviewResult(record) {
@@ -637,11 +652,13 @@ async function loadQueue() {
     requestedSubmissionId.value = 0;
     if (!requested) {
       submissions.value = [];
+      answerScrollTarget.value = '';
       return;
     }
     submissions.value = prepared;
     const preferredIndex = prepared.findIndex((item) => Number(item.submission_id) === Number(requested.submission_id));
     activeSubmissionIndex.value = preferredIndex >= 0 ? preferredIndex : 0;
+    await resetAnswerScroll();
     await ensurePhotos(activeSubmission.value);
   } catch (error) {
     queueError.value = error?.error || error?.message || '请检查网络后重试';
@@ -660,12 +677,14 @@ async function loadRequestedSubmission(planId, submissionId) {
   if (record.status === 'submitted') {
     submissions.value = [prepareSubmission(record)];
     activeSubmissionIndex.value = 0;
+    await resetAnswerScroll();
     await ensurePhotos(activeSubmission.value);
     return true;
   }
   if (!['reviewed', 'correction_required'].includes(record.status)) return false;
   submissions.value = [prepareSubmission(record, { history: true })];
   activeSubmissionIndex.value = 0;
+  await resetAnswerScroll();
   await ensurePhotos(activeSubmission.value);
   return true;
 }
@@ -707,6 +726,7 @@ async function goSubmission(delta) {
   const target = activeSubmissionIndex.value + delta;
   if (target < 0 || target >= submissions.value.length) return;
   activeSubmissionIndex.value = target;
+  await resetAnswerScroll();
   await ensurePhotos(activeSubmission.value);
 }
 
@@ -969,6 +989,7 @@ async function nextAfterSave() {
   submissions.value.splice(currentIndex, 1);
   if (submissions.value.length) {
     activeSubmissionIndex.value = Math.min(currentIndex, submissions.value.length - 1);
+    await resetAnswerScroll();
     await ensurePhotos(activeSubmission.value);
     return;
   }

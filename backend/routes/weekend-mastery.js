@@ -10,6 +10,8 @@ const {
   createFirstAssignment,
   currentState,
   draftSubmission,
+  markMasteryBroadcastRead,
+  masteryBroadcasts,
   reviewSubmission,
   serializeAssignment,
   submitAssignment,
@@ -63,6 +65,30 @@ router.get('/gate', auth, parentOnly, (req, res) => {
   if (!studentId) return res.status(403).json({ error: '无权查看该学生的挑战门禁' });
   try { return res.json({ gate: terminalGateState(db, { studentId }) }); }
   catch (error) { return sendError(res, error, '挑战门禁加载失败'); }
+});
+
+router.get('/broadcasts', auth, (req, res) => {
+  try {
+    const broadcasts = masteryBroadcasts(getDB(), {
+      userId: req.user.id,
+      limit: req.query.limit,
+    });
+    return res.json({ count: broadcasts.length, broadcasts });
+  } catch (error) {
+    return sendError(res, error, '全服捷报加载失败');
+  }
+});
+
+router.post('/broadcasts/:assignmentId/read', auth, (req, res) => {
+  try {
+    const result = markMasteryBroadcastRead(getDB(), {
+      userId: req.user.id,
+      assignmentId: req.params.assignmentId,
+    });
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return sendError(res, error, '捷报状态保存失败');
+  }
 });
 
 router.post('/assignments', auth, parentOnly, (req, res) => {

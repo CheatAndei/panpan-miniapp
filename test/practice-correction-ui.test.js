@@ -5,6 +5,10 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const importEsm = async (file) => {
+  const source = read(file);
+  return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+};
 const review = read('pages/practice-review/index.vue');
 const teacher = read('pages/practice-teacher/index.vue');
 const parent = read('pages/practice-parent/index.vue');
@@ -38,14 +42,31 @@ test('手机批改台使用上下布局、横向滑选题卡并用单图原生�
   assert.match(review, /点缩略图切换/);
   assert.match(review, /changePhotoBy/);
   assert.match(review, /_photoResetKeys/);
+  const photoActionsIndex = review.indexOf('class="photo-actions photo-actions-top"');
+  const photoStageIndex = review.indexOf(':class="[\'photo-stage\'');
+  const answerPaneIndex = review.indexOf('class="answer-pane"');
+  assert.ok(photoActionsIndex > 0 && photoActionsIndex < photoStageIndex, '图片控制按钮应位于学生图片上方');
+  assert.ok(photoStageIndex < answerPaneIndex, '学生图片后应直接衔接标准答案区域');
   assert.doesNotMatch(review, /function previewPhoto/);
   assert.doesNotMatch(review, /@tap="previewPhoto/);
 });
 
-test('打卡批改切换学生后重建标准答案横滑区并回到最左题卡', () => {
-  assert.match(review, /:key="`answer-scroll-\$\{activeSubmission\.id\}`"/);
-  assert.match(review, /async function goSubmission\(delta\)[\s\S]*?activeSubmissionIndex\.value = target/u);
-  assert.match(review, /async function nextAfterSave\(\)[\s\S]*?activeSubmissionIndex\.value = Math\.min/u);
+test('打卡批改切换学生后显式复位原生标准答案横滑区', () => {
+  assert.match(review, /:scroll-into-view="answerScrollTarget"/);
+  assert.match(review, /v-for="\(item,index\) in activeSubmission\.items"/);
+  assert.match(review, /:id="index === 0 \? answerScrollStartId : undefined"/);
+  assert.match(review, /async function resetAnswerScroll\(\)[\s\S]*?answerScrollTarget\.value = ''[\s\S]*?await nextTick\(\)[\s\S]*?answerScrollTarget\.value = answerScrollStartId\.value/u);
+  assert.match(review, /async function goSubmission\(delta\)[\s\S]*?activeSubmissionIndex\.value = target[\s\S]*?await resetAnswerScroll\(\)/u);
+  assert.match(review, /async function nextAfterSave\(\)[\s\S]*?activeSubmissionIndex\.value = Math\.min[\s\S]*?await resetAnswerScroll\(\)/u);
+  assert.doesNotMatch(review, /:key="`answer-scroll-\$\{activeSubmission\.id\}`"/);
+});
+
+test('打卡批改在练习日期旁显示北京时间提交时刻', async () => {
+  assert.match(review, /activeSubmission\.practice_date[\s\S]*?formatChinaSubmissionTime\(activeSubmission\.submitted_at, activeSubmission\.practice_date\)[\s\S]*?activeSubmissionIndex/u);
+  const { formatChinaSubmissionTime } = await importEsm('utils/date-time.js');
+  assert.equal(formatChinaSubmissionTime('2026-08-06 12:37:00', '2026-08-06'), '提交 20:37');
+  assert.equal(formatChinaSubmissionTime('2026-08-06T16:05:00Z', '2026-08-06'), '提交 08-07 00:05');
+  assert.equal(formatChinaSubmissionTime('', '2026-08-06'), '提交时间未知');
 });
 
 test('批改台每次安全 onShow 都刷新队列，同时保护未保存批改', () => {

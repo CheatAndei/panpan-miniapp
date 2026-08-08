@@ -268,6 +268,33 @@ test('两关状态机、答案隔离、批错恢复门禁与双通过海报条�
   const completed = await request('GET', `/weekend-mastery/current?student_id=${studentId}`, parentToken);
   assert.equal(completed.payload.poster_ready, true);
   assert.equal(completed.payload.gate.allowed, true);
+  const recentAll = await request(
+    'GET', '/weekend-mastery/teacher/submissions?status=all&limit=3', teacherToken,
+  );
+  assert.equal(recentAll.payload.submissions.length, 3);
+  assert.equal(recentAll.payload.submissions[0].submission.id, correctedSecondSubmission.id,
+    '全部记录应从最新一次提交或批阅开始返回');
+
+  const ownBroadcasts = await request('GET', '/weekend-mastery/broadcasts?limit=10', parentToken);
+  assert.equal(ownBroadcasts.response.status, 200);
+  assert.equal(ownBroadcasts.payload.broadcasts.length, 0, '学生家庭账号不播自己的通关捷报');
+  const publicBroadcasts = await request('GET', '/weekend-mastery/broadcasts?limit=10', otherParentToken);
+  assert.equal(publicBroadcasts.response.status, 200);
+  assert.equal(publicBroadcasts.payload.broadcasts.length, 1);
+  assert.equal(publicBroadcasts.payload.broadcasts[0].student_name, completed.payload.student_name);
+  assert.match(publicBroadcasts.payload.broadcasts[0].message, new RegExp(completed.payload.student_name));
+  const broadcastId = publicBroadcasts.payload.broadcasts[0].assignment_id;
+  const markedRead = await request(
+    'POST', `/weekend-mastery/broadcasts/${broadcastId}/read`, otherParentToken, {},
+  );
+  assert.equal(markedRead.response.status, 200);
+  assert.equal(markedRead.payload.idempotent, false);
+  const markedAgain = await request(
+    'POST', `/weekend-mastery/broadcasts/${broadcastId}/read`, otherParentToken, {},
+  );
+  assert.equal(markedAgain.payload.idempotent, true);
+  const noReplay = await request('GET', '/weekend-mastery/broadcasts?limit=10', otherParentToken);
+  assert.equal(noReplay.payload.broadcasts.length, 0, '同一登录账号只展示一次');
 
   const ownFile = await fetch(origin + privateUrl, { headers: { authorization: `Bearer ${parentToken}` } });
   assert.equal(ownFile.status, 200);

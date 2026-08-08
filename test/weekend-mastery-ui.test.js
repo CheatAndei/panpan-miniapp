@@ -67,11 +67,23 @@ test('教师首页展示攻坚战待办并进入独立批阅台', () => {
 
   assert.match(review, /MASTERY REVIEW DESK/);
   assert.match(review, /攻坚战批阅/);
-  assert.match(review, /\/weekend-mastery\/teacher\/submissions\?status=\$\{requestedStatus\}&limit=30/);
+  assert.match(review, /requestedStatus === 'all' \? visibleLimit\.value : 30/);
+  assert.match(review, /\/weekend-mastery\/teacher\/submissions\?status=\$\{requestedStatus\}&limit=\$\{requestedLimit\}/);
   assert.match(review, /\/weekend-mastery\/teacher\/submissions\/\$\{item\.submission\.id\}\/review/);
   assert.match(review, /展开标准解法/);
   assert.match(review, /需要订正/);
   assert.match(review, /通过并解锁升级/);
+});
+
+test('攻坚战全部记录默认最新三份并每次增量展开十五份', () => {
+  const review = read('pages/weekend-mastery-review/index.vue');
+  const service = read('backend/services/weekend-mastery.js');
+
+  assert.match(review, /visibleLimit\.value = value === 'all' \? 3 : 30/);
+  assert.match(review, /visibleLimit\.value \+= 15/);
+  assert.match(review, /再展开 \$\{Math\.min\(15, totalCount - items\.length\)\} 份/);
+  assert.match(review, /status === 'all' && totalCount > items\.length/);
+  assert.match(service, /normalizedStatus === 'all'[\s\S]*?COALESCE\(sub\.reviewed_at,sub\.submitted_at,sub\.created_at\) DESC,sub\.id DESC/u);
 });
 
 test('学生流程明确分成方法熟练与难度升级两关', () => {
@@ -150,7 +162,7 @@ test('攻坚战批阅仅默认展开第一位学生的大图，其他学生按�
   assert.doesNotMatch(review, /<scroll-view scroll-x class="photos">/);
 });
 
-test('通关海报使用学生完整姓名并保持独立训练营文案', () => {
+test('通关海报使用学生完整姓名与黑金攻坚战战报', () => {
   const page = read('pages/weekend-mastery/index.vue');
   const poster = read('utils/weekend-mastery-poster.js');
 
@@ -158,9 +170,50 @@ test('通关海报使用学生完整姓名并保持独立训练营文案', () =>
   assert.match(page, /海报使用学生完整姓名/);
   assert.match(poster, /if \(!fullName\) throw new Error\('缺少学生完整姓名'\)/);
   assert.match(poster, /周末攻坚战/);
-  assert.match(poster, /训练营通关证书/);
-  assert.match(poster, /两关均通过/);
+  assert.match(poster, /#070707/);
+  assert.match(poster, /#F6C445/);
+  assert.match(poster, /PANPAN \/\/ WEEKEND MASTERY/);
+  assert.match(poster, /双关制霸/);
+  assert.match(poster, /WEEKEND VICTORY REPORT/);
   assert.doesNotMatch(poster, /压轴挑战|BREAKTHROUGH REPORT|VERIFIED|questionImage|drawImage/);
+});
+
+test('双关通过后学生端只展示一次全屏通关动效', () => {
+  const page = read('pages/weekend-mastery/index.vue');
+
+  assert.match(page, /v-if="celebrationVisible" class="victory-overlay"/);
+  assert.match(page, /\{\{ campaign\.student_name \}\}/);
+  assert.match(page, /双关制霸/);
+  assert.match(page, /panpan:weekend-mastery-cleared:/);
+  assert.match(page, /if \(uni\.getStorageSync\(key\)\) return/);
+  assert.match(page, /uni\.setStorageSync\(key, '1'\)/);
+  assert.match(page, /setTimeout\(closeCelebration, 2000\)/);
+  assert.match(page, /prefers-reduced-motion:reduce/);
+});
+
+test('登录首页播放全名全服捷报并在播放后按账号记已读', () => {
+  const indexPage = read('pages/index/index.vue');
+  const ticker = read('components/home/MasteryBroadcastTicker.vue');
+  const routes = read('backend/routes/weekend-mastery.js');
+  const service = read('backend/services/weekend-mastery.js');
+  const schema = read('backend/db/schema.sql');
+
+  assert.match(indexPage, /<MasteryBroadcastTicker/);
+  assert.match(indexPage, /\/weekend-mastery\/broadcasts\?limit=10/);
+  assert.match(indexPage, /\/weekend-mastery\/broadcasts\/\$\{assignmentId\}\/read/);
+  assert.match(indexPage, /requestedUserId === Number\(user\.value\.id \|\| 0\)/);
+  assert.match(indexPage, /function resetMasteryBroadcasts\(\)/);
+  assert.match(indexPage, /masteryBroadcastRequest \+= 1/);
+  assert.match(ticker, /全服捷报/);
+  assert.match(ticker, /\{\{ broadcast\.message \}\}/);
+  assert.match(ticker, /mastery-marquee 5\.2s linear/);
+  assert.match(ticker, /prefers-reduced-motion: reduce/);
+  assert.match(routes, /router\.get\('\/broadcasts', auth/);
+  assert.match(routes, /router\.post\('\/broadcasts\/:assignmentId\/read', auth/);
+  assert.match(service, /\$\{row\.student_name\}同学双关制霸/);
+  assert.match(service, /24 \* 60 \* 60 \* 1000/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS weekend_mastery_broadcast_reads/);
+  assert.match(schema, /PRIMARY KEY\(assignment_id,user_id\)/);
 });
 
 test('压轴挑战识别 423 门禁并引导跳转周末攻坚战', () => {

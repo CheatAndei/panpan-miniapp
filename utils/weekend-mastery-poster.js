@@ -4,16 +4,16 @@ export const WEEKEND_MASTERY_POSTER_WIDTH = 720;
 export const WEEKEND_MASTERY_POSTER_HEIGHT = 960;
 
 const COLORS = Object.freeze({
-  background: '#F5F3E8',
-  paper: '#FFFFFF',
-  ink: '#050505',
-  secondary: '#3E4A4E',
-  muted: '#6B7477',
-  yellow: '#FFF48A',
-  yellowSoft: '#FFF9C9',
-  sky: '#99DEF4',
-  skySoft: '#E7F7FC',
-  rule: '#D9D7CC',
+  background: '#070707',
+  paper: '#111111',
+  ink: '#FFF8E8',
+  secondary: '#D8C999',
+  muted: '#A9956B',
+  yellow: '#F6C445',
+  yellowSoft: '#2A2110',
+  sky: '#D94A3A',
+  skySoft: '#251313',
+  rule: '#2C2518',
 });
 
 function roundRect(ctx, x, y, width, height, radius, color) {
@@ -142,14 +142,14 @@ function drawRouteNode(ctx, centerX, centerY, number) {
 function drawStageCard(ctx, stage, index, y) {
   const cardColor = index === 0 ? COLORS.yellowSoft : COLORS.skySoft;
   roundRect(ctx, 132, y, 520, 138, 18, cardColor);
-  strokeRoundRect(ctx, 132, y, 520, 138, 18, COLORS.ink, 2);
+  strokeRoundRect(ctx, 132, y, 520, 138, 18, index === 0 ? COLORS.yellow : COLORS.sky, 3);
 
-  ctx.setFillStyle(COLORS.ink);
+  ctx.setFillStyle(index === 0 ? COLORS.yellow : COLORS.sky);
   ctx.setFontSize(17);
-  ctx.fillText(index === 0 ? '第一关 · 方法熟练' : '第二关 · 难度升级', 158, y + 33);
+  ctx.fillText(index === 0 ? 'STAGE 01 · 方法熟练' : 'STAGE 02 · 难度升级', 158, y + 33);
 
   roundRect(ctx, 542, y + 17, 84, 34, 17, index === 0 ? COLORS.yellow : COLORS.sky);
-  ctx.setFillStyle(COLORS.ink);
+  ctx.setFillStyle(index === 0 ? COLORS.background : COLORS.ink);
   ctx.setFontSize(16);
   ctx.setTextAlign('center');
   ctx.fillText(stage.difficulty, 584, y + 40);
@@ -160,8 +160,8 @@ function drawStageCard(ctx, stage, index, y) {
   wrapText(ctx, stage.topic, 425, 2)
     .forEach((line, lineIndex) => ctx.fillText(line, 158, y + 78 + lineIndex * 31));
 
-  roundRect(ctx, 602, y + 84, 32, 32, 16, COLORS.ink);
-  drawCheck(ctx, 618, y + 100, COLORS.paper);
+  roundRect(ctx, 602, y + 84, 32, 32, 16, COLORS.yellow);
+  drawCheck(ctx, 618, y + 100, COLORS.background);
 }
 
 function exportCanvas(canvasId, page) {
@@ -202,47 +202,49 @@ export async function renderWeekendMasteryPoster({
   ctx.fillRect(0, 0, WEEKEND_MASTERY_POSTER_WIDTH, WEEKEND_MASTERY_POSTER_HEIGHT);
 
   ctx.setFillStyle(COLORS.rule);
-  for (let y = 60; y < 930; y += 48) ctx.fillRect(0, y, WEEKEND_MASTERY_POSTER_WIDTH, 1);
-  ctx.setFillStyle(COLORS.ink);
-  ctx.fillRect(0, 0, 14, WEEKEND_MASTERY_POSTER_HEIGHT);
+  for (let y = 36; y < 930; y += 44) ctx.fillRect(0, y, WEEKEND_MASTERY_POSTER_WIDTH, 1);
+  for (let x = 38; x < 700; x += 54) ctx.fillRect(x, 0, 1, WEEKEND_MASTERY_POSTER_HEIGHT);
+  ctx.setFillStyle(COLORS.yellow);
+  ctx.fillRect(0, 0, 15, WEEKEND_MASTERY_POSTER_HEIGHT);
   ctx.setFillStyle(COLORS.sky);
-  ctx.fillRect(14, 0, 7, WEEKEND_MASTERY_POSTER_HEIGHT);
+  ctx.fillRect(15, 0, 6, WEEKEND_MASTERY_POSTER_HEIGHT);
 
   roundRect(ctx, 42, 36, 636, 250, 22, COLORS.paper);
-  ctx.setFillStyle(COLORS.sky);
-  ctx.fillRect(42, 36, 636, 12);
-  roundRect(ctx, 64, 66, 276, 34, 17, COLORS.skySoft);
-  ctx.setFillStyle(COLORS.ink);
+  strokeRoundRect(ctx, 42, 36, 636, 250, 22, COLORS.yellow, 3);
+  ctx.setFillStyle(COLORS.yellow);
+  ctx.fillRect(42, 36, 636, 10);
+  roundRect(ctx, 64, 66, 294, 34, 17, COLORS.yellowSoft);
+  ctx.setFillStyle(COLORS.yellow);
   ctx.setFontSize(16);
-  ctx.fillText('PANPAN · WEEKEND TRAINING CAMP', 82, 89);
+  ctx.fillText('PANPAN // WEEKEND MASTERY', 82, 89);
 
   ctx.setFillStyle(COLORS.ink);
-  ctx.setFontSize(54);
+  ctx.setFontSize(60);
   ctx.fillText('周末攻坚战', 64, 158);
-  roundRect(ctx, 486, 113, 164, 54, 12, COLORS.yellow);
+  roundRect(ctx, 472, 112, 178, 58, 10, COLORS.sky);
   ctx.setFillStyle(COLORS.ink);
-  ctx.setFontSize(21);
+  ctx.setFontSize(24);
   ctx.setTextAlign('center');
-  ctx.fillText('两关均通过', 568, 147);
+  ctx.fillText('双关制霸', 561, 149);
   ctx.setTextAlign('left');
 
-  ctx.setFillStyle(COLORS.ink);
+  ctx.setFillStyle(COLORS.yellow);
   drawAdaptiveText(ctx, fullName, 64, 220, 350, 42, 20);
   ctx.setFillStyle(COLORS.secondary);
   ctx.setFontSize(18);
-  ctx.fillText('完成本周两段式训练路线', 64, 255);
+  ctx.fillText('两关全破 · 本周方法彻底拿下', 64, 255);
   ctx.setTextAlign('right');
   ctx.fillText(period, 650, 255);
   ctx.setTextAlign('left');
 
-  ctx.setFillStyle(COLORS.ink);
+  ctx.setFillStyle(COLORS.yellow);
   ctx.setFontSize(22);
-  ctx.fillText('通关路线', 64, 330);
+  ctx.fillText('BATTLE ROUTE / 通关路线', 64, 330);
   ctx.setFillStyle(COLORS.muted);
   ctx.setFontSize(16);
-  ctx.fillText('先练方法，再升难度', 166, 330);
+  ctx.fillText('同法进阶 · 两级难度', 314, 330);
 
-  ctx.setStrokeStyle(COLORS.sky);
+  ctx.setStrokeStyle(COLORS.yellow);
   ctx.setLineWidth(10);
   ctx.beginPath();
   ctx.moveTo(92, 384);
@@ -253,19 +255,21 @@ export async function renderWeekendMasteryPoster({
   drawStageCard(ctx, routeStages[0], 0, 354);
   drawStageCard(ctx, routeStages[1], 1, 532);
 
-  roundRect(ctx, 42, 708, 636, 174, 22, COLORS.ink);
-  roundRect(ctx, 58, 724, 604, 142, 15, COLORS.yellow);
-  ctx.setFillStyle(COLORS.ink);
+  roundRect(ctx, 42, 708, 636, 174, 22, COLORS.yellow);
+  roundRect(ctx, 52, 718, 616, 154, 15, COLORS.background);
+  strokeRoundRect(ctx, 52, 718, 616, 154, 15, COLORS.sky, 3);
+  ctx.setFillStyle(COLORS.yellow);
   ctx.setFontSize(18);
-  ctx.fillText('训练营通关证书', 82, 758);
-  ctx.setFontSize(36);
-  ctx.fillText('方法拿稳，难题拿下', 82, 808);
+  ctx.fillText('WEEKEND VICTORY REPORT', 82, 758);
+  ctx.setFontSize(39);
+  ctx.fillText('方法拿稳，难题拿下', 82, 810);
+  ctx.setFillStyle(COLORS.secondary);
   ctx.setFontSize(18);
-  ctx.fillText('两道同型大题均已完成，认真思考值得被记录。', 82, 844);
+  ctx.fillText('双关均由老师确认通过，这一仗值得被记录。', 82, 848);
 
   ctx.setFillStyle(COLORS.secondary);
   ctx.setFontSize(16);
-  ctx.fillText('番番记录 · 每一步都有解法，每一关都有成长', 42, 922);
+  ctx.fillText('番番记录 · 每一步有解法，每一关有战果', 42, 922);
   ctx.setTextAlign('right');
   ctx.fillText(period, 678, 922);
   ctx.setTextAlign('left');

@@ -74,6 +74,12 @@
         <text v-if="item.submission.teacher_note">{{ item.submission.teacher_note }}</text>
       </view>
     </view>
+    <button
+      v-if="status === 'all' && totalCount > items.length"
+      class="load-more"
+      :disabled="loading"
+      @tap="loadMore"
+    >{{ loading ? '加载中…' : `再展开 ${Math.min(15, totalCount - items.length)} 份` }}</button>
   </view>
 </template>
 
@@ -87,6 +93,7 @@ const loading = ref(false);
 const error = ref('');
 const items = ref([]);
 const totalCount = ref(0);
+const visibleLimit = ref(30);
 const savingId = ref(0);
 const openedAnswer = ref(0);
 const tabs = [
@@ -103,7 +110,15 @@ function shortDate(value) {
   const parts = String(value || '').split('-');
   return parts.length === 3 ? `${Number(parts[1])}.${Number(parts[2])}` : String(value || '');
 }
-function selectStatus(value) { if (status.value === value) return; status.value = value; items.value = []; totalCount.value = 0; error.value = ''; load(); }
+function selectStatus(value) {
+  if (status.value === value) return;
+  status.value = value;
+  visibleLimit.value = value === 'all' ? 3 : 30;
+  items.value = [];
+  totalCount.value = 0;
+  error.value = '';
+  load();
+}
 function toggleAnswer(id) { openedAnswer.value = openedAnswer.value === id ? 0 : id; }
 function preview(urls, index) { uni.previewImage({ urls, current:urls[index] }); }
 async function expandPhotos(item) { items.value.forEach(entry=>{entry.photoExpanded=entry===item;}); await loadPhotos(item); }
@@ -129,7 +144,8 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    const data = await api.get(`/weekend-mastery/teacher/submissions?status=${requestedStatus}&limit=30`);
+    const requestedLimit = requestedStatus === 'all' ? visibleLimit.value : 30;
+    const data = await api.get(`/weekend-mastery/teacher/submissions?status=${requestedStatus}&limit=${requestedLimit}`);
     const loadedItems = (data.submissions || []).map((item, index) => ({
       ...item,
       note:item.submission?.teacher_note || '',
@@ -148,6 +164,12 @@ async function load() {
   } finally {
     if (revision === loadRevision) loading.value = false;
   }
+}
+
+async function loadMore() {
+  if (loading.value || status.value !== 'all' || items.value.length >= totalCount.value) return;
+  visibleLimit.value += 15;
+  await load();
 }
 
 async function review(item, isCorrect) {
@@ -176,6 +198,7 @@ async function review(item, isCorrect) {
 
 <style scoped>
 .review-page{min-height:100vh;padding:0 24rpx 52rpx;background-color:#FFFDF0;background-image:linear-gradient(rgba(5,5,5,.03) 1rpx,transparent 1rpx);background-size:100% 48rpx;color:#050505}.review-hero{position:relative;margin:0 -24rpx 18rpx;padding:36rpx 30rpx 30rpx;overflow:hidden;border-bottom:9rpx solid #FFF48A;background:#050505;color:#FFFFFF}.hero-code{position:absolute;right:25rpx;top:19rpx;color:#99DEF4;font-size:92rpx;font-weight:950;line-height:1;opacity:.2}.hero-kicker,.hero-title,.hero-sub{position:relative;display:block}.hero-kicker{color:#FFF48A;font-size:17rpx;font-weight:900;letter-spacing:1rpx}.hero-title{margin-top:8rpx;font-size:42rpx;font-weight:900}.hero-sub{margin-top:7rpx;color:#D9E6EA;font-size:22rpx}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7rpx;margin-bottom:16rpx;padding:6rpx;border:1rpx solid rgba(5,5,5,.14);background:#FFFFFF}.tabs button{min-height:72rpx;background:transparent;color:#50545B;font-size:22rpx;font-weight:750}.tabs button.active{background:#050505;color:#FFF48A}.queue-note{display:block;margin:-4rpx 0 16rpx;padding:12rpx 15rpx;background:#FFFBE0;color:#50545B;font-size:19rpx;line-height:1.5}.review-card{margin-bottom:18rpx;padding:24rpx;border:1rpx solid rgba(5,5,5,.17);background:#FFFFFF;box-shadow:0 8rpx 22rpx rgba(5,5,5,.07);animation:card-in 300ms var(--ease-out) both}.student-row{display:flex;align-items:center;gap:11rpx}.student-badge{width:52rpx;height:52rpx;display:flex;align-items:center;justify-content:center;flex:none;background:#99DEF4;font-size:24rpx;font-weight:900}.student-copy{min-width:0;flex:1}.student-name,.student-meta{display:block}.student-name{font-size:28rpx;font-weight:850}.student-meta{margin-top:3rpx;color:#6B7078;font-size:19rpx}.review-status{flex:none;padding:7rpx 10rpx;background:#FFF48A;font-size:18rpx;font-weight:820}.review-status.reviewed{background:#E9F8F3;color:#15755F}.question-heading{display:flex;justify-content:space-between;gap:14rpx;margin-top:22rpx;padding-top:20rpx;border-top:2rpx solid #050505}.question-stage,.question-title{display:block}.question-stage{color:#0B789A;font-size:18rpx;font-weight:850}.question-title{margin-top:5rpx;font-size:29rpx;font-weight:860}.cycle{flex:none;color:#6B7078;font-size:19rpx}.question-sheet{margin-top:18rpx}.answer-toggle{width:100%;min-height:76rpx;margin-top:20rpx;border:2rpx solid #050505;background:#FFFBE0;color:#050505;font-size:22rpx;font-weight:820}.answer-panel{margin-top:10rpx;padding:20rpx;border-left:7rpx solid #99DEF4;background:#F7FCFE}.answer-kicker{display:block;margin-bottom:12rpx;color:#0B789A;font-size:16rpx;font-weight:900}.answer-text{font-size:25rpx;line-height:1.7}.verification{display:block;margin-top:14rpx;padding-top:12rpx;border-top:1rpx solid #DCE9ED;color:#50545B;font-size:19rpx;line-height:1.5}.photos{margin-top:18rpx;white-space:nowrap}.photo-row{display:flex;gap:9rpx}.photo-row image{width:214rpx;height:214rpx;flex:none;border:1rpx solid #DCE9ED;background:#F7FCFE}.photo-error{margin-top:12rpx;padding:16rpx;border:2rpx solid #E49BA9;background:#FFF0F3;color:#7D2F3E;font-size:20rpx;line-height:1.5}.photo-error button{min-height:68rpx;margin-top:10rpx;background:#B53A52;color:#FFFFFF;font-size:20rpx;font-weight:800}.student-note{margin-top:14rpx;padding:15rpx;border-left:6rpx solid #FFF48A;background:#FFFDF0}.student-note text{display:block;font-size:21rpx;line-height:1.55}.student-note text:first-child{font-size:18rpx;font-weight:820}.teacher-note{box-sizing:border-box;width:100%;min-height:126rpx;margin-top:16rpx;padding:15rpx;border:1rpx solid #DCE9ED;background:#F7FCFE;color:#050505;font-size:22rpx}.review-actions{display:grid;grid-template-columns:.9fr 1.1fr;gap:10rpx;margin-top:14rpx}.review-actions button{min-height:90rpx;font-size:22rpx;font-weight:850}.wrong{background:#FFF0F3;color:#B53A52}.correct{background:#0B789A;color:#FFFFFF}.reviewed-note{margin-top:14rpx;padding:15rpx;background:#F4F6F7}.reviewed-note text{display:block;font-size:20rpx}.reviewed-note text+text{margin-top:5rpx;color:#50545B}@keyframes card-in{from{transform:translateY(16rpx);opacity:0}to{transform:translateY(0);opacity:1}}@media(prefers-reduced-motion:reduce){.review-card{animation:none}}
+.load-more{width:100%;min-height:86rpx;margin:8rpx 0 22rpx;border:3rpx solid #050505;background:#FFF48A;color:#050505;font-size:23rpx;font-weight:880;box-shadow:6rpx 6rpx 0 #050505}.load-more:active{transform:scale(.98)}
 /* First submission opens as a large preview; the remaining submissions stay folded. */
 .photo-loader{width:100%;min-height:76rpx;margin-top:18rpx;border:1rpx solid #DCE9ED;background:#F7FCFE;color:#0B789A;font-size:21rpx;font-weight:800}.student-photo-panel{margin-top:18rpx;padding:16rpx;border:1rpx solid #DCE9ED;background:#F7FCFE}.student-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12rpx;margin-bottom:12rpx;color:#6B7078;font-size:19rpx}.student-photo-head text:first-child{color:#050505;font-size:22rpx;font-weight:850}.student-photo-main{display:block;width:100%;height:620rpx;border:1rpx solid #CDE8F0;background:#FFFFFF}.student-photo-state{height:220rpx;display:flex;align-items:center;justify-content:center;color:#6B7078;font-size:20rpx}.student-photo-thumbs{margin-top:12rpx;white-space:nowrap}.student-photo-thumb-row{display:flex;gap:10rpx}.student-photo-thumb{position:relative;width:112rpx;height:112rpx;flex:none;margin:0;padding:0;border:2rpx solid transparent;background:#FFFFFF}.student-photo-thumb.active{border-color:#0B789A;box-shadow:3rpx 3rpx 0 #99DEF4}.student-photo-thumb image{display:block;width:100%;height:100%}.student-photo-thumb text{position:absolute;right:4rpx;bottom:4rpx;min-width:28rpx;height:28rpx;line-height:28rpx;background:#050505;color:#FFFFFF;font-size:16rpx}.student-photo-retry{min-height:78rpx;margin:0;background:#FFF0F3;color:#B53A52;font-size:20rpx}
 </style>

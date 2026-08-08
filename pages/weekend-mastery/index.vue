@@ -141,6 +141,20 @@
       </view>
     </template>
 
+    <view v-if="celebrationVisible" class="victory-overlay" role="status" @tap="closeCelebration">
+      <view class="victory-grid" aria-hidden="true"></view>
+      <view class="victory-slash slash-one" aria-hidden="true"></view>
+      <view class="victory-slash slash-two" aria-hidden="true"></view>
+      <view class="victory-content">
+        <text class="victory-kicker">WEEKEND MASTERY // CLEARED</text>
+        <text class="victory-name">{{ campaign.student_name }}</text>
+        <view class="victory-rule" aria-hidden="true"></view>
+        <text class="victory-title">双关制霸</text>
+        <text class="victory-copy">本周攻坚战 · 全线通关</text>
+        <text class="victory-dismiss">点击收下战报</text>
+      </view>
+    </view>
+
     <view v-if="posterOpen" class="poster-mask" @tap="closePoster">
       <view class="poster-sheet" @tap.stop>
         <button class="poster-close" aria-label="关闭海报" @tap="closePoster">×</button>
@@ -163,7 +177,7 @@
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, ref } from 'vue';
-import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app';
+import { onHide, onLoad, onPullDownRefresh, onShow, onUnload } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import {
   albumPermissionDenied,
@@ -189,6 +203,8 @@ const posterGenerating = ref(false);
 const posterSaving = ref(false);
 const posterPath = ref('');
 const posterError = ref('');
+const celebrationVisible = ref(false);
+let celebrationTimer = null;
 let loadedOnce = false;
 
 const stages = computed(() => Array.isArray(campaign.value?.stages) ? campaign.value.stages : []);
@@ -225,6 +241,8 @@ onShow(() => {
   loadCurrent();
 });
 onPullDownRefresh(async () => { try { await loadCurrent(); } finally { uni.stopPullDownRefresh(); } });
+onHide(closeCelebration);
+onUnload(closeCelebration);
 
 function shortDate(value) {
   const parts = String(value || '').split('-');
@@ -247,6 +265,27 @@ function stageStatusText(stage) {
   return ({ active:'进行中', submitted:'等待批改', reviewed_wrong:'需要订正', passed:'已通过' })[assignment.status] || '进行中';
 }
 
+function celebrationStorageKey(data) {
+  const cycle = data?.set?.stable_code || data?.cycle_start || 'current';
+  return `panpan:weekend-mastery-cleared:${studentId.value}:${cycle}`;
+}
+
+function maybeShowCelebration(data) {
+  if (!data?.poster_ready) return;
+  const key = celebrationStorageKey(data);
+  if (uni.getStorageSync(key)) return;
+  uni.setStorageSync(key, '1');
+  celebrationVisible.value = true;
+  if (celebrationTimer) clearTimeout(celebrationTimer);
+  celebrationTimer = setTimeout(closeCelebration, 2000);
+}
+
+function closeCelebration() {
+  celebrationVisible.value = false;
+  if (celebrationTimer) clearTimeout(celebrationTimer);
+  celebrationTimer = null;
+}
+
 async function loadCurrent() {
   if (!studentId.value || loading.value) return;
   loading.value = true;
@@ -254,6 +293,7 @@ async function loadCurrent() {
   try {
     const data = await api.get(`/weekend-mastery/current?student_id=${studentId.value}`);
     campaign.value = data;
+    maybeShowCelebration(data);
     const latest = data.current_assignment?.submission || null;
     const nextAssignmentId = String(data.current_assignment?.id || '');
     if (nextAssignmentId !== noteAssignmentId.value) {
@@ -415,8 +455,9 @@ async function savePoster() {
 .upgrade-card{position:relative;overflow:hidden;border-top:9rpx solid #FFF48A}.upgrade-check,.empty-mark{width:76rpx;height:76rpx;display:flex;align-items:center;justify-content:center;margin:0 auto;background:#FFF48A}.upgrade-rays{position:absolute;inset:0;pointer-events:none}.upgrade-rays>view{position:absolute;left:50%;top:8rpx;width:4rpx;height:50rpx;background:#99DEF4;transform-origin:center 150rpx;animation:ray-in 520ms var(--ease-out) both}.upgrade-rays>view:nth-child(1){transform:rotate(-42deg)}.upgrade-rays>view:nth-child(2){transform:rotate(0)}.upgrade-rays>view:nth-child(3){transform:rotate(42deg)}.upgrade-action{background:#FFF48A;color:#050505;box-shadow:7rpx 7rpx 0 #050505}
 .question-card,.submission-card{margin-bottom:18rpx;padding:26rpx}.question-head,.submission-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16rpx;margin-bottom:22rpx}.question-kicker{display:block;color:#0B789A;font-size:18rpx;font-weight:900}.question-title,.submission-title{display:block;margin-top:5rpx;font-size:31rpx;font-weight:880;line-height:1.35}.difficulty{flex:none;padding:8rpx 13rpx;background:#E5F8FE;font-size:20rpx;font-weight:850}.difficulty.stage-2{background:#050505;color:#FFF48A}.question-source{display:block;margin-top:24rpx;padding-top:14rpx;border-top:1rpx solid #EDF3F5;color:#6B7078;font-size:18rpx;line-height:1.5}.submission-copy{display:block;margin-top:5rpx;color:#50545B;font-size:20rpx;line-height:1.5}.photo-count{flex:none;padding:7rpx 11rpx;background:#FFFBE0;font-size:19rpx;font-weight:800}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9rpx;margin-bottom:16rpx}.photo-grid image{width:100%;height:176rpx;border:1rpx solid #DCE9ED;background:#F7FCFE}.upload-action,.submit-action,.terminal-action{min-height:88rpx;margin-top:14rpx;font-size:24rpx;font-weight:820}.upload-action{border:2rpx solid #050505;background:#FFFFFF;color:#050505}.submit-action{background:#0B789A;color:#FFFFFF}.student-note-input{box-sizing:border-box;width:100%;min-height:132rpx;margin-top:14rpx;padding:16rpx;border:1rpx solid #DCE9ED;background:#F7FCFE;color:#050505;font-size:23rpx}.draft-tip{display:block;margin-top:10rpx;color:#6B7078;font-size:19rpx;line-height:1.5}.state-panel{margin-top:10rpx;padding:20rpx;border-left:7rpx solid #FFF48A;background:#FFFDF0}.state-panel.passed{border-color:#99DEF4;background:#F7FCFE}.state-title,.state-copy{display:block}.state-title{font-size:25rpx;font-weight:850}.state-copy{margin-top:6rpx;color:#50545B;font-size:21rpx;line-height:1.55}.terminal-action{width:100%;background:#FFF48A;color:#050505}.terminal-action.dark{background:#050505;color:#FFFFFF}.correction-alert{margin-top:16rpx;padding:20rpx;border:2rpx solid #E49BA9;background:#FFF0F3}.correction-title,.correction-copy{display:block}.correction-title{color:#B53A52;font-size:26rpx;font-weight:900}.correction-copy{margin-top:7rpx;color:#7D2F3E;font-size:22rpx;line-height:1.6}
 .complete-card{position:relative;border:4rpx solid #050505;background:#FFF48A;box-shadow:9rpx 9rpx 0 #050505}.complete-burst{font-size:82rpx;line-height:1;animation:finish-pop 520ms var(--ease-out) both}.complete-kicker{color:#050505}.poster-action{background:#0B789A}.empty-card{margin-top:40rpx}.empty-note{font-size:19rpx}
+.victory-overlay{position:fixed;z-index:90;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:48rpx;background:#070707;color:#FFF8E8;animation:victory-backdrop 2s var(--ease-out) both}.victory-grid{position:absolute;inset:-30%;opacity:.2;background-image:linear-gradient(rgba(246,196,69,.4) 2rpx,transparent 2rpx),linear-gradient(90deg,rgba(246,196,69,.4) 2rpx,transparent 2rpx);background-size:64rpx 64rpx;transform:perspective(680rpx) rotateX(58deg) scale(1.25);transform-origin:center bottom;animation:victory-grid-in 1.7s var(--ease-out) both}.victory-slash{position:absolute;width:120vw;height:20rpx;background:#F6C445;transform:rotate(-18deg) scaleX(0);animation:victory-slash-in .72s var(--ease-out) forwards}.slash-one{top:25%;transform-origin:right}.slash-two{bottom:24%;height:8rpx;background:#D94A3A;transform-origin:left;animation-delay:.12s}.victory-content{position:relative;width:100%;max-width:640rpx;padding:50rpx 32rpx 54rpx;border:4rpx solid #F6C445;background:rgba(7,7,7,.92);box-shadow:14rpx 14rpx 0 rgba(246,196,69,.28);text-align:center;animation:victory-card-in .82s .16s var(--ease-out) both}.victory-kicker,.victory-name,.victory-title,.victory-copy,.victory-dismiss{display:block}.victory-kicker{color:#F6C445;font-size:18rpx;font-weight:900;letter-spacing:3rpx}.victory-name{margin-top:30rpx;font-size:42rpx;font-weight:900;letter-spacing:4rpx}.victory-rule{width:94rpx;height:7rpx;margin:22rpx auto;background:#D94A3A}.victory-title{color:#F6C445;font-size:82rpx;font-weight:950;line-height:1.08;letter-spacing:4rpx;text-shadow:6rpx 6rpx 0 #5C1F18}.victory-copy{margin-top:20rpx;font-size:28rpx;font-weight:850;letter-spacing:2rpx}.victory-dismiss{margin-top:44rpx;color:#B8AA8B;font-size:19rpx}
 .poster-mask{position:fixed;z-index:40;inset:0;display:flex;align-items:flex-end;background:rgba(5,5,5,.64)}.poster-sheet{position:relative;width:100%;max-height:92vh;padding:30rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));overflow-y:auto;background:#FFFDF0;animation:sheet-in 300ms var(--ease-out) both}.poster-close{position:absolute;right:20rpx;top:18rpx;width:60rpx;height:60rpx;padding:0;background:#050505;color:#FFFFFF;font-size:38rpx}.poster-sheet-kicker,.poster-sheet-title,.poster-sheet-copy{display:block;padding-right:70rpx}.poster-sheet-kicker{color:#0B789A;font-size:17rpx;font-weight:900}.poster-sheet-title{margin-top:5rpx;font-size:34rpx;font-weight:900}.poster-sheet-copy{margin-top:7rpx;color:#50545B;font-size:20rpx;line-height:1.55}.poster-loading,.poster-error{min-height:480rpx;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18rpx;text-align:center}.poster-preview{width:100%;display:block;margin-top:22rpx;border:2rpx solid #050505}.poster-actions{display:grid;grid-template-columns:1fr 1fr;gap:10rpx;margin-top:14rpx}.poster-actions button,.poster-error button{min-height:86rpx;background:#050505;color:#FFFFFF;font-size:23rpx;font-weight:800}.poster-actions button:first-child{background:#0B789A}.poster-canvas{position:fixed;left:-2200px;top:0;width:720px;height:960px;pointer-events:none}
-@keyframes hero-in{from{transform:translateY(-20rpx);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes surface-in{from{transform:translateY(22rpx);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes bridge-fill{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1);transform-origin:left}}@keyframes ray-in{from{opacity:0;transform:scaleY(.2)}to{opacity:1}}@keyframes finish-pop{from{transform:scale(.45) rotate(-20deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes sheet-in{from{transform:translateY(34rpx);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes hero-in{from{transform:translateY(-20rpx);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes surface-in{from{transform:translateY(22rpx);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes bridge-fill{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1);transform-origin:left}}@keyframes ray-in{from{opacity:0;transform:scaleY(.2)}to{opacity:1}}@keyframes finish-pop{from{transform:scale(.45) rotate(-20deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}@keyframes sheet-in{from{transform:translateY(34rpx);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes victory-backdrop{0%{opacity:0}18%,82%{opacity:1}100%{opacity:0}}@keyframes victory-card-in{from{transform:scale(.72) translateY(40rpx);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}@keyframes victory-grid-in{from{transform:perspective(680rpx) rotateX(58deg) scale(1.55) translateY(160rpx);opacity:0}to{transform:perspective(680rpx) rotateX(58deg) scale(1.25);opacity:.2}}@keyframes victory-slash-in{to{transform:rotate(-18deg) scaleX(1)}}
 @media(max-width:360px){.stage-map{grid-template-columns:1fr 68rpx 1fr;padding:14rpx}.stage-node{gap:6rpx}.stage-index{width:42rpx;height:42rpx}.stage-name{font-size:18rpx}.question-head,.submission-head{flex-direction:column}.difficulty,.photo-count{align-self:flex-start}}
-@media(prefers-reduced-motion:reduce){.mastery-hero,.surface-enter,.upgrade-rays>view,.complete-burst,.poster-sheet,.stage-bridge.active .bridge-line{animation:none!important}.primary-action:active,.upgrade-action:active,.poster-action:active,.upload-action:active,.submit-action:active,.terminal-action:active{transform:none}}
+@media(prefers-reduced-motion:reduce){.mastery-hero,.surface-enter,.upgrade-rays>view,.complete-burst,.poster-sheet,.stage-bridge.active .bridge-line,.victory-overlay,.victory-grid,.victory-slash,.victory-content{animation:none!important}.victory-overlay{opacity:1}.victory-slash{transform:rotate(-18deg) scaleX(1)}.primary-action:active,.upgrade-action:active,.poster-action:active,.upload-action:active,.submit-action:active,.terminal-action:active{transform:none}}
 </style>
