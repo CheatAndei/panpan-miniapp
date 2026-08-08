@@ -19,4 +19,6 @@ test('八年级压轴和填空挑战只抽取真题源并停用原创题卡', ()
   assert.match(deploy, /g8_terminal_original:[\s\S]*source_key LIKE 'g8-original-%'/);
   assert.match(deploy, /counts\.g8_terminal_real !== 435/);
   assert.match(deploy, /counts\.g8_terminal_original !== 0/);
+  assert.match(deploy, /counts\.g8_practice !== 1600/);
+  assert.doesNotMatch(deploy, /counts\.g8_practice !== 480/);
 });
