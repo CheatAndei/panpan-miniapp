@@ -61,6 +61,21 @@ test('打卡批改切换学生后显式复位原生标准答案横滑区', () =>
   assert.doesNotMatch(review, /:key="`answer-scroll-\$\{activeSubmission\.id\}`"/);
 });
 
+test('打卡批改为有限分数补充精确小数，循环小数仍只显示分数', async () => {
+  assert.match(review, /formatTerminatingDecimalAnswer/);
+  assert.match(review, /v-if="item\._decimalAnswer"/);
+  assert.match(review, /小数：\{\{ item\._decimalAnswer \}\}/);
+
+  const { formatTerminatingDecimalAnswer } = await importEsm('utils/practice-answer-display.js');
+  assert.equal(formatTerminatingDecimalAnswer('1/2'), '0.5');
+  assert.equal(formatTerminatingDecimalAnswer('-7/4'), '-1.75');
+  assert.equal(formatTerminatingDecimalAnswer('x=97/10'), 'x=9.7');
+  assert.equal(formatTerminatingDecimalAnswer('6/3'), '2');
+  assert.equal(formatTerminatingDecimalAnswer('1/3'), '');
+  assert.equal(formatTerminatingDecimalAnswer('-5/6'), '');
+  assert.equal(formatTerminatingDecimalAnswer('x²+1'), '');
+});
+
 test('打卡批改在练习日期旁显示北京时间提交时刻', async () => {
   assert.match(review, /activeSubmission\.practice_date[\s\S]*?formatChinaSubmissionTime\(activeSubmission\.submitted_at, activeSubmission\.practice_date\)[\s\S]*?activeSubmissionIndex/u);
   const { formatChinaSubmissionTime } = await importEsm('utils/date-time.js');

@@ -226,6 +226,7 @@
                     :value="item.answer"
                     :blocks="item.answer_render && item.answer_render.blocks"
                   />
+                  <text v-if="item._decimalAnswer" class="answer-decimal">小数：{{ item._decimalAnswer }}</text>
                   <pp-math-text
                     class="answer-stem"
                     :value="item.stem"
@@ -330,6 +331,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { api } from '@/utils/api';
 import { teacherDisplayName } from '@/utils/brand';
 import { formatChinaSubmissionTime } from '@/utils/date-time';
+import { formatTerminatingDecimalAnswer } from '@/utils/practice-answer-display';
 import { isAlbumPermissionError } from '@/utils/photo-album';
 import {
   inspectPracticePhoto,
@@ -605,6 +607,7 @@ function prepareSubmission(submission, { history = false } = {}) {
     _photoResetKeys: [],
     items: focusedItems.map((item) => ({
       ...item,
+      _decimalAnswer: formatTerminatingDecimalAnswer(item.answer),
       _correct: isHistorical ? reviewedItemCorrect(item) : true,
     })),
   };
@@ -1811,6 +1814,15 @@ async function nextAfterSave() {
   color: var(--ink, #050505);
   font-size: 28rpx;
   font-weight: 780;
+}
+
+.answer-decimal {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--primary-strong, #0B789A);
+  font-size: 21rpx;
+  font-weight: 720;
+  line-height: 1.35;
 }
 
 .answer-stem {

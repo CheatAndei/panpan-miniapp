@@ -206,7 +206,11 @@ test('登录首页播放全名全服捷报并在播放后按账号记已读', ()
   assert.match(indexPage, /masteryBroadcastRequest \+= 1/);
   assert.match(ticker, /全服捷报/);
   assert.match(ticker, /\{\{ broadcast\.message \}\}/);
-  assert.match(ticker, /mastery-marquee 5\.2s linear/);
+  assert.match(ticker, /mastery-marquee 4\.4s linear/);
+  assert.match(ticker, /class="\['mastery-broadcast',\{ leaving \}\]"/);
+  assert.match(ticker, /setTimeout\(beginExit, 4400\)/);
+  assert.match(ticker, /setTimeout\(finish, 220\)/);
+  assert.match(ticker, /\.mastery-broadcast\.leaving/);
   assert.match(ticker, /prefers-reduced-motion: reduce/);
   assert.match(routes, /router\.get\('\/broadcasts', auth/);
   assert.match(routes, /router\.post\('\/broadcasts\/:assignmentId\/read', auth/);

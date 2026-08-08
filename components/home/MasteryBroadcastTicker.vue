@@ -1,5 +1,5 @@
 <template>
-  <view class="mastery-broadcast" role="status" aria-live="polite" @tap="finish">
+  <view :class="['mastery-broadcast',{ leaving }]" role="status" aria-live="polite" @tap="beginExit">
     <text class="broadcast-badge">全服捷报</text>
     <view class="broadcast-window">
       <text class="broadcast-message">{{ broadcast.message }}</text>
@@ -8,36 +8,47 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 
 const props = defineProps({
   broadcast: { type: Object, required: true },
 });
 const emit = defineEmits(['complete']);
 
-let timer = null;
+const leaving = ref(false);
+let exitTimer = null;
+let completeTimer = null;
 let finished = false;
 
-function clearTimer() {
-  if (timer) clearTimeout(timer);
-  timer = null;
+function clearTimers() {
+  if (exitTimer) clearTimeout(exitTimer);
+  if (completeTimer) clearTimeout(completeTimer);
+  exitTimer = null;
+  completeTimer = null;
 }
 
 function finish() {
   if (finished) return;
   finished = true;
-  clearTimer();
+  clearTimers();
   emit('complete', props.broadcast);
 }
 
+function beginExit() {
+  if (finished || leaving.value) return;
+  leaving.value = true;
+  completeTimer = setTimeout(finish, 220);
+}
+
 function start() {
-  clearTimer();
+  clearTimers();
   finished = false;
-  timer = setTimeout(finish, 5600);
+  leaving.value = false;
+  exitTimer = setTimeout(beginExit, 4400);
 }
 
 watch(() => props.broadcast?.id, start, { immediate: true });
-onBeforeUnmount(clearTimer);
+onBeforeUnmount(clearTimers);
 </script>
 
 <style scoped>
@@ -55,6 +66,11 @@ onBeforeUnmount(clearTimer);
   background: #080808;
   box-shadow: 8rpx 8rpx 0 rgba(246, 196, 69, .34);
   color: #fff8e8;
+  transition: opacity 220ms ease-out, transform 220ms ease-out;
+}
+.mastery-broadcast.leaving {
+  opacity: 0;
+  transform: translateY(-8rpx);
 }
 .broadcast-badge {
   position: relative;
@@ -79,7 +95,7 @@ onBeforeUnmount(clearTimer);
   font-size: 24rpx;
   font-weight: 850;
   white-space: nowrap;
-  animation: mastery-marquee 5.2s linear both;
+  animation: mastery-marquee 4.4s linear both;
   will-change: transform;
 }
 @keyframes mastery-marquee {
@@ -87,6 +103,8 @@ onBeforeUnmount(clearTimer);
   to { transform: translateX(-100%); }
 }
 @media (prefers-reduced-motion: reduce) {
+  .mastery-broadcast { transition-duration: 120ms; }
+  .mastery-broadcast.leaving { transform: none; }
   .broadcast-message {
     box-sizing: border-box;
     width: 100%;
