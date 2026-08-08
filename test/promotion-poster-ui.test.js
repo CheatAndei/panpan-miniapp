@@ -69,3 +69,29 @@ test('压轴通关海报下载并放大绘制题目原图', () => {
   assert.match(poster, /drawChallengeQuestion/);
   assert.match(poster, /drawCover/);
 });
+
+test('周末攻坚通关进入宣传台并复用黑金双关海报', () => {
+  const page = read('pages/promotion-posters/index.vue');
+  const masteryReview = read('pages/weekend-mastery-review/index.vue');
+  const masteryPoster = read('utils/weekend-mastery-poster.js');
+  const promotionService = read('backend/services/promotions.js');
+  const masteryRoutes = read('backend/routes/weekend-mastery.js');
+  const schema = read('backend/db/schema.sql');
+  const dbInit = read('backend/db/init.js');
+
+  assert.match(schema, /'weekend_mastery_pass'/);
+  assert.match(dbInit, /migratePromotionEventsV2/);
+  assert.match(promotionService, /recordWeekendMasteryPass/);
+  assert.match(promotionService, /backfillWeekendMasteryPromotions/);
+  assert.match(masteryRoutes, /recordWeekendMasteryPass/);
+  assert.match(masteryRoutes, /promotion:event\?serializeEvent\(event\):null/);
+  assert.match(masteryReview, /result\?\.promotion\?\.id/);
+  assert.match(masteryReview, /promotion-posters\/index\?event_id=/);
+
+  assert.match(page, /weekend_mastery_pass/);
+  assert.match(page, /renderWeekendMasteryPoster/);
+  assert.match(page, /weekendMasteryPromotionCanvas/);
+  assert.match(page, /攻坚海报显示学生全名/);
+  assert.match(masteryPoster, /PANPAN \/\/ WEEKEND MASTERY/);
+  assert.match(masteryPoster, /双关制霸/);
+});

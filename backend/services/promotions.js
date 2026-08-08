@@ -12,13 +12,17 @@ function studentContext(db, studentId) {
     WHERE s.id=? AND s.deleted_at IS NULL`, [studentId]);
 }
 
-function insertEvent(db, { teacherId, studentId, eventKey, eventType, sourceId, payload }) {
-  db.run(`INSERT OR IGNORE INTO teacher_promotion_events
-    (teacher_id,student_id,event_key,event_type,source_id,payload_json,scene_token)
-    VALUES(?,?,?,?,?,?,?)`, [
+function insertEvent(db, { teacherId, studentId, eventKey, eventType, sourceId, payload, createdAt = '' }) {
+  const columns = createdAt
+    ? '(teacher_id,student_id,event_key,event_type,source_id,payload_json,scene_token,created_at)'
+    : '(teacher_id,student_id,event_key,event_type,source_id,payload_json,scene_token)';
+  const placeholders = createdAt ? 'VALUES(?,?,?,?,?,?,?,?)' : 'VALUES(?,?,?,?,?,?,?)';
+  const params = [
     teacherId, studentId, eventKey, eventType, sourceId, JSON.stringify(payload || {}),
     crypto.randomBytes(12).toString('hex'),
-  ]);
+    ...(createdAt ? [createdAt] : []),
+  ];
+  db.run(`INSERT OR IGNORE INTO teacher_promotion_events ${columns} ${placeholders}`, params);
   return db.get('SELECT * FROM teacher_promotion_events WHERE teacher_id=? AND event_key=?', [teacherId, eventKey]);
 }
 
@@ -83,6 +87,56 @@ function recordChallengePass(db, { assignmentId }) {
   });
 }
 
+function recordWeekendMasteryPass(db, { assignmentId }) {
+  const row = db.get(`SELECT a.id,a.student_id,a.set_id,a.passed_at,s.name student_name,
+      wm.title set_title,wm.cycle_start,wm.cycle_end,
+      CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END teacher_id
+    FROM weekend_mastery_assignments a
+    JOIN weekend_mastery_sets wm ON wm.id=a.set_id
+    JOIN students s ON s.id=a.student_id
+    LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+    WHERE a.id=? AND a.stage=2 AND a.status='passed' AND s.deleted_at IS NULL`, [assignmentId]);
+  if (!row?.teacher_id) return null;
+  const stages = db.all(`SELECT stage,title,difficulty FROM weekend_mastery_questions
+    WHERE set_id=? ORDER BY stage,id`, [row.set_id]).map((item) => ({
+    stage:Number(item.stage),
+    topic:item.title || (Number(item.stage) === 1 ? '方法熟练训练' : '难度升级训练'),
+    difficulty:Number(item.stage) === 1 ? '适中' : '偏难',
+  }));
+  if (stages.length < 2) return null;
+  return insertEvent(db, {
+    teacherId:row.teacher_id,
+    studentId:row.student_id,
+    eventKey:`weekend-mastery:pass:${row.id}`,
+    eventType:'weekend_mastery_pass',
+    sourceId:row.id,
+    createdAt:row.passed_at || '',
+    payload:{
+      title:'周末攻坚战',
+      headline:'双关制霸，拿下本周攻坚战',
+      student_name:row.student_name,
+      set_title:row.set_title || '周末攻坚战',
+      period_start:row.cycle_start,
+      period_end:row.cycle_end,
+      stages,
+      achieved_at:row.passed_at,
+    },
+  });
+}
+
+function backfillWeekendMasteryPromotions(db, teacherId) {
+  const rows = db.all(`SELECT a.id FROM weekend_mastery_assignments a
+    JOIN students s ON s.id=a.student_id
+    LEFT JOIN classes c ON c.id=s.class_id AND c.deleted_at IS NULL
+    WHERE a.stage=2 AND a.status='passed' AND s.deleted_at IS NULL
+      AND CASE WHEN c.id IS NOT NULL THEN c.teacher_id ELSE s.teacher_id END=?
+      AND NOT EXISTS (SELECT 1 FROM teacher_promotion_events e
+        WHERE e.teacher_id=? AND e.event_key='weekend-mastery:pass:' || a.id)
+    ORDER BY a.passed_at,a.id`, [teacherId, teacherId]);
+  rows.forEach((row) => recordWeekendMasteryPass(db, { assignmentId:row.id }));
+  return rows.length;
+}
+
 function serializeEvent(row, db = null) {
   const payload = safeJson(row.payload_json, {});
   if (db && row.event_type === 'challenge_pass' && !payload.question_url) {
@@ -102,6 +156,7 @@ function serializeEvent(row, db = null) {
 }
 
 function teacherPromotions(db, { teacherId, unseenOnly = false, limit = 30 }) {
+  backfillWeekendMasteryPromotions(db, teacherId);
   const rows = db.all(`SELECT * FROM teacher_promotion_events
     WHERE teacher_id=?${unseenOnly ? ' AND seen_at IS NULL' : ''}
     ORDER BY datetime(created_at) DESC,id DESC LIMIT ?`, [teacherId, Math.max(1, Math.min(100, Number(limit) || 30))]);
@@ -109,4 +164,11 @@ function teacherPromotions(db, { teacherId, unseenOnly = false, limit = 30 }) {
   return { promotions:rows.map((row) => serializeEvent(row, db)), unseen:Number(unseen?.count || 0) };
 }
 
-module.exports = { recordMentalFirst, recordChallengePass, serializeEvent, teacherPromotions };
+module.exports = {
+  backfillWeekendMasteryPromotions,
+  recordChallengePass,
+  recordMentalFirst,
+  recordWeekendMasteryPass,
+  serializeEvent,
+  teacherPromotions,
+};

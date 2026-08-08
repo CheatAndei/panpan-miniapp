@@ -7,7 +7,7 @@
       <text class="studio-kicker">PANPAN PUBLICITY DESK</text>
       <text class="studio-title">把真实进步，<br/>做成值得分享的海报</text>
       <view class="studio-rule" />
-      <text class="studio-copy">仅记录真实登顶和压轴通关。公开海报自动隐藏全名、学校与班级。</text>
+      <text class="studio-copy">记录真实登顶、压轴与双关通关。口算和压轴自动匿名；攻坚海报显示学生全名。</text>
     </view>
 
     <pp-state v-if="loading && promotions.length===0" type="loading" title="正在整理宣传素材" />
@@ -30,9 +30,9 @@
               :class="['event-ticket',item.event_type,{active:selected&&selected.id===item.id}]"
               @tap="selectPromotion(item)"
             >
-              <view class="ticket-index">{{ item.event_type==='mental_first' ? '01' : '√' }}</view>
+              <view class="ticket-index">{{ ticketIndex(item) }}</view>
               <view class="ticket-copy">
-                <text class="ticket-type">{{ item.event_type==='mental_first' ? '本周新榜首' : '压轴已通关' }}</text>
+                <text class="ticket-type">{{ ticketType(item) }}</text>
                 <text class="ticket-name">{{ item.student_name }}</text>
                 <text class="ticket-date">{{ dateLabel(item.created_at) }}</text>
               </view>
@@ -46,9 +46,9 @@
         <view class="workspace-head">
           <view>
             <text class="workspace-label">POSTER PREVIEW</text>
-            <text class="workspace-title">{{ selected.event_type==='mental_first' ? '本周口算王' : '压轴通关喜报' }}</text>
+            <text class="workspace-title">{{ workspaceTitle(selected) }}</text>
           </view>
-          <view :class="['privacy-stamp',selected.event_type]">隐私已处理</view>
+          <view :class="['privacy-stamp',selected.event_type]">{{ privacyLabel(selected) }}</view>
         </view>
 
         <view :class="['poster-preview',selected.event_type]">
@@ -85,6 +85,34 @@
               <view class="cta-copy"><text class="cta-title">扫码挑战本周榜首</text><text>20 道题 · 比正确，也比速度</text><text class="cta-brand">潘潘老师数学课堂</text></view>
             </view>
             <text class="poster-privacy mental-privacy">公开海报不展示全名、学校和班级</text>
+          </template>
+
+          <template v-else-if="selected.event_type==='weekend_mastery_pass'">
+            <view class="mastery-grid" />
+            <view class="mastery-spine" />
+            <text class="mastery-en">PANPAN // WEEKEND MASTERY</text>
+            <text class="mastery-title">周末攻坚战</text>
+            <view class="mastery-seal">双关制霸</view>
+            <text class="mastery-name">{{ selected.student_name }}</text>
+            <text class="mastery-proof">两关全破 · 本周方法彻底拿下</text>
+            <text class="mastery-period">{{ masteryPeriod(selected) }}</text>
+            <text class="mastery-route-label">BATTLE ROUTE / 通关路线</text>
+            <view class="mastery-route">
+              <view v-for="(stage,index) in selected.stages || []" :key="stage.stage || index" class="mastery-stage">
+                <view class="mastery-stage-number">{{ stage.stage || index + 1 }}</view>
+                <view class="mastery-stage-copy">
+                  <text>{{ index === 0 ? '方法熟练' : '难度升级' }}</text>
+                  <text>{{ stage.topic }}</text>
+                </view>
+                <text class="mastery-stage-check">✓</text>
+              </view>
+            </view>
+            <view class="mastery-report">
+              <text>WEEKEND VICTORY REPORT</text>
+              <text>方法拿稳，难题拿下</text>
+              <text>双关均由老师确认通过，这一仗值得被记录。</text>
+            </view>
+            <text class="mastery-footer">番番记录 · 每一步有解法，每一关有战果</text>
           </template>
 
           <template v-else>
@@ -134,10 +162,11 @@
     <view v-else-if="!loading" class="empty-archive">
       <text class="empty-index">00</text>
       <text class="empty-title">真实进步发生后，海报会出现在这里</text>
-      <text class="empty-copy">学生首次成为本周口算榜首，或压轴挑战批改正确时，系统自动建立一份宣传素材。</text>
+      <text class="empty-copy">学生首次成为本周口算榜首、压轴挑战批改正确或攻坚双关通过时，系统自动建立一份宣传素材。</text>
     </view>
 
     <canvas canvas-id="promotionPosterCanvas" id="promotionPosterCanvas" class="poster-canvas" />
+    <canvas canvas-id="weekendMasteryPromotionCanvas" id="weekendMasteryPromotionCanvas" class="mastery-poster-canvas" />
   </view>
 </template>
 
@@ -148,6 +177,7 @@ import { api } from '@/utils/api';
 import { logError, toastError } from '@/utils/ui';
 import { buildShareEntryPath } from '@/utils/welcome-entry';
 import { promotionPosterPermissionDenied, renderPromotionPoster, savePromotionPoster } from '@/utils/promotion-poster';
+import { renderWeekendMasteryPoster } from '@/utils/weekend-mastery-poster';
 
 const promotions = ref([]);
 const selected = ref(null);
@@ -166,6 +196,7 @@ const instance = getCurrentInstance();
 const previewPromotions = [
   { id:9001,event_type:'mental_first',student_name:'曾同学',battle_label:'初中战场',score:2099,accuracy:100,correct_count:20,total_questions:20,elapsed_seconds:57,seen:false,created_at:'2026-07-23T08:30:00Z' },
   { id:9002,event_type:'challenge_pass',student_name:'欧阳同学',question_type_label:'解答题',headline:'成功攻下一道压轴题',question_title:'二次函数与动点综合压轴挑战',source_label:'广州中考真题改编',passed_count:12,seen:true,created_at:'2026-07-22T11:20:00Z' },
+  { id:9003,event_type:'weekend_mastery_pass',student_name:'严木',period_start:'2026-08-07',period_end:'2026-08-10',stages:[{stage:1,topic:'同底数幂方法熟练',difficulty:'适中'},{stage:2,topic:'同法进阶综合攻坚',difficulty:'偏难'}],seen:false,created_at:'2026-08-08T10:20:00Z' },
 ];
 
 onLoad((query) => {
@@ -174,14 +205,14 @@ onLoad((query) => {
   if (previewMode.value) {
     promotions.value = previewPromotions;
     const type = String(query.type || 'mental');
-    selected.value = type === 'challenge' ? previewPromotions[1] : previewPromotions[0];
+    selected.value = type === 'mastery' ? previewPromotions[2]
+      : type === 'challenge' ? previewPromotions[1] : previewPromotions[0];
     questionImagePath.value = String(query.question_image || '');
   }
 });
 onShow(() => { if (!previewMode.value) loadPromotions(); });
 onShareAppMessage(() => ({
-  title:selected.value?.event_type === 'mental_first'
-    ? `${selected.value.student_name}成为本周口算王` : `${selected.value?.student_name || '同学'}成功攻下一道压轴题`,
+  title:shareTitle(selected.value),
   path:buildShareEntryPath('guest'),
   imageUrl:posterFile.value || undefined,
 }));
@@ -190,6 +221,41 @@ function dateLabel(value) {
   const date = new Date(value || Date.now());
   if (Number.isNaN(date.getTime())) return '';
   return `${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function ticketIndex(item) {
+  if (item?.event_type === 'mental_first') return '01';
+  if (item?.event_type === 'weekend_mastery_pass') return '2×';
+  return '√';
+}
+
+function ticketType(item) {
+  if (item?.event_type === 'mental_first') return '本周新榜首';
+  if (item?.event_type === 'weekend_mastery_pass') return '攻坚双关通关';
+  return '压轴已通关';
+}
+
+function workspaceTitle(item) {
+  if (item?.event_type === 'mental_first') return '本周口算王';
+  if (item?.event_type === 'weekend_mastery_pass') return '攻坚战通关海报';
+  return '压轴通关喜报';
+}
+
+function privacyLabel(item) {
+  return item?.event_type === 'weekend_mastery_pass' ? '内部全名' : '隐私已处理';
+}
+
+function shareTitle(item) {
+  if (item?.event_type === 'mental_first') return `${item.student_name}成为本周口算王`;
+  if (item?.event_type === 'weekend_mastery_pass') return `${item.student_name}双关制霸，拿下本周攻坚战`;
+  return `${item?.student_name || '同学'}成功攻下一道压轴题`;
+}
+
+function masteryPeriod(item) {
+  const compact = (value) => String(value || '').replace(/-/g, '.');
+  const start = compact(item?.period_start);
+  const end = compact(item?.period_end);
+  return start && end ? `${start} — ${end}` : start || end || '本周训练周期';
 }
 
 async function loadPromotions() {
@@ -232,6 +298,18 @@ async function generatePoster() {
   posterError.value = '';
   posterFile.value = '';
   try {
+    if (selected.value.event_type === 'weekend_mastery_pass') {
+      await nextTick();
+      posterFile.value = await renderWeekendMasteryPoster({
+        page:instance?.proxy,
+        canvasId:'weekendMasteryPromotionCanvas',
+        studentName:selected.value.student_name,
+        periodStart:selected.value.period_start,
+        periodEnd:selected.value.period_end,
+        stages:selected.value.stages,
+      });
+      return;
+    }
     const [codePath, questionPath] = await Promise.all([
       api.downloadPrivate(`/api/promotions/${selected.value.id}/code`),
       selected.value.event_type === 'challenge_pass' && selected.value.question_url
@@ -556,6 +634,121 @@ async function savePoster() {
 .empty-index { color: var(--primary); }
 .empty-title { color: var(--ink); }
 .empty-copy { color: var(--text-secondary); }
+.event-ticket.weekend_mastery_pass.active {
+  border-color: #D5A938;
+  background: #FFF8D8;
+}
+.weekend_mastery_pass .ticket-index {
+  background: #111111;
+  color: #F6C445;
+}
+.weekend_mastery_pass .ticket-type { color: #8B6812; }
+.privacy-stamp.weekend_mastery_pass {
+  border-color: #D5A938;
+  background: #FFF8D8;
+  color: #6A4B00;
+}
+.poster-preview.weekend_mastery_pass {
+  border-color: #F6C445;
+  background: #070707;
+  color: #FFF8E8;
+}
+.mastery-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .48;
+  background-image:
+    linear-gradient(rgba(246, 196, 69, .13) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(246, 196, 69, .13) 1rpx, transparent 1rpx);
+  background-size: 44rpx 44rpx;
+}
+.mastery-spine {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 0;
+  width: 16rpx;
+  background: linear-gradient(90deg, #F6C445 0 72%, #D94A3A 72%);
+}
+.mastery-en { left: 7%; top: 6.5%; color: #F6C445; font-size: 13rpx; font-weight: 850; letter-spacing: 1rpx; }
+.mastery-title { left: 7%; top: 12%; color: #FFF8E8; font-size: 47rpx; font-weight: 950; }
+.mastery-seal {
+  position: absolute;
+  z-index: 2;
+  right: 6.5%;
+  top: 11.5%;
+  padding: 16rpx 20rpx;
+  border-radius: 8rpx;
+  background: #D94A3A;
+  color: #FFF8E8;
+  font-size: 18rpx;
+  font-weight: 900;
+}
+.mastery-name { left: 7%; top: 24%; color: #F6C445; font-size: 45rpx; font-weight: 950; }
+.mastery-proof { left: 7%; top: 32%; color: #D8C999; font-size: 15rpx; }
+.mastery-period { right: 7%; top: 32%; color: #A9956B; font-size: 12rpx; }
+.mastery-route-label { left: 7%; top: 38.5%; color: #F6C445; font-size: 14rpx; font-weight: 900; letter-spacing: 1rpx; }
+.mastery-route {
+  position: absolute;
+  z-index: 2;
+  left: 7%;
+  right: 7%;
+  top: 44%;
+  display: grid;
+  gap: 18rpx;
+}
+.mastery-stage {
+  position: relative;
+  min-height: 112rpx;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  box-sizing: border-box;
+  padding: 18rpx 52rpx 18rpx 18rpx;
+  border: 2rpx solid #F6C445;
+  border-radius: 14rpx;
+  background: #17140E;
+}
+.mastery-stage:nth-child(2) { border-color: #D94A3A; background: #1C1110; }
+.mastery-stage-number {
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  background: #FFF8E8;
+  color: #111111;
+  font-size: 22rpx;
+  font-weight: 950;
+}
+.mastery-stage-copy { min-width: 0; }
+.mastery-stage-copy text { position: static !important; color: #F6C445; font-size: 13rpx; font-weight: 850; }
+.mastery-stage-copy text + text { margin-top: 7rpx; color: #FFF8E8; font-size: 20rpx; }
+.mastery-stage-check { right: 18rpx; top: 40rpx; color: #F6C445; font-size: 26rpx; font-weight: 950; }
+.mastery-report {
+  position: absolute;
+  z-index: 2;
+  left: 6%;
+  right: 6%;
+  bottom: 7.5%;
+  padding: 22rpx 24rpx;
+  border: 7rpx double #F6C445;
+  border-radius: 16rpx;
+  background: #0B0B0B;
+}
+.mastery-report text { position: static !important; color: #F6C445; font-size: 12rpx; font-weight: 850; letter-spacing: 1rpx; }
+.mastery-report text:nth-child(2) { margin-top: 8rpx; color: #FFF8E8; font-size: 26rpx; font-weight: 950; letter-spacing: 0; }
+.mastery-report text:nth-child(3) { margin-top: 8rpx; color: #D8C999; font-size: 13rpx; font-weight: 500; letter-spacing: 0; }
+.mastery-footer { left: 7%; bottom: 2.4%; color: #A9956B; font-size: 11rpx; }
+.mastery-poster-canvas {
+  position: fixed;
+  left: -2200px;
+  top: 0;
+  width: 720px;
+  height: 960px;
+  pointer-events: none;
+}
 .event-ticket,
 .poster-actions button,
 .generation-error button {

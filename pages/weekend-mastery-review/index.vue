@@ -190,6 +190,9 @@ async function review(item, isCorrect) {
     uni.showToast({ title, icon:isCorrect ? 'success' : 'none' });
     if (result?.poster_ready) openedAnswer.value = 0;
     await load();
+    if (result?.promotion?.id) {
+      uni.navigateTo({ url:`/pages/promotion-posters/index?event_id=${result.promotion.id}&auto=1` });
+    }
   } catch (requestError) {
     uni.showToast({ title:requestError?.error || '保存失败', icon:'none' });
   } finally { savingId.value = 0; }

@@ -18,6 +18,7 @@ const {
   teacherQueue,
   terminalGateState,
 } = require('../services/weekend-mastery');
+const { recordWeekendMasteryPass, serializeEvent } = require('../services/promotions');
 
 const router = express.Router();
 
@@ -235,13 +236,17 @@ router.put('/teacher/submissions/:id/review', auth, teacherOnly, (req, res) => {
     return res.status(400).json({ error: '请选择批改结果' });
   }
   try {
-    const result = reviewSubmission(getDB(), {
+    const db = getDB();
+    const result = reviewSubmission(db, {
       teacherId: req.user.id,
       submissionId: Number(req.params.id),
       isCorrect: Boolean(req.body.is_correct),
       teacherNote: req.body?.teacher_note,
     });
-    return res.json({ ok: true, ...result });
+    const event = result.poster_ready && result.stage === 2 && result.is_correct && !result.idempotent
+      ? recordWeekendMasteryPass(db, { assignmentId:result.assignment_id })
+      : null;
+    return res.json({ ok: true, ...result, promotion:event?serializeEvent(event):null });
   } catch (error) {
     return sendError(res, error, '批改保存失败');
   }

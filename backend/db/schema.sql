@@ -630,13 +630,13 @@ CREATE TABLE IF NOT EXISTS achievement_records (
   UNIQUE(student_id, achievement_key)
 );
 
--- 教师宣传海报事件。由真实口算登顶或压轴挑战通关触发，按事件幂等保留历史。
+-- 教师宣传海报事件。由真实口算登顶、压轴挑战或周末攻坚双关通关触发，按事件幂等保留历史。
 CREATE TABLE IF NOT EXISTS teacher_promotion_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   teacher_id INTEGER NOT NULL REFERENCES users(id),
   student_id INTEGER NOT NULL REFERENCES students(id),
   event_key TEXT NOT NULL,
-  event_type TEXT NOT NULL CHECK(event_type IN ('mental_first','challenge_pass')),
+  event_type TEXT NOT NULL CHECK(event_type IN ('mental_first','challenge_pass','weekend_mastery_pass')),
   source_id INTEGER NOT NULL,
   payload_json TEXT NOT NULL DEFAULT '{}',
   scene_token TEXT NOT NULL UNIQUE,

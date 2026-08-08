@@ -265,6 +265,22 @@ test('两关状态机、答案隔离、批错恢复门禁与双通过海报条�
     { is_correct: true, teacher_note: '双关通过。' },
   );
   assert.equal(secondPassed.payload.poster_ready, true);
+  assert.equal(secondPassed.payload.promotion.event_type, 'weekend_mastery_pass');
+  assert.equal(secondPassed.payload.promotion.student_name, '严木');
+  assert.equal(secondPassed.payload.promotion.stages.length, 2);
+  assert.equal(secondPassed.payload.promotion.stages[0].stage, 1);
+  assert.equal(secondPassed.payload.promotion.stages[0].difficulty, '适中');
+  assert.equal(secondPassed.payload.promotion.stages[1].stage, 2);
+  assert.equal(secondPassed.payload.promotion.stages[1].difficulty, '偏难');
+
+  const db = getDB();
+  db.run("DELETE FROM teacher_promotion_events WHERE event_type='weekend_mastery_pass'");
+  const promotionArchive = await request('GET', '/promotions?unseen=1', teacherToken);
+  assert.equal(promotionArchive.response.status, 200);
+  assert.equal(promotionArchive.payload.unseen, 1);
+  assert.equal(promotionArchive.payload.promotions[0].event_type, 'weekend_mastery_pass');
+  assert.equal(promotionArchive.payload.promotions[0].student_name, '严木', '内部攻坚海报保留完整姓名');
+  assert.equal(promotionArchive.payload.promotions[0].stages.length, 2, '历史双关通关应自动补入宣传台');
   const completed = await request('GET', `/weekend-mastery/current?student_id=${studentId}`, parentToken);
   assert.equal(completed.payload.poster_ready, true);
   assert.equal(completed.payload.gate.allowed, true);

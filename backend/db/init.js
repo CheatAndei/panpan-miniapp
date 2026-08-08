@@ -268,6 +268,33 @@ function migrateLearningAttemptsV2() {
   _db.run('ALTER TABLE learning_attempts_v2 RENAME TO learning_attempts');
 }
 
+function migratePromotionEventsV2() {
+  const row = execOne("SELECT sql FROM sqlite_master WHERE type='table' AND name='teacher_promotion_events'");
+  const sql = String(row?.sql || '');
+  if (!sql || sql.includes('weekend_mastery_pass')) return;
+  _db.run(`CREATE TABLE teacher_promotion_events_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL REFERENCES users(id),
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    event_key TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK(event_type IN ('mental_first','challenge_pass','weekend_mastery_pass')),
+    source_id INTEGER NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    scene_token TEXT NOT NULL UNIQUE,
+    seen_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(teacher_id,event_key)
+  )`);
+  _db.run(`INSERT INTO teacher_promotion_events_v2
+    (id,teacher_id,student_id,event_key,event_type,source_id,payload_json,scene_token,seen_at,created_at)
+    SELECT id,teacher_id,student_id,event_key,event_type,source_id,payload_json,scene_token,seen_at,created_at
+    FROM teacher_promotion_events`);
+  _db.run('DROP TABLE teacher_promotion_events');
+  _db.run('ALTER TABLE teacher_promotion_events_v2 RENAME TO teacher_promotion_events');
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_teacher_promotion_events
+    ON teacher_promotion_events(teacher_id,seen_at,created_at DESC,id DESC)`);
+}
+
 function migrateLegacyChallengesToV2() {
   const legacy = execSQL(`SELECT a.*,q.grade_code,q.subject_code,sub.id submission_id,sub.parent_id,
     sub.status submission_status,sub.teacher_note,sub.is_correct,sub.submitted_at,sub.reviewed_by,sub.reviewed_at
@@ -339,6 +366,7 @@ function migrateChallengeStateV2() {
 function runMigrations() {
   migrateExamPapersV2();
   migrateLearningAttemptsV2();
+  migratePromotionEventsV2();
   ensureColumn('feedbacks', 'student_feedbacks', 'TEXT');
   ensureColumn('feedbacks', 'notes_pdf_url', 'TEXT');
   ensureColumn('checkins', 'check_out_note', 'TEXT');
